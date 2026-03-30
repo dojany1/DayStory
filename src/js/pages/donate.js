@@ -1,14 +1,29 @@
-/* ============================================
-   DayStory — Donate Page
-   ============================================ */
+/* =====================================================================
+   donate.js — 후원 페이지
+   =====================================================================
+   에디터에게 커피 한 잔의 응원을 보내는 후원 페이지입니다.
+   실제 결제는 아직 구현되지 않았으며, 추후 인앱 결제(IAP)를 연동할 예정입니다.
+   
+   구성:
+     - 후원 안내 메시지
+     - 금액 선택 버튼 (₩1,000 / ₩3,000 / ₩5,000)
+     - 후원하기 제출 버튼
+   ===================================================================== */
+
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 
+
+/**
+ * renderDonate — 후원 페이지를 생성합니다
+ * @returns {HTMLElement} 후원 페이지 DOM 요소
+ */
 export function renderDonate() {
   const page = document.createElement('div');
   page.className = 'donate-page page';
 
   page.innerHTML = `
+    <!-- 페이지 헤더: 뒤로가기 + 제목 -->
     <div class="page-header" style="justify-content:flex-start;">
       <button class="page-header-back" id="donate-back">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -18,6 +33,7 @@ export function renderDonate() {
       <h1 class="page-header-title" style="margin-left:var(--space-3)">후원하기</h1>
     </div>
 
+    <!-- 후원 안내 영역 -->
     <div class="donate-hero">
       <div class="donate-icon">☕</div>
       <h2 class="donate-title">에디터에게 커피 한 잔</h2>
@@ -27,6 +43,7 @@ export function renderDonate() {
       </p>
     </div>
 
+    <!-- 금액 선택 버튼 그룹 -->
     <div class="donate-amounts" id="donate-amounts">
       <button class="donate-amount-btn" data-amount="1000">
         ₩1,000
@@ -42,20 +59,24 @@ export function renderDonate() {
       </button>
     </div>
 
+    <!-- 후원 제출 버튼 -->
     <button class="btn btn-primary btn-full btn-large" id="donate-submit" style="margin-top:var(--space-6);">
       후원하기
     </button>
 
+    <!-- 안내 문구 -->
     <p style="text-align:center;font-size:var(--text-xs);color:var(--color-text-tertiary);margin-top:var(--space-4);line-height:1.6;">
       인앱 결제(Apple/Google)로 안전하게 처리됩니다.<br/>
       후원금은 콘텐츠 제작에 사용됩니다.
     </p>
   `;
 
+  /* ---- 이벤트 리스너 연결 ---- */
   setTimeout(() => {
+    /* 뒤로가기 */
     document.getElementById('donate-back')?.addEventListener('click', () => window.history.back());
 
-    /* Amount selection */
+    /* 금액 선택: 클릭한 버튼만 .selected 적용 */
     document.querySelectorAll('.donate-amount-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.donate-amount-btn').forEach(b => b.classList.remove('selected'));
@@ -63,12 +84,12 @@ export function renderDonate() {
       });
     });
 
-    /* Submit */
+    /* 후원 제출 버튼 */
     document.getElementById('donate-submit')?.addEventListener('click', () => {
       const selected = document.querySelector('.donate-amount-btn.selected');
       const amount = selected?.dataset.amount || '3000';
       showToast(`₩${Number(amount).toLocaleString()} 후원 감사합니다! 🎉`, 'success');
-      /* TODO: Trigger real IAP here */
+      /* TODO: 실제 인앱 결제(IAP) 연동 필요 */
     });
   }, 0);
 

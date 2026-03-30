@@ -1,182 +1,69 @@
-/* =====================================================================
-   router.js — 해시(#) 기반 SPA 라우터
-   =====================================================================
-   SPA(Single Page Application)란?
-     페이지를 새로 불러오지 않고, JavaScript로 화면 내용만 바꾸는 방식입니다.
-     URL의 # 뒤 부분(해시)을 이용해 "어떤 페이지를 보여줄지" 결정합니다.
-   
-   예시:
-     http://localhost:5173/#/home     → 홈 화면
-     http://localhost:5173/#/archive  → 컬렉션 화면
-     http://localhost:5173/#/settings → 설정 화면
-   ===================================================================== */
+/* ============================================
+   DayStory — Hash-based SPA Router
+   ============================================ */
 
-
-/* ─────────────────────────────────────────────
-   섹션 1: 변수 선언
-   ───────────────────────────────────────────── */
-
-/**
- * routes: URL 경로와 페이지 렌더링 함수를 짝지어 저장하는 Map
- * 예: '/home' → renderHome 함수
- */
 const routes = new Map();
-
-/** currentRoute: 현재 표시 중인 페이지 경로 (중복 렌더링 방지용) */
 let currentRoute = null;
-
-/** beforeNavigateHook: 페이지 이동 전에 실행할 함수 (인증 체크 등) */
 let beforeNavigateHook = null;
 
-
-/* ─────────────────────────────────────────────
-   섹션 2: 라우트 등록 및 네비게이션 함수
-   ───────────────────────────────────────────── */
-
-/**
- * registerRoute — 새로운 경로를 등록합니다
- * @param {string} path     - URL 경로 (예: '/home', '/detail/:id')
- * @param {Function} handler - 해당 경로에서 실행할 함수 (페이지를 그리는 함수)
- * 
- * 사용 예시:
- *   registerRoute('/home', () => renderHome());
- */
 export function registerRoute(path, handler) {
   routes.set(path, handler);
 }
 
-/**
- * setBeforeNavigate — 페이지 이동 전에 실행할 함수를 설정합니다
- * @param {Function} fn - 페이지 경로를 받아서 true/false를 반환하는 함수
- *                        false를 반환하면 페이지 이동이 취소됩니다
- * 
- * 사용 예시:
- *   setBeforeNavigate((path) => {
- *     if (로그인_안됨) return false;  // 이동 차단
- *     return true;                    // 이동 허용
- *   });
- */
 export function setBeforeNavigate(fn) {
   beforeNavigateHook = fn;
 }
 
-/**
- * navigate — 다른 페이지로 이동합니다
- * @param {string} path   - 이동할 경로 (예: '/home')
- * @param {Object} params - URL에 붙일 추가 정보 (선택사항)
- * 
- * 사용 예시:
- *   navigate('/home');
- *   navigate('/detail/abc123');
- */
 export function navigate(path, params = {}) {
-  /* params가 있으면 ?key=value 형태로 URL 뒤에 붙임 */
   const url = path + (Object.keys(params).length
     ? '?' + new URLSearchParams(params).toString()
     : '');
-  window.location.hash = url;  /* 해시 변경 → hashchange 이벤트 발생 */
+  window.location.hash = url;
 }
 
-/**
- * getParams — 현재 URL의 쿼리 파라미터를 가져옵니다
- * @returns {Object} 파라미터 객체
- * 
- * 예시:
- *   URL이 #/search?q=뉴턴 이면 → { q: '뉴턴' } 반환
- */
 export function getParams() {
-  const hash = window.location.hash.slice(1);  /* '#' 제거 */
+  const hash = window.location.hash.slice(1);
   const [, query] = hash.split('?');
   if (!query) return {};
   return Object.fromEntries(new URLSearchParams(query));
 }
 
-/**
- * getCurrentPath — 현재 URL의 경로 부분만 가져옵니다
- * @returns {string} 현재 경로
- * 
- * 예시:
- *   URL이 #/home?tab=1 이면 → '/home' 반환
- */
 export function getCurrentPath() {
   const hash = window.location.hash.slice(1) || '/home';
   return hash.split('?')[0];
 }
 
-
-/* ─────────────────────────────────────────────
-   섹션 3: 경로 매칭 (내부 함수)
-   ───────────────────────────────────────────── */
-
-/**
- * matchRoute — 주어진 경로에 맞는 라우트를 찾습니다 (내부 전용)
- * @param {string} path - 매칭할 경로
- * @returns {Object|null} { handler, params } 또는 null
- * 
- * 동적 경로 매칭 설명:
- *   등록된 경로: '/detail/:id'
- *   실제 URL:    '/detail/abc123'
- *   → params = { id: 'abc123' }
- */
 function matchRoute(path) {
-  /* 1단계: 정확히 일치하는 경로가 있는지 확인 */
-  if (routes.has(path)) {
-    return { handler: routes.get(path), params: {} };
-  }
+  /* Exact match first */
+  if (routes.has(path)) return { handler: routes.get(path), params: {} };
 
-  /* 2단계: 동적 패턴 매칭 (예: /detail/:id) */
+  /* Pattern match (e.g. /detail/:id) */
   for (const [pattern, handler] of routes) {
-    const patternParts = pattern.split('/');  /* ['', 'detail', ':id'] */
-    const pathParts = path.split('/');        /* ['', 'detail', 'abc123'] */
-
-    /* 부분 개수가 다르면 매칭 실패 */
+    const patternParts = pattern.split('/');
+    const pathParts = path.split('/');
     if (patternParts.length !== pathParts.length) continue;
-
     const params = {};
     let match = true;
-
     for (let i = 0; i < patternParts.length; i++) {
       if (patternParts[i].startsWith(':')) {
-        /* :로 시작하면 동적 파라미터 → 실제 값을 저장 */
         params[patternParts[i].slice(1)] = pathParts[i];
       } else if (patternParts[i] !== pathParts[i]) {
-        /* 고정 부분이 다르면 매칭 실패 */
         match = false;
         break;
       }
     }
-
     if (match) return { handler, params };
   }
-
-  return null;  /* 일치하는 라우트 없음 */
+  return null;
 }
 
-
-/* ─────────────────────────────────────────────
-   섹션 4: 라우트 처리 (내부 함수)
-   ───────────────────────────────────────────── */
-
-/**
- * handleRoute — URL이 변경될 때마다 실행되어 화면을 바꿉니다 (내부 전용)
- * 
- * 동작 순서:
- *   1) 현재 URL 경로 확인
- *   2) 이미 같은 페이지면 스킵
- *   3) beforeNavigate 훅 실행 (페이지 이동 허용 여부 확인)
- *   4) 매칭되는 라우트를 찾아 페이지를 렌더링
- *   5) 하단 내비게이션 바의 활성 상태 업데이트
- */
 async function handleRoute() {
   const path = getCurrentPath();
-
-  /* 같은 페이지면 다시 그리지 않음 (성능 최적화) */
   if (path === currentRoute) return;
 
-  /* beforeNavigate 훅이 있으면 실행 */
   if (beforeNavigateHook) {
-    const canNavigate = await beforeNavigateHook(path);
-    if (canNavigate === false) return;  /* 이동 차단됨 */
+    const can = await beforeNavigateHook(path);
+    if (can === false) return;
   }
 
   currentRoute = path;
@@ -184,71 +71,42 @@ async function handleRoute() {
   const container = document.getElementById('page-container');
 
   if (match) {
-    /* 기존 페이지 내용 제거 */
     container.innerHTML = '';
-
-    /* 새 페이지 렌더링 */
-    const pageElement = await match.handler(match.params);
-
-    if (typeof pageElement === 'string') {
-      container.innerHTML = pageElement;
-    } else if (pageElement instanceof HTMLElement) {
-      container.appendChild(pageElement);
+    const pageEl = await match.handler(match.params);
+    if (typeof pageEl === 'string') {
+      container.innerHTML = pageEl;
+    } else if (pageEl instanceof HTMLElement) {
+      container.appendChild(pageEl);
     }
   } else {
-    /* 일치하는 페이지가 없으면 404 표시 */
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🔍</div>
-        <div class="empty-state-title">페이지를 찾을 수 없습니다</div>
-      </div>`;
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">페이지를 찾을 수 없습니다</div></div>';
   }
 
-  /* 하단 내비게이션 바의 활성 항목 업데이트 */
+  /* Update bottom nav active state */
   updateNav(path);
-
-  /* 페이지 최상단으로 스크롤 */
+  /* Scroll to top */
   container.scrollTo(0, 0);
 }
 
-
-/**
- * updateNav — 하단 내비게이션 바에서 현재 페이지에 해당하는 버튼을 활성화합니다
- * @param {string} path - 현재 페이지 경로
- */
 function updateNav(path) {
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => {
-    const route = item.dataset.route;  /* HTML의 data-route 속성 */
+    const route = item.dataset.route;
     item.classList.toggle('active', path.startsWith(route));
   });
 }
 
-
-/* ─────────────────────────────────────────────
-   섹션 5: 라우터 초기화 및 유틸리티
-   ───────────────────────────────────────────── */
-
-/**
- * initRouter — 라우터를 시작합니다 (앱 시작 시 한 번만 호출)
- * 
- * 동작:
- *   1) 해시 변경 이벤트 리스너 등록
- *   2) 하단 내비게이션 버튼에 클릭 이벤트 연결
- *   3) 현재 URL에 맞는 초기 페이지 표시
- */
 export function initRouter() {
-  /* URL 해시가 바뀔 때마다 handleRoute 실행 */
   window.addEventListener('hashchange', handleRoute);
 
-  /* 하단 내비게이션 버튼 클릭 → 해당 경로로 이동 */
+  /* Nav click handlers */
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
       navigate(item.dataset.route);
     });
   });
 
-  /* 초기 URL이 없으면 홈으로 설정 */
+  /* Initial route */
   if (!window.location.hash) {
     window.location.hash = '/home';
   } else {
@@ -256,10 +114,6 @@ export function initRouter() {
   }
 }
 
-/**
- * forceRoute — 현재 경로를 강제로 다시 렌더링합니다
- * 같은 페이지에서 새로고침 효과가 필요할 때 사용합니다
- */
 export function forceRoute() {
   currentRoute = null;
   handleRoute();

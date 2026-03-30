@@ -232,22 +232,34 @@ ul, ol {
   gap: var(--space-1);
   padding: var(--space-2) var(--space-4);
   color: var(--color-text-tertiary);
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), transform var(--transition-fast);
   position: relative;
 }
 
 .nav-item.active {
-  color: var(--color-accent);
+  color: #000; /* Darker black for active icon matching the design */
 }
 
-.nav-item .nav-icon {
-  width: 22px;
-  height: 22px;
+[data-theme="dark"] .nav-item.active {
+  color: #fff;
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+.bottom-nav.redesigned-nav .nav-item {
+  padding: var(--space-3) var(--space-6);
+}
+
+.bottom-nav.redesigned-nav .nav-icon {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.5;
 }
 
 .nav-item .nav-label {
-  font-size: var(--text-xs);
-  font-weight: 500;
+  display: block; /* Show text labels */
 }
 
 /* ============================================

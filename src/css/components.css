@@ -1,60 +1,79 @@
 /* ============================================
-   DayStory — Component Styles
+   마지막 수정 날짜 : 2026-03-31 20:15
+   ============================================
+   : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
+*/
+
+
+/* ============================================
+   1. Buttons — 버튼 컴포넌트
    ============================================ */
 
-/* ---- Buttons ---- */
+/* 버튼 기본 스타일 — 모든 버튼의 공통 레이아웃 */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-2);                 /* 아이콘과 텍스트 사이 간격 */
   padding: var(--space-3) var(--space-6);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full);   /* 완전한 둥근 모서리 (알약 형태) */
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 600;
   transition: all var(--transition-fast);
   cursor: pointer;
   border: none;
-  white-space: nowrap;
+  white-space: nowrap;                 /* 텍스트 줄바꿈 방지 */
 }
 
+/* 주요(Primary) 버튼 — 검정 배경에 흰 글씨 */
 .btn-primary {
   background: var(--color-accent);
   color: #fff;
 }
+
+/* 주요 버튼 터치 시 — 약간 축소 */
 .btn-primary:active {
   background: var(--color-accent-dark);
   transform: scale(0.97);
 }
 
+/* 보조(Secondary) 버튼 — 흰 배경에 테두리 */
 .btn-secondary {
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
+
+/* 보조 버튼 터치 시 */
 .btn-secondary:active {
   background: var(--color-border);
   transform: scale(0.97);
 }
 
+/* 고스트(Ghost) 버튼 — 배경 없이 텍스트만 */
 .btn-ghost {
   background: transparent;
   color: var(--color-text-secondary);
 }
+
+/* 고스트 버튼 터치 시 — 배경이 살짝 나타남 */
 .btn-ghost:active {
   background: var(--color-bg-secondary);
 }
 
+/* 전폭(Full Width) 버튼 — 부모 너비 100% */
 .btn-full {
   width: 100%;
 }
 
+/* 큰(Large) 버튼 — 더 넓은 패딩과 큰 폰트 */
 .btn-large {
   padding: var(--space-4) var(--space-8);
   font-size: var(--text-base);
 }
 
+/* 아이콘 전용 버튼 — 정사각형 44x44px (터치 영역 최소 기준) */
 .btn-icon {
   width: 44px;
   height: 44px;
@@ -65,24 +84,32 @@
   justify-content: center;
 }
 
+/* 아이콘 버튼 내부 SVG 크기 */
 .btn-icon svg {
   width: 20px;
   height: 20px;
 }
 
-/* ---- Input Fields ---- */
+
+/* ============================================
+   2. Input Fields — 입력 필드 컴포넌트
+   ============================================ */
+
+/* 입력 그룹 — 라벨 + 입력 필드를 묶는 컨테이너 */
 .input-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
+/* 입력 라벨 — 입력 필드 위의 설명 텍스트 */
 .input-label {
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text-secondary);
 }
 
+/* 입력 필드 — 텍스트 입력창 */
 .input-field {
   width: 100%;
   padding: var(--space-3) var(--space-4);
@@ -94,122 +121,158 @@
   transition: border-color var(--transition-fast);
 }
 
+/* 입력 필드 포커스 시 — 테두리 강조색으로 변경 */
 .input-field:focus {
   border-color: var(--color-accent);
 }
 
+/* 입력 필드 플레이스홀더 — 힌트 텍스트 색상 */
 .input-field::placeholder {
   color: var(--color-text-tertiary);
 }
 
+/* 입력 에러 메시지 — 빨간 작은 텍스트 */
 .input-error {
   font-size: var(--text-xs);
   color: var(--color-error);
 }
 
-/* ---- Flip Container (3D Card) ---- */
+
+/* ============================================
+   3. Flip Container — 3D 플립 카드
+   ============================================
+   홈 화면의 메인 카드입니다.
+   클릭하면 앞면(이미지)과 뒷면(텍스트)이 3D로 뒤집힙니다.
+
+   구조:
+     .flip-container (원근법)
+       └ .flipper (회전하는 컨테이너)
+           ├ .front (앞면)
+           └ .back (뒷면)
+*/
+
+/* 플립 컨테이너 — 3D 원근법(perspective) 설정 */
 .flip-container {
-  perspective: 1500px;
+  perspective: 2000px;                 /* 원근감 거리 (낮을수록 과장된 3D 효과) */
   width: 100%;
-  max-width: 320px; /* Made slightly smaller */
-  margin: 0 auto;
+  min-width: 280px;
+  margin: 0 auto;                      /* 수평 중앙 정렬 */
 }
 
+/* 카드 앞/뒤를 감싸는 회전 컨테이너
+   transform-style: preserve-3d로 자식 요소가 3D 공간에 존재 */
 .flipper {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 4.8;
-  /* Spring-like transition replicating framer motion feeling */
-  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  transform-style: preserve-3d;
-  will-change: transform;
+  aspect-ratio: var(--card-aspect-ratio); /* 변수 사용 (3.1 / 4.8) */
+  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 스프링 같은 부드러운 회전 */
+  transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 */
+  will-change: transform;              /* 브라우저에 GPU 가속 힌트 */
   cursor: pointer;
 }
 
+/* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */
 .flipper.flipped {
   transform: rotateY(180deg);
 }
 
+/* 카드를 터치했을 때 — 살짝 축소 피드백 */
 .flipper:active {
   transform: scale(0.97);
-  transition-duration: 0.2s; /* Snappy press down */
+  transition-duration: 0.2s;
 }
+
+/* 뒤집힌 카드를 터치 — 회전 유지하면서 축소 */
 .flipper.flipped:active {
   transform: rotateY(180deg) scale(0.97);
   transition-duration: 0.2s;
 }
 
+/* 카드 앞면/뒷면 공통 스타일
+   backface-visibility: hidden으로 뒷면이 보이지 않게 합니다 */
 .front, .back {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  backface-visibility: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-primary); /* Use primary white */
-  box-shadow: var(--shadow-card);
+  backface-visibility: hidden;         /* 뒤집혔을 때 뒷면 숨김 */
+  border: 2px solid var(--color-border);
+  border-radius: 0.1rem;
+  box-shadow: var(--shadow-card);      /* 깊은 그림자로 떠있는 느낌 */
   display: flex;
   flex-direction: column;
 }
 
+
+/* ── 카드 앞면 (Front) ── */
+
+/* 앞면 전체 레이아웃 — 상단 정보 + 이미지 영역 */
 .history-card-front {
   padding: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: hidden;                    /* 이미지가 카드 밖으로 넘치지 않도록 */
 }
 
+/* 카드 상단 영역 — 연도/날짜 + 액션 버튼 + 메타 정보 */
 .history-card-top {
-  padding: var(--space-5) var(--space-5) var(--space-4);
+  padding: var(--space-8) var(--space-5) var(--space-4);
   background: var(--color-bg-card);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  flex-shrink: 0;
+  flex-shrink: 0;                      /* 이미지 영역에 밀리지 않도록 고정 */
 }
 
+/* 카드 상단 왼쪽 — 연도와 날짜를 세로로 배치 */
 .card-top-left {
   display: flex;
   flex-direction: column;
 }
 
+/* 카드 연도 텍스트 (예: "1879") */
 .card-year {
-  font-family: var(--font-body); /* Sans-serif */
-  font-size: 1.5rem;
+  font-family: var(--font-body);
+  font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #000;
+  color: var(--color-text-primary);
   line-height: 1;
 }
 
+/* 카드 날짜 텍스트 (예: "3. 14") — 초대형 폰트 */
 .card-date {
-  font-family: var(--font-body); /* Sans-serif */
-  font-size: 4rem;
+  font-family: var(--font-body);
+  font-size: 3.75rem;
   font-weight: 800;
   line-height: 0.9;
   letter-spacing: -0.04em;
-  color: #000;
+  color: var(--color-text-primary);
   margin-top: 4px;
 }
 
+/* 카드 상단 오른쪽 — 액션 버튼과 메타 정보를 아래부터 위로 세로로 배치 */
 .card-top-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: flex-end;
   height: 100%;
 }
 
+/* 카드 액션 버튼 그룹 — 공유/북마크 아이콘을 가로로 배치 */
 .card-actions {
   display: flex;
-  gap: var(--space-4); /* margin-offset compensates so gap might need tuning, actually space-4 is better */
+  gap: var(--space-4);
   margin-bottom: 2rem;
   color: var(--color-text-tertiary);
 }
 
+/* 개별 액션 버튼 — 터치 영역 확보를 위해 패딩 추가 + 마이너스 마진 */
 .card-action-btn {
   padding: 12px;
-  margin: -12px;
+  margin: -12px;                       /* 패딩만큼 마이너스 마진으로 시각적 크기 유지 */
   background: transparent;
   display: flex;
   align-items: center;
@@ -217,57 +280,86 @@
   cursor: pointer;
 }
 
+/* 액션 버튼 SVG 아이콘 크기 */
 .card-actions svg {
   width: 22px;
   height: 22px;
 }
 
+/* 카드 메타 정보 — 국가, 날짜 등 작은 텍스트 */
 .card-meta {
   text-align: right;
-  font-size: 0.65rem;
+  font-size: 0.8em;
   color: var(--color-text-secondary);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.5;
 }
 
+/* 카드 이미지 감싸기 — 남은 공간을 채우는 이미지 영역 */
 .history-card-image-wrap {
-  flex: 1;
+  flex: 1;                             /* 남은 세로 공간 모두 차지 */
   position: relative;
   margin: 0 var(--space-4) var(--space-4) var(--space-4);
   background: var(--color-bg-secondary);
-  overflow: hidden;
+  overflow: hidden;                    /* 이미지가 영역 밖으로 넘치지 않도록 */
 }
 
+/* 카드 이미지 — 영역을 채우면서 비율 유지 */
 .history-card-image-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover;                   /* 비율 유지하면서 빈 공간 없이 채움 */
 }
 
+/* 카드 이미지 테두리 오버레이 — 이미지 가장자리에 미세한 선 */
 .history-card-image-wrap::after {
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(0,0,0,0.05); /* Subtle border for image edge */
+  border: 1px solid rgba(0,0,0,0.05);
+  pointer-events: none;               /* 클릭이 이미지로 통과 */
+}
+
+/* 카드 이미지 위 큰 타이틀 오버레이 */
+.card-image-title {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-8) var(--space-5) var(--space-5);
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  word-break: keep-all;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
   pointer-events: none;
 }
 
-/* Back (Text Layout) */
+
+/* ── 카드 뒷면 (Back) ── */
+
+/* 뒷면 전체 레이아웃 — 인물 이름 + 구분선 + 본문 + 날짜 */
 .history-card-back {
-  transform: rotateY(180deg);
+  transform: rotateY(180deg);          /* 뒤집혀 있어 앞면이 보일 때는 숨겨짐 */
   padding: var(--space-6) var(--space-5);
-  background: #fff;
-  color: #000;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
 }
 
+/* 뒷면 제목 — 역사 인물의 이름 */
 .back-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-sans);
   font-size: 1.4rem;
   font-weight: 800;
   text-align: center;
   margin-bottom: var(--space-3);
 }
 
+/* 뒷면 구분선 — 제목과 본문 사이 수평선 */
 .back-divider {
   border: none;
   height: 1px;
@@ -275,59 +367,75 @@
   margin: 0 0 var(--space-4) 0;
 }
 
+/* 뒷면 본문 — 스크롤 가능한 역사 일화 텍스트 */
 .back-body {
-  flex: 1;
-  overflow-y: auto;
+  flex: 1;                             /* 남은 공간 모두 차지 */
+  overflow-y: auto;                    /* 긴 텍스트는 스크롤 */
   font-family: var(--font-body);
-  font-size: 0.85rem;
-  line-height: 1.9;
-  color: #333;
-  padding-right: 4px; /* for scrollbar */
+  font-size: 0.9rem;
+  line-height: 2;
+  color: var(--color-text-secondary);
+  padding-right: 4px;                  /* 스크롤바 공간 확보 */
 }
 
+/* 뒷면 본문 문단 — 각 문단 사이 간격 */
 .back-body p {
   margin-bottom: var(--space-3);
-  word-break: keep-all;
+  word-break: keep-all;                /* 한글 단어 사이에서만 줄바꿈 */
 }
 
-/* Scrollbar for back body */
+/* 뒷면 본문 스크롤바 — 얇은 미니멀 디자인 */
 .back-body::-webkit-scrollbar {
   width: 2px;
 }
+
+/* 뒷면 본문 스크롤바 썸 */
 .back-body::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.2);
+  background: var(--color-divider);
 }
 
+/* 뒷면 날짜 — 카드 하단 오른쪽에 표시되는 역사적 날짜 */
 .back-date {
+  font-family: var(--font-sans);
   text-align: right;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 400;
   color: var(--color-text-secondary);
   padding-top: var(--space-4);
   margin-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border); /* 본문과 구분하는 윗선 */
 }
 
-/* ---- Card Mini (Collection grid) ---- */
+
+/* ============================================
+   4. Card Mini — 미니 카드 (컬렉션 그리드)
+   ============================================
+   컬렉션(아카이브) 페이지에서 사용되는 작은 카드입니다.
+   2열 그리드로 배치되며, 클릭하면 상세 페이지로 이동합니다.
+*/
+
+/* 미니 카드 — 메인 카드의 축소판 */
 .history-card-mini {
   position: relative;
   width: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-bg-primary);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Stronger shadow per design */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
   flex-direction: column;
-  aspect-ratio: 3 / 4.8;
+  aspect-ratio: 3 / 4.8;              /* 메인 카드와 동일한 비율 */
 }
 
+/* 미니 카드 터치 시 — 축소 + 그림자 줄어듦 */
 .history-card-mini:active {
   transform: scale(0.96);
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
+/* 미니 카드 상단 — 연도, 날짜, 메타 정보 */
 .mini-card-top {
   padding: 0.8rem 0.6rem 0.4rem;
   display: flex;
@@ -337,11 +445,13 @@
   color: var(--color-text-primary);
 }
 
+/* 미니 카드 상단 왼쪽 — 연도/날짜 세로 배치 */
 .mini-top-left {
   display: flex;
   flex-direction: column;
 }
 
+/* 미니 카드 연도 텍스트 */
 .mini-year {
   font-family: var(--font-display);
   font-size: 0.85rem;
@@ -350,6 +460,7 @@
   letter-spacing: -0.02em;
 }
 
+/* 미니 카드 날짜 텍스트 — 큰 숫자 */
 .mini-date {
   font-family: var(--font-display);
   font-size: 2rem;
@@ -359,6 +470,7 @@
   margin-top: 2px;
 }
 
+/* 미니 카드 상단 오른쪽 — 국가 등 메타 정보 */
 .mini-top-right {
   font-family: var(--font-sans);
   font-size: 0.5rem;
@@ -368,6 +480,7 @@
   margin-top: 2px;
 }
 
+/* 미니 카드 이미지 영역 — 남은 공간을 채움 */
 .mini-card-image-wrap {
   flex: 1;
   position: relative;
@@ -375,6 +488,7 @@
   padding: 0 0.6rem 0.6rem;
 }
 
+/* 미니 카드 이미지 — 영역 채우기 */
 .mini-card-image-wrap img {
   width: 100%;
   height: 100%;
@@ -383,13 +497,14 @@
   border-radius: var(--radius-sm);
 }
 
+/* 미니 카드 이미지 오버레이 — 하단 그라디언트 + 인물 이름 */
 .mini-card-overlay {
   position: absolute;
   bottom: 0.6rem;
   left: 0.6rem;
   right: 0.6rem;
   padding: 1.5rem 0.5rem 0.5rem;
-  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  background: linear-gradient(transparent, rgba(0,0,0,0.8)); /* 아래로 갈수록 어두워짐 */
   color: white;
   font-size: 0.75rem;
   font-weight: 600;
@@ -397,18 +512,19 @@
   border-bottom-right-radius: var(--radius-sm);
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 2;               /* 최대 2줄까지만 표시 */
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* Locked card */
+/* 잠긴 카드 — 흐리고 회색 처리 */
 .history-card-mini.locked {
   opacity: 0.35;
   filter: grayscale(1);
 }
 
+/* 잠긴 카드 자물쇠 아이콘 — 카드 중앙에 표시 */
 .history-card-mini.locked::after {
   content: '🔒';
   position: absolute;
@@ -418,7 +534,15 @@
   font-size: 1.5rem;
 }
 
-/* ---- Page Header ---- */
+
+/* ============================================
+   5. Page Header — 페이지 상단 헤더
+   ============================================
+   상세, 후원, 신고 등 서브 페이지의 상단 바입니다.
+   뒤로가기 버튼 + 제목으로 구성됩니다.
+*/
+
+/* 페이지 헤더 — 좌우로 요소 배치 */
 .page-header {
   padding: var(--space-4) var(--space-5);
   display: flex;
@@ -426,12 +550,14 @@
   justify-content: space-between;
 }
 
+/* 페이지 헤더 제목 */
 .page-header-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-ui);
   font-size: var(--text-xl);
   font-weight: 700;
 }
 
+/* 뒤로가기 버튼 — 원형 터치 영역 */
 .page-header-back {
   width: 36px;
   height: 36px;
@@ -442,20 +568,30 @@
   transition: background var(--transition-fast);
 }
 
+/* 뒤로가기 버튼 터치 시 — 배경색 표시 */
 .page-header-back:active {
   background: var(--color-bg-secondary);
 }
 
+/* 뒤로가기 버튼 아이콘 크기 */
 .page-header-back svg {
   width: 20px;
   height: 20px;
 }
 
-/* ---- Section ---- */
+
+/* ============================================
+   6. Section — 섹션 컴포넌트
+   ============================================
+   콘텐츠를 그룹으로 나누는 섹션 컨테이너입니다.
+*/
+
+/* 섹션 — 패딩이 적용된 콘텐츠 그룹 */
 .section {
   padding: var(--space-6) var(--space-5);
 }
 
+/* 섹션 제목 — 섹션 상단의 소제목 */
 .section-title {
   font-family: var(--font-sans);
   font-size: var(--text-base);
@@ -465,7 +601,15 @@
   letter-spacing: 0.02em;
 }
 
-/* ---- List Items ---- */
+
+/* ============================================
+   7. List Items — 리스트 아이템
+   ============================================
+   설정 페이지 등에서 사용되는 목록 항목입니다.
+   아이콘 + 제목/부제 + 액션(토글, 화살표) 구조입니다.
+*/
+
+/* 리스트 아이템 — 아이콘, 텍스트, 액션을 가로 배치 */
 .list-item {
   display: flex;
   align-items: center;
@@ -476,10 +620,12 @@
   cursor: pointer;
 }
 
+/* 리스트 아이템 터치 시 — 배경 하이라이트 */
 .list-item:active {
   background: var(--color-bg-secondary);
 }
 
+/* 리스트 아이콘 — 40x40 둥근 사각형 */
 .list-item-icon {
   width: 40px;
   height: 40px;
@@ -488,45 +634,58 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex-shrink: 0;                      /* 아이콘 크기 고정 */
 }
 
+/* 리스트 콘텐츠 — 제목과 부제를 담는 영역 */
 .list-item-content {
-  flex: 1;
-  min-width: 0;
+  flex: 1;                             /* 남은 공간 차지 */
+  min-width: 0;                        /* 텍스트 말줄임 허용 */
 }
 
+/* 리스트 제목 */
 .list-item-title {
   font-size: var(--text-base);
   font-weight: 500;
 }
 
+/* 리스트 부제목 — 작고 연한 텍스트 */
 .list-item-subtitle {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   margin-top: 2px;
 }
 
+/* 리스트 액션 — 오른쪽의 토글/화살표 등 */
 .list-item-action {
   flex-shrink: 0;
   color: var(--color-text-tertiary);
 }
 
-/* ---- Toggle Switch ---- */
+
+/* ============================================
+   8. Toggle Switch — 토글 스위치
+   ============================================
+   설정에서 켜기/끄기에 사용되는 iOS 스타일 토글입니다.
+*/
+
+/* 토글 트랙 — 가로로 긴 둥근 배경 */
 .toggle {
   position: relative;
   width: 48px;
   height: 28px;
   border-radius: var(--radius-full);
-  background: var(--color-border);
+  background: var(--color-border);     /* 꺼짐 상태: 회색 */
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
+/* 토글 활성화 — 배경 강조색 */
 .toggle.active {
   background: var(--color-accent);
 }
 
+/* 토글 원형 핸들 — ::after 가상 요소로 생성 */
 .toggle::after {
   content: '';
   position: absolute;
@@ -537,14 +696,23 @@
   border-radius: 50%;
   background: #fff;
   transition: transform var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* 가벼운 그림자 */
 }
 
+/* 토글 활성화 시 핸들 이동 — 오른쪽으로 20px 이동 */
 .toggle.active::after {
   transform: translateX(20px);
 }
 
-/* ---- Empty State ---- */
+
+/* ============================================
+   9. Empty State — 빈 상태 화면
+   ============================================
+   데이터가 없을 때 표시되는 안내 화면입니다.
+   아이콘 + 제목 + 설명으로 구성됩니다.
+*/
+
+/* 빈 상태 컨테이너 — 가운데 정렬 */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -554,47 +722,61 @@
   text-align: center;
 }
 
+/* 빈 상태 아이콘 — 반투명 큰 이모지 */
 .empty-state-icon {
   font-size: 3rem;
   margin-bottom: var(--space-4);
   opacity: 0.5;
 }
 
+/* 빈 상태 제목 */
 .empty-state-title {
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   font-weight: 600;
   margin-bottom: var(--space-2);
 }
 
+/* 빈 상태 설명 텍스트 */
 .empty-state-desc {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
-  max-width: 260px;
+  max-width: 260px;                    /* 텍스트 너비 제한 */
 }
 
-/* ---- Modal/Sheet ---- */
+
+/* ============================================
+   10. Modal / Sheet — 모달 & 바텀 시트
+   ============================================
+   화면 하단에서 올라오는 시트형 모달입니다.
+   반투명 오버레이 위에 표시됩니다.
+*/
+
+/* 모달 오버레이 — 전체 화면 반투명 배경 */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: var(--color-bg-overlay);
   z-index: var(--z-modal);
   display: flex;
-  align-items: flex-end;
+  align-items: flex-end;               /* 시트를 화면 하단에 배치 */
   justify-content: center;
   animation: fadeIn 0.2s ease;
 }
 
+/* 모달 시트 — 하단에서 올라오는 둥근 패널 */
 .modal-sheet {
   width: 100%;
   max-width: 500px;
-  max-height: 85vh;
+  max-height: 85vh;                    /* 화면 85%까지만 차지 */
   background: var(--color-bg-elevated);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0; /* 상단만 둥글게 */
   padding: var(--space-6);
   overflow-y: auto;
   animation: slideUp 0.3s var(--transition-spring);
 }
 
+/* 모달 핸들 바 — 시트 상단의 드래그 핸들 (장식용) */
 .modal-handle {
   width: 36px;
   height: 4px;
@@ -603,37 +785,62 @@
   margin: 0 auto var(--space-5);
 }
 
+/* 모달 등장 애니메이션 — 페이드 인 */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* 모달 시트 등장 애니메이션 — 아래에서 위로 슬라이드 */
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
 
-/* ---- Bookmark Icon ---- */
+
+/* ============================================
+   11. Bookmark Button — 북마크 버튼
+   ============================================
+   일화를 저장할 때 사용하는 하트/북마크 아이콘입니다.
+*/
+
+/* 북마크 버튼 — 스프링 전환 효과 */
 .bookmark-btn {
   transition: transform var(--transition-spring);
 }
 
+/* 북마크 활성화 시 아이콘 — 강조색으로 채워짐 */
 .bookmark-btn.active svg {
   fill: var(--color-accent);
   stroke: var(--color-accent);
 }
 
+/* 북마크 버튼 터치 시 — 커지는 애니메이션 */
 .bookmark-btn:active {
   transform: scale(1.3);
 }
 
-/* ---- Divider ---- */
+
+/* ============================================
+   12. Divider — 구분선
+   ============================================
+   섹션 사이를 구분하는 얇은 수평선입니다.
+*/
 .divider {
   height: 1px;
   background: var(--color-divider);
   margin: var(--space-4) 0;
 }
 
-/* ---- Badge ---- */
+
+/* ============================================
+   13. Badge — 뱃지
+   ============================================
+   상태나 카테고리를 표시하는 작은 라벨입니다.
+   둥근 알약 형태로 텍스트/아이콘을 담습니다.
+*/
+
+/* 뱃지 기본 스타일 — 작은 알약 형태 */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -644,11 +851,13 @@
   gap: var(--space-1);
 }
 
+/* 강조 뱃지 — 골드 계열 배경 */
 .badge-accent {
   background: rgba(196, 162, 101, 0.15);
   color: var(--color-accent);
 }
 
+/* 성공 뱃지 — 초록 계열 배경 */
 .badge-success {
   background: rgba(76, 175, 80, 0.15);
   color: var(--color-success);

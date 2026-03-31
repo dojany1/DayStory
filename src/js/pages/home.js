@@ -11,6 +11,7 @@
    기능:
      - 캘린더의 날짜를 클릭하면 해당 날짜의 카드로 변경됩니다
      - 카드를 클릭하면 앞/뒤가 뒤집히는 3D 플립 애니메이션이 나옵니다
+     마지막 수정 날짜 : 2026-03-31 19:47
    ===================================================================== */
 
 import { fetchStories, fetchTodayStory } from '../services/stories.js';
@@ -99,6 +100,9 @@ async function loadHomeData(page) {
     /* 요일 이름 배열 (일~토) */
     const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
+    /* 현재 화면에 표시된 날짜를 추적 (방향 판별용) */
+    let latestPathDate = today;
+
     /* 캘린더 HTML 생성 */
     const calendarHtml = calendarDates.map(date => {
       const isToday = date.getTime() === today.getTime();
@@ -120,31 +124,49 @@ async function loadHomeData(page) {
     if (calendarElement) {
       calendarElement.innerHTML = calendarHtml;
 
-      /* 캘린더를 오른쪽 끝으로 스크롤 (오늘 날짜가 보이도록) */
-      calendarElement.scrollLeft = calendarElement.scrollWidth;
+      /**
+       * scrollActiveCalItemToCenter — 현재 active인 캘린더 아이템을
+       * 중앙으로 스크롤
+       */
+      function scrollActiveCalItemToCenter() {
+        const activeItem = calendarElement.querySelector('.cal-item.active');
+        if (!activeItem) return;
+
+        const scrollTarget = activeItem.offsetLeft
+          - calendarElement.offsetWidth / 2
+          + activeItem.offsetWidth / 2;
+
+        calendarElement.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+      }
+
+      requestAnimationFrame(() => {
+        scrollActiveCalItemToCenter();
+      });
 
       /* 각 날짜에 클릭 이벤트 추가 */
       calendarElement.querySelectorAll('.cal-item').forEach(item => {
         item.addEventListener('click', () => {
-          /* 모든 날짜에서 active 클래스 제거 */
-          calendarElement.querySelectorAll('.cal-item').forEach(el => {
-            el.classList.remove('active');
-          });
+          if (item.classList.contains('active')) return; // 같은 날짜면 무시
 
-          /* 클릭한 날짜만 active로 설정 */
+          /* 방향 판별 */
+          const selectedIsoDate = item.dataset.date;
+          const newDate = new Date(selectedIsoDate + 'T00:00:00');
+          const direction = newDate > latestPathDate ? 'next' : 'prev';
+          latestPathDate = newDate;
+
+          /* UI 업데이트 */
+          calendarElement.querySelectorAll('.cal-item').forEach(el => el.classList.remove('active'));
           item.classList.add('active');
+          scrollActiveCalItemToCenter();
 
-          /* 해당 날짜의 스토리 찾기 */
-          const selectedDate = item.dataset.date;
-          const storyForDate = allStories.find(s => s.publish_date === selectedDate);
-
-          /* 카드 영역 업데이트 */
-          renderCardToArea(cardArea, storyForDate, new Date(selectedDate + 'T00:00:00'));
+          /* 카드 영역 업데이트 (애니메이션 전환) */
+          const storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
+          renderCardToArea(cardArea, storyForDate, newDate, direction);
         });
       });
     }
 
-    /* ---- 오늘의 카드 초기 렌더링 ---- */
+    /* ---- 오늘의 카드 초기 렌더링 (방향 없이 즉시) ---- */
     renderCardToArea(cardArea, todayStory, today);
 
   } catch (err) {
@@ -155,7 +177,7 @@ async function loadHomeData(page) {
         <h1 class="home-title">Day Story</h1>
       </div>
       <div class="empty-state">
-        <div class="empty-state-title">데이터를 불러오지 못했습니다</div>
+        <div class="empty-state-title">데이터를 불러오지 못했습니다.</div>
         <div class="empty-state-desc">네트워크를 확인하고 다시 시도해주세요</div>
         <button class="btn btn-primary" onclick="location.reload()" style="margin-top:var(--space-4)">
           새로고침
@@ -167,117 +189,149 @@ async function loadHomeData(page) {
 
 
 /* ─────────────────────────────────────────────
-   섹션 3: 카드 렌더링 함수
+   섹션 3: 카드 렌더링 및 전환 함수
    ───────────────────────────────────────────── */
 
 /**
- * renderCardToArea — 주어진 스토리 데이터로 3D 플립 카드를 그립니다
- * @param {HTMLElement} cardArea - 카드를 넣을 컨테이너 DOM 요소
- * @param {Object|null} story   - 표시할 스토리 데이터 (없으면 null)
- * @param {Date}        dateObj - 표시할 날짜의 Date 객체
- * 
- * 카드 구조:
- *   ┌─────────────────────┐
- *   │ 앞면 (front)         │  → 연도, 날짜, 인물 이미지
- *   │                     │
- *   │ [이미지]             │
- *   │ 인물 이름            │
- *   └─────────────────────┘
- *         ↕ 클릭하면 뒤집힘
- *   ┌─────────────────────┐
- *   │ 뒷면 (back)          │  → 인물 이름, 일화 본문
- *   │                     │
- *   │ [텍스트 스크롤 가능]  │
- *   │ 날짜                 │
- *   └─────────────────────┘
+ * renderCardToArea — 주어진 스토리 데이터로 카드를 렌더링하고 애니메이션을 처리합니다
+ * @param {HTMLElement} cardArea  - 카드가 위치할 컨테이너
+ * @param {Object|null} story    - 카드에 담길 일화 데이터
+ * @param {Date}        dateObj  - 표시할 날짜
+ * @param {string|null} direction - 'next' (미래로), 'prev' (과거로) 또는 null (초기 로드)
  */
-function renderCardToArea(cardArea, story, dateObj) {
+function renderCardToArea(cardArea, story, dateObj, direction = null) {
   if (!cardArea) return;
 
-  /* 해당 날짜에 스토리가 없는 경우 */
+  const oldCard = cardArea.querySelector('.flip-container');
+
+  /* 1) 스토리가 없는 경우의 HTML 구조 */
   if (!story) {
-    cardArea.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-title">해당 날짜의 일화가 없습니다</div>
+    const emptyHtml = `
+      <div class="empty-state" style="width:100%;">
+        <div class="empty-state-title">해당 날짜의 일화가 없습니다.</div>
       </div>
     `;
+    if (!direction || !oldCard) {
+      cardArea.innerHTML = emptyHtml;
+    } else {
+      /* 전환 애니메이션을 포함한 빈 상태 (선택 사항: 여기서는 생략하고 즉시 교체) */
+      cardArea.innerHTML = emptyHtml;
+    }
     return;
   }
 
-  /* 날짜 정보 추출 */
+  /* 2) 새 카드 HTML 생성 */
   const pubDate = new Date(story.publish_date);
-  const month = pubDate.getMonth() + 1;     /* 월 (1~12) */
-  const day = pubDate.getDate();             /* 일 (1~31) */
-  const displayYear = dateObj.getFullYear(); /* 표시용 연도 */
+  const month = pubDate.getMonth() + 1;
+  const day = pubDate.getDate();
+  const displayYear = dateObj.getFullYear();
 
-  /* 카드 HTML 생성 */
-  const cardHtml = `
-    <div class="flip-container" id="main-flip-card">
-      <div class="flipper">
-        
-        <!-- ===== 앞면: 이미지 카드 (리디자인) ===== -->
-        <div class="front history-card-front">
-          <div class="history-card-top">
-            <div class="card-top-left">
-              <div class="card-year">${escapeHtml(story.historical_year)}</div>
-              <div class="card-date">${month}. ${day}</div>
-            </div>
-            <div class="card-top-right">
-              <div class="card-actions">
-                <button class="card-action-btn" aria-label="공유">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                  </svg>
-                </button>
-                <button class="card-action-btn" aria-label="북마크">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                </button>
-              </div>
-              <div class="card-meta">
-                ${escapeHtml(story.card_count || '')} ${escapeHtml(story.country)}<br>
-                ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
-              </div>
-            </div>
+  const newCard = document.createElement('div');
+  newCard.className = 'flip-container';
+  newCard.id = `card-${Date.now()}`;
+  newCard.innerHTML = `
+    <div class="flipper">
+      <div class="front history-card-front">
+        <div class="history-card-top">
+          <div class="card-top-left">
+            <div class="card-year">${escapeHtml(story.historical_year)}</div>
+            <div class="card-date">${month}. ${day}</div>
           </div>
-          <div class="history-card-image-wrap">
-            <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" />
+        <div class="card-top-right">
+          <div class="card-actions">
+            <!-- 공유 버튼 -->
+            <button class="card-action-btn" aria-label="공유">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </button>
+            <!-- 북마크 버튼 -->
+            <button class="card-action-btn" aria-label="북마크">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="card-meta">
+            ${escapeHtml(story.card_count || '')} ${escapeHtml(story.country)}<br>
+            ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
           </div>
         </div>
-        
-        <!-- ===== 뒷면: 텍스트 카드 ===== -->
-        <div class="back history-card-back">
-          <div class="back-title">${escapeHtml(story.figure_name)}</div>
-          <hr class="back-divider" />
-          <div class="back-body">
-            ${(story.body || '').split('\\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '').join('')}
-          </div>
-          <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+      </div>
+      <div class="history-card-image-wrap">
+        <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" />
+        <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
+      </div>
+    </div>
+      <div class="back history-card-back">
+        <div class="back-title">${escapeHtml(story.figure_name)}</div>
+        <hr class="back-divider" />
+        <div class="back-body">
+          ${(story.body || '').split('\\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '').join('')}
         </div>
-        
+        <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
       </div>
     </div>
   `;
 
-  /* 카드를 화면에 삽입 */
-  cardArea.innerHTML = cardHtml;
+  /* 3) 초기 로드 (애니메이션 없음) */
+  if (!direction || !oldCard) {
+    cardArea.innerHTML = '';
+    cardArea.appendChild(newCard);
+    bindCardEvents(newCard, story);
+    return;
+  }
 
-  /* 스와이프 제스처 및 클릭 이벤트 등록 */
-  const flipper = cardArea.querySelector('.flipper');
-  const flipContainer = cardArea.querySelector('.flip-container');
+  /* 4) 카드 스택 전환 애니메이션 (Natural Stack) */
+  
+  /* 4-1. 기존 카드에 '나가는' 클래스 부여 */
+  oldCard.classList.add('card-stack-item');
+  oldCard.classList.add(`stack-exit-${direction}`);
+  
+  /* 4-2. 새 카드에 '들어오는' 클래스 부여 */
+  newCard.classList.add('card-stack-item');
+  newCard.classList.add(`stack-enter-${direction}`);
+  
+  cardArea.appendChild(newCard);
 
-  /* 상단 액션 버튼 (공유 / 북마크) 이벤트 등록 */
-  const shareBtn = cardArea.querySelector('.card-action-btn[aria-label="공유"]');
-  const bookmarkBtn = cardArea.querySelector('.card-action-btn[aria-label="북마크"]');
+  /* 강제 리플로우 (브라우저가 애니메이션을 인지하게 함) */
+  void newCard.offsetWidth;
+
+  /* 4-3. 애니메이션 실행 */
+  newCard.classList.add('active');
+
+  /* 4-4. 애니메이션 종료 후 정리 */
+  const onAnimationEnd = () => {
+    if (oldCard.parentNode) oldCard.remove();
+    newCard.classList.remove('card-stack-item', `stack-enter-${direction}`, 'active');
+    
+    /* 상호작용 활성화 */
+    bindCardEvents(newCard, story);
+  };
+
+  newCard.addEventListener('transitionend', onAnimationEnd, { once: true });
+  /* 혹시 transitionend가 발생하지 않는 네트워크/성능 문제를 대비해 타임아웃 백업 */
+  setTimeout(() => {
+    if (newCard.classList.contains('card-stack-item')) onAnimationEnd();
+  }, 700);
+}
+
+
+/**
+ * bindCardEvents — 개별 카드 요소에 필기, 클릭, 스와이프 등 모든 이벤트를 연결합니다
+ */
+function bindCardEvents(flipContainer, story) {
+  const flipper = flipContainer.querySelector('.flipper');
+  if (!flipper) return;
+
+  /* 상단 액션 버튼 이벤트 */
+  const shareBtn = flipContainer.querySelector('.card-action-btn[aria-label="공유"]');
+  const bookmarkBtn = flipContainer.querySelector('.card-action-btn[aria-label="북마크"]');
 
   if (shareBtn) {
     shareBtn.addEventListener('click', async (e) => {
-      e.stopPropagation(); // 카드 뒤집기 방지
+      e.stopPropagation();
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch(err) {}
       try {
         await Share.share({ title: story.figure_name, text: story.summary, url: window.location.href });
@@ -287,33 +341,25 @@ function renderCardToArea(cardArea, story, dateObj) {
 
   if (bookmarkBtn) {
     bookmarkBtn.addEventListener('click', async (e) => {
-      e.stopPropagation(); // 카드 뒤집기 방지
-
+      e.stopPropagation();
       const user = getState('user');
       if (user && user.id === 'guest') {
         showToast('로그인이 필요한 기능입니다.', 'info');
         navigate('/login');
         return;
       }
-
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch(err) {}
       const res = await toggleBookmark(story.id);
       if (res.error) {
         showToast(res.error, 'error');
         return;
       }
-      showToast(res.bookmarked ? '북마크에 추가되었습니다.' : '북마크가 해제되었습니다.', 'success');
-      
-      // 디자인 피드백: 북마크 상태에 따라 아이콘 꽉 찬 색상으로 변경
-      if (res.bookmarked) {
-        bookmarkBtn.querySelector('svg').style.fill = 'currentColor';
-      } else {
-        bookmarkBtn.querySelector('svg').style.fill = 'none';
-      }
+      showToast(res.bookmarked ? '북마크 추가' : '해제', 'success');
+      bookmarkBtn.querySelector('svg').style.fill = res.bookmarked ? 'currentColor' : 'none';
     });
   }
-  
-  // 상태 변수
+
+  // 상태 변수 (스와이프 핸들러)
   let touchStartX = 0;
   let touchStartY = 0;
   let isSwiping = false;
@@ -321,13 +367,12 @@ function renderCardToArea(cardArea, story, dateObj) {
   const SWIPE_THRESHOLD = 80;
 
   flipper.addEventListener('touchstart', (e) => {
-    // 뒷면 전체에서 스와이프 차단 (텍스트 스크롤 시 오작동 방지)
     if (e.target.closest('.back')) return;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     isSwiping = false;
     hapticTriggered = false;
-    flipper.style.transition = 'none'; // 당길 때 즉각 반응하도록
+    flipper.style.transition = 'none';
   }, { passive: true });
 
   flipper.addEventListener('touchmove', async (e) => {
@@ -337,34 +382,24 @@ function renderCardToArea(cardArea, story, dateObj) {
     const diffX = currentX - touchStartX;
     const diffY = currentY - touchStartY;
     
-    // Y축 이동이 더 클 경우 위/아래 (공유/북마크)
     if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
       isSwiping = true;
-      e.preventDefault(); // 기본 스크롤 방지
-      // 탄성 효과 (움직임을 조금 줄임)
+      e.preventDefault();
       const moveY = diffY * 0.4;
       flipper.style.transform = `translateY(${moveY}px) ${flipper.classList.contains('flipped') ? 'rotateY(180deg)' : ''}`;
-      
-      // 임계점 돌파 시 가벼운 진동 (한 번만)
       if (Math.abs(diffY) > SWIPE_THRESHOLD && !hapticTriggered) {
         hapticTriggered = true;
         try { await Haptics.impact({ style: ImpactStyle.Light }); } catch(err) {}
-      } else if (Math.abs(diffY) <= SWIPE_THRESHOLD && hapticTriggered) {
-        hapticTriggered = false; // 되돌아오면 진동 리셋
       }
     } 
-    // X축 이동 (좌우 카드 넘기기)
     else if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
       isSwiping = true;
       e.preventDefault();
       const moveX = diffX * 0.4;
       flipper.style.transform = `translateX(${moveX}px) ${flipper.classList.contains('flipped') ? 'rotateY(180deg)' : ''}`;
-      
       if (Math.abs(diffX) > SWIPE_THRESHOLD && !hapticTriggered) {
         hapticTriggered = true;
         try { await Haptics.impact({ style: ImpactStyle.Light }); } catch(err) {}
-      } else if (Math.abs(diffX) <= SWIPE_THRESHOLD && hapticTriggered) {
-        hapticTriggered = false;
       }
     }
   }, { passive: false });

@@ -1,37 +1,95 @@
 /* ============================================
-   DayStory — Base Styles & Reset
-   ============================================ */
+   DayStory — Base Styles & Reset (기본 스타일 & 초기화)
+   ============================================
+   브라우저마다 다른 기본 스타일을 통일하고,
+   앱 전체의 기본 레이아웃 구조를 정의합니다.
 
+   구성:
+     1) CSS 리셋 (브라우저 기본 스타일 제거)
+     2) 모바일 래퍼 (데스크톱에서 모바일 너비 유지)
+     3) 앱 레이아웃 (컨테이너, 페이지, 상태바)
+     4) 스플래시 화면 (앱 시작 시 로딩 화면)
+     5) 하단 내비게이션 바
+     6) 토스트 알림
+*/
+/* ============================================
+   마지막 수정 날짜 : 2026-03-31 15:31
+   ============================================
+   : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
+*/
+
+
+/* ─────────────────────────────────────────────
+   CSS 리셋 — 브라우저 기본 스타일 제거
+   ─────────────────────────────────────────────
+   모든 요소의 기본 마진/패딩을 0으로 초기화하고,
+   box-sizing을 border-box로 설정하여 크기 계산을 쉽게 합니다.
+*/
 *, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent; /* 모바일에서 탭 시 파란색 하이라이트 제거 */
 }
 
+/* HTML 루트 요소 — 기본 폰트 크기와 스크롤 동작 설정 */
 html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
+  font-size: 16px;                     /* rem 단위의 기준 크기 */
+  -webkit-text-size-adjust: 100%;      /* iOS에서 자동 텍스트 크기 조정 방지 */
+  scroll-behavior: smooth;             /* 스크롤 시 부드럽게 이동 */
 }
 
+/* body — 페이지 전체 기본 스타일
+   데스크톱에서 앱을 중앙에 배치하기 위해 flex 사용 */
 body {
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;                  /* dvh: 동적 뷰포트 높이 (모바일 주소창 고려) */
   font-family: var(--font-ui);
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
   line-height: 1.6;
-  overflow-x: hidden;
+  background-color: var(--color-bg-desktop); /* 데스크톱 배경색 (래퍼 바깥) */
+  color: var(--color-text-primary);
+  overflow-x: hidden;                  /* 가로 스크롤 방지 */
+  -webkit-font-smoothing: antialiased;      /* macOS에서 폰트 부드럽게 */
+  -moz-osx-font-smoothing: grayscale;       /* Firefox에서 폰트 부드럽게 */
+}
+
+
+/* ============================================
+   Mobile Wrapper — 모바일 카드형 레이아웃
+   ============================================
+   데스크톱 브라우저에서 앱을 max-width: 430px로 제한하고
+   화면 중앙에 모바일 기기처럼 카드 형태로 배치합니다.
+   모바일에서는 width: 100%로 전체 화면을 차지합니다.
+*/
+.mobile-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: var(--mobile-max-width);  /* 430px — 모바일 최대 너비 */
   min-height: 100vh;
   min-height: 100dvh;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  margin: 0 auto;                      /* 수평 중앙 정렬 */
+  background-color: var(--color-bg-primary); /* 앱 내부 배경색 */
+  box-shadow: var(--shadow-wrapper);   /* 다크모드에서 래퍼 그림자 */
 }
 
+
+/* ─────────────────────────────────────────────
+   기본 HTML 요소 리셋
+   ───────────────────────────────────────────── */
+
+/* 링크(a 태그) — 밑줄 제거, 부모 색상 상속 */
 a {
   color: inherit;
   text-decoration: none;
 }
 
+/* 버튼 — 브라우저 기본 스타일 제거 */
 button {
   font-family: inherit;
   font-size: inherit;
@@ -42,6 +100,7 @@ button {
   outline: none;
 }
 
+/* 입력 요소(input, textarea, select) — 기본 스타일 제거 */
 input, textarea, select {
   font-family: inherit;
   font-size: inherit;
@@ -51,66 +110,92 @@ input, textarea, select {
   background: none;
 }
 
+/* 이미지 — 블록 요소로 변환, 부모 너비 초과 방지 */
 img {
   display: block;
   max-width: 100%;
   height: auto;
 }
 
+/* 리스트 — 기본 불릿/번호 제거 */
 ul, ol {
   list-style: none;
 }
 
-/* Scrollbar */
+
+/* ─────────────────────────────────────────────
+   커스텀 스크롤바 — 얇고 미니멀한 디자인
+   ───────────────────────────────────────────── */
+
+/* 스크롤바 전체 너비 */
 ::-webkit-scrollbar {
   width: 4px;
 }
+
+/* 스크롤바 트랙 (배경) — 투명 */
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* 스크롤바 썸(움직이는 부분) — 둥근 모양 */
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: var(--radius-full);
 }
 
-/* Selection */
+/* 텍스트 선택 시 하이라이트 색상 */
 ::selection {
   background: var(--color-accent);
   color: var(--color-text-inverse);
 }
 
-/* ============================================
-   Layout
-   ============================================ */
 
+/* ============================================
+   Layout — 앱 레이아웃 구조
+   ============================================
+   app-container > page-container > page
+   이 계층 구조로 앱의 기본 골격을 구성합니다.
+*/
+
+/* 앱 컨테이너 — 앱 전체를 감싸는 Flex 컬럼 레이아웃
+   스플래시 화면이 사라진 후 display:flex로 표시됩니다 */
 .app-container {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
 }
 
+/* 상태바 여백 — 모바일 노치/상태바 영역만큼 빈 공간 확보 */
 .status-bar-spacer {
   height: var(--safe-area-top);
-  flex-shrink: 0;
+  flex-shrink: 0;                      /* 높이가 줄어들지 않도록 고정 */
 }
 
+/* 페이지 컨테이너 — 라우터가 각 페이지를 삽입하는 메인 영역
+   flex: 1로 남은 수직 공간을 모두 차지합니다 */
 .page-container {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
   position: relative;
-  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom)); /* 하단 바에 가리지 않도록 패딩 */
+  overflow-y: auto;                    /* 세로 스크롤 허용 */
+  overflow-x: hidden;                  /* 가로 스크롤 방지 */
+  background: var(--color-bg-tertiary); /* 배경색 */
 }
 
+/* 개별 페이지 — 각 페이지(홈, 설정 등)의 공통 래퍼
+   페이지 전환 시 아래에서 위로 페이드인 애니메이션 적용 */
 .page {
   width: 100%;
   min-height: 100%;
-  animation: pageEnter 0.35s var(--transition-base);
+  animation: pageEnter 0.35s;
 }
 
+/* 페이지 진입 애니메이션 — 아래에서 위로 미끄러지며 나타남 */
 @keyframes pageEnter {
   from {
     opacity: 0;
@@ -122,190 +207,238 @@ ul, ol {
   }
 }
 
-/* ============================================
-   Splash Screen
-   ============================================ */
 
+/* ============================================
+   Splash Screen — 앱 시작 시 로딩 화면
+   ============================================
+   앱이 처음 로딩될 때 1.2초 동안 표시됩니다.
+   📜 아이콘, "DayStory" 타이틀, 로딩 바로 구성됩니다.
+*/
+
+/* 스플래시 화면 — 전체 화면을 덮는 검정 배경 */
 .splash-screen {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: #0a0a0a;
+  z-index: var(--z-splash);           /* 모든 요소 위에 표시 */
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-splash);
-  transition: opacity 0.6s ease, visibility 0.6s ease;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--color-bg-primary);
+  transition: opacity 0.6s ease, visibility 0.6s ease; /* 사라질 때 페이드아웃 */
 }
 
+/* 스플래시 숨김 상태 — .hide 클래스 추가 시 페이드아웃 */
 .splash-screen.hide {
   opacity: 0;
   visibility: hidden;
 }
 
+/* 스플래시 콘텐츠 — 로고와 로딩 바를 감싸는 컨테이너 */
 .splash-content {
   text-align: center;
 }
 
+/* 스플래시 아이콘 (📜) — 크기 조절 및 펄스 애니메이션 */
 .splash-icon {
   display: block;
   font-size: 3rem;
   margin-bottom: var(--space-4);
-  animation: splashPulse 2s infinite;
+  animation: splashPulse 2s infinite;  /* 2초 주기로 커졌다 작아짐 */
 }
 
+/* 스플래시 아이콘 펄스 애니메이션 — 크기가 살짝 커졌다 돌아옴 */
 @keyframes splashPulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.1); opacity: 0.8; }
 }
 
+/* 스플래시 타이틀 "DayStory" — 큰 세리프 폰트 */
 .splash-title {
-  font-family: var(--font-display);
-  font-size: var(--text-4xl);
+  font-family: var(--font-sans);
+  font-size: var(--text-5xl);
   font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  letter-spacing: -0.04em;
   margin-bottom: var(--space-2);
 }
 
+/* 스플래시 부제목 "매일의 역사 일화" */
 .splash-subtitle {
   font-family: var(--font-body);
   font-size: var(--text-base);
-  color: #888;
+  color: var(--color-text-secondary);
   letter-spacing: 0.1em;
 }
 
+/* 스플래시 로딩 바 컨테이너 — 가로 120px 얇은 트랙 */
 .splash-loader {
   width: 120px;
   height: 2px;
-  background: #222;
+  background: var(--color-bg-secondary);
   border-radius: var(--radius-full);
   margin: var(--space-8) auto 0;
   overflow: hidden;
 }
 
+/* 스플래시 로딩 바 — 왼쪽에서 오른쪽으로 채워지는 막대 */
 .splash-loader-bar {
   width: 0%;
   height: 100%;
   background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
   border-radius: var(--radius-full);
-  animation: splashLoad 1.5s ease-in-out forwards;
+  animation: splashLoad 1.5s ease-in-out forwards; /* 1.5초 동안 0% → 100% */
 }
 
+/* 스플래시 로딩 애니메이션 — 막대가 점진적으로 채워짐 */
 @keyframes splashLoad {
   0% { width: 0%; }
   50% { width: 70%; }
   100% { width: 100%; }
 }
 
-/* ============================================
-   Bottom Navigation
-   ============================================ */
 
+/* ============================================
+   Bottom Navigation — 하단 내비게이션 바
+   ============================================
+   화면 하단에 고정된 탭 바입니다.
+   홈, 컬렉션, 설정 3개의 아이콘 버튼으로 구성됩니다.
+*/
+
+/* 내비게이션 바 전체 — 화면 하단 고정, 모바일 래퍼 너비에 맞춤 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--nav-height) + var(--safe-area-bottom));
-  padding-bottom: var(--safe-area-bottom);
-  background: var(--color-bg-primary);
-  border-top: 1px solid var(--color-border);
+  left: 50%;
+  z-index: var(--z-nav);               /* 페이지 콘텐츠 위에 표시 */
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  z-index: var(--z-nav);
-  backdrop-filter: blur(20px);
+  justify-content: space-around;       /* 아이콘을 균등하게 배치 */
+  width: 100%;
+  max-width: var(--mobile-max-width);  /* 래퍼 너비에 맞춤 */
+  height: calc(var(--nav-height) + var(--safe-area-bottom));
+  padding-top: var(--space-2);
+  padding-bottom: calc(var(--safe-area-bottom) + var(--space-4)); /* 하단 안전 영역 (iPhone 홈 바) */
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
+  backdrop-filter: blur(20px);         /* 배경 블러 효과 */
   -webkit-backdrop-filter: blur(20px);
 }
 
+/* 다크 테마 내비게이션 — 반투명 검정 배경 */
 [data-theme="dark"] .bottom-nav {
   background: rgba(10, 10, 10, 0.85);
 }
 
+/* 내비게이션 아이템 (개별 버튼) — 아이콘 + 텍스트 세로 배치 */
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-4);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-tertiary);   /* 비활성 상태: 연한 회색 */
   transition: color var(--transition-fast), transform var(--transition-fast);
   position: relative;
 }
 
+/* 활성화된 내비게이션 아이템 — 라이트 모드에서 진한 검정 */
 .nav-item.active {
-  color: #000; /* Darker black for active icon matching the design */
+  color: var(--color-text-primary);
+  border-radius: var(--radius-full);
 }
 
+/* 다크 테마에서 활성화된 아이템 — 흰색 */
 [data-theme="dark"] .nav-item.active {
-  color: #fff;
+  color: var(--color-text-primary);
+  border-radius: var(--radius-full);
 }
 
+/* 내비게이션 아이템 터치 시 — 살짝 축소 애니메이션 */
 .nav-item:active {
-  transform: scale(0.95);
+  transform: scale(0.85);
 }
 
+/* 리디자인된 내비게이션의 아이템 — 더 넓은 터치 영역 */
 .bottom-nav.redesigned-nav .nav-item {
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-3) var(--space-5);
 }
 
+/* 리디자인된 내비게이션의 아이콘 — 28px 크기 */
 .bottom-nav.redesigned-nav .nav-icon {
   width: 28px;
   height: 28px;
-  stroke-width: 1.5;
+  stroke-width: 2;
 }
 
+/* 내비게이션 라벨 텍스트 — 표시 여부 제어 */
 .nav-item .nav-label {
-  display: block; /* Show text labels */
+  display: block;
 }
+
 
 /* ============================================
-   Toast
-   ============================================ */
+   Toast — 토스트 알림 메시지
+   ============================================
+   화면 상단에 잠시 나타났다 사라지는 알림입니다.
+   성공/오류/경고 상태에 따라 테두리 색상이 변합니다.
+*/
 
+/* 토스트 컨테이너 — 화면 상단 중앙에 고정 */
 .toast-container {
   position: fixed;
   top: calc(var(--safe-area-top) + var(--space-4));
   left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-toast);
+  z-index: var(--z-toast);             /* 모든 UI 위에 표시 */
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  padding: 0 var(--space-4);
   gap: var(--space-2);
-  pointer-events: none;
+  transform: translateX(-50%);
+  pointer-events: none;                /* 토스트 영역 밖은 클릭 통과 */
 }
 
+/* 개별 토스트 메시지 — 둥근 필(pill) 형태 */
 .toast {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-primary);
   padding: var(--space-3) var(--space-5);
+  border: 0.85px solid var(--color-border);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-lg);
   font-size: var(--text-sm);
   font-weight: 500;
-  border: 1px solid var(--color-border);
-  animation: toastIn 0.3s var(--transition-spring);
-  pointer-events: auto;
+  pointer-events: auto;                /* 토스트 자체는 클릭 가능 */
   max-width: 90vw;
   text-align: center;
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  transform: translateY(-100px) scale(0.95);
+  animation: toastIn 0.25s ease-out forwards; /* 위에서 아래로 등장 */
 }
 
-.toast.success { border-color: var(--color-success); }
-.toast.error { border-color: var(--color-error); }
-.toast.warning { border-color: var(--color-warning); }
+/* 토스트 상태별 테두리 색상 */
+.toast.success { border-color: var(--color-success); } /* 성공: 초록 */
+.toast.error { border-color: var(--color-error); }     /* 오류: 빨강 */
+.toast.warning { border-color: var(--color-warning); } /* 경고: 주황 */
 
+/* 토스트 사라짐 — .hide 클래스 추가 시 위로 페이드아웃 */
 .toast.hide {
   animation: toastOut 0.25s ease forwards;
 }
 
+/* 토스트 등장 애니메이션 — 위에서 아래로 미끄러지며 나타남 */
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  from { opacity: 0; transform: translateY(-40px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* 토스트 퇴장 애니메이션 — 위로 사라짐 */
 @keyframes toastOut {
   from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 0; transform: translateY(-40px); }
 }

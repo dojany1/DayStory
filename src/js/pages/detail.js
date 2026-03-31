@@ -9,6 +9,7 @@
      - 본문 텍스트
      - 참고 자료 링크
      - 하단 액션 바 (북마크, 공유, 오류 신고)
+   마지막 수정 날짜 : 2026-03-31 20:20
    ===================================================================== */
 
 import { navigate } from '../router.js';
@@ -119,6 +120,7 @@ async function loadDetail(page, storyId) {
     <!-- 히어로 이미지 영역 -->
     <div class="detail-hero">
       <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" />
+      <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
       <div class="detail-hero-overlay">
         <div class="detail-hero-year">${escapeHtml(story.historical_year)}</div>
         <div class="detail-hero-monthday">${month}. ${day < 10 ? '0' + day : day}</div>

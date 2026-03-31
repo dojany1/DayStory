@@ -2,13 +2,14 @@
    settings.js — 설정 페이지
    =====================================================================
    앱의 각종 설정을 변경할 수 있는 페이지입니다.
-   
+
    설정 항목:
      - 알림: 푸시 알림 켜기/끄기, 알림 시간 설정
      - 디스플레이: 테마(라이트/다크), 텍스트 크기, 데이터 절약
      - 에디터 도구: 콘텐츠 관리 (에디터 권한 유저만 표시)
      - 후원: 에디터 후원하기
      - 계정: 로그아웃, 회원 탈퇴
+   마지막 수정 날짜 : 2026-03-31 20:01
    ===================================================================== */
 
 import { navigate } from '../router.js';
@@ -175,99 +176,95 @@ export function renderSettings() {
   /* ─────────────────────────────────────────────
      섹션 2: 이벤트 리스너 연결
      ─────────────────────────────────────────────
-     setTimeout(fn, 0)을 사용하는 이유:
-       renderSettings()가 반환한 DOM이 실제 페이지에 삽입된 "후"에
-       이벤트 리스너를 연결해야 합니다. setTimeout(fn, 0)은
-       현재 실행 중인 코드가 끝난 뒤에 fn을 실행하므로,
-       DOM 삽입이 완료된 시점에 리스너를 연결할 수 있습니다.
+     생성된 page 요소 내부(scope)에서만 요소를 찾아 리스너를 연결합니다.
+     이 방식은 전역 document를 검색하는 것보다 안전하며 중복 등록을 방지합니다.
   */
-  setTimeout(() => {
 
-    /* ---- 푸시 알림 토글 ---- */
-    document.getElementById('toggle-notification')?.addEventListener('click', function () {
-      this.classList.toggle('active');
-      showToast(this.classList.contains('active') ? '알림 켜짐' : '알림 꺼짐', 'success');
-    });
+  /* ---- 푸시 알림 토글 ---- */
+  page.querySelector('#toggle-notification')?.addEventListener('click', function () {
+    this.classList.toggle('active');
+    showToast(this.classList.contains('active') ? '알림 켜짐' : '알림 꺼짐', 'success');
+  });
 
-    /* ---- 데이터 절약 토글 ---- */
-    document.getElementById('toggle-datasaver')?.addEventListener('click', function () {
-      this.classList.toggle('active');
-      showToast(this.classList.contains('active') ? '데이터 절약 모드 켜짐' : '데이터 절약 모드 꺼짐', 'success');
-    });
+  /* ---- 데이터 절약 토글 ---- */
+  page.querySelector('#toggle-datasaver')?.addEventListener('click', function () {
+    this.classList.toggle('active');
+    showToast(this.classList.contains('active') ? '데이터 절약 모드 켜짐' : '데이터 절약 모드 꺼짐', 'success');
+  });
 
-    /* ---- 테마 순환 (시스템 → 라이트 → 다크 → 시스템 ...) ---- */
-    const themes = ['system', 'light', 'dark'];
-    document.getElementById('setting-theme')?.addEventListener('click', () => {
-      const current = getState('theme');
-      const nextIndex = (themes.indexOf(current) + 1) % themes.length;
-      const nextTheme = themes[nextIndex];
+  /* ---- 테마 순환 (시스템 → 라이트 → 다크 → 시스템 ...) ---- */
+  const themes = ['system', 'light', 'dark'];
+  page.querySelector('#setting-theme')?.addEventListener('click', () => {
+    const current = getState('theme');
+    const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+    const nextTheme = themes[nextIndex];
 
-      setState('theme', nextTheme);
-      document.getElementById('theme-label').textContent = themeLabel(nextTheme);
-      showToast(`테마: ${themeLabel(nextTheme)}`, 'success');
-    });
+    setState('theme', nextTheme);
+    const themeLabelEl = page.querySelector('#theme-label');
+    if (themeLabelEl) themeLabelEl.textContent = themeLabel(nextTheme);
+    showToast(`테마: ${themeLabel(nextTheme)}`, 'success');
+  });
 
-    /* ---- 글꼴 크기 순환 (작게 → 보통 → 크게 → 작게 ...) ---- */
-    const sizes = ['small', 'medium', 'large'];
-    document.getElementById('setting-fontsize')?.addEventListener('click', () => {
-      const current = getState('fontSize');
-      const nextIndex = (sizes.indexOf(current) + 1) % sizes.length;
-      const nextSize = sizes[nextIndex];
+  /* ---- 글꼴 크기 순환 (작게 → 보통 → 크게 → 작게 ...) ---- */
+  const sizes = ['small', 'medium', 'large'];
+  page.querySelector('#setting-fontsize')?.addEventListener('click', () => {
+    const current = getState('fontSize');
+    const nextIndex = (sizes.indexOf(current) + 1) % sizes.length;
+    const nextSize = sizes[nextIndex];
 
-      setState('fontSize', nextSize);
-      document.getElementById('fontsize-label').textContent = fontSizeLabel(nextSize);
-      showToast(`텍스트 크기: ${fontSizeLabel(nextSize)}`, 'success');
-    });
+    setState('fontSize', nextSize);
+    const fontSizeLabelEl = page.querySelector('#fontsize-label');
+    if (fontSizeLabelEl) fontSizeLabelEl.textContent = fontSizeLabel(nextSize);
+    showToast(`텍스트 크기: ${fontSizeLabel(nextSize)}`, 'success');
+  });
 
-    /* ---- 에디터 페이지 이동 ---- */
-    document.getElementById('setting-editor')?.addEventListener('click', () => {
-      navigate('/editor');
-    });
+  /* ---- 에디터 페이지 이동 ---- */
+  page.querySelector('#setting-editor')?.addEventListener('click', () => {
+    navigate('/editor');
+  });
 
-    /* ---- 후원 페이지 이동 ---- */
-    document.getElementById('setting-donate')?.addEventListener('click', () => {
-      navigate('/donate');
-    });
+  /* ---- 후원 페이지 이동 ---- */
+  page.querySelector('#setting-donate')?.addEventListener('click', () => {
+    navigate('/donate');
+  });
 
-    /* ---- 로그아웃 ---- */
-    document.getElementById('setting-logout')?.addEventListener('click', async () => {
-      try {
-        /* 로그아웃 요청 (2초 타임아웃) */
-        await Promise.race([
-          supabase.auth.signOut(),
-          new Promise(resolve => setTimeout(resolve, 2000))
-        ]);
-      } catch (err) {
-        console.warn('로그아웃 오류 (무시됨):', err);
-      }
+  /* ---- 로그아웃 ---- */
+  page.querySelector('#setting-logout')?.addEventListener('click', async () => {
+    try {
+      /* 로그아웃 요청 (2초 타임아웃) */
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
+    } catch (err) {
+      console.warn('로그아웃 오류 (무시됨):', err);
+    }
 
-      /* 상태 초기화 */
-      setState('user', null);
-      setState('profile', null);
+    /* 상태 초기화 */
+    setState('user', null);
+    setState('profile', null);
 
-      /* 인증 토큰 삭제 */
-      try {
-        localStorage.removeItem('sb-zfbbljswxwjevpnzbysw-auth-token');
-      } catch { /* 무시 */ }
+    /* 인증 토큰 삭제 */
+    try {
+      localStorage.removeItem('sb-zfbbljswxwjevpnzbysw-auth-token');
+    } catch { /* 무시 */ }
 
-      /* 하단 네비게이션 숨기고 로그인 페이지로 이동 */
-      const nav = document.getElementById('bottom-nav');
-      if (nav) nav.style.display = 'none';
-      window.location.hash = '#/login';
-      showToast('로그아웃 되었습니다', 'success');
-    });
+    /* 하단 네비게이션 숨기고 로그인 페이지로 이동 */
+    const nav = document.getElementById('bottom-nav');
+    if (nav) nav.style.display = 'none';
+    window.location.hash = '#/login';
+    showToast('로그아웃 되었습니다', 'success');
+  });
 
-    /* ---- 회원 탈퇴 (준비중) ---- */
-    document.getElementById('setting-withdraw')?.addEventListener('click', () => {
-      showToast('회원 탈퇴 기능 (준비중)', 'info');
-    });
+  /* ---- 회원 탈퇴 (준비중) ---- */
+  page.querySelector('#setting-withdraw')?.addEventListener('click', () => {
+    showToast('회원 탈퇴 기능 (준비중)', 'info');
+  });
 
-    /* ---- 알림 시간 설정 (준비중) ---- */
-    document.getElementById('setting-noti-time')?.addEventListener('click', () => {
-      showToast('알림 시간 설정 (준비중)', 'info');
-    });
-
-  }, 0);
+  /* ---- 알림 시간 설정 (준비중) ---- */
+  page.querySelector('#setting-noti-time')?.addEventListener('click', () => {
+    showToast('알림 시간 설정 (준비중)', 'info');
+  });
 
   return page;
 }

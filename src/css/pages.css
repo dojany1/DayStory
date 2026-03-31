@@ -1,8 +1,37 @@
 /* ============================================
-   DayStory — Page-specific Styles
-   ============================================ */
+   DayStory — Page-specific Styles (페이지별 스타일)
+   ============================================
+   각 페이지(홈, 상세, 컬렉션, 검색, 설정 등)에
+   고유하게 적용되는 스타일을 정의한다.
 
-/* ---- Login / Signup Page ---- */
+   구성:
+     1) 로그인 / 회원가입 페이지 (auth)
+     2) 홈 페이지 (home)
+     3) 상세 페이지 (detail)
+     4) 컬렉션 페이지 (archive)
+     5) 검색 페이지 (search)
+     6) 설정 페이지 (settings)
+     7) 후원 페이지 (donate)
+     8) 신고 페이지 (report)
+     9) 에디터 페이지 (editor)
+    10) 모달 (modal)
+    11) 로딩 스피너 (loading-spinner)
+*/
+/* ============================================
+   마지막 수정 날짜 : 2026-03-31 16:11
+   ============================================
+   : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
+*/
+
+
+/* ============================================
+   1. 로그인 / 회원가입 페이지
+   ============================================
+   이메일/비밀번호 입력 폼, 소셜 로그인 버튼,
+   로고와 하단 안내 텍스트로 구성된다.
+*/
+
+/* 로그인/회원가입 페이지 전체 레이아웃 — 수직 중앙 정렬 */
 .auth-page {
   min-height: 100vh;
   min-height: 100dvh;
@@ -13,16 +42,19 @@
   background: var(--color-bg-primary);
 }
 
+/* 로고 영역 — 페이지 상단 중앙 */
 .auth-logo {
   text-align: center;
   margin-bottom: var(--space-12);
 }
 
+/* 로고 아이콘 (이모지) */
 .auth-logo-icon {
   font-size: 2.5rem;
   margin-bottom: var(--space-3);
 }
 
+/* 로고 타이틀 (예: "DayStory") */
 .auth-logo-title {
   font-family: var(--font-display);
   font-size: var(--text-3xl);
@@ -30,6 +62,7 @@
   letter-spacing: -0.02em;
 }
 
+/* 로고 부제목 (예: "매일의 역사 일화") */
 .auth-logo-subtitle {
   font-family: var(--font-body);
   font-size: var(--text-sm);
@@ -37,6 +70,7 @@
   margin-top: var(--space-1);
 }
 
+/* 로그인 폼 — 입력 필드들을 세로로 배치 */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -44,6 +78,7 @@
   margin-bottom: var(--space-6);
 }
 
+/* 구분선 ("또는") — 좌우로 선이 뻗어나가는 텍스트 */
 .auth-divider {
   display: flex;
   align-items: center;
@@ -53,6 +88,7 @@
   font-size: var(--text-sm);
 }
 
+/* 구분선 양옆의 가로선 (::before, ::after) */
 .auth-divider::before, .auth-divider::after {
   content: '';
   flex: 1;
@@ -60,6 +96,7 @@
   background: var(--color-divider);
 }
 
+/* 소셜 로그인 버튼 (Google, Apple 등) */
 .auth-social-btn {
   display: flex;
   align-items: center;
@@ -74,16 +111,19 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
+/* 소셜 버튼 터치 시 — 배경 변경 + 테두리 강조 */
 .auth-social-btn:active {
   background: var(--color-bg-secondary);
   border-color: var(--color-accent);
 }
 
+/* 소셜 버튼 내 아이콘 크기 */
 .auth-social-btn svg {
   width: 20px;
   height: 20px;
 }
 
+/* 로그인 페이지 하단 안내 (예: "계정이 없으신가요? 회원가입") */
 .auth-footer {
   text-align: center;
   font-size: var(--text-sm);
@@ -91,13 +131,21 @@
   margin-top: var(--space-6);
 }
 
+/* 하단 안내 링크/버튼 — 강조색 */
 .auth-footer a, .auth-footer button {
   color: var(--color-accent);
   font-weight: 600;
 }
 
-/* ---- Home Page ---- */
-/* ---- Home Page (Redesigned) ---- */
+
+/* ============================================
+   2. 홈 페이지 (메인 화면)
+   ============================================
+   상단 타이틀 + 주간 캘린더 바 + 3D 플립 카드로 구성된다.
+   캘린더에서 날짜를 선택하면 해당 날짜의 카드가 표시된다.
+*/
+
+/* 홈 페이지 전체 레이아웃 — Flex 컬럼으로 높이 100% 채움 */
 .home-page {
   padding: 0;
   display: flex;
@@ -105,109 +153,177 @@
   height: 100%;
 }
 
+/* 홈 상단 헤더 — "Day Story" 타이틀 영역 */
 .home-header {
-  padding: var(--space-3) var(--space-5) var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3); /* 위아래 3칸, 좌우 5칸 */
   background: var(--color-bg-primary);
 }
 
+/* 홈 타이틀 텍스트 */
 .home-title {
-  font-family: var(--font-heading);
-  font-size: 1.8rem;
-  font-weight: 900;
+  font-family: var(--font-sans);
+  font-size: 1.6rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--color-accent);
 }
 
+/* 주간 캘린더 스크롤 영역 — 가로 스크롤, 스크롤바 숨김
+   양쪽 패딩을 50% - 아이템반폭으로 설정하여
+   첫 번째/마지막 날짜도 중앙 정렬이 가능하게 한다 */
 .home-calendar-scroll {
   display: flex;
   overflow-x: auto;
-  gap: var(--space-2); /* Smaller gap */
-  padding: 0 var(--space-5) var(--space-2);
-  scrollbar-width: none; /* Firefox */
-  background: var(--color-bg-primary);
-  border-bottom: 1px solid var(--color-border-light);
+  gap: var(--space-2);
+  padding: 0 calc(50% - 19px); /* 19px = cal-item(38px) / 2 */
+  scrollbar-width: none;
+  border-top: 2px solid var(--color-border );
+  border-bottom: 2px solid var(--color-border );
+  background-color: var(--color-bg-primary);
 }
 
+/* 캘린더 스크롤바 숨김 (Safari, Chrome) */
 .home-calendar-scroll::-webkit-scrollbar {
-  display: none; /* Safari and Chrome */
+  display: none;
 }
 
+/* 캘린더 날짜 아이템 — 요일 + 날짜 세로 배치 */
 .cal-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 38px;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-tertiary);   /* 비활성 날짜: 연한 색 */
   transition: all var(--transition-fast);
   cursor: pointer;
 }
 
+/* 활성화된(선택된) 날짜 아이템 — 요일 텍스트를 강조색으로 표시 */
 .cal-item.active {
-  color: var(--color-bg-primary);
+  color: var(--color-accent);
 }
 
+/* 선택된 날짜의 숫자 — 강조 */
 .cal-item.active .cal-date {
-  background: var(--color-accent);
-  color: var(--color-bg-primary);
-  border-radius: 50%;
-  width: 34px;
-  height: 34px;
+  color: var(--color-accent);
+  font-weight: 400;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* 날짜 아이템 터치 시 — 살짝 축소 */
 .cal-item:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
 }
 
+/* 캘린더 요일 텍스트 (예: "월", "화") */
 .cal-day {
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-size: 0rem;
+  font-weight: 400;
+  line-height: 100%;
   margin-bottom: 2px;
 }
 
+/* 캘린더 날짜 숫자 — 원형 영역 안에 표시 */
 .cal-date {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 800;
-  width: 34px;
-  height: 34px;
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 200;
+  line-height: 120%;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 20%;
 }
 
+/* 홈 카드 영역 — 남은 수직 공간을 채우며 카드를 중앙에 배치 */
 .home-card-area {
-  flex: 1; 
-  display: flex;
-  align-items: center; /* 수직 정렬 */
-  justify-content: center; /* 중앙 정렬 */
-  padding: var(--space-4) var(--space-5); /* 수직 패딩 줄이기 */
-  background: var(--color-bg-secondary); /* 배경색 */
-  overflow: hidden; /* 메인 바디 스크롤 방지 */
+  flex: 1;
+  display: grid;                     /* grid를 사용하여 자식 요소(카드들)를 쉽게 겹침 */
+  place-items: center;               /* 수직/수평 정앙 정렬 */
+  grid-template-areas: "stack";      /* 모든 카드를 'stack'이라는 동일한 영역에 배치 */
+  padding: var(--space-4) var(--space-3);
+  overflow: hidden;                  /* 전환 시 카드가 화면 밖으로 나가도 스크롤 방지 */
+  position: relative;
 }
 
+/* ── 카드 스택 전환 애니메이션 (Natural Stack Transition) ── */
+
+/* 1) 공통 항목 스타일 - 전환 중에만 활성화됨 */
+.card-stack-item {
+  grid-area: stack;                  /* 모든 카드가 grid의 동일한 셀에 겹쳐짐 */
+  width: 100%;
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+  will-change: transform, opacity;
+  pointer-events: none;              /* 애니메이션 도중 클릭 방지 */
+}
+
+/* 2) 다음 카드로 이동 시 (Next / Forward)
+   - 나가는 카드(Old): 왼쪽으로 슬라이드 아웃 + 살짝 축소
+   - 들어오는 카드(New): 뒤에서 앞으로 살짝 확대되며 등장
+*/
+.stack-exit-next {
+  transform: translateX(-120%) scale(0.9) rotate(-5deg);
+  opacity: 0;
+  z-index: 2;
+}
+.stack-enter-next {
+  transform: scale(0.85);
+  opacity: 0;
+  z-index: 1;
+}
+.stack-enter-next.active {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* 3) 이전 카드로 이동 시 (Prev / Backward)
+   - 나가는 카드(Old): 뒤로 물러나며 작아짐
+   - 들어오는 카드(New): 왼쪽 밖에서 중앙으로 덮으면서 등장
+*/
+.stack-exit-prev {
+  transform: scale(0.85);
+  opacity: 0;
+  z-index: 1;
+}
+.stack-enter-prev {
+  transform: translateX(-120%) rotate(-5deg);
+  opacity: 0;
+  z-index: 2;
+}
+.stack-enter-prev.active {
+  transform: translateX(0) rotate(0deg);
+  opacity: 1;
+}
+
+
+/* ── 스와이프 튜토리얼 오버레이 ──
+   최초 1회만 표시되는 제스처 안내 화면 */
+
+/* 튜토리얼 오버레이 — 반투명 검정 배경, 전체 영역 덮기 */
 .tutorial-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85); /* Darker black */
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  font-family: var(--font-display);
   text-align: center;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   transition: opacity 0.4s ease;
   pointer-events: auto;
-  font-family: var(--font-display);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
 }
 
+/* 튜토리얼 십자 레이아웃 — 상/좌/중앙/우/하 방향 안내 */
 .tutorial-cross {
   display: flex;
   flex-direction: column;
@@ -218,20 +334,23 @@
   color: rgba(255,255,255,0.9);
 }
 
+/* 튜토리얼 중간 행 — 좌/중앙/우를 가로 배치 */
 .t-mid {
   display: flex;
   align-items: center;
   gap: 3rem;
 }
 
+/* 튜토리얼 중앙 원 — 터치 포인트 시각화 */
 .t-center {
+  position: relative;
   width: 48px;
   height: 48px;
   border: 1px solid rgba(255,255,255,0.4);
   border-radius: 50%;
-  position: relative;
 }
 
+/* 튜토리얼 중앙 원 내부 점 */
 .t-center::after {
   content: '';
   position: absolute;
@@ -243,6 +362,9 @@
 }
 
 
+/* ── 홈 통계 영역 (사용 시) ── */
+
+/* 통계 컨테이너 — 수치들을 가로로 배치 */
 .home-stats {
   display: flex;
   justify-content: center;
@@ -251,10 +373,12 @@
   padding: var(--space-4) 0;
 }
 
+/* 개별 통계 항목 */
 .home-stat {
   text-align: center;
 }
 
+/* 통계 숫자 값 */
 .home-stat-value {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
@@ -262,12 +386,14 @@
   color: var(--color-accent);
 }
 
+/* 통계 라벨 (예: "총 일화", "북마크") */
 .home-stat-label {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   margin-top: var(--space-1);
 }
 
+/* 최근 일화 섹션 제목 */
 .home-recent-title {
   font-size: var(--text-base);
   font-weight: 600;
@@ -278,39 +404,52 @@
   justify-content: space-between;
 }
 
+/* 최근 일화 그리드 — 3열 배치 */
 .home-recent-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
 }
 
-/* ---- Detail Page ---- */
+
+/* ============================================
+   3. 상세 페이지
+   ============================================
+   일화의 전체 내용을 보여주는 페이지이다.
+   히어로 이미지 + 본문 텍스트 + 출처 + 액션 바로 구성된다.
+*/
+
+/* 상세 페이지 전체 배경 */
 .detail-page {
   background: var(--color-bg-primary);
 }
 
+/* 상세 페이지 상단 헤더 — 스크롤 시 상단에 고정(sticky) */
 .detail-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
   background: var(--color-bg-primary);
   border-bottom: 1px solid transparent;
   transition: border-color var(--transition-fast);
 }
 
+/* 헤더 스크롤 상태 — 아래로 스크롤하면 하단 테두리 표시 */
 .detail-header.scrolled {
   border-bottom-color: var(--color-border);
 }
 
+/* 헤더 오른쪽 액션 버튼들 (북마크, 공유 등) */
 .detail-header-actions {
   display: flex;
   gap: var(--space-2);
 }
 
+/* 히어로 이미지 영역 — 정사각형 비율 */
 .detail-hero {
   position: relative;
   width: 100%;
@@ -318,12 +457,14 @@
   overflow: hidden;
 }
 
+/* 히어로 이미지 — 영역 채우기 */
 .detail-hero img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+/* 히어로 하단 오버레이 — 그라디언트 + 연도/날짜 텍스트 */
 .detail-hero-overlay {
   position: absolute;
   bottom: 0;
@@ -334,6 +475,7 @@
   color: #fff;
 }
 
+/* 히어로 연도 텍스트 (예: "1879") */
 .detail-hero-year {
   font-family: var(--font-display);
   font-size: var(--text-4xl);
@@ -342,6 +484,7 @@
   letter-spacing: -0.03em;
 }
 
+/* 히어로 월/일 텍스트 (예: "03.14") — 초대형 */
 .detail-hero-monthday {
   font-family: var(--font-display);
   font-size: var(--text-6xl);
@@ -350,6 +493,7 @@
   letter-spacing: -0.04em;
 }
 
+/* 히어로 태그 뱃지 (예: "독일") — 반투명 알약 형태 */
 .detail-hero-tag {
   display: inline-block;
   padding: var(--space-1) var(--space-3);
@@ -362,10 +506,12 @@
   letter-spacing: 0.05em;
 }
 
+/* 상세 콘텐츠 영역 — 본문 텍스트가 들어가는 영역 */
 .detail-content {
   padding: var(--space-6) var(--space-5);
 }
 
+/* 인물 이름 (예: "알베르트 아인슈타인") */
 .detail-figure-name {
   font-family: var(--font-heading);
   font-size: var(--text-2xl);
@@ -374,18 +520,21 @@
   line-height: 1.3;
 }
 
+/* 본문 텍스트 — 넓은 줄간격으로 가독성 확보 */
 .detail-body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.85;
   color: var(--color-text-primary);
-  word-break: keep-all;
+  word-break: keep-all;                /* 한글 단어 단위 줄바꿈 */
 }
 
+/* 본문 문단 간격 */
 .detail-body p {
   margin-bottom: var(--space-5);
 }
 
+/* 역사적 날짜 표시 — 본문 하단 오른쪽 정렬 */
 .detail-historical-date {
   text-align: right;
   font-family: var(--font-body);
@@ -396,6 +545,7 @@
   border-top: 1px solid var(--color-divider);
 }
 
+/* 출처(Sources) 섹션 — 둥근 카드 형태 */
 .detail-sources {
   margin-top: var(--space-6);
   padding: var(--space-5);
@@ -403,6 +553,7 @@
   border-radius: var(--radius-lg);
 }
 
+/* 출처 섹션 제목 */
 .detail-sources-title {
   font-size: var(--text-sm);
   font-weight: 600;
@@ -410,6 +561,7 @@
   margin-bottom: var(--space-3);
 }
 
+/* 개별 출처 항목 — 아이콘 + 링크 텍스트 */
 .detail-source-item {
   display: flex;
   align-items: center;
@@ -419,6 +571,7 @@
   color: var(--color-accent);
 }
 
+/* 하단 액션 바 — 좋아요, 공유, 북마크, 신고 버튼 */
 .detail-actions-bar {
   display: flex;
   align-items: center;
@@ -428,6 +581,7 @@
   margin-top: var(--space-4);
 }
 
+/* 개별 액션 버튼 — 아이콘 + 라벨 세로 배치 */
 .detail-action-btn {
   display: flex;
   flex-direction: column;
@@ -438,24 +592,36 @@
   transition: color var(--transition-fast);
 }
 
+/* 액션 버튼 SVG 아이콘 크기 */
 .detail-action-btn svg {
   width: 22px;
   height: 22px;
 }
 
+/* 활성화된 액션 버튼 — 강조색 */
 .detail-action-btn.active {
   color: var(--color-accent);
 }
 
+/* 액션 버튼 터치 시 — 살짝 확대 */
 .detail-action-btn:active {
   transform: scale(1.1);
 }
 
-/* ---- Archive / Collection Page ---- */
+
+/* ============================================
+   4. 컬렉션(아카이브) 페이지
+   ============================================
+   저장한 일화를 월별로 정리하여 그리드로 보여준다.
+   상단 탭(전체/북마크)으로 필터링할 수 있다.
+*/
+
+/* 컬렉션 페이지 전체 */
 .archive-page {
   padding: var(--space-5);
 }
 
+/* 컬렉션 상단 탭 바 — "전체" / "북마크" 전환 */
 .archive-tabs {
   display: flex;
   gap: var(--space-2);
@@ -463,6 +629,7 @@
   padding-bottom: var(--space-3);
 }
 
+/* 개별 탭 버튼 — 둥근 알약 형태 */
 .archive-tab {
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
@@ -473,11 +640,13 @@
   transition: all var(--transition-fast);
 }
 
+/* 활성화된 탭 — 반전된 색상 */
 .archive-tab.active {
   background: var(--color-text-primary);
   color: var(--color-bg-primary);
 }
 
+/* 컬렉션 그리드 — 2열 배치 */
 .archive-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -485,8 +654,9 @@
   width: 100%;
 }
 
+/* 월별 구분 헤더 — 그리드 전체 너비 차지 */
 .archive-month-header {
-  grid-column: 1 / -1;
+  grid-column: 1 / -1;                 /* 첫 번째~마지막 열까지 확장 */
   font-family: var(--font-display);
   font-size: var(--text-lg);
   font-weight: 700;
@@ -494,11 +664,20 @@
   color: var(--color-text-secondary);
 }
 
-/* ---- Search Page ---- */
+
+/* ============================================
+   5. 검색 페이지
+   ============================================
+   키워드로 일화를 검색하는 페이지이다.
+   검색바 + 결과 리스트로 구성된다.
+*/
+
+/* 검색 페이지 전체 */
 .search-page {
   padding: var(--space-5);
 }
 
+/* 검색 바 — 둥근 입력 필드 + 돋보기 아이콘 */
 .search-bar {
   display: flex;
   align-items: center;
@@ -511,10 +690,12 @@
   transition: border-color var(--transition-fast);
 }
 
+/* 검색 바 포커스 시 — 테두리 강조 */
 .search-bar:focus-within {
   border-color: var(--color-accent);
 }
 
+/* 검색 바 돋보기 아이콘 */
 .search-bar svg {
   width: 18px;
   height: 18px;
@@ -522,17 +703,21 @@
   flex-shrink: 0;
 }
 
+/* 검색 바 입력 필드 */
 .search-bar input {
   flex: 1;
   font-size: var(--text-base);
+
 }
 
+/* 검색 결과 리스트 — 세로로 나열 */
 .search-results {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
+/* 검색 결과 아이템 — 썸네일 + 정보를 가로 배치 */
 .search-result-item {
   display: flex;
   gap: var(--space-4);
@@ -542,10 +727,12 @@
   cursor: pointer;
 }
 
+/* 검색 결과 아이템 터치 시 — 배경 하이라이트 */
 .search-result-item:active {
   background: var(--color-bg-secondary);
 }
 
+/* 검색 결과 썸네일 — 72x72 정사각형 */
 .search-result-thumb {
   width: 72px;
   height: 72px;
@@ -554,20 +741,23 @@
   flex-shrink: 0;
 }
 
+/* 검색 결과 썸네일 이미지 */
 .search-result-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+/* 검색 결과 정보 영역 — 날짜, 제목, 요약 세로 배치 */
 .search-result-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 0;
+  min-width: 0;                        /* 텍스트 말줄임 허용 */
 }
 
+/* 검색 결과 날짜 */
 .search-result-date {
   font-family: var(--font-display);
   font-size: var(--text-xs);
@@ -576,6 +766,7 @@
   margin-bottom: var(--space-1);
 }
 
+/* 검색 결과 제목 — 최대 2줄 말줄임 */
 .search-result-title {
   font-size: var(--text-base);
   font-weight: 600;
@@ -587,6 +778,7 @@
   overflow: hidden;
 }
 
+/* 검색 결과 요약 — 최대 1줄 말줄임 */
 .search-result-summary {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
@@ -597,15 +789,25 @@
   overflow: hidden;
 }
 
-/* ---- Settings Page ---- */
+
+/* ============================================
+   6. 설정 페이지
+   ============================================
+   테마, 폰트 크기, 계정 관리 등 앱 설정을 변경하는 페이지이다.
+   섹션별로 리스트 아이템(list-item)이 배치된다.
+*/
+
+/* 설정 페이지 전체 — 하단 여백 */
 .settings-page {
   padding-bottom: var(--space-8);
 }
 
+/* 설정 섹션 — 관련 설정 항목들을 묶는 그룹 */
 .settings-section {
   margin-bottom: var(--space-4);
 }
 
+/* 설정 섹션 제목 (예: "DISPLAY", "ACCOUNT") — 대문자 + 강조색 */
 .settings-section-title {
   padding: var(--space-4) var(--space-5) var(--space-2);
   font-family: var(--font-sans);
@@ -616,33 +818,46 @@
   letter-spacing: 0.1em;
 }
 
-/* ---- Donate Page ---- */
+
+/* ============================================
+   7. 후원 페이지
+   ============================================
+   앱 개발자에게 후원할 수 있는 페이지이다.
+   아이콘 + 설명 + 금액 선택 버튼으로 구성된다.
+*/
+
+/* 후원 페이지 전체 — 중앙 정렬 */
 .donate-page {
   padding: var(--space-6) var(--space-5);
   text-align: center;
 }
 
+/* 후원 히어로 영역 — 아이콘, 제목, 설명 */
 .donate-hero {
   margin-bottom: var(--space-8);
 }
 
+/* 후원 아이콘 (예: ☕️) */
 .donate-icon {
   font-size: 3rem;
   margin-bottom: var(--space-4);
 }
 
+/* 후원 페이지 제목 */
 .donate-title {
   font-size: var(--text-2xl);
   font-weight: 700;
   margin-bottom: var(--space-2);
 }
 
+/* 후원 페이지 설명 텍스트 */
 .donate-desc {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
+/* 후원 금액 버튼 그룹 — 가로 배치 */
 .donate-amounts {
   display: flex;
   gap: var(--space-3);
@@ -650,6 +865,7 @@
   margin: var(--space-6) 0;
 }
 
+/* 개별 금액 버튼 (예: "₩1,000") */
 .donate-amount-btn {
   flex: 1;
   max-width: 120px;
@@ -665,16 +881,19 @@
   transition: all var(--transition-fast);
 }
 
+/* 선택된 금액 버튼 — 테두리 강조 + 배경 변경 */
 .donate-amount-btn.selected {
   border-color: var(--color-accent);
   background: rgba(196, 162, 101, 0.08);
   color: var(--color-accent);
 }
 
+/* 금액 버튼 터치 시 — 살짝 축소 */
 .donate-amount-btn:active {
   transform: scale(0.97);
 }
 
+/* 금액 하단 라벨 (예: "커피 한 잔") */
 .donate-amount-label {
   display: block;
   font-size: var(--text-xs);
@@ -683,11 +902,20 @@
   margin-top: var(--space-1);
 }
 
-/* ---- Report Page ---- */
+
+/* ============================================
+   8. 신고 페이지
+   ============================================
+   부적절한 콘텐츠를 신고하는 페이지이다.
+   신고 카테고리 선택 + 상세 내용 입력으로 구성된다.
+*/
+
+/* 신고 페이지 전체 */
 .report-page {
   padding: var(--space-6) var(--space-5);
 }
 
+/* 신고 카테고리 그룹 — 라디오 버튼 목록 */
 .report-category-group {
   display: flex;
   flex-direction: column;
@@ -695,6 +923,7 @@
   margin-bottom: var(--space-5);
 }
 
+/* 개별 신고 카테고리 — 라디오 + 텍스트를 가로 배치 */
 .report-category {
   display: flex;
   align-items: center;
@@ -706,11 +935,13 @@
   transition: all var(--transition-fast);
 }
 
+/* 선택된 카테고리 — 테두리 강조 + 배경 변경 */
 .report-category.selected {
   border-color: var(--color-accent);
   background: rgba(196, 162, 101, 0.06);
 }
 
+/* 카테고리 라디오 버튼 (커스텀) — 원형 */
 .report-category-radio {
   width: 20px;
   height: 20px;
@@ -723,10 +954,12 @@
   transition: all var(--transition-fast);
 }
 
+/* 선택된 라디오 — 테두리 강조색 */
 .report-category.selected .report-category-radio {
   border-color: var(--color-accent);
 }
 
+/* 선택된 라디오 내부 채움 원 */
 .report-category.selected .report-category-radio::after {
   content: '';
   width: 10px;
@@ -735,6 +968,7 @@
   background: var(--color-accent);
 }
 
+/* 신고 상세 내용 입력 텍스트영역 */
 .report-textarea {
   width: 100%;
   min-height: 120px;
@@ -744,25 +978,36 @@
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   line-height: 1.6;
-  resize: none;
+  resize: none;                        /* 크기 조절 비활성화 */
   transition: border-color var(--transition-fast);
 }
 
+/* 텍스트영역 포커스 시 — 테두리 강조 */
 .report-textarea:focus {
   border-color: var(--color-accent);
 }
 
-/* ---- Editor Page ---- */
+
+/* ============================================
+   9. 에디터 페이지
+   ============================================
+   관리자가 일화를 추가/수정/삭제하는 페이지이다.
+   통계 + 필터 + 일화 목록으로 구성된다.
+*/
+
+/* 에디터 페이지 전체 */
 .editor-page {
   padding: var(--space-5);
 }
 
+/* 에디터 통계 카드 그룹 — 가로 배치 */
 .editor-stats {
   display: flex;
   gap: var(--space-3);
   margin-bottom: var(--space-5);
 }
 
+/* 개별 통계 카드 */
 .editor-stat {
   flex: 1;
   text-align: center;
@@ -771,6 +1016,7 @@
   border-radius: var(--radius-md);
 }
 
+/* 통계 숫자 값 */
 .editor-stat-value {
   font-family: var(--font-display);
   font-size: var(--text-xl);
@@ -778,12 +1024,14 @@
   color: var(--color-accent);
 }
 
+/* 통계 라벨 */
 .editor-stat-label {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   margin-top: var(--space-1);
 }
 
+/* 에디터 필터 바 — 상태별 필터 버튼을 가로 스크롤 */
 .editor-filter-bar {
   display: flex;
   gap: var(--space-2);
@@ -791,6 +1039,7 @@
   overflow-x: auto;
 }
 
+/* 개별 필터 버튼 (예: "전체", "게시됨", "임시저장") */
 .editor-filter {
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
@@ -802,17 +1051,20 @@
   transition: all var(--transition-fast);
 }
 
+/* 활성화된 필터 — 반전된 색상 */
 .editor-filter.active {
   background: var(--color-text-primary);
   color: var(--color-bg-primary);
 }
 
+/* 에디터 일화 목록 — 세로 나열 */
 .editor-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
+/* 개별 일화 아이템 — 썸네일 + 정보 + 액션 가로 배치 */
 .editor-item {
   display: flex;
   align-items: center;
@@ -823,6 +1075,7 @@
   border: 1px solid var(--color-border);
 }
 
+/* 일화 썸네일 — 56x56 정사각형 */
 .editor-item-thumb {
   width: 56px;
   height: 56px;
@@ -831,17 +1084,20 @@
   flex-shrink: 0;
 }
 
+/* 일화 썸네일 이미지 */
 .editor-item-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+/* 일화 정보 영역 — 메타 + 제목 */
 .editor-item-info {
   flex: 1;
-  min-width: 0;
+  min-width: 0;                        /* 텍스트 말줄임 허용 */
 }
 
+/* 일화 메타 정보 (날짜, 상태 뱃지 등) */
 .editor-item-meta {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
@@ -852,6 +1108,7 @@
   flex-wrap: wrap;
 }
 
+/* 일화 제목 — 1줄 말줄임 */
 .editor-item-title {
   font-weight: 600;
   font-size: var(--text-sm);
@@ -860,13 +1117,21 @@
   text-overflow: ellipsis;
 }
 
+/* 일화 액션 버튼 그룹 (수정, 삭제 등) */
 .editor-item-actions {
   display: flex;
   gap: var(--space-1);
   flex-shrink: 0;
 }
 
-/* ---- Modal ---- */
+
+/* ============================================
+   10. 모달 (에디터용)
+   ============================================
+   일화 추가/수정 시 하단에서 올라오는 모달이다.
+*/
+
+/* 모달 오버레이 — 반투명 검정 배경 */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -878,6 +1143,7 @@
   animation: fadeIn 0.2s ease;
 }
 
+/* 모달 콘텐츠 — 하단에서 올라오는 흰색 패널 */
 .modal-content {
   background: var(--color-bg-primary);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -889,11 +1155,13 @@
   animation: slideUp 0.3s ease;
 }
 
+/* 모달 슬라이드 업 애니메이션 */
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
 
+/* 모달 헤더 — 제목 + 닫기 버튼 */
 .modal-header {
   display: flex;
   align-items: center;
@@ -901,27 +1169,37 @@
   margin-bottom: var(--space-5);
 }
 
+/* 모달 제목 (h2) */
 .modal-header h2 {
   font-size: var(--text-xl);
   font-weight: 700;
 }
 
+/* 일화 작성/수정 폼 — 입력 필드들 세로 배치 */
 .story-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-/* ---- Loading Spinner ---- */
+
+/* ============================================
+   11. 로딩 스피너
+   ============================================
+   데이터 로딩 중 표시되는 회전 원형 인디케이터이다.
+*/
+
+/* 로딩 스피너 — 회전하는 원형 테두리 */
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
+  border: 3px solid var(--color-border);         /* 회색 원 */
+  border-top-color: var(--color-accent);          /* 상단만 강조색 */
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.8s linear infinite;           /* 0.8초 주기 무한 회전 */
 }
 
+/* 스피너 회전 애니메이션 */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

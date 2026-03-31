@@ -45,10 +45,9 @@ export function renderLogin() {
 
   page.innerHTML = `
     <!-- 로고 영역 -->
-    <div class="auth-logo">
-      <div class="auth-logo-icon">📜</div>
-      <h1 class="auth-logo-title">DayStory</h1>
-      <p class="auth-logo-subtitle">매일의 역사 일화</p>
+    <div class="auth-logo" style="margin-bottom: var(--space-6);">
+      <h1 class="auth-logo-title" style="margin: 0;">DayStory</h1>
+      <p class="auth-logo-subtitle" style="margin-top: 5px;">매일의 역사 일화</p>
     </div>
 
     <!-- 로그인 폼 -->
@@ -175,10 +174,9 @@ export function renderSignup() {
 
   page.innerHTML = `
     <!-- 로고 영역 -->
-    <div class="auth-logo">
-      <div class="auth-logo-icon">📜</div>
-      <h1 class="auth-logo-title">회원가입</h1>
-      <p class="auth-logo-subtitle">매일 새로운 역사 카드를 만나보세요</p>
+    <div class="auth-logo" style="margin-bottom: var(--space-6);">
+      <h1 class="auth-logo-title" style="margin: 0;">회원가입</h1>
+      <p class="auth-logo-subtitle" style="margin-top: 5px;">매일 새로운 역사 카드를 만나보세요</p>
     </div>
 
     <!-- 회원가입 폼 -->

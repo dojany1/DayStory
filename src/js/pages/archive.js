@@ -12,6 +12,7 @@
 
 import { navigate } from '../router.js';
 import { getBookmarkedStories } from '../services/bookmarks.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 
 /* ─────────────────────────────────────────────
@@ -27,10 +28,9 @@ export function renderArchive() {
   page.className = 'archive-page page';
 
   page.innerHTML = `
-    <!-- 페이지 헤더: 제목 + 카드 수 배지 -->
-    <div class="page-header" style="padding-left:0;padding-right:0;">
-      <h1 class="page-header-title">카드 컬렉션</h1>
-      <span class="badge badge-accent" id="archive-count">...</span>
+    <!-- 페이지 헤더: 제목 -->
+    <div class="page-header" style="padding-left:0;padding-right:0; align-items:center;">
+      <h1 class="home-title" style="margin:0;">DayStory</h1>
     </div>
     
     <!-- 검색창: 북마크한 카드를 실시간 검색 -->
@@ -86,11 +86,6 @@ async function loadCollection(page) {
 
     const allBookmarks = stories || [];
 
-    /* 카드 수 표시 */
-    if (countEl) {
-      countEl.textContent = `${allBookmarks.length}장 보관됨`;
-    }
-
     /**
      * renderStories — 스토리 배열을 받아 카드 그리드를 그립니다 (내부 함수)
      * @param {Array} list - 표시할 스토리 배열
@@ -101,7 +96,6 @@ async function loadCollection(page) {
         contentEl.className = '';
         contentEl.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">🔖</div>
             <div class="empty-state-title">보관된 카드가 없습니다</div>
           </div>
         `;
@@ -152,7 +146,6 @@ async function loadCollection(page) {
     contentEl.className = '';
     contentEl.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">⚠️</div>
         <div class="empty-state-title">데이터를 불러오지 못했습니다</div>
         <div class="empty-state-desc">네트워크 상태를 확인해주세요</div>
         <button class="btn btn-primary" onclick="location.reload()" style="margin-top:var(--space-4)">
@@ -185,13 +178,25 @@ function renderMiniCard(story) {
   const pubDate = new Date(story.publish_date);
   const month = pubDate.getMonth() + 1;
   const day = pubDate.getDate();
+  const displayYear = new Date().getFullYear();
 
   return `
-    <div class="history-card-mini" data-story-id="${story.id}">
-      <img src="${story.image_url}" alt="${story.figure_name}" loading="lazy" />
-      <div class="history-card-mini-overlay">
-        <div class="history-card-mini-date">${month}.${day}</div>
-        <div class="history-card-mini-title">${story.figure_name}</div>
+    <div class="history-card-mini" data-story-id="${escapeHtml(story.id)}">
+      <div class="mini-card-top">
+        <div class="mini-top-left">
+          <div class="mini-year">${escapeHtml(story.historical_year)}</div>
+          <div class="mini-date">${month}. ${day < 10 ? '0' + day : day}</div>
+        </div>
+        <div class="mini-top-right">
+          ${escapeHtml(story.card_count || '')} ${escapeHtml(story.country)}<br>
+          ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
+        </div>
+      </div>
+      <div class="mini-card-image-wrap">
+        <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="lazy" />
+        <div class="mini-card-overlay">
+          ${escapeHtml(story.figure_name)}
+        </div>
       </div>
     </div>
   `;

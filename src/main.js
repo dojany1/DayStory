@@ -92,26 +92,27 @@ const PUBLIC_ROUTES = ['/login', '/signup'];
 
 setBeforeNavigate((path) => {
   /* 게스트 유저 자동 설정: 로그인한 유저가 없으면 게스트로 만듦 */
-  const user = getState('user') || { id: 'guest', role: 'guest' };
-  setState('user', user);
+  let user = getState('user');
+  if (!user) {
+    user = { id: 'guest', role: 'guest' };
+    setState('user', user);
+  }
 
   /* 하단 내비게이션 바 표시/숨김 제어 */
   const nav = document.getElementById('bottom-nav');
   if (nav) {
-    /* 상세 페이지, 후원, 신고 페이지에서는 하단 바를 숨김 */
-    const shouldHideNav = path.startsWith('/detail/')
-                       || path === '/donate'
-                       || path === '/report';
+    /* 상세, 후원, 신고, 로그인/회원가입 페이지에서는 하단 바 숨김 */
+    const shouldHideNav = path.startsWith('/detail/') || path === '/donate' || path === '/report' || path === '/login' || path === '/signup';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
   }
 
-  /* 로그인/회원가입 페이지 접근 차단 → 홈으로 리다이렉트 */
-  if (path === '/login' || path === '/signup') {
+  /* 이미 로그인한 유저가 로그인/회원가입 페이지 접근 시 홈으로 리다이렉트 */
+  if ((path === '/login' || path === '/signup') && user && user.id !== 'guest') {
     navigate('/home');
-    return false;  /* false를 반환하면 원래 페이지 이동이 취소됨 */
+    return false;
   }
 
-  return true;  /* true를 반환하면 정상적으로 페이지 이동 */
+  return true;
 });
 
 

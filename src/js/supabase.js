@@ -1,27 +1,33 @@
 /* =====================================================================
    supabase.js — Supabase 백엔드 연결 설정
    =====================================================================
-   Supabase란?
-     Firebase와 비슷한 백엔드 서비스입니다.
-     데이터베이스(PostgreSQL), 회원인증, 파일 저장 등을 제공합니다.
-     직접 서버를 만들 필요 없이 API로 바로 데이터를 주고받을 수 있습니다.
-
-   이 파일에서 하는 일:
-     Supabase 프로젝트의 URL과 인증 키를 이용해 클라이언트를 생성합니다.
-     다른 파일에서 이 클라이언트를 import해서 데이터베이스에 접근합니다.
-
-   사용 예시 (다른 파일에서):
-     import { supabase } from './supabase.js';
-     const { data } = await supabase.from('stories').select('*');
+   보안 사항:
+     - API 키는 소스 코드에 직접 넣지 않고 .env 파일에서 불러옵니다.
+     - .env 파일은 .gitignore에 의해 Git에 커밋되지 않습니다.
+     - Vite에서 환경변수를 사용하려면 VITE_ 접두사가 필요합니다.
+     - import.meta.env.VITE_XXX 형태로 접근합니다.
    ===================================================================== */
 
 import { createClient } from '@supabase/supabase-js';
 
-/* Supabase 프로젝트 URL (대시보드에서 확인 가능) */
-const SUPABASE_URL = 'https://zfbbljswxwjevpnzbysw.supabase.co';
+/*
+ * 환경변수에서 Supabase URL과 Anon Key를 읽어옵니다.
+ * 이 값들은 프로젝트 루트의 .env 파일에 정의되어 있습니다:
+ *   VITE_SUPABASE_URL=https://xxx.supabase.co
+ *   VITE_SUPABASE_ANON_KEY=eyJhbGci...
+ */
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-/* Supabase Anon(공개) 키 — 클라이언트에서 사용하는 읽기 전용 키 */
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmYmJsanN3eHdqZXZwbnpieXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3OTUwMjUsImV4cCI6MjA5MDM3MTAyNX0.TDkqQ8X8zq8_dINUxxi3g7NOqxSUUtcIgLFkyoMJ-tU';
+/* 환경변수가 없으면 개발자에게 경고 */
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error(
+    '⚠️ Supabase 환경변수가 설정되지 않았습니다.\n' +
+    '프로젝트 루트에 .env 파일을 만들고 아래 값을 넣어주세요:\n' +
+    '  VITE_SUPABASE_URL=https://xxx.supabase.co\n' +
+    '  VITE_SUPABASE_ANON_KEY=eyJhbGci...'
+  );
+}
 
 /**
  * supabase — Supabase 클라이언트 인스턴스

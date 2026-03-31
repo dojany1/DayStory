@@ -56,6 +56,11 @@ export async function isBookmarked(storyId) {
     const user = getState('user');
     if (!user) return false;
 
+    if (user.id === 'guest') {
+      const saved = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
+      return saved.includes(storyId);
+    }
+
     const { data } = await withTimeout(
       supabase
         .from('bookmarks')
@@ -85,23 +90,38 @@ export async function toggleBookmark(storyId) {
     const user = getState('user');
     if (!user) return { bookmarked: false };
 
+    if (user.id === 'guest') {
+      const saved = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
+      if (saved.includes(storyId)) {
+        localStorage.setItem('guest_bookmarks', JSON.stringify(saved.filter(id => id !== storyId)));
+        return { bookmarked: false };
+      } else {
+        saved.push(storyId);
+        localStorage.setItem('guest_bookmarks', JSON.stringify(saved));
+        return { bookmarked: true };
+      }
+    }
+
     const alreadyBookmarked = await isBookmarked(storyId);
 
     if (alreadyBookmarked) {
       /* 이미 북마크됨 → 삭제 */
-      await withTimeout(
+      const { error } = await withTimeout(
         supabase.from('bookmarks').delete().eq('user_id', user.id).eq('story_id', storyId)
       );
-      return { bookmarked: false };
+      if (error) throw error;
+      return { bookmarked: false, error: null };
     } else {
       /* 아직 안 됨 → 추가 */
-      await withTimeout(
+      const { error } = await withTimeout(
         supabase.from('bookmarks').insert({ user_id: user.id, story_id: storyId })
       );
-      return { bookmarked: true };
+      if (error) throw error;
+      return { bookmarked: true, error: null };
     }
-  } catch {
-    return { bookmarked: false };
+  } catch (err) {
+    console.error('Bookmark Error:', err);
+    return { bookmarked: false, error: err.message || '북마크 처리 중 오류가 발생했습니다.' };
   }
 }
 
@@ -118,6 +138,10 @@ export async function getBookmarkedStoryIds() {
   try {
     const user = getState('user');
     if (!user) return [];
+
+    if (user.id === 'guest') {
+      return JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
+    }
 
     const { data } = await withTimeout(
       supabase.from('bookmarks').select('story_id').eq('user_id', user.id)
@@ -146,21 +170,26 @@ export async function getBookmarkedStories() {
     const user = getState('user');
     if (!user) return [];
 
-    /* 1단계: 북마크 ID 목록 조회 */
-    const { data: bookmarkData, error } = await withTimeout(
-      supabase
-        .from('bookmarks')
-        .select('story_id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-    );
+    let storyIds = [];
 
-    if (error || !bookmarkData || bookmarkData.length === 0) {
-      return [];
+    if (user.id === 'guest') {
+      storyIds = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
+      if (storyIds.length === 0) return [];
+    } else {
+      /* 1단계: 북마크 ID 목록 조회 */
+      const { data: bookmarkData, error } = await withTimeout(
+        supabase
+          .from('bookmarks')
+          .select('story_id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+      );
+
+      if (error || !bookmarkData || bookmarkData.length === 0) {
+        return [];
+      }
+      storyIds = bookmarkData.map(b => b.story_id);
     }
-
-    /* ID만 추출 */
-    const storyIds = bookmarkData.map(b => b.story_id);
 
     /* 2단계: 해당 ID들의 스토리 전체 데이터 조회 */
     const { data: storyData } = await withTimeout(
@@ -182,6 +211,11 @@ export async function getBookmarkCount() {
   try {
     const user = getState('user');
     if (!user) return 0;
+
+    if (user.id === 'guest') {
+      const saved = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
+      return saved.length;
+    }
 
     const { count } = await withTimeout(
       supabase

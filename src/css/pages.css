@@ -143,7 +143,18 @@
 }
 
 .cal-item.active {
-  color: var(--color-text-primary);
+  color: var(--color-bg-primary);
+}
+
+.cal-item.active .cal-date {
+  background: var(--color-accent);
+  color: var(--color-bg-primary);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cal-item:active {
@@ -151,8 +162,8 @@
 }
 
 .cal-day {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 600;
   margin-bottom: 2px;
 }
 
@@ -160,6 +171,12 @@
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 800;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .home-card-area {
@@ -171,6 +188,60 @@
   background: var(--color-bg-secondary); /* 배경색 */
   overflow: hidden; /* 메인 바디 스크롤 방지 */
 }
+
+.tutorial-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85); /* Darker black */
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: opacity 0.4s ease;
+  pointer-events: auto;
+  font-family: var(--font-display);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.tutorial-cross {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+}
+
+.t-mid {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+
+.t-center {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 50%;
+  position: relative;
+}
+
+.t-center::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px; height: 6px;
+  background: white;
+  border-radius: 50%;
+}
+
 
 .home-stats {
   display: flex;
@@ -409,8 +480,9 @@
 
 .archive-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  width: 100%;
 }
 
 .archive-month-header {
@@ -510,6 +582,7 @@
   margin-bottom: var(--space-1);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -519,6 +592,7 @@
   color: var(--color-text-tertiary);
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -534,7 +608,7 @@
 
 .settings-section-title {
   padding: var(--space-4) var(--space-5) var(--space-2);
-  font-family: var(--font-heading);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 800;
   color: var(--color-accent);
@@ -583,7 +657,7 @@
   border-radius: var(--radius-lg);
   border: 2px solid var(--color-border);
   background: var(--color-bg-card);
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   font-weight: 700;
   text-align: center;

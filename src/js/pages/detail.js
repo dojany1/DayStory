@@ -15,6 +15,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { fetchStoryById } from '../services/stories.js';
 import { toggleBookmark, isBookmarked } from '../services/bookmarks.js';
+import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 
 
 /* ─────────────────────────────────────────────
@@ -58,7 +59,6 @@ async function loadDetail(page, storyId) {
   if (!story) {
     page.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">📭</div>
         <div class="empty-state-title">일화를 찾을 수 없습니다</div>
       </div>
     `;
@@ -77,7 +77,7 @@ async function loadDetail(page, storyId) {
   const bodyHtml = story.body
     .split('\n')
     .filter(paragraph => paragraph.trim())
-    .map(paragraph => `<p>${paragraph}</p>`)
+    .map(paragraph => `<p>${escapeHtml(paragraph)}</p>`)
     .join('');
 
   /* 참고 자료 목록 */
@@ -118,31 +118,31 @@ async function loadDetail(page, storyId) {
 
     <!-- 히어로 이미지 영역 -->
     <div class="detail-hero">
-      <img src="${story.image_url}" alt="${story.figure_name}" />
+      <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" />
       <div class="detail-hero-overlay">
-        <div class="detail-hero-year">${story.historical_year}</div>
+        <div class="detail-hero-year">${escapeHtml(story.historical_year)}</div>
         <div class="detail-hero-monthday">${month}. ${day < 10 ? '0' + day : day}</div>
-        <span class="detail-hero-tag">${story.card_count || ''} &nbsp;·&nbsp; ${story.country}</span>
+        <span class="detail-hero-tag">${escapeHtml(story.card_count || '')} &nbsp;·&nbsp; ${escapeHtml(story.country)}</span>
       </div>
     </div>
 
     <!-- 본문 영역 -->
     <div class="detail-content">
-      <h1 class="detail-figure-name">${story.figure_name}</h1>
+      <h1 class="detail-figure-name">${escapeHtml(story.figure_name)}</h1>
       <div class="detail-body">${bodyHtml}</div>
-      <div class="detail-historical-date">${story.historical_date}</div>
+      <div class="detail-historical-date">${escapeHtml(story.historical_date)}</div>
 
       <!-- 참고 자료 (있을 때만 표시) -->
       ${sources.length ? `
         <div class="detail-sources">
           <div class="detail-sources-title">참고 자료</div>
           ${sources.map(s => `
-            <a href="${s.url}" target="_blank" rel="noopener" class="detail-source-item">
+            <a href="${sanitizeUrl(s.url)}" target="_blank" rel="noopener" class="detail-source-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                 <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
-              ${s.title}
+              ${escapeHtml(s.title)}
             </a>
           `).join('')}
         </div>

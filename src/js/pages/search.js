@@ -16,6 +16,7 @@
 
 import { navigate } from '../router.js';
 import { searchStoriesDB, fetchStories } from '../services/stories.js';
+import { escapeHtml } from '../utils/sanitize.js';
 
 
 /* ─────────────────────────────────────────────
@@ -53,7 +54,6 @@ export function renderSearch() {
 
     <!-- 검색 결과 없음 상태 -->
     <div id="search-empty" class="empty-state" style="display:none;">
-      <div class="empty-state-icon">🔍</div>
       <div class="empty-state-title">검색 결과가 없습니다</div>
       <div class="empty-state-desc">다른 키워드로 검색해보세요</div>
     </div>
@@ -143,14 +143,14 @@ function renderSearchItem(story) {
   const dateStr = `${pubDate.getFullYear()}.${pubDate.getMonth() + 1}.${pubDate.getDate()}`;
 
   return `
-    <div class="search-result-item" data-story-id="${story.id}">
+    <div class="search-result-item" data-story-id="${escapeHtml(story.id)}">
       <div class="search-result-thumb">
-        <img src="${story.image_url}" alt="${story.figure_name}" loading="lazy" />
+        <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="lazy" />
       </div>
       <div class="search-result-info">
-        <div class="search-result-date">${dateStr} · ${story.country}</div>
-        <div class="search-result-title">${story.figure_name}</div>
-        <div class="search-result-summary">${story.summary}</div>
+        <div class="search-result-date">${dateStr} · ${escapeHtml(story.country)}</div>
+        <div class="search-result-title">${escapeHtml(story.figure_name)}</div>
+        <div class="search-result-summary">${escapeHtml(story.summary)}</div>
       </div>
     </div>
   `;

@@ -43,7 +43,6 @@ export function renderEditor() {
     page.innerHTML = `
       <div class="page-header"><h1 class="page-header-title">에디터</h1></div>
       <div class="empty-state">
-        <div class="empty-state-icon">🔒</div>
         <div class="empty-state-title">에디터 권한이 필요합니다</div>
         <div class="empty-state-desc">관리자에게 에디터 권한을 요청하세요</div>
       </div>
@@ -153,6 +152,12 @@ export function renderEditor() {
             </div>
           </div>
         </form>
+        
+        <!-- 실시간 미리보기 영억 -->
+        <hr style="margin:2rem 0; border:none; border-top:1px solid var(--color-border);"/>
+        <h3 style="margin-bottom:var(--space-3); font-size:var(--text-lg);">📱 실시간 미리보기 (컬렉션 카드)</h3>
+        <div id="editor-preview-area" style="width: 200px; margin: 0 auto;"></div>
+        
       </div>
     </div>
   `;
@@ -203,7 +208,6 @@ export function renderEditor() {
     if (!filtered.length) {
       listEl.innerHTML = `
         <div class="empty-state" style="padding:var(--space-6);">
-          <div class="empty-state-icon">📝</div>
           <div class="empty-state-title">아직 콘텐츠가 없습니다</div>
         </div>
       `;
@@ -299,6 +303,8 @@ export function renderEditor() {
     document.getElementById('modal-title').textContent = '새 일화 작성';
     document.getElementById('story-form').reset();
     document.getElementById('story-modal').style.display = 'flex';
+    // 모달 여는 즉시 미리보기 업데이트
+    setTimeout(updatePreview, 50);
   }
 
   /**
@@ -427,6 +433,55 @@ export function renderEditor() {
 
     /* 초기 데이터 로딩 */
     loadStories();
+
+    /* 실시간 미리보기 기능 추가 */
+    function updatePreview() {
+      const previewArea = page.querySelector('#editor-preview-area');
+      if (!previewArea) return;
+
+      const escapeHTML = str => (str || '').replace(/[&<>'"]/g, 
+        tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
+
+      const figureName = escapeHTML(page.querySelector('#sf-figure').value || '인물명');
+      const histYear = escapeHTML(page.querySelector('#sf-hist-year').value || '1911');
+      const country = escapeHTML(page.querySelector('#sf-country').value || '영국');
+      let pubDateStr = page.querySelector('#sf-publish-date').value;
+      if (!pubDateStr) pubDateStr = new Date().toISOString().split('T')[0];
+      const pubDate = new Date(pubDateStr);
+      const month = pubDate.getMonth() + 1;
+      const day = pubDate.getDate();
+      const displayYear = new Date().getFullYear();
+      const cardCount = escapeHTML(page.querySelector('#sf-card-count').value || '15th');
+      const imageUrl = escapeHTML(page.querySelector('#sf-image').value || 'https://via.placeholder.com/300x400?text=Image');
+
+      previewArea.innerHTML = `
+        <div class="history-card-mini" style="margin:0; box-shadow:0 10px 20px rgba(0,0,0,0.15);">
+          <div style="padding: 1rem 1rem 0.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="card-top-left">
+              <div class="card-year" style="font-size:1.1rem; line-height:1; color:#000;">${histYear}</div>
+              <div class="card-date" style="font-size:2.8rem; line-height:0.9; margin-top:4px; color:#000;">${month}. ${day}</div>
+            </div>
+            <div class="card-top-right" style="text-align:right;">
+              <div class="card-meta" style="font-size:0.55rem; margin-top:2px; color:var(--color-text-secondary);">
+                ${cardCount} ${country}<br>
+                ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
+              </div>
+            </div>
+          </div>
+          <div class="history-card-image-wrap" style="margin: 0 0.75rem 0.75rem; border-radius:4px; overflow:hidden; position:relative; aspect-ratio:3/4;">
+            <img src="${imageUrl}" alt="preview image" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'"/>
+            <div style="position:absolute; bottom:0; left:0; right:0; padding:2rem 0.75rem 0.75rem; background:linear-gradient(transparent, rgba(0,0,0,0.7)); color:white; font-size:0.8rem; font-weight:600;">
+              ${figureName}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 폼 변경 시 실시간 미리보기 연동
+    const formEl = page.querySelector('#story-form');
+    if(formEl) formEl.addEventListener('input', updatePreview);
+
   }, 0);
 
   return page;

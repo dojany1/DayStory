@@ -57,11 +57,13 @@ function withTimeout(promise, ms = 5000) {
  */
 export async function fetchStories() {
   try {
+    const today = new Date().toISOString().split('T')[0];
     const { data, error } = await withTimeout(
       supabase
         .from('stories')
         .select('*')
         .eq('status', 'published')
+        .lte('publish_date', today)
         .order('publish_date', { ascending: false })
     );
     if (error) throw error;
@@ -74,7 +76,7 @@ export async function fetchStories() {
 }
 
 /**
- * fetchTodayStory — 오늘 날짜에 해당하는 스토리를 가져옵니다
+ * fetchTodayStory — '오늘' 날짜에 해당하는 스토리를 가져옵니다
  * @returns {Object} 오늘의 스토리 데이터
  * 
  * 동작 순서:
@@ -85,37 +87,31 @@ export async function fetchStories() {
 export async function fetchTodayStory() {
   try {
     /* 오늘 날짜를 'YYYY-MM-DD' 형식으로 만듦 */
-    const today = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
 
-    /* 1차 시도: 오늘 날짜와 정확히 일치하는 스토리 */
-    const { data } = await withTimeout(
-      supabase
-        .from('stories')
-        .select('*')
-        .eq('status', 'published')
-        .eq('publish_date', today)
-        .single()
-    );
-    if (data) return data;
-
-    /* 2차 시도: 가장 최근 발행된 스토리 */
+    /* 1차 및 2차 시도를 병렬로 가져오거나 짧은 타임아웃 적용 (무한로딩 방지) */
     const { data: latest } = await withTimeout(
       supabase
         .from('stories')
         .select('*')
         .eq('status', 'published')
+        .lte('publish_date', todayStr)
         .order('publish_date', { ascending: false })
         .limit(1)
-        .single()
+        .single(),
+      2500
     );
-    if (latest) return latest;
+    if (latest) {
+      // 만약 오늘 날짜와 정확히 일치하는 데이터가 있다면/없다면 최신 데이터 반환
+      return latest;
+    }
   } catch (err) {
     console.warn('오늘의 스토리 조회 실패, 데모 데이터 사용:', err.message);
   }
 
   /* 최종 폴백: 데모 데이터에서 오늘 날짜에 맞는 것 또는 마지막 항목 */
-  const today = new Date().toISOString().split('T')[0];
-  const demoToday = DEMO_STORIES.find(s => s.publish_date === today);
+  const fallbackToday = new Date().toISOString().split('T')[0];
+  const demoToday = DEMO_STORIES.find(s => s.publish_date === fallbackToday);
   return demoToday || DEMO_STORIES[DEMO_STORIES.length - 1];
 }
 
@@ -131,7 +127,8 @@ export async function fetchStoryById(id) {
         .from('stories')
         .select('*, story_sources(*)')  /* 출처 정보도 함께 가져옴 */
         .eq('id', id)
-        .single()
+        .single(),
+      3000
     );
     if (data) return data;
   } catch (err) {

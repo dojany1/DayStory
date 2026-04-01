@@ -32,6 +32,8 @@ import {
 } from 'firebase/auth';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 /* Google 로그인 제공자 인스턴스 (앱 전체에서 하나만 있으면 됨) */
 const googleProvider = new GoogleAuthProvider();
@@ -165,8 +167,21 @@ export function renderLogin() {
       }
 
       try {
-        const userCredential = await signInWithPopup(auth, googleProvider);
-        const firebaseUser = userCredential.user;
+        let firebaseUser = null;
+
+        if (Capacitor.isNativePlatform()) {
+          /* 모바일 네이티브 환경: Capacitor Google Auth 플러그인 사용 (Web Client ID 명시) */
+          const result = await FirebaseAuthentication.signInWithGoogle({
+            clientId: '1063822349351-rnk0hgs8gg6nuae0k4ocfl4qhvcg2u2s.apps.googleusercontent.com'
+          });
+          firebaseUser = result.user;
+        } else {
+          /* 웹 환경: 기존 가상 팝업 방식 사용 */
+          const userCredential = await signInWithPopup(auth, googleProvider);
+          firebaseUser = userCredential.user;
+        }
+
+        if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
 
         setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
 

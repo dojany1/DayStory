@@ -106,7 +106,10 @@ async function loadHomeData(page) {
     /* 캘린더 HTML 생성 */
     const calendarHtml = calendarDates.map(date => {
       const isToday = date.getTime() === today.getTime();
-      const isoDate = date.toISOString().split('T')[0];  /* '2026-03-30' 형식 */
+      const year = date.getFullYear();
+      const monthNum = String(date.getMonth() + 1).padStart(2, '0');
+      const dayNum = String(date.getDate()).padStart(2, '0');
+      const isoDate = `${year}-${monthNum}-${dayNum}`;
 
       return `
         <div class="cal-item ${isToday ? 'active' : ''}" data-date="${isoDate}">
@@ -178,6 +181,9 @@ async function loadHomeData(page) {
       </div>
       <div class="empty-state">
         <div class="empty-state-title">데이터를 불러오지 못했습니다.</div>
+        <div class="empty-state-desc" style="color:var(--danger-color);margin-bottom:var(--space-2)">
+          ${escapeHtml(err.message || '알 수 없는 오류')}
+        </div>
         <div class="empty-state-desc">네트워크를 확인하고 다시 시도해주세요</div>
         <button class="btn btn-primary" onclick="location.reload()" style="margin-top:var(--space-4)">
           새로고침
@@ -204,24 +210,8 @@ function renderCardToArea(cardArea, story, dateObj, direction = null) {
 
   const oldCard = cardArea.querySelector('.flip-container');
 
-  /* 1) 스토리가 없는 경우의 HTML 구조 */
-  if (!story) {
-    const emptyHtml = `
-      <div class="empty-state" style="width:100%;">
-        <div class="empty-state-title">해당 날짜의 일화가 없습니다.</div>
-      </div>
-    `;
-    if (!direction || !oldCard) {
-      cardArea.innerHTML = emptyHtml;
-    } else {
-      /* 전환 애니메이션을 포함한 빈 상태 (선택 사항: 여기서는 생략하고 즉시 교체) */
-      cardArea.innerHTML = emptyHtml;
-    }
-    return;
-  }
-
-  /* 2) 새 카드 HTML 생성 */
-  const pubDate = new Date(story.publish_date);
+  /* 새 카드 HTML 생성 */
+  const pubDate = story ? new Date(story.publish_date) : dateObj;
   const month = pubDate.getMonth() + 1;
   const day = pubDate.getDate();
   const displayYear = dateObj.getFullYear();
@@ -229,51 +219,69 @@ function renderCardToArea(cardArea, story, dateObj, direction = null) {
   const newCard = document.createElement('div');
   newCard.className = 'flip-container';
   newCard.id = `card-${Date.now()}`;
-  newCard.innerHTML = `
-    <div class="flipper">
-      <div class="front history-card-front">
-        <div class="history-card-top">
-          <div class="card-top-left">
-            <div class="card-year">${escapeHtml(story.historical_year)}</div>
-            <div class="card-date">${month}. ${day}</div>
-          </div>
-        <div class="card-top-right">
-          <div class="card-actions">
-            <!-- 공유 버튼 -->
-            <button class="card-action-btn" aria-label="공유">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-            </button>
-            <!-- 북마크 버튼 -->
-            <button class="card-action-btn" aria-label="북마크">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-              </svg>
-            </button>
-          </div>
-          <div class="card-meta">
-            ${escapeHtml(story.card_count || '')} ${escapeHtml(story.country)}<br>
-            ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
-          </div>
+
+  if (!story) {
+    /* 스토리가 없는 경우의 HTML 구조 (UI 고도화) */
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const formattedDate = `${monthNames[pubDate.getMonth()]} ${day}, ${displayYear}`;
+
+    newCard.innerHTML = `
+      <div class="flipper">
+        <div class="front history-card-front empty-story-card">
+          <div class="empty-story-day-circle">${day}</div>
+          <div class="empty-story-title">이 날의 기록이 없습니다.</div>
+          <div class="empty-story-date">${formattedDate}</div>
         </div>
       </div>
-      <div class="history-card-image-wrap">
-        <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" />
-        <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
-      </div>
-    </div>
-      <div class="back history-card-back">
-        <div class="back-title">${escapeHtml(story.figure_name)}</div>
-        <hr class="back-divider" />
-        <div class="back-body">
-          ${(story.body || '').split('\\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '').join('')}
+    `;
+  } else {
+    /* 기존 카드 HTML 구조 */
+    newCard.innerHTML = `
+      <div class="flipper">
+        <div class="front history-card-front">
+          <div class="history-card-top">
+            <div class="card-top-left">
+              <div class="card-year">${escapeHtml(story.historical_year)}</div>
+              <div class="card-date">${month}. ${day}</div>
+            </div>
+            <div class="card-top-right">
+              <div class="card-actions">
+                <!-- 공유 버튼 -->
+                <button class="card-action-btn" aria-label="공유">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                </button>
+                <!-- 북마크 버튼 -->
+                <button class="card-action-btn" aria-label="북마크">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="card-meta">
+                ${escapeHtml(story.card_count || '')} ${escapeHtml(story.country)}<br>
+                ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
+              </div>
+            </div>
+          </div>
+          <div class="history-card-image-wrap">
+            <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" />
+            <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
+          </div>
         </div>
-        <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+        <div class="back history-card-back">
+          <div class="back-title">${escapeHtml(story.figure_name)}</div>
+          <hr class="back-divider" />
+          <div class="back-body">
+            ${(story.body || '').split('\\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '').join('')}
+          </div>
+          <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 
   /* 3) 초기 로드 (애니메이션 없음) */
   if (!direction || !oldCard) {
@@ -366,114 +374,137 @@ function bindCardEvents(flipContainer, story) {
   let hapticTriggered = false;
   const SWIPE_THRESHOLD = 80;
 
-  flipper.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.back')) return;
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
+  const handleStart = (x, y) => {
+    if (flipper.classList.contains('flipped')) return; // 이미 뒤집혀 있으면 스와이프 방지 (텍스트 드래그 방해)
+    touchStartX = x;
+    touchStartY = y;
     isSwiping = false;
     hapticTriggered = false;
     flipper.style.transition = 'none';
-  }, { passive: true });
+  };
 
-  flipper.addEventListener('touchmove', async (e) => {
-    if (e.target.closest('.back')) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const diffX = currentX - touchStartX;
-    const diffY = currentY - touchStartY;
+  const handleMove = async (x, y, isTouch = false) => {
+    if (flipper.classList.contains('flipped')) return;
+    const diffX = x - touchStartX;
+    const diffY = y - touchStartY;
     
-    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
-      isSwiping = true;
-      e.preventDefault();
+    if (Math.abs(diffX) < 5 && Math.abs(diffY) < 5) return; // 미세한 움직임 무시
+
+    isSwiping = true;
+    
+    if (Math.abs(diffY) > Math.abs(diffX)) {
       const moveY = diffY * 0.4;
-      flipper.style.transform = `translateY(${moveY}px) ${flipper.classList.contains('flipped') ? 'rotateY(180deg)' : ''}`;
+      flipper.style.transform = `translateY(${moveY}px)`;
       if (Math.abs(diffY) > SWIPE_THRESHOLD && !hapticTriggered) {
         hapticTriggered = true;
         try { await Haptics.impact({ style: ImpactStyle.Light }); } catch(err) {}
       }
     } 
-    else if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
-      isSwiping = true;
-      e.preventDefault();
+    else {
       const moveX = diffX * 0.4;
-      flipper.style.transform = `translateX(${moveX}px) ${flipper.classList.contains('flipped') ? 'rotateY(180deg)' : ''}`;
+      flipper.style.transform = `translateX(${moveX}px)`;
       if (Math.abs(diffX) > SWIPE_THRESHOLD && !hapticTriggered) {
         hapticTriggered = true;
         try { await Haptics.impact({ style: ImpactStyle.Light }); } catch(err) {}
       }
     }
-  }, { passive: false });
+  };
 
-  flipper.addEventListener('touchend', async (e) => {
-    if (e.target.closest('.back')) return;
-    const currentX = e.changedTouches[0].clientX;
-    const currentY = e.changedTouches[0].clientY;
-    const diffX = currentX - touchStartX;
-    const diffY = currentY - touchStartY;
+  const handleEnd = async (x, y) => {
+    if (!isSwiping) return;
+    
+    const diffX = x - touchStartX;
+    const diffY = y - touchStartY;
 
     flipper.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
     
-    if (isSwiping) {
-      if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(diffY) > Math.abs(diffX)) {
-        // 성공 진동
-        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch(err) {}
-        
-        if (diffY > 0) {
-          // 아래로 스와이프: 북마크
-          const user = getState('user');
-          if (user && user.id === 'guest') {
-            showToast('로그인이 필요한 기능입니다.', 'info');
-            navigate('/login');
-            // 제자리 복귀
-            flipper.style.transform = flipper.classList.contains('flipped') ? 'rotateY(180deg)' : '';
-            return;
-          }
-
-          const res = await toggleBookmark(story.id);
-          if (res.error) {
-            showToast(res.error, 'error');
-            return;
-          }
-          showToast(res.bookmarked ? '북마크에 추가되었습니다.' : '북마크가 해제되었습니다.', 'success');
+    if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(diffY) > Math.abs(diffX)) {
+      try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch(err) {}
+      
+      if (diffY > 0) {
+        // 아래로 스와이프: 북마크
+        if (!story) {
+           flipper.style.transform = '';
+           return;
+        }
+        const user = getState('user');
+        if (user && user.id === 'guest') {
+          showToast('로그인이 필요한 기능입니다.', 'info');
+          navigate('/login');
+          flipper.style.transform = '';
+          return;
+        }
+        const res = await toggleBookmark(story.id);
+        if (res.error) {
+          showToast(res.error, 'error');
         } else {
-          // 위로 스와이프: 공유
-          try {
-            await Share.share({ title: story.figure_name, text: story.summary, url: window.location.href });
-          } catch(err) {}
+          showToast(res.bookmarked ? '북마크에 추가되었습니다.' : '북마크가 해제되었습니다.', 'success');
         }
-      } else if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
-        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch(err) {}
-        
-        // 좌우 스와이프: 날짜 전환
-        const calItems = document.querySelectorAll('.cal-item');
-        let currentIndex = -1;
-        calItems.forEach((item, index) => {
-          if (item.classList.contains('active')) currentIndex = index;
-        });
-
-        if (diffX < 0 && currentIndex < calItems.length - 1) {
-          // 외쪽 이동 (다음 날짜)
-          calItems[currentIndex + 1].click();
-        } else if (diffX > 0 && currentIndex > 0) {
-          // 오른쪽 이동 (이전 날짜)
-          calItems[currentIndex - 1].click();
+      } else {
+        // 위로 스와이프: 공유
+        if (!story) {
+          flipper.style.transform = '';
+          return;
         }
+        try {
+          await Share.share({ title: story.figure_name, text: story.summary, url: window.location.href });
+        } catch(err) {}
       }
-      // 제자리로 복귀
-      flipper.style.transform = flipper.classList.contains('flipped') ? 'rotateY(180deg)' : '';
-    } else {
-      // 일반 클릭: 뒤집기
-      if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-        flipper.classList.toggle('flipped');
-        flipper.style.transform = flipper.classList.contains('flipped') ? 'rotateY(180deg)' : '';
+    } else if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
+      try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch(err) {}
+      
+      const calItems = document.querySelectorAll('.cal-item');
+      let currentIndex = -1;
+      calItems.forEach((item, index) => {
+        if (item.classList.contains('active')) currentIndex = index;
+      });
+
+      if (diffX < 0 && currentIndex < calItems.length - 1) {
+        calItems[currentIndex + 1].click();
+      } else if (diffX > 0 && currentIndex > 0) {
+        calItems[currentIndex - 1].click();
       }
     }
+    // 제자리로 복귀
+    flipper.style.transform = flipper.classList.contains('flipped') ? 'rotateY(180deg)' : '';
+  };
+
+  // 터치 이벤트
+  flipper.addEventListener('touchstart', (e) => {
+    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  flipper.addEventListener('touchmove', (e) => {
+    handleMove(e.touches[0].clientX, e.touches[0].clientY, true);
+    if (isSwiping) e.preventDefault();
+  }, { passive: false });
+
+  flipper.addEventListener('touchend', (e) => {
+    handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
   });
 
-  // 데스크톱용 일반 클릭 지원 (touch가 안 먹는 경우)
+  // 마우스 이벤트 (데스크톱 드래그 대응)
+  let isMouseDown = false;
+  flipper.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.back-body') || e.target.closest('.card-action-btn')) return;
+    isMouseDown = true;
+    handleStart(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isMouseDown) return;
+    handleMove(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (!isMouseDown) return;
+    isMouseDown = false;
+    handleEnd(e.clientX, e.clientY);
+  });
+
+  // 일반 클릭: 뒤집기
   flipper.addEventListener('click', (e) => {
-    if (e.target.closest('.back-body')) return;
-    // 터치 이벤트로 발생한 클릭은 무시
+    if (e.target.closest('.back-body') || e.target.closest('.card-action-btn')) return;
     if (isSwiping) return;
     flipper.classList.toggle('flipped');
     flipper.style.transform = flipper.classList.contains('flipped') ? 'rotateY(180deg)' : '';
@@ -494,7 +525,10 @@ function bindCardEvents(flipContainer, story) {
         </div>
       </div>
     `;
-    cardArea.insertAdjacentHTML('beforeend', tutorialHtml);
+    const currentCardArea = document.getElementById('home-card-area');
+    if (currentCardArea) {
+      currentCardArea.insertAdjacentHTML('beforeend', tutorialHtml);
+    }
     const tutEl = document.getElementById('swipe-tutorial');
     tutEl.addEventListener('click', (e) => {
       e.stopPropagation();

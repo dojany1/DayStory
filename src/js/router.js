@@ -255,12 +255,29 @@ export function initRouter() {
   /* URL 해시가 바뀔 때마다 handleRoute 실행 */
   window.addEventListener('hashchange', handleRoute);
 
-  /* 하단 내비게이션 버튼 클릭 → 해당 경로로 이동 */
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      navigate(item.dataset.route);
+  /* 하단 내비게이션 버튼 클릭 → 해당 경로로 이동 (이벤트 위임 사용) */
+  const bottomNav = document.getElementById('bottom-nav');
+  if (bottomNav) {
+    bottomNav.addEventListener('click', (e) => {
+      const item = e.target.closest('.nav-item');
+      if (!item) return;
+
+      const route = item.dataset.route;
+      const currentPath = getCurrentPath();
+
+      /* 만약 홈 탭인데 이미 홈에 있다면 -> 오늘 날짜로 이동 */
+      if (route === '/home' && currentPath === '/home') {
+        const calItems = document.querySelectorAll('.cal-item');
+        if (calItems.length > 0) {
+          const todayItem = calItems[calItems.length - 1];
+          if (todayItem && !todayItem.classList.contains('active')) {
+            todayItem.click();
+          }
+        }
+      }
+      navigate(route);
     });
-  });
+  }
 
   /* 초기 URL이 없으면 홈으로 설정 */
   if (!window.location.hash) {

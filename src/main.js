@@ -26,14 +26,27 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
 /* ─────────────────────────────────────────────
    섹션 2: 핵심 모듈(기능) 불러오기
    ─────────────────────────────────────────────
-   다른 JS 파일에서 만들어 둔 함수들을 가져옵니다.
    - router.js  : URL 주소에 따라 페이지를 바꿔주는 라우터
    - state.js   : 앱 전체에서 공유하는 데이터 저장소
-   - supabase.js: 백엔드(데이터베이스) 연결 클라이언트
+   - firebase.js: 백엔드(Firebase) 연결 설정
 */
 import { registerRoute, initRouter, navigate, setBeforeNavigate } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
-import { supabase } from './js/supabase.js';
+import { auth, db } from './js/firebase.js';
+
+/*
+ * Firebase Auth 함수 임포트
+ * - onAuthStateChanged : 로그인/로그아웃 상태가 바뀔 때 자동 호출되는 리스너
+ */
+import { onAuthStateChanged } from 'firebase/auth';
+
+/*
+ * Firestore 함수 임포트
+ * - doc    : 특정 문서(예: 유저 프로필)를 가리키는 참조
+ * - getDoc : 해당 문서의 데이터를 가져옴
+ * - setDoc : 문서를 생성하거나 덮어씀
+ */
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 /* ─────────────────────────────────────────────
@@ -57,36 +70,23 @@ import { renderEditor } from './js/pages/editor.js';
    섹션 4: 라우트(경로) 등록
    ─────────────────────────────────────────────
    "이 URL이면 → 이 페이지를 보여줘" 라는 규칙을 등록합니다.
-   
-   예시:
-     registerRoute('/home', () => renderHome())
-     → 사용자가 #/home 주소로 가면 renderHome() 함수가 실행됨
-
-   :id 는 동적 파라미터입니다.
-     /detail/abc123 → params.id 에 'abc123'이 들어옴
 */
-registerRoute('/login',       () => renderLogin());
-registerRoute('/signup',      () => renderSignup());
-registerRoute('/home',        () => renderHome());
-registerRoute('/detail/:id',  (params) => renderDetail(params));
-registerRoute('/archive',     () => renderArchive());
-registerRoute('/search',      () => renderSearch());
-registerRoute('/settings',    () => renderSettings());
-registerRoute('/donate',      () => renderDonate());
-registerRoute('/report',      () => renderReport());
-registerRoute('/editor',      () => renderEditor());
+registerRoute('/login', () => renderLogin());
+registerRoute('/signup', () => renderSignup());
+registerRoute('/home', () => renderHome());
+registerRoute('/detail/:id', (params) => renderDetail(params));
+registerRoute('/archive', () => renderArchive());
+registerRoute('/search', () => renderSearch());
+registerRoute('/settings', () => renderSettings());
+registerRoute('/donate', () => renderDonate());
+registerRoute('/report', () => renderReport());
+registerRoute('/editor', () => renderEditor());
 
 
 /* ─────────────────────────────────────────────
    섹션 5: 페이지 이동 전 실행되는 가드(Guard)
    ─────────────────────────────────────────────
-   setBeforeNavigate()에 함수를 넣으면,
-   페이지가 바뀔 때마다 "먼저" 이 함수가 실행됩니다.
-
-   현재는 로그인을 비활성화하고 게스트 모드로 동작합니다:
-   - 로그인/회원가입 페이지로 가려 하면 → 홈으로 돌려보냄
-   - 누구나 게스트 유저로 자동 설정됨
-   - 하단 내비게이션 바의 표시/숨김을 제어함
+   현재는 로그인을 비활성화하고 게스트 모드로 동작합니다.
 */
 const PUBLIC_ROUTES = ['/login', '/signup'];
 
@@ -101,7 +101,6 @@ setBeforeNavigate((path) => {
   /* 하단 내비게이션 바 표시/숨김 제어 */
   const nav = document.getElementById('bottom-nav');
   if (nav) {
-    /* 상세, 후원, 신고, 로그인/회원가입 페이지에서는 하단 바 숨김 */
     const shouldHideNav = path.startsWith('/detail/') || path === '/donate' || path === '/report' || path === '/login' || path === '/signup';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
   }
@@ -117,103 +116,96 @@ setBeforeNavigate((path) => {
 
 
 /* ─────────────────────────────────────────────
-   섹션 6: Supabase 인증 상태 변화 감지
+   섹션 6: Firebase 인증 상태 변화 감지
    ─────────────────────────────────────────────
-   Supabase(백엔드)에서 로그인/로그아웃 이벤트가 발생하면
+   Firebase Auth에서 로그인/로그아웃 이벤트가 발생하면
    자동으로 이 콜백 함수가 호출됩니다.
 
-   - SIGNED_IN  : 로그인 성공 시 → 유저 정보 저장, 홈으로 이동
-   - SIGNED_OUT : 로그아웃 시 → 게스트로 전환, 홈으로 이동
+   - user 객체가 있으면 : 로그인 상태
+   - user가 null이면   : 로그아웃 상태
+
+   Supabase의 onAuthStateChange와 비슷하지만,
+   Firebase는 이벤트 이름 대신 user 유무로 판단합니다.
 */
-supabase.auth.onAuthStateChange(async (event, session) => {
-  try {
-    if (event === 'SIGNED_IN' && session) {
-      /* 로그인 성공: 유저 정보를 앱 상태에 저장 */
-      setState('user', session.user);
+if (auth) {
+  onAuthStateChanged(auth, async (firebaseUser) => {
+    try {
+      if (firebaseUser) {
+        /* 로그인 상태: 유저 정보를 앱 상태에 저장 */
+        setState('user', {
+          id: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+        });
 
-      /* 프로필 정보 가져오기 (테마, 폰트 크기 등) */
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+        /* 프로필 정보 가져오기 (Firestore의 profiles 컬렉션) */
+        if (db) {
+          try {
+            const profileRef = doc(db, 'profiles', firebaseUser.uid);
+            const profileSnap = await getDoc(profileRef);
+            let profileData = null;
 
-      if (profile) {
-        setState('profile', profile);
-        if (profile.theme) setState('theme', profile.theme);
-        if (profile.font_size) setState('fontSize', profile.font_size);
+            if (profileSnap.exists()) {
+              profileData = profileSnap.data();
+            } else if (firebaseUser.email === 'daystory@test.com') {
+              /* 어드민 특권: 해당 이메일은 자동으로 에디터 권한 부여 (처음 로그인 시 DB에 생성) */
+              profileData = { role: 'editor', created_at: new Date().toISOString() };
+              await setDoc(profileRef, profileData);
+            }
+
+            if (profileData) {
+              setState('profile', profileData);
+              if (profileData.theme) setState('theme', profileData.theme);
+              if (profileData.font_size) setState('fontSize', profileData.font_size);
+            }
+          } catch (err) {
+            console.warn('프로필 로드 (또는 생성) 실패:', err);
+          }
+        }
+
+        /* 하단 내비게이션 표시 후 홈으로 이동 */
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.style.display = 'flex';
+
+        const currentHash = window.location.hash;
+        if (currentHash === '#/login' || currentHash === '#/signup' || !currentHash) {
+          navigate('/home');
+        }
+
+      } else {
+        /* 로그아웃 상태: 게스트로 전환 */
+        setState('user', { id: 'guest', role: 'guest' });
+        setState('profile', null);
+
+        /* 
+         * 로그인 페이지 접근을 방해하지 않도록
+         * 이전처럼 무조건 navigate('/home')을 하지 않습니다.
+         */
       }
-
-      /* 하단 내비게이션 표시 후 홈으로 이동 */
-      const nav = document.getElementById('bottom-nav');
-      if (nav) nav.style.display = 'flex';
-
-      const currentHash = window.location.hash;
-      if (currentHash === '#/login' || currentHash === '#/signup' || !currentHash) {
-        navigate('/home');
-      }
-
-    } else if (event === 'SIGNED_OUT') {
-      /* 로그아웃: 게스트로 전환 */
-      setState('user', { id: 'guest', role: 'guest' });
-      setState('profile', null);
-
-      const nav = document.getElementById('bottom-nav');
-      if (nav) nav.style.display = 'flex';
-      navigate('/home');
+    } catch (err) {
+      console.warn('인증 상태 변경 중 오류:', err);
     }
-  } catch (err) {
-    console.warn('인증 상태 변경 중 오류:', err);
-  }
-});
+  });
+}
 
 
 /* ─────────────────────────────────────────────
    섹션 7: 앱 초기화 함수
    ─────────────────────────────────────────────
    initApp()은 앱이 시작될 때 한 번만 실행됩니다.
-   
-   순서:
-     1) 테마(라이트/다크) 적용
-     2) 기존 로그인 세션이 있는지 확인 (3초 제한)
-     3) 스플래시 화면을 숨기고 실제 앱 화면을 표시
-     4) 라우터를 시작해서 현재 URL에 맞는 페이지 표시
+
+   Firebase Auth는 onAuthStateChanged에서 자동으로 세션을 복원하므로,
+   Supabase처럼 getSession()을 수동으로 호출할 필요가 없습니다.
 */
 async function initApp() {
   /* 1) 저장된 테마 설정 적용 */
   applyTheme();
 
-  /* 2) 기존에 로그인한 세션이 있는지 확인 */
-  try {
-    /* 3초 안에 응답이 없으면 타임아웃으로 건너뜀 */
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('세션 확인 시간 초과')), 3000)
-    );
-    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-
-    if (session) {
-      /* 기존 세션이 있으면 유저 정보 복원 */
-      setState('user', session.user);
-
-      /* 프로필을 백그라운드에서 가져옴 (앱 시작을 막지 않음) */
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-        .then(({ data: profile }) => {
-          if (profile) {
-            setState('profile', profile);
-            if (profile.theme) setState('theme', profile.theme);
-            if (profile.font_size) setState('fontSize', profile.font_size);
-          }
-        })
-        .catch(() => { /* 프로필 로드 실패해도 앱은 계속 동작 */ });
-    }
-  } catch (err) {
-    console.warn('세션 확인 실패, 게스트로 시작합니다:', err.message);
+  /* 2) Firebase가 설정되지 않은 경우 게스트 모드 */
+  if (!auth) {
+    setState('user', { id: 'guest', role: 'guest' });
   }
+  /* auth가 있으면 → onAuthStateChanged가 자동으로 유저 상태를 처리합니다 */
 
   /* 3) 스플래시 화면 → 메인 화면 전환 */
   const splash = document.getElementById('splash-screen');

@@ -20,6 +20,6 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
-    "@supabase/supabase-js": "^2.100.1"
+    "firebase": "^12.11.0"
   }
 }

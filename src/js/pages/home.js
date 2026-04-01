@@ -42,7 +42,7 @@ export function renderHome() {
   page.innerHTML = `
     <!-- 상단 제목 -->
     <div class="home-header">
-      <h1 class="home-title">Day Story</h1>
+      <h1 class="home-title"></h1>
     </div>
 
     <!-- 주간 캘린더 바 (데이터 로드 후 채워짐) -->

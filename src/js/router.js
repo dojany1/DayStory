@@ -22,8 +22,11 @@
  */
 const routes = new Map();
 
-/** currentRoute: 현재 표시 중인 페이지 경로 (중복 렌더링 방지용) */
+/* currentRoute: 현재 표시 중인 페이지 경로 (중복 렌더링 방지용) */
 let currentRoute = null;
+
+/* targetRoute: 현재 로딩 중인 페이지 경로 (중복 호출 방지용) */
+let targetRoute = null;
 
 /** beforeNavigateHook: 페이지 이동 전에 실행할 함수 (인증 체크 등) */
 let beforeNavigateHook = null;
@@ -170,25 +173,36 @@ function matchRoute(path) {
 async function handleRoute() {
   const path = getCurrentPath();
 
-  /* 같은 페이지면 다시 그리지 않음 (성능 최적화) */
-  if (path === currentRoute) return;
+  /* 1) 같은 페이지면 다시 그리지 않음, 현재 로딩 중인 페이지와 같아도 다시 불러오지 않음 */
+  if (path === currentRoute || path === targetRoute) return;
 
-  /* beforeNavigate 훅이 있으면 실행 */
+  targetRoute = path;
+
+  /* 2) beforeNavigate 훅 실행 (페이지 이동 허용 여부 확인) */
   if (beforeNavigateHook) {
     const canNavigate = await beforeNavigateHook(path);
-    if (canNavigate === false) return;  /* 이동 차단됨 */
+    /* 비동기 훅 도중 URL이 바뀌었을 가능성 체크 */
+    if (path !== getCurrentPath() || path !== targetRoute) return;
+    if (canNavigate === false) {
+      targetRoute = null;
+      return;
+    }
   }
 
-  currentRoute = path;
   const match = matchRoute(path);
   const container = document.getElementById('page-container');
 
   if (match) {
-    /* 기존 페이지 내용 제거 */
-    container.innerHTML = '';
-
-    /* 새 페이지 렌더링 */
+    /* 3) 새 페이지 렌더링 호출 (컨테이너를 비우기 전에 미리 실행하여 Flicker 방지) */
     const pageElement = await match.handler(match.params);
+
+    /* 4) 렌더링 대기 도중 사용자가 다른 페이지를 눌렀을 가능성 체크 */
+    if (path !== getCurrentPath() || path !== targetRoute) return;
+
+    /* 5) 이제서야 기존 페이지 내용 제거 및 교체 */
+    container.innerHTML = '';
+    currentRoute = path;
+    targetRoute = null;
 
     if (typeof pageElement === 'string') {
       container.innerHTML = pageElement;
@@ -202,12 +216,12 @@ async function handleRoute() {
         <div class="empty-state-icon">🔍</div>
         <div class="empty-state-title">페이지를 찾을 수 없습니다</div>
       </div>`;
+    currentRoute = path;
+    targetRoute = null;
   }
 
-  /* 하단 내비게이션 바의 활성 항목 업데이트 */
+  /* 6) 하단 내비게이션 바의 활성 항목 업데이트 및 스크롤 최상단 */
   updateNav(path);
-
-  /* 페이지 최상단으로 스크롤 */
   container.scrollTo(0, 0);
 }
 
@@ -241,12 +255,29 @@ export function initRouter() {
   /* URL 해시가 바뀔 때마다 handleRoute 실행 */
   window.addEventListener('hashchange', handleRoute);
 
-  /* 하단 내비게이션 버튼 클릭 → 해당 경로로 이동 */
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      navigate(item.dataset.route);
+  /* 하단 내비게이션 버튼 클릭 → 해당 경로로 이동 (이벤트 위임 사용) */
+  const bottomNav = document.getElementById('bottom-nav');
+  if (bottomNav) {
+    bottomNav.addEventListener('click', (e) => {
+      const item = e.target.closest('.nav-item');
+      if (!item) return;
+
+      const route = item.dataset.route;
+      const currentPath = getCurrentPath();
+
+      /* 만약 홈 탭인데 이미 홈에 있다면 -> 오늘 날짜로 이동 */
+      if (route === '/home' && currentPath === '/home') {
+        const calItems = document.querySelectorAll('.cal-item');
+        if (calItems.length > 0) {
+          const todayItem = calItems[calItems.length - 1];
+          if (todayItem && !todayItem.classList.contains('active')) {
+            todayItem.click();
+          }
+        }
+      }
+      navigate(route);
     });
-  });
+  }
 
   /* 초기 URL이 없으면 홈으로 설정 */
   if (!window.location.hash) {

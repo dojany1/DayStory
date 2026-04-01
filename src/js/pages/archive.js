@@ -96,7 +96,7 @@ async function loadCollection(page) {
         contentEl.className = '';
         contentEl.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-title">보관된 카드가 없습니다</div>
+            <div class="empty-state-title">보관된 카드가 없습니다.</div>
           </div>
         `;
         return;

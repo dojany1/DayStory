@@ -178,6 +178,9 @@ async function loadHomeData(page) {
       </div>
       <div class="empty-state">
         <div class="empty-state-title">데이터를 불러오지 못했습니다.</div>
+        <div class="empty-state-desc" style="color:var(--danger-color);margin-bottom:var(--space-2)">
+          ${escapeHtml(err.message || '알 수 없는 오류')}
+        </div>
         <div class="empty-state-desc">네트워크를 확인하고 다시 시도해주세요</div>
         <button class="btn btn-primary" onclick="location.reload()" style="margin-top:var(--space-4)">
           새로고침
@@ -494,7 +497,10 @@ function bindCardEvents(flipContainer, story) {
         </div>
       </div>
     `;
-    cardArea.insertAdjacentHTML('beforeend', tutorialHtml);
+    const currentCardArea = document.getElementById('home-card-area');
+    if (currentCardArea) {
+      currentCardArea.insertAdjacentHTML('beforeend', tutorialHtml);
+    }
     const tutEl = document.getElementById('swipe-tutorial');
     tutEl.addEventListener('click', (e) => {
       e.stopPropagation();

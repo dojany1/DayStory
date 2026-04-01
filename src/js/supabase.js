@@ -46,7 +46,7 @@ function createMockQueryBuilder() {
     range:   () => builder,
     single:  () => Promise.resolve({ data: null, error: null }),
     maybeSingle: () => Promise.resolve({ data: null, error: null }),
-    then:    (resolve) => resolve({ data: [], error: null }),
+    then:        (onFulfilled) => Promise.resolve({ data: [], error: null }).then(onFulfilled),
   };
   return builder;
 }

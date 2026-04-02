@@ -86,32 +86,6 @@ export function renderSettings() {
       `}
     </div>
 
-    <!-- ===== 알림 섹션 ===== -->
-    <div class="settings-section">
-      <div class="settings-section-title">알림</div>
-
-      <!-- 푸시 알림 토글 -->
-      <div class="list-item" id="setting-notification">
-        <div class="list-item-content">
-          <div class="list-item-title">푸시 알림</div>
-          <div class="list-item-subtitle">매일 새로운 카드 알림</div>
-        </div>
-        <div class="toggle active" id="toggle-notification"></div>
-      </div>
-
-      <!-- 알림 시간 설정 -->
-      <div class="list-item" id="setting-noti-time">
-        <div class="list-item-content">
-          <div class="list-item-title">알림 시간</div>
-          <div class="list-item-subtitle">오전 9:00</div>
-        </div>
-        <div class="list-item-action">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
-    </div>
 
     <!-- ===== 디스플레이 섹션 ===== -->
     <div class="settings-section">
@@ -149,21 +123,6 @@ export function renderSettings() {
     </div>
     ` : ''}
 
-    <!-- ===== 후원 섹션 ===== -->
-    <div class="settings-section">
-      <div class="settings-section-title">후원</div>
-      <div class="list-item" id="setting-donate">
-        <div class="list-item-content">
-          <div class="list-item-title">에디터 후원하기</div>
-          <div class="list-item-subtitle">커피 한 잔의 응원을 보내세요</div>
-        </div>
-        <div class="list-item-action">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
-    </div>
 
     <!-- ===== 계정 섹션 ===== -->
     ${user && user.id !== 'guest' ? `
@@ -200,11 +159,6 @@ export function renderSettings() {
      이 방식은 전역 document를 검색하는 것보다 안전하며 중복 등록을 방지합니다.
   */
 
-  /* ---- 푸시 알림 토글 ---- */
-  page.querySelector('#toggle-notification')?.addEventListener('click', function () {
-    this.classList.toggle('active');
-    showToast(this.classList.contains('active') ? '알림 켜짐' : '알림 꺼짐', 'success');
-  });
 
   /* ---- 상단 로그인 버튼 (게스트용) ---- */
   page.querySelector('#goto-login-btn')?.addEventListener('click', () => {
@@ -229,10 +183,6 @@ export function renderSettings() {
     navigate('/editor');
   });
 
-  /* ---- 후원 페이지 이동 ---- */
-  page.querySelector('#setting-donate')?.addEventListener('click', () => {
-    navigate('/donate');
-  });
 
   /* ---- 로그아웃 ---- */
   page.querySelector('#setting-logout')?.addEventListener('click', async () => {
@@ -314,10 +264,6 @@ export function renderSettings() {
     }
   });
 
-  /* ---- 알림 시간 설정 (준비중) ---- */
-  page.querySelector('#setting-noti-time')?.addEventListener('click', () => {
-    showToast('알림 시간 설정 (준비중)', 'info');
-  });
 
   return page;
 }

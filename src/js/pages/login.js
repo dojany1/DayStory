@@ -28,7 +28,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  signInWithCredential
 } from 'firebase/auth';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -142,13 +143,16 @@ export function renderLogin() {
         if (db) {
           const profileRef = doc(db, 'profiles', firebaseUser.uid);
           const profileSnap = await getDoc(profileRef);
-          if (profileSnap.exists()) {
-            setState('profile', profileSnap.data());
-          } else if (firebaseUser.email === 'daystory@test.com') {
-            const adminData = { role: 'editor', created_at: new Date().toISOString() };
-            await setDoc(profileRef, adminData);
-            setState('profile', adminData);
+          let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
+          
+          if (firebaseUser.email === 'daystory@test.com' && profileData.role !== 'editor') {
+            profileData.role = 'editor';
+            await setDoc(profileRef, profileData, { merge: true });
+          } else if (!profileSnap.exists()) {
+            await setDoc(profileRef, profileData);
           }
+          
+          setState('profile', profileData);
         }
 
         showToast('로그인 성공!', 'success');
@@ -170,11 +174,13 @@ export function renderLogin() {
         let firebaseUser = null;
 
         if (Capacitor.isNativePlatform()) {
-          /* 모바일 네이티브 환경: Capacitor Google Auth 플러그인 사용 (Web Client ID 명시) */
+          /* 모바일 네이티브 환경: Capacitor Google Auth 플러그인 사용 후 Web SDK 연동 */
           const result = await FirebaseAuthentication.signInWithGoogle({
             clientId: '1063822349351-rnk0hgs8gg6nuae0k4ocfl4qhvcg2u2s.apps.googleusercontent.com'
           });
-          firebaseUser = result.user;
+          const credential = GoogleAuthProvider.credential(result.credential?.idToken, result.credential?.accessToken);
+          const userCredential = await signInWithCredential(auth, credential);
+          firebaseUser = userCredential.user;
         } else {
           /* 웹 환경: 기존 가상 팝업 방식 사용 */
           const userCredential = await signInWithPopup(auth, googleProvider);
@@ -189,13 +195,16 @@ export function renderLogin() {
           try {
             const profileRef = doc(db, 'profiles', firebaseUser.uid);
             const profileSnap = await getDoc(profileRef);
-            if (profileSnap.exists()) {
-              setState('profile', profileSnap.data());
-            } else if (firebaseUser.email === 'daystory@test.com') {
-              const adminData = { role: 'editor', created_at: new Date().toISOString() };
-              await setDoc(profileRef, adminData);
-              setState('profile', adminData);
+            let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
+            
+            if (firebaseUser.email === 'daystory@test.com' && profileData.role !== 'editor') {
+              profileData.role = 'editor';
+              await setDoc(profileRef, profileData, { merge: true });
+            } else if (!profileSnap.exists()) {
+              await setDoc(profileRef, profileData);
             }
+            
+            setState('profile', profileData);
           } catch (err) {
             console.warn('구글 로그인 - 프로필 로드 실패', err);
           }
@@ -332,13 +341,16 @@ export function renderSignup() {
         if (db) {
           const profileRef = doc(db, 'profiles', firebaseUser.uid);
           const profileSnap = await getDoc(profileRef);
-          if (profileSnap.exists()) {
-            setState('profile', profileSnap.data());
-          } else if (firebaseUser.email === 'daystory@test.com') {
-            const adminData = { role: 'editor', created_at: new Date().toISOString() };
-            await setDoc(profileRef, adminData);
-            setState('profile', adminData);
+          let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
+          
+          if (firebaseUser.email === 'daystory@test.com' && profileData.role !== 'editor') {
+            profileData.role = 'editor';
+            await setDoc(profileRef, profileData, { merge: true });
+          } else if (!profileSnap.exists()) {
+            await setDoc(profileRef, profileData);
           }
+          
+          setState('profile', profileData);
         }
 
         showToast('회원가입 완료!', 'success');

@@ -191,6 +191,10 @@ async function loadDetail(page, storyId) {
    */
   const handleBookmark = async () => {
     const result = await toggleBookmark(storyId);
+    if (result.error) {
+      showToast(result.error, 'error');
+      return;
+    }
     bookmarked = result.bookmarked;
 
     /* 상단 + 하단의 북마크 버튼 모두 업데이트 */
@@ -210,16 +214,20 @@ async function loadDetail(page, storyId) {
    */
   const shareAction = async () => {
     try {
+      const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? `https://daystory.app/detail/${story.id}`
+        : window.location.href;
+        
       if (navigator.share) {
         /* 모바일 기기의 공유 기능 사용 */
         await navigator.share({
-          title: story.title,
-          text: story.summary,
-          url: window.location.href
+          title: story.figure_name,
+          text: `[DayStory] ${story.figure_name}\n\n${story.summary || ''}`,
+          url: shareUrl
         });
       } else {
         /* PC: 클립보드에 복사 */
-        await navigator.clipboard.writeText(story.summary + '\n\n— DayStory');
+        await navigator.clipboard.writeText(`[DayStory] ${story.figure_name}\n\n${story.summary || ''}\n${shareUrl}`);
         showToast('클립보드에 복사했습니다', 'success');
       }
     } catch { /* 사용자가 공유를 취소한 경우 무시 */ }

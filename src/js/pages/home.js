@@ -356,7 +356,10 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = []) {
       }
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
       try {
-        await Share.share({ title: story.figure_name, text: story.summary, url: window.location.href });
+        const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? `https://daystory.app/detail/${story.id}`
+          : window.location.href;
+        await Share.share({ title: story.figure_name, text: `[DayStory] ${story.figure_name}\n\n${story.summary || ''}`, url: shareUrl });
       } catch (err) { }
     });
   }
@@ -372,6 +375,10 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = []) {
       }
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
       const res = await toggleBookmark(story.id);
+      if (res.error) {
+        showToast(res.error, 'error');
+        return;
+      }
       showToast(res.bookmarked ? '북마크 추가' : '해제', 'success');
       bookmarkBtn.querySelector('svg').style.fill = res.bookmarked ? 'currentColor' : 'none';
       if (res.bookmarked && !bookmarkedIds.includes(story.id)) {
@@ -483,7 +490,10 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = []) {
           return;
         }
         try {
-          await Share.share({ title: story.figure_name, text: story.summary, url: window.location.href });
+          const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? `https://daystory.app/detail/${story.id}`
+            : window.location.href;
+          await Share.share({ title: story.figure_name, text: `[DayStory] ${story.figure_name}\n\n${story.summary || ''}`, url: shareUrl });
         } catch (err) { }
       }
     } else if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {

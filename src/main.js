@@ -61,7 +61,6 @@ import { renderDetail } from './js/pages/detail.js';
 import { renderArchive } from './js/pages/archive.js';
 import { renderSearch } from './js/pages/search.js';
 import { renderSettings } from './js/pages/settings.js';
-import { renderDonate } from './js/pages/donate.js';
 import { renderReport } from './js/pages/report.js';
 import { renderEditor } from './js/pages/editor.js';
 
@@ -78,7 +77,6 @@ registerRoute('/detail/:id', (params) => renderDetail(params));
 registerRoute('/archive', () => renderArchive());
 registerRoute('/search', () => renderSearch());
 registerRoute('/settings', () => renderSettings());
-registerRoute('/donate', () => renderDonate());
 registerRoute('/report', () => renderReport());
 registerRoute('/editor', () => renderEditor());
 
@@ -101,7 +99,7 @@ setBeforeNavigate((path) => {
   /* 하단 내비게이션 바 표시/숨김 제어 */
   const nav = document.getElementById('bottom-nav');
   if (nav) {
-    const shouldHideNav = path.startsWith('/detail/') || path === '/donate' || path === '/report' || path === '/login' || path === '/signup';
+    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
   }
 
@@ -147,6 +145,10 @@ if (auth) {
 
             if (profileSnap.exists()) {
               profileData = profileSnap.data();
+              if (firebaseUser.email === 'daystory@test.com' && profileData.role !== 'editor') {
+                profileData.role = 'editor';
+                await setDoc(profileRef, profileData, { merge: true });
+              }
             } else if (firebaseUser.email === 'daystory@test.com') {
               /* 어드민 특권: 해당 이메일은 자동으로 에디터 권한 부여 (처음 로그인 시 DB에 생성) */
               profileData = { role: 'editor', created_at: new Date().toISOString() };

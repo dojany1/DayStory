@@ -29,7 +29,7 @@
 /* 주요(Primary) 버튼 — 검정 배경에 흰 글씨 */
 .btn-primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-inverse);
 }
 
 /* 주요 버튼 터치 시 — 약간 축소 */
@@ -165,7 +165,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: var(--card-aspect-ratio); /* 변수 사용 (3.1 / 4.8) */
-  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 스프링 같은 부드러운 회전 */
+  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.05s; /* 길어진 스프링 회전 및 0.05초 딜레이 추가 */
   transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 */
   will-change: transform;              /* 브라우저에 GPU 가속 힌트 */
   cursor: pointer;
@@ -271,8 +271,8 @@
 
 /* 개별 액션 버튼 — 터치 영역 확보를 위해 패딩 추가 + 마이너스 마진 */
 .card-action-btn {
-  padding: 12px;
-  margin: -12px;                       /* 패딩만큼 마이너스 마진으로 시각적 크기 유지 */
+  padding: 16px;
+  margin: -16px;                       /* 패딩만큼 마이너스 마진으로 시각적 크기 유지 */
   background: transparent;
   display: flex;
   align-items: center;

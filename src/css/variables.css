@@ -21,48 +21,47 @@
 :root {
 
   /* ── 배경 색상 ── */
-  --color-bg-primary: #f5f5f7;           /* 앱 기본 배경 (iOS 스타일 밝은 회색) */
-  --color-bg-secondary: #ffffff;         /* 보조 배경 (카드 내부, 입력창 등) */
+  --color-bg-primary: #f9f9fb;           /* 더 깔끔하고 부드러온 앱 기본 배경 */
+  --color-bg-secondary: #ffffff;         /* 보조 배경 */
   --color-bg-card: #ffffff;              /* 카드 배경색 */
-  --color-bg-card-dark: #f0f0f0;         /* 카드 어두운 배경 (비활성 상태 등) */
-  --color-bg-elevated: #ffffff;          /* 부유 요소 배경 (토스트, 모달 등) */
-  --color-bg-overlay: rgba(0, 0, 0, 0.4); /* 반투명 오버레이 (모달 뒷배경) */
+  --color-bg-card-dark: #f2f2f7;         /* 카드 어두운 배경 (비활성 상태 등) */
+  --color-bg-elevated: #ffffff;          /* 부유 요소 배경 */
+  --color-bg-overlay: rgba(0, 0, 0, 0.45); /* 오버레이 (대비 소폭 강화) */
 
   /* ── 텍스트 색상 ── */
-  --color-text-primary: #0a0a0a;         /* 기본 텍스트 (거의 검정) */
-  --color-text-secondary: #737373;       /* 보조 텍스트 (설명, 부제목) */
-  --color-text-tertiary: #a3a3a3;        /* 3차 텍스트 (힌트, 비활성 텍스트) */
-  --color-text-inverse: #ffffff;         /* 반전 텍스트 (어두운 배경 위의 흰 글씨) */
-  --color-text-on-dark: #f5f5f5;         /* 어두운 배경 위의 밝은 텍스트 */
+  --color-text-primary: #111111;         /* 눈이 편안한 차콜 블랙 */
+  --color-text-secondary: #636366;       /* 보조 텍스트 (iOS 스타일) */
+  --color-text-tertiary: #8e8e93;        /* 3차 텍스트 */
+  --color-text-inverse: #ffffff;         /* 반전 텍스트 */
+  --color-text-on-dark: #f5f5f7;         /* 어두운 배경 위의 밝은 텍스트 */
 
   /* ── 강조(액센트) 색상 ── */
-  --color-accent: #000000;               /* 주 강조색 (버튼, 활성 아이콘) */
-  --color-accent-light: #555555;         /* 밝은 강조색 (그라디언트 끝) */
-  --color-accent-dark: #000000;          /* 어두운 강조색 (버튼 누름 상태) */
+  --color-accent: #000000;               /* 주 강조색 유지 */
+  --color-accent-light: #444444;         /* 강조색 라이트 */
+  --color-accent-dark: #000000;          /* 강조색 다크 */
 
   /* ── 테두리/구분선 색상 ── */
-  --color-border: #f0f0f0;               /* 기본 테두리 (카드, 입력창 등) */
-  --color-border-light: #f7f7f7;         /* 얇은 테두리 (리스트 구분선) */
-  --color-divider: #eaeaea;              /* 섹션 구분선 */
+  --color-border: #eeeff2;               /* 배경과 더 잘 어우러지는 테두리 */
+  --color-border-light: #f5f5f7;         /* 얇은 테두리 */
+  --color-divider: #ebecef;              /* 섹션 구분선 */
 
-  /* ── 상태 색상 (성공/경고/오류/정보) ── */
-  --color-success: #4caf50;              /* 성공 (초록) */
-  --color-warning: #ff9800;              /* 경고 (주황) */
-  --color-error: #f44336;                /* 오류 (빨강) */
-  --color-info: #2196f3;                 /* 정보 (파랑) */
+  /* ── 상태 색상 (현대적인 시맨틱 컬러) ── */
+  --color-success: #34c759;              /* 성공 (Green) */
+  --color-warning: #ff9f0a;              /* 경고 (Orange) */
+  --color-error: #ff3b30;                /* 오류 (Red) */
+  --color-info: #007aff;                 /* 정보 (Blue) */
 
-  /* ── 그림자 (깊이감 표현) ──
-     sm → xl 순서로 그림자가 깊어집니다 */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);    /* 작은 그림자 (미세한 떠있는 느낌) */
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.06);   /* 중간 그림자 */
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.08);  /* 큰 그림자 */
-  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.1);   /* 아주 큰 그림자 */
-  --shadow-card: 0 1px 0px rgba(0, 0, 0, 0.1); /* 더 또렷하고 정교해진 3D 그림자 */
-  --shadow-card-hover: 0 15px 30px rgba(0, 0, 0, 0.2);
+  /* ── 그림자 (깊이감 표현) ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.15);
 
   /* ── 타이포그래피 (폰트 패밀리) ── */
-  --font-display: 'Playfair Display', 'Noto Serif KR', serif;  /* 제목용 세리프 (Day Story 로고 등) */
-  --font-heading: 'Playfair Display', 'Noto Serif KR', serif;  /* 소제목용 세리프 */
+  --font-display: 'LINESeedKR', 'Inter', sans-serif;           /* 제목용 (산세리프로 통일) */
+  --font-heading: 'LINESeedKR', 'Inter', sans-serif;           /* 소제목용 (산세리프로 통일) */
   --font-body: 'LINESeedKR', 'Inter', sans-serif;              /* 본문용 산세리프 */
   --font-ui: 'LINESeedKR', 'Inter', sans-serif;                /* UI 요소용 산세리프 */
 
@@ -137,43 +136,41 @@
    아래 변수들이 라이트 테마 값을 덮어쓴다.
 */
 [data-theme="dark"] {
-
-  /* ── 다크 테마 배경 색상 ── */
-  --color-bg-primary: #000000;              /* 순수 검정 (OLED 절전) */
-  --color-bg-secondary: #080808;            /* 약간 밝은 검정 */
-  --color-bg-card: #111111;                 /* 카드 배경 */
-  --color-bg-card-dark: #1a1a1a;            /* 카드 어두운 배경 */
-  --color-bg-elevated: #111111;             /* 부유 요소 배경 */
-  --color-bg-overlay: rgba(0, 0, 0, 0.8);   /* 오버레이 (더 어둡게) */
+  /* ── 다크 테마 배경 색상 (가시성 대폭 개선) ── */
+  --color-bg-primary: #121212;              /* 순수 블랙보다 눈이 편하고 가시성이 좋은 다크 챠콜 */
+  --color-bg-secondary: #1c1c1e;            /* 보조 배경 */
+  --color-bg-card: #2c2c2e;                 /* 카드 배경 (배경과 명확히 구분되도록 상향) */
+  --color-bg-card-dark: #3a3a3c;            /* 카드 더 어두운 배경 */
+  --color-bg-elevated: #2c2c2e;             /* 부유 요소 배경 */
+  --color-bg-overlay: rgba(0, 0, 0, 0.75);
 
   /* ── 다크 테마 텍스트 색상 ── */
-  --color-text-primary: #ffffff;            /* 기본 텍스트 (흰색) */
-  --color-text-secondary: #a3a3a3;          /* 보조 텍스트 */
-  --color-text-tertiary: #737373;           /* 3차 텍스트 */
-  --color-text-inverse: #0a0a0a;            /* 반전 텍스트 */
+  --color-text-primary: #f5f5f7;            /* 가독성 높은 소프트 화이트 */
+  --color-text-secondary: #aeaeb2;          /* 보조 텍스트 (가시성 보강) */
+  --color-text-tertiary: #636366;           /* 3차 텍스트 */
+  --color-text-inverse: #111111;            /* 반전 텍스트 */
 
   /* ── 다크 테마 강조 색상 ── */
   --color-accent: #ffffff;                  /* 강조색 (흰색) */
-  --color-accent-light: #cccccc;            /* 밝은 강조색 */
-  --color-accent-dark: #ffffff;             /* 어두운 강조색 */
+  --color-accent-light: #cccccc;
+  --color-accent-dark: #ffffff;
 
-  /* ── 다크 테마 테두리 ── */
-  --color-border: #1f1f1f;                  /* 기본 테두리 */
-  --color-border-light: #111111;            /* 얇은 테두리 */
-  --color-divider: #1f1f1f;                 /* 구분선 */
-  
+  /* ── 다크 테마 테두리 (대비 강화) ── */
+  --color-border: #3a3a3c;                  /* 카드 테두리를 더 선명하게 */
+  --color-border-light: #2c2c2e;
+  --color-divider: #38383a;
 
-  /* ── 다크 테마 그림자 (더 강한 그림자) ── */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.6);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.8);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.9);
-  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 1);
-  --shadow-card: 0 20px 40px rgba(0, 0, 0, 0.85), 0 0 1px rgba(255,255,255,0.1);
-  --shadow-card-hover: 0 25px 50px rgba(0, 0, 0, 0.95), 0 0 2px rgba(255,255,255,0.2);
+  /* ── 다크 테마 그림자 ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.8);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.1);
+  --shadow-card-hover: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
 
   /* ── 다크 테마 데스크톱 래퍼 ── */
-  --color-bg-desktop: #111111;                       /* 래퍼 바깥 배경 */
-  --shadow-wrapper: 0 0 60px rgba(0, 0, 0, 0.5);    /* 래퍼에 은은한 그림자 */
+  --color-bg-desktop: #000000;
+  --shadow-wrapper: inset 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 

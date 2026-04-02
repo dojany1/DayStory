@@ -59,7 +59,7 @@ export function renderSettings() {
           <div>
             <div style="font-size:var(--text-lg); font-weight:600; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;">
               ${user.displayName || (user.email ? user.email.split('@')[0] : '사용자')}
-              ${profile && profile.role === 'editor' ? '<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--color-accent); color: white; margin-left: var(--space-1);">관리자</span>' : ''}
+              ${profile && profile.role === 'editor' ? '<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--color-accent); color: var(--color-text-tertiary); margin-left: var(--space-1);">관리자</span>' : ''}
             </div>
             <div style="font-size:var(--text-sm); color:var(--color-text-tertiary);">
               ${user.email || '이메일 정보 없음'}
@@ -91,16 +91,19 @@ export function renderSettings() {
     <div class="settings-section">
       <div class="settings-section-title">디스플레이</div>
 
-      <!-- 테마 변경 (클릭할 때마다 시스템→라이트→다크 순환) -->
-      <div class="list-item" id="setting-theme">
-        <div class="list-item-content">
-          <div class="list-item-title">테마</div>
-          <div class="list-item-subtitle" id="theme-label">${themeLabel(currentTheme)}</div>
+      <!-- 테마 선택 (UI/UX 개선: 버튼형) -->
+      <div class="theme-option-group">
+        <div class="theme-option ${currentTheme === 'light' ? 'active' : ''}" data-theme="light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <div class="theme-option-label">라이트</div>
         </div>
-        <div class="list-item-action">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
+        <div class="theme-option ${currentTheme === 'dark' ? 'active' : ''}" data-theme="dark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <div class="theme-option-label">다크</div>
+        </div>
+        <div class="theme-option ${currentTheme === 'system' ? 'active' : ''}" data-theme="system">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <div class="theme-option-label">시스템</div>
         </div>
       </div>
     </div>
@@ -145,6 +148,13 @@ export function renderSettings() {
     </div>
     ` : ''}
 
+    <!-- 개인정보처리방침 -->
+    <div style="text-align:center; margin-top:var(--space-8); margin-bottom:-12px;">
+      <a href="https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link" target="_blank" rel="noopener noreferrer" style="color:var(--color-text-tertiary); font-size:var(--text-xs); text-decoration:underline; opacity:0.8;">
+        개인정보처리방침
+      </a>
+    </div>
+
     <!-- 앱 버전 정보 -->
     <div style="text-align:center;padding:var(--space-6);color:var(--color-text-tertiary);font-size:var(--text-xs);">
       DayStory v1.0.0
@@ -165,17 +175,18 @@ export function renderSettings() {
     navigate('/login');
   });
 
-  /* ---- 테마 순환 (시스템 → 라이트 → 다크 → 시스템 ...) ---- */
-  const themes = ['system', 'light', 'dark'];
-  page.querySelector('#setting-theme')?.addEventListener('click', () => {
-    const current = getState('theme');
-    const nextIndex = (themes.indexOf(current) + 1) % themes.length;
-    const nextTheme = themes[nextIndex];
+  /* ---- 테마 직접 선택 (UI/UX 개선) ---- */
+  page.querySelectorAll('.theme-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const selectedTheme = btn.dataset.theme;
+      setState('theme', selectedTheme);
 
-    setState('theme', nextTheme);
-    const themeLabelEl = page.querySelector('#theme-label');
-    if (themeLabelEl) themeLabelEl.textContent = themeLabel(nextTheme);
-    showToast(`테마: ${themeLabel(nextTheme)}`, 'success');
+      // UI 업데이트: 모든 옵션에서 active 제거 후 선택한 버튼에만 추가
+      page.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+
+      showToast(`테마: ${themeLabel(selectedTheme)}`, 'success');
+    });
   });
 
   /* ---- 에디터 페이지 이동 ---- */

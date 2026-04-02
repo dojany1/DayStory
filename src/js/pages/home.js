@@ -443,7 +443,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = []) {
     const diffX = x - touchStartX;
     const diffY = y - touchStartY;
 
-    flipper.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    flipper.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // 애니메이션 효과
 
     if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(diffY) > Math.abs(diffX)) {
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
@@ -555,10 +555,17 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = []) {
   });
 
   // 일반 클릭: 뒤집기
+  let isFlipping = false;
   flipper.addEventListener('click', (e) => {
     if (e.target.closest('.back-body') || e.target.closest('.card-action-btn')) return;
-    if (isSwiping) return;
+    if (isSwiping || isFlipping) return;
+    
+    isFlipping = true;
     flipper.classList.toggle('flipped');
+    
+    setTimeout(() => {
+      isFlipping = false;
+    }, 800); // components.css의 transition 시간과 맞춤
   });
 
   // 스와이프 튜토리얼 (최초 1회)

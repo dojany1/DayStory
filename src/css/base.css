@@ -76,6 +76,7 @@ body {
   margin: 0 auto;                      /* 수평 중앙 정렬 */
   background-color: var(--color-bg-primary); /* 앱 내부 배경색 */
   box-shadow: var(--shadow-wrapper);   /* 다크모드에서 래퍼 그림자 */
+  overflow: hidden;                    /* 앱 외부로 요소가 나가는 것만 방지 */
 }
 
 
@@ -242,18 +243,33 @@ ul, ol {
   text-align: center;
 }
 
-/* 스플래시 아이콘 (📜) — 크기 조절 및 펄스 애니메이션 */
+/* 스플래시 아이콘 — 이미지 기반 로고 적용 및 펄스 애니메이션 */
 .splash-icon {
   display: block;
-  font-size: 3rem;
-  margin-bottom: var(--space-4);
-  animation: splashPulse 2s infinite;  /* 2초 주기로 커졌다 작아짐 */
+  width: 130px;                         /* 아이콘 너비 */
+  height: 130px;                        /* 아이콘 높이 */
+  margin: 0 auto var(--space-6);
+  background-image: url('/daystory_icon_light.png'); /* 기본: 라이트 아이콘 */
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  animation: splashPulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* 스플래시 아이콘 펄스 애니메이션 — 크기가 살짝 커졌다 돌아옴 */
+/* 다크 모드에서는 어두운 배경용 아이콘으로 교환 */
+@media (prefers-color-scheme: dark) {
+  .splash-icon {
+    background-image: url('/daystory_icon_dark.png');
+  }
+}
+[data-theme="dark"] .splash-icon {
+  background-image: url('/daystory_icon_dark.png');
+}
+
+/* 스플래시 아이콘 펄스 애니메이션 — 부드럽게 커졌다 작아짐 */
 @keyframes splashPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
+  0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+  50% { transform: scale(1.04); opacity: 0.92; filter: drop-shadow(0 0 8px rgba(255,255,255,0.1)); }
 }
 
 /* 스플래시 타이틀 "DayStory" — 큰 세리프 폰트 */

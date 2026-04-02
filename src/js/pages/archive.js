@@ -4,7 +4,7 @@
    사용자가 북마크(찜)한 역사 카드들을 모아보는 페이지입니다.
    
    기능:
-     1) 북마크한 카드들을 3열 그리드로 표시
+     1) 북마크한 카드들을 2열 그리드로 표시
      2) 검색창에 검색어를 입력하면 실시간으로 필터링
      3) 카드를 클릭하면 상세 페이지로 이동
      4) 데이터 로딩 실패 시 에러 화면과 재시도 버튼 표시
@@ -102,8 +102,10 @@ async function loadCollection(page) {
         return;
       }
 
-      /* 3열 그리드로 미니 카드들을 표시 */
+      /* 2열 그리드로 미니 카드들을 표시 */
       contentEl.className = 'archive-grid';
+      contentEl.style.display = ''; // 로딩용 인라인 스타일 제거
+      contentEl.style.padding = ''; // 로딩용 인라인 패딩 제거
       contentEl.innerHTML = list.map(story => renderMiniCard(story)).join('');
 
       /* 각 카드에 클릭 → 상세 페이지 이동 이벤트 연결 */

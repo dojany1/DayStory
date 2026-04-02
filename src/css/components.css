@@ -165,7 +165,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: var(--card-aspect-ratio); /* 변수 사용 (3.1 / 4.8) */
-  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.05s; /* 길어진 스프링 회전 및 0.05초 딜레이 추가 */
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.6, 1.2) 0.05s; /* 길어진 스프링 회전 및 0.05초 딜레이 추가 */
   transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 */
   will-change: transform;              /* 브라우저에 GPU 가속 힌트 */
   cursor: pointer;
@@ -178,13 +178,13 @@
 
 /* 카드를 터치했을 때 — 살짝 축소 피드백 */
 .flipper:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
   transition-duration: 0.2s;
 }
 
 /* 뒤집힌 카드를 터치 — 회전 유지하면서 축소 */
 .flipper.flipped:active {
-  transform: rotateY(180deg) scale(0.97);
+  transform: rotateY(180deg) scale(0.98);
   transition-duration: 0.2s;
 }
 
@@ -419,8 +419,8 @@
   width: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--color-bg-primary);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
@@ -440,7 +440,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: var(--color-bg-primary);
+  background: var(--color-bg-card);
   color: var(--color-text-primary);
 }
 

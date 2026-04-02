@@ -143,13 +143,16 @@ if (auth) {
             const profileSnap = await getDoc(profileRef);
             let profileData = null;
 
+            const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com'];
+            const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
+
             if (profileSnap.exists()) {
               profileData = profileSnap.data();
-              if (firebaseUser.email === 'daystory@test.com' && profileData.role !== 'editor') {
+              if (isAdmin && profileData.role !== 'editor') {
                 profileData.role = 'editor';
                 await setDoc(profileRef, profileData, { merge: true });
               }
-            } else if (firebaseUser.email === 'daystory@test.com') {
+            } else if (isAdmin) {
               /* 어드민 특권: 해당 이메일은 자동으로 에디터 권한 부여 (처음 로그인 시 DB에 생성) */
               profileData = { role: 'editor', created_at: new Date().toISOString() };
               await setDoc(profileRef, profileData);

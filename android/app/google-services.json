@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1063822349351-g0r304t5c5o1r229kj0asmjg9sit9ma5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "b579a6c5c908e37ab7cfdcc2d9d1ba264249e09b"
+          }
+        },
+        {
           "client_id": "1063822349351-rmik6dbde677mqfdrtgqaaf7cdi77if9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

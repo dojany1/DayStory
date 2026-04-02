@@ -15,7 +15,9 @@
 import { navigate } from '../router.js';
 import { getState, setState } from '../state.js';
 import { showToast } from '../components/toast.js';
-import { supabase } from '../supabase.js';
+import { auth, db } from '../firebase.js';
+import { signOut, deleteUser } from 'firebase/auth';
+import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 
 /* ─────────────────────────────────────────────
@@ -35,6 +37,7 @@ export function renderSettings() {
   page.className = 'settings-page page';
 
   /* 현재 설정값 가져오기 */
+  const user = getState('user');
   const currentTheme = getState('theme');
   const currentFontSize = getState('fontSize');
   const profile = getState('profile');
@@ -44,6 +47,43 @@ export function renderSettings() {
     <!-- 페이지 제목 -->
     <div class="page-header">
       <h1 class="page-header-title">설정</h1>
+    </div>
+
+    <!-- ===== 로그인 사용자 정보 섹션 ===== -->
+    <div class="settings-user-info" style="margin: 0 var(--space-4) var(--space-6) var(--space-4); padding: var(--space-4); background: var(--color-bg-secondary); border-radius: var(--radius-lg);">
+      ${user && user.id !== 'guest' ? `
+        <div style="display:flex; align-items:center; gap: var(--space-4);">
+          <div style="width:50px; height:50px; background:var(--color-border); border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:1.5rem;">
+            👤
+          </div>
+          <div>
+            <div style="font-size:var(--text-lg); font-weight:600; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;">
+              ${user.displayName || (user.email ? user.email.split('@')[0] : '사용자')}
+              ${profile && profile.role === 'editor' ? '<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--color-accent); color: white; margin-left: var(--space-1);">관리자</span>' : ''}
+            </div>
+            <div style="font-size:var(--text-sm); color:var(--color-text-tertiary);">
+              ${user.email || '이메일 정보 없음'}
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div style="display:flex; align-items:center; gap: var(--space-4); margin-bottom: var(--space-4);">
+          <div style="width:50px; height:50px; background:var(--color-border); border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:1.5rem;">
+            👋
+          </div>
+          <div>
+            <div style="font-size:var(--text-lg); font-weight:600; color:var(--color-text-primary);">
+              게스트 모드
+            </div>
+            <div style="font-size:var(--text-sm); color:var(--color-text-tertiary);">
+              로그인하고 기록을 저장하세요
+            </div>
+          </div>
+        </div>
+        <button id="goto-login-btn" class="btn btn-primary" style="width:100%; padding: 8px 16px; font-size: var(--text-sm);">
+          로그인 / 회원가입 하러 가기
+        </button>
+      `}
     </div>
 
     <!-- ===== 알림 섹션 ===== -->
@@ -89,28 +129,6 @@ export function renderSettings() {
           </svg>
         </div>
       </div>
-
-      <!-- 텍스트 크기 변경 -->
-      <div class="list-item" id="setting-fontsize">
-        <div class="list-item-content">
-          <div class="list-item-title">텍스트 크기</div>
-          <div class="list-item-subtitle" id="fontsize-label">${fontSizeLabel(currentFontSize)}</div>
-        </div>
-        <div class="list-item-action">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
-
-      <!-- 데이터 절약 토글 -->
-      <div class="list-item" id="setting-datasaver">
-        <div class="list-item-content">
-          <div class="list-item-title">데이터 절약</div>
-          <div class="list-item-subtitle">이미지 저화질 로딩</div>
-        </div>
-        <div class="toggle" id="toggle-datasaver"></div>
-      </div>
     </div>
 
     <!-- ===== 에디터 도구 섹션 (에디터 권한이 있을 때만 표시) ===== -->
@@ -148,6 +166,7 @@ export function renderSettings() {
     </div>
 
     <!-- ===== 계정 섹션 ===== -->
+    ${user && user.id !== 'guest' ? `
     <div class="settings-section">
       <div class="settings-section-title">계정</div>
 
@@ -165,6 +184,7 @@ export function renderSettings() {
         </div>
       </div>
     </div>
+    ` : ''}
 
     <!-- 앱 버전 정보 -->
     <div style="text-align:center;padding:var(--space-6);color:var(--color-text-tertiary);font-size:var(--text-xs);">
@@ -186,10 +206,9 @@ export function renderSettings() {
     showToast(this.classList.contains('active') ? '알림 켜짐' : '알림 꺼짐', 'success');
   });
 
-  /* ---- 데이터 절약 토글 ---- */
-  page.querySelector('#toggle-datasaver')?.addEventListener('click', function () {
-    this.classList.toggle('active');
-    showToast(this.classList.contains('active') ? '데이터 절약 모드 켜짐' : '데이터 절약 모드 꺼짐', 'success');
+  /* ---- 상단 로그인 버튼 (게스트용) ---- */
+  page.querySelector('#goto-login-btn')?.addEventListener('click', () => {
+    navigate('/login');
   });
 
   /* ---- 테마 순환 (시스템 → 라이트 → 다크 → 시스템 ...) ---- */
@@ -205,19 +224,6 @@ export function renderSettings() {
     showToast(`테마: ${themeLabel(nextTheme)}`, 'success');
   });
 
-  /* ---- 글꼴 크기 순환 (작게 → 보통 → 크게 → 작게 ...) ---- */
-  const sizes = ['small', 'medium', 'large'];
-  page.querySelector('#setting-fontsize')?.addEventListener('click', () => {
-    const current = getState('fontSize');
-    const nextIndex = (sizes.indexOf(current) + 1) % sizes.length;
-    const nextSize = sizes[nextIndex];
-
-    setState('fontSize', nextSize);
-    const fontSizeLabelEl = page.querySelector('#fontsize-label');
-    if (fontSizeLabelEl) fontSizeLabelEl.textContent = fontSizeLabel(nextSize);
-    showToast(`텍스트 크기: ${fontSizeLabel(nextSize)}`, 'success');
-  });
-
   /* ---- 에디터 페이지 이동 ---- */
   page.querySelector('#setting-editor')?.addEventListener('click', () => {
     navigate('/editor');
@@ -231,11 +237,17 @@ export function renderSettings() {
   /* ---- 로그아웃 ---- */
   page.querySelector('#setting-logout')?.addEventListener('click', async () => {
     try {
-      /* 로그아웃 요청 (2초 타임아웃) */
-      await Promise.race([
-        supabase.auth.signOut(),
-        new Promise(resolve => setTimeout(resolve, 2000))
-      ]);
+      /*
+       * Firebase 로그아웃 (2초 타임아웃)
+       * Supabase: supabase.auth.signOut()
+       * Firebase: signOut(auth)
+       */
+      if (auth) {
+        await Promise.race([
+          signOut(auth),
+          new Promise(resolve => setTimeout(resolve, 2000))
+        ]);
+      }
     } catch (err) {
       console.warn('로그아웃 오류 (무시됨):', err);
     }
@@ -244,11 +256,6 @@ export function renderSettings() {
     setState('user', null);
     setState('profile', null);
 
-    /* 인증 토큰 삭제 */
-    try {
-      localStorage.removeItem('sb-zfbbljswxwjevpnzbysw-auth-token');
-    } catch { /* 무시 */ }
-
     /* 하단 네비게이션 숨기고 로그인 페이지로 이동 */
     const nav = document.getElementById('bottom-nav');
     if (nav) nav.style.display = 'none';
@@ -256,9 +263,55 @@ export function renderSettings() {
     showToast('로그아웃 되었습니다', 'success');
   });
 
-  /* ---- 회원 탈퇴 (준비중) ---- */
-  page.querySelector('#setting-withdraw')?.addEventListener('click', () => {
-    showToast('회원 탈퇴 기능 (준비중)', 'info');
+  /* ---- 회원 탈퇴 ---- */
+  page.querySelector('#setting-withdraw')?.addEventListener('click', async () => {
+    if (!auth || !auth.currentUser) return;
+
+    // 안전장치: 사용자에게 영구 삭제 경고 및 의사 묻기
+    const isConfirmed = confirm('정말로 회원을 탈퇴하시겠습니까?\\n모든 정보(북마크, 설정 등)가 즉시 삭제되며 복구할 수 없습니다.');
+    if (!isConfirmed) return;
+
+    try {
+      const u = auth.currentUser;
+      const uid = u.uid;
+
+      // 1) Firestore 데이터 삭제 (프로필 및 북마크)
+      if (db) {
+        try {
+          await deleteDoc(doc(db, 'profiles', uid));
+          const q = query(collection(db, 'bookmarks'), where('user_id', '==', uid));
+          const snap = await getDocs(q);
+          snap.forEach(d => deleteDoc(d.ref));
+        } catch (dbErr) {
+          console.warn('DB 데이터 삭제 실패 (일부 무시됨):', dbErr);
+        }
+      }
+
+      // 2) Auth 계정 영구 삭제
+      await deleteUser(u);
+
+      showToast('회원 탈퇴가 완료되었습니다.', 'success');
+
+      // 3) 상태 초기화 및 홈으로 이동
+      setState('user', null);
+      setState('profile', null);
+      const nav = document.getElementById('bottom-nav');
+      if (nav) nav.style.display = 'flex'; // 탈퇴 후 홈으로 가므로 네비 보이기
+      navigate('/home');
+
+    } catch (err) {
+      console.error('회원 탈퇴 실패:', err);
+      if (err.code === 'auth/requires-recent-login' || err.code === 'auth/user-token-expired') {
+        showToast('보안 정책에 따라 다시 로그인한 뒤 탈퇴하실 수 있습니다.', 'error');
+        // 재로그인을 유도하기 위해 설정 상태를 지우고 로그인 창으로 보냄
+        setState('user', null);
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.style.display = 'none';
+        navigate('/login');
+      } else {
+        showToast(err.message || '회원 탈퇴 처리 중 오류가 발생했습니다.', 'error');
+      }
+    }
   });
 
   /* ---- 알림 시간 설정 (준비중) ---- */

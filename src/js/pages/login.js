@@ -13,15 +13,35 @@
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { setState } from '../state.js';
-import { supabase } from '../supabase.js';
+import { auth, db } from '../firebase.js';
+
+/*
+ * Firebase 인증 함수 임포트
+ * - signInWithEmailAndPassword : 이메일+비밀번호 로그인
+ * - createUserWithEmailAndPassword : 이메일+비밀번호 회원가입
+ * - signInWithPopup : 팝업으로 소셜 로그인 (Google 등)
+ * - GoogleAuthProvider : Google 로그인 제공자
+ * - sendPasswordResetEmail : 비밀번호 재설정 이메일 발송
+ */
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  sendPasswordResetEmail
+} from 'firebase/auth';
+
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+
+/* Google 로그인 제공자 인스턴스 (앱 전체에서 하나만 있으면 됨) */
+const googleProvider = new GoogleAuthProvider();
 
 
 /* ─────────────────────────────────────────────
    섹션 1: Google 로그인 아이콘 (SVG)
-   ─────────────────────────────────────────────
-   Google의 공식 로고 색상을 사용한 SVG 아이콘입니다.
-   파란색(#4285F4), 초록색(#34A853), 노란색(#FBBC05), 빨간색(#EA4335)
-*/
+   ───────────────────────────────────────────── */
 const googleIcon = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`;
 
 
@@ -29,21 +49,18 @@ const googleIcon = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="
    섹션 2: 로그인 페이지
    ───────────────────────────────────────────── */
 
-/**
- * renderLogin — 로그인 페이지를 생성합니다
- * @returns {HTMLElement} 로그인 페이지 DOM 요소
- * 
- * 구성:
- *   - DayStory 로고
- *   - 이메일/비밀번호 입력 폼
- *   - Google 소셜 로그인 버튼
- *   - 회원가입/비밀번호 찾기 링크
- */
 export function renderLogin() {
   const page = document.createElement('div');
   page.className = 'auth-page page';
 
   page.innerHTML = `
+    <!-- 닫기 버튼 -->
+    <button id="close-login-btn" class="close-auth-btn" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+
     <!-- 로고 영역 -->
     <div class="auth-logo" style="margin-bottom: var(--space-6);">
       <h1 class="auth-logo-title" style="margin: 0;">DayStory</h1>
@@ -85,10 +102,16 @@ export function renderLogin() {
 
   /* ---- 이벤트 리스너 연결 ---- */
   setTimeout(() => {
+    /* 닫기 버튼 */
+    document.getElementById('close-login-btn')?.addEventListener('click', () => {
+      document.getElementById('bottom-nav').style.display = 'flex';
+      navigate('/home');
+    });
+
     /* 로그인 폼 제출 처리 */
     const form = document.getElementById('login-form');
     form?.addEventListener('submit', async (e) => {
-      e.preventDefault();  /* 기본 폼 제출 동작 방지 (페이지 새로고침 방지) */
+      e.preventDefault();
 
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
@@ -97,18 +120,36 @@ export function renderLogin() {
         return showToast('이메일과 비밀번호를 입력하세요', 'warning');
       }
 
+      if (!auth) {
+        return showToast('Firebase가 설정되지 않았습니다', 'error');
+      }
+
       const btnText = document.getElementById('login-btn-text');
       btnText.textContent = '로그인 중...';
 
       try {
-        /* Supabase 이메일/비밀번호 로그인 */
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        /*
+         * Firebase 이메일/비밀번호 로그인
+         * Supabase: supabase.auth.signInWithPassword({ email, password })
+         * Firebase: signInWithEmailAndPassword(auth, email, password)
+         */
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
 
         /* 로그인 성공: 유저 정보와 프로필 저장 */
-        setState('user', data.user);
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
-        setState('profile', profile);
+        setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
+
+        if (db) {
+          const profileRef = doc(db, 'profiles', firebaseUser.uid);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            setState('profile', profileSnap.data());
+          } else if (firebaseUser.email === 'daystory@test.com') {
+            const adminData = { role: 'editor', created_at: new Date().toISOString() };
+            await setDoc(profileRef, adminData);
+            setState('profile', adminData);
+          }
+        }
 
         showToast('로그인 성공!', 'success');
         document.getElementById('bottom-nav').style.display = 'flex';
@@ -121,12 +162,48 @@ export function renderLogin() {
 
     /* Google 로그인 버튼 */
     document.getElementById('google-login-btn')?.addEventListener('click', async () => {
+      if (!auth) {
+        return showToast('Firebase가 설정되지 않았습니다', 'error');
+      }
+
       try {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: window.location.origin }
-        });
-        if (error) throw error;
+        let firebaseUser = null;
+
+        if (Capacitor.isNativePlatform()) {
+          /* 모바일 네이티브 환경: Capacitor Google Auth 플러그인 사용 (Web Client ID 명시) */
+          const result = await FirebaseAuthentication.signInWithGoogle({
+            clientId: '1063822349351-rnk0hgs8gg6nuae0k4ocfl4qhvcg2u2s.apps.googleusercontent.com'
+          });
+          firebaseUser = result.user;
+        } else {
+          /* 웹 환경: 기존 가상 팝업 방식 사용 */
+          const userCredential = await signInWithPopup(auth, googleProvider);
+          firebaseUser = userCredential.user;
+        }
+
+        if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
+
+        setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
+
+        if (db) {
+          try {
+            const profileRef = doc(db, 'profiles', firebaseUser.uid);
+            const profileSnap = await getDoc(profileRef);
+            if (profileSnap.exists()) {
+              setState('profile', profileSnap.data());
+            } else if (firebaseUser.email === 'daystory@test.com') {
+              const adminData = { role: 'editor', created_at: new Date().toISOString() };
+              await setDoc(profileRef, adminData);
+              setState('profile', adminData);
+            }
+          } catch (err) {
+            console.warn('구글 로그인 - 프로필 로드 실패', err);
+          }
+        }
+
+        showToast('구글 로그인 성공!', 'success');
+        document.getElementById('bottom-nav').style.display = 'flex';
+        navigate('/home');
       } catch (err) {
         showToast(err.message || 'Google 로그인 실패', 'error');
       }
@@ -139,10 +216,10 @@ export function renderLogin() {
     document.getElementById('forgot-pw')?.addEventListener('click', async () => {
       const email = document.getElementById('login-email').value.trim();
       if (!email) return showToast('이메일을 먼저 입력하세요', 'warning');
+      if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
 
       try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email);
-        if (error) throw error;
+        await sendPasswordResetEmail(auth, email);
         showToast('비밀번호 재설정 이메일이 발송되었습니다', 'success');
       } catch (err) {
         showToast(err.message || '이메일 발송 실패', 'error');
@@ -158,21 +235,18 @@ export function renderLogin() {
    섹션 3: 회원가입 페이지
    ───────────────────────────────────────────── */
 
-/**
- * renderSignup — 회원가입 페이지를 생성합니다
- * @returns {HTMLElement} 회원가입 페이지 DOM 요소
- * 
- * 구성:
- *   - 이메일/비밀번호/비밀번호확인 입력 폼
- *   - 이용약관 동의 체크박스
- *   - 가입하기 버튼
- *   - 로그인 페이지 링크
- */
 export function renderSignup() {
   const page = document.createElement('div');
   page.className = 'auth-page page';
 
   page.innerHTML = `
+    <!-- 닫기 버튼 -->
+    <button id="close-signup-btn" class="close-auth-btn" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+
     <!-- 로고 영역 -->
     <div class="auth-logo" style="margin-bottom: var(--space-6);">
       <h1 class="auth-logo-title" style="margin: 0;">회원가입</h1>
@@ -216,6 +290,12 @@ export function renderSignup() {
 
   /* ---- 이벤트 리스너 연결 ---- */
   setTimeout(() => {
+    /* 닫기 버튼 */
+    document.getElementById('close-signup-btn')?.addEventListener('click', () => {
+      document.getElementById('bottom-nav').style.display = 'flex';
+      navigate('/home');
+    });
+
     const form = document.getElementById('signup-form');
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -224,32 +304,46 @@ export function renderSignup() {
       const pw1 = document.getElementById('signup-password').value;
       const pw2 = document.getElementById('signup-password2').value;
 
-      /* 비밀번호 일치 확인 */
       if (pw1 !== pw2) {
         return showToast('비밀번호가 일치하지 않습니다', 'error');
+      }
+
+      if (!auth) {
+        return showToast('Firebase가 설정되지 않았습니다', 'error');
       }
 
       const btnText = document.getElementById('signup-btn-text');
       btnText.textContent = '가입 중...';
 
       try {
-        /* Supabase 회원가입 */
-        const { data, error } = await supabase.auth.signUp({ email, password: pw1 });
-        if (error) throw error;
+        /*
+         * Firebase 회원가입
+         * Supabase: supabase.auth.signUp({ email, password })
+         * Firebase: createUserWithEmailAndPassword(auth, email, password)
+         *
+         * Firebase는 가입 즉시 로그인까지 됩니다.
+         * (Supabase는 이메일 인증 후 로그인되는 옵션이 있었음)
+         */
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pw1);
+        const firebaseUser = userCredential.user;
 
-        if (data.user && !data.session) {
-          /* 이메일 인증이 필요한 경우 */
-          showToast('이메일 인증 메일을 확인해주세요!', 'success');
-          navigate('/login');
-        } else if (data.session) {
-          /* 바로 로그인된 경우 */
-          setState('user', data.user);
-          const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
-          setState('profile', profile);
-          showToast('회원가입 완료!', 'success');
-          document.getElementById('bottom-nav').style.display = 'flex';
-          navigate('/home');
+        setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
+
+        if (db) {
+          const profileRef = doc(db, 'profiles', firebaseUser.uid);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            setState('profile', profileSnap.data());
+          } else if (firebaseUser.email === 'daystory@test.com') {
+            const adminData = { role: 'editor', created_at: new Date().toISOString() };
+            await setDoc(profileRef, adminData);
+            setState('profile', adminData);
+          }
         }
+
+        showToast('회원가입 완료!', 'success');
+        document.getElementById('bottom-nav').style.display = 'flex';
+        navigate('/home');
       } catch (err) {
         showToast(err.message || '회원가입 실패', 'error');
         btnText.textContent = '가입하기';

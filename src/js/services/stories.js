@@ -12,7 +12,7 @@
      - (에디터 전용) CRUD 함수들
    ===================================================================== */
 
-import { db } from '../firebase.js';
+import { db, storage } from '../firebase.js';
 import { DEMO_STORIES } from '../data/demo.js';
 
 /*
@@ -35,6 +35,8 @@ import {
   getDocs, getDoc, addDoc, updateDoc, deleteDoc,
   serverTimestamp
 } from 'firebase/firestore';
+
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
 /* ─────────────────────────────────────────────
@@ -248,4 +250,22 @@ export async function publishStory(id) {
     status: 'published',
     published_at: new Date().toISOString()
   });
+}
+
+/**
+ * uploadImage — 이미지를 Firebase Storage에 업로드하고 URL을 반환합니다
+ */
+export async function uploadImage(file) {
+  if (!storage) throw new Error('Firebase Storage 미설정');
+  
+  // 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
+  const fileName = `${Date.now()}_${file.name}`;
+  const storageRef = ref(storage, `images/${fileName}`);
+  
+  // 파일 업로드
+  await uploadBytes(storageRef, file);
+  
+  // 다운로드 URL 가져오기
+  const downloadURL = await getDownloadURL(storageRef);
+  return downloadURL;
 }

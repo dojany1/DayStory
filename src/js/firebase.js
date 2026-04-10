@@ -16,6 +16,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 /*
  * .env 파일에 아래처럼 설정합니다:
@@ -44,12 +45,14 @@ const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
 let app = null;
 let auth = null;
 let db = null;
+let storage = null;
 
 if (isConfigValid) {
   try {
     app  = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db   = getFirestore(app);
+    storage = getStorage(app);
   } catch (err) {
     console.error('Firebase 초기화 실패:', err);
   }
@@ -61,4 +64,4 @@ if (isConfigValid) {
   );
 }
 
-export { app, auth, db };
+export { app, auth, db, storage };

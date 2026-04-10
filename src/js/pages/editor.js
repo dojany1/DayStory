@@ -21,7 +21,8 @@ import {
   createStory,
   updateStory,
   deleteStory,
-  publishStory
+  publishStory,
+  uploadImage
 } from '../services/stories.js';
 
 
@@ -133,10 +134,17 @@ export function renderEditor() {
               <input class="input-field" type="date" id="sf-publish-date" required />
             </div>
           </div>
-          <!-- 이미지 URL -->
+          <!-- 이미지 업로드 및 URL -->
           <div class="input-group">
-            <label class="input-label">이미지 URL</label>
-            <input class="input-field" id="sf-image" placeholder="/images/example.png" />
+            <label class="input-label">이미지 업로드 및 URL</label>
+            <div style="display:flex; gap:var(--space-2); align-items:center;">
+              <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
+              <label for="sf-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
+                사진 추가
+              </label>
+              <input type="file" id="sf-image-file" accept="image/*" style="display:none;" />
+            </div>
+            <div id="sf-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">사진을 업로드하는 중입니다... ⏳</div>
           </div>
           <!-- 카드 번호 -->
           <div class="input-group">
@@ -339,6 +347,36 @@ export function renderEditor() {
      ───────────────────────────────────────────── */
 
   setTimeout(() => {
+    /* 갤러리 이미지 업로드 (Firebase Storage) */
+    document.getElementById('sf-image-file')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const STATUS_EL = document.getElementById('sf-image-status');
+      const IMAGE_FIELD = document.getElementById('sf-image');
+      try {
+        STATUS_EL.style.display = 'block';
+        STATUS_EL.style.color = 'var(--color-primary)';
+        STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
+
+        const url = await uploadImage(file);
+        
+        IMAGE_FIELD.value = url;
+        STATUS_EL.textContent = '업로드 완료! ✅';
+        STATUS_EL.style.color = 'var(--color-info)'; // success 색상이 없으면 info 등 대체 확인
+        
+        // 미리보기 즉시 반영 이벤트 트리거
+        IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
+      } catch (err) {
+        STATUS_EL.style.color = 'red';
+        STATUS_EL.textContent = '업로드 실패: ' + err.message;
+        showToast('이미지 업로드 실패: ' + err.message, 'error');
+      } finally {
+        e.target.value = ''; // 같은 파일을 다시 선택할 수 있도록 초기화
+        setTimeout(() => { if (STATUS_EL.textContent.includes('완료')) STATUS_EL.style.display = 'none'; }, 3000);
+      }
+    });
+
     /* 새 일화 버튼 */
     document.getElementById('editor-new')?.addEventListener('click', openNewModal);
     /* 모달 닫기 */

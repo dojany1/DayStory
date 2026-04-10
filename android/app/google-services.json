@@ -22,6 +22,22 @@
           }
         },
         {
+          "client_id": "1063822349351-j5jqhu429gmrg3ajgtclg4kbnfpmcqa3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "8945dd6acfe4b08e1259a05273fd780babc52b4d"
+          }
+        },
+        {
+          "client_id": "1063822349351-n1llrnat7j1qmv3tq64pujnna8df6rv3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "a2b9ada5aedea9d748ad7db8236b8c1ddcb1dd07"
+          }
+        },
+        {
           "client_id": "1063822349351-rmik6dbde677mqfdrtgqaaf7cdi77if9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -18,6 +18,7 @@ import { showToast } from '../components/toast.js';
 import { auth, db } from '../firebase.js';
 import { signOut, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import pkg from '../../../package.json';
 
 
 /* ─────────────────────────────────────────────
@@ -148,6 +149,21 @@ export function renderSettings() {
     </div>
     ` : ''}
 
+    <!-- ===== 앱 정보 섹션 ===== -->
+    <div class="settings-section">
+      <div class="settings-section-title">앱 정보</div>
+      <div class="list-item" id="setting-tutorial">
+        <div class="list-item-content">
+          <div class="list-item-title">튜토리얼 다시 보기</div>
+        </div>
+        <div class="list-item-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
     <!-- 개인정보처리방침 -->
     <div style="text-align:center; margin-top:var(--space-8); margin-bottom:-12px;">
       <a href="https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link" target="_blank" rel="noopener noreferrer" style="color:var(--color-text-tertiary); font-size:var(--text-xs); text-decoration:underline; opacity:0.8;">
@@ -157,7 +173,7 @@ export function renderSettings() {
 
     <!-- 앱 버전 정보 -->
     <div style="text-align:center;padding:var(--space-6);color:var(--color-text-tertiary);font-size:var(--text-xs);">
-      DayStory v1.0.0
+      DayStory v${pkg.version}
     </div>
   `;
 
@@ -192,6 +208,13 @@ export function renderSettings() {
   /* ---- 에디터 페이지 이동 ---- */
   page.querySelector('#setting-editor')?.addEventListener('click', () => {
     navigate('/editor');
+  });
+
+  /* ---- 튜토리얼 다시보기 ---- */
+  page.querySelector('#setting-tutorial')?.addEventListener('click', () => {
+    localStorage.removeItem('swipe_tutorial_step');
+    showToast('튜토리얼이 초기화되었습니다.', 'success');
+    navigate('/home');
   });
 
 

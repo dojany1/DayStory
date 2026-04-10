@@ -30,7 +30,7 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
    - state.js   : 앱 전체에서 공유하는 데이터 저장소
    - firebase.js: 백엔드(Firebase) 연결 설정
 */
-import { registerRoute, initRouter, navigate, setBeforeNavigate } from './js/router.js';
+import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
 import { auth, db } from './js/firebase.js';
 
@@ -48,37 +48,31 @@ import { onAuthStateChanged } from 'firebase/auth';
  */
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
+/* Capacitor App 플러그인 (안드로이드 뒤로가기 제어 등 네이티브 통신) */
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+
 
 /* ─────────────────────────────────────────────
-   섹션 3: 페이지 렌더링 함수 불러오기
+   섹션 3: 메인 홈 화면만 사전에 로딩
    ─────────────────────────────────────────────
-   각 페이지를 화면에 그려주는 함수들입니다.
-   예) renderHome() → 홈 화면의 HTML을 만들어 반환
+   빠른 초기 구동을 위해 홈페이지만 먼저 불러오고, 나머지는 클릭 시(지연 로딩) 가져옵니다.
 */
-import { renderLogin, renderSignup } from './js/pages/login.js';
 import { renderHome } from './js/pages/home.js';
-import { renderDetail } from './js/pages/detail.js';
-import { renderArchive } from './js/pages/archive.js';
-import { renderSearch } from './js/pages/search.js';
-import { renderSettings } from './js/pages/settings.js';
-import { renderReport } from './js/pages/report.js';
-import { renderEditor } from './js/pages/editor.js';
-
 
 /* ─────────────────────────────────────────────
-   섹션 4: 라우트(경로) 등록
+   섹션 4: 라우트(경로) 등록 및 Lazy Loading 분할
    ─────────────────────────────────────────────
-   "이 URL이면 → 이 페이지를 보여줘" 라는 규칙을 등록합니다.
 */
-registerRoute('/login', () => renderLogin());
-registerRoute('/signup', () => renderSignup());
-registerRoute('/home', () => renderHome());
-registerRoute('/detail/:id', (params) => renderDetail(params));
-registerRoute('/archive', () => renderArchive());
-registerRoute('/search', () => renderSearch());
-registerRoute('/settings', () => renderSettings());
-registerRoute('/report', () => renderReport());
-registerRoute('/editor', () => renderEditor());
+registerRoute('/login', () => import('./js/pages/login.js').then(m => m.renderLogin()));
+registerRoute('/signup', () => import('./js/pages/login.js').then(m => m.renderSignup()));
+registerRoute('/home', () => renderHome()); /* 홈은 최우선 렌더링을 위해 정적 유지 */
+registerRoute('/detail/:id', (params) => import('./js/pages/detail.js').then(m => m.renderDetail(params)));
+registerRoute('/archive', () => import('./js/pages/archive.js').then(m => m.renderArchive()));
+registerRoute('/search', () => import('./js/pages/search.js').then(m => m.renderSearch()));
+registerRoute('/settings', () => import('./js/pages/settings.js').then(m => m.renderSettings()));
+registerRoute('/report', () => import('./js/pages/report.js').then(m => m.renderReport()));
+registerRoute('/editor', () => import('./js/pages/editor.js').then(m => m.renderEditor()));
 
 
 /* ─────────────────────────────────────────────
@@ -114,17 +108,35 @@ setBeforeNavigate((path) => {
 
 
 /* ─────────────────────────────────────────────
-   섹션 6: Firebase 인증 상태 변화 감지
+   섹션 6: 앱 로딩 및 인증 상태 변화 감지
    ─────────────────────────────────────────────
-   Firebase Auth에서 로그인/로그아웃 이벤트가 발생하면
-   자동으로 이 콜백 함수가 호출됩니다.
-
-   - user 객체가 있으면 : 로그인 상태
-   - user가 null이면   : 로그아웃 상태
-
-   Supabase의 onAuthStateChange와 비슷하지만,
-   Firebase는 이벤트 이름 대신 user 유무로 판단합니다.
 */
+let isAuthReady = false;
+let isDomReady = false;
+let isAppStarted = false;
+
+/* DOM 준비와 인증 확인이 끝나면 스플래시 화면을 숨기고 앱을 시작하는 함수 */
+function checkAndStartApp() {
+  if (isAppStarted) return;
+  if (!isAuthReady || !isDomReady) return;
+  isAppStarted = true;
+
+  const splash = document.getElementById('splash-screen');
+  const appContainer = document.getElementById('app-container');
+
+  if (appContainer) appContainer.style.display = 'flex';
+
+  if (splash) {
+    splash.classList.add('hide');  /* CSS 트랜지션으로 페이드아웃 */
+    splash.addEventListener('transitionend', () => splash.remove());
+    /* 혹시 트랜지션이 안 끝나면 0.5초 후 강제 제거 */
+    setTimeout(() => { if (splash.parentNode) splash.remove(); }, 500);
+  }
+
+  /* 라우터 시작 → 현재 URL에 맞는 페이지 표시 */
+  initRouter();
+}
+
 if (auth) {
   onAuthStateChanged(auth, async (firebaseUser) => {
     try {
@@ -189,6 +201,10 @@ if (auth) {
       }
     } catch (err) {
       console.warn('인증 상태 변경 중 오류:', err);
+    } finally {
+      /* 인증 상태 확인 (프로필 조회 포함) 완료 처리 */
+      isAuthReady = true;
+      checkAndStartApp();
     }
   });
 }
@@ -197,39 +213,31 @@ if (auth) {
 /* ─────────────────────────────────────────────
    섹션 7: 앱 초기화 함수
    ─────────────────────────────────────────────
-   initApp()은 앱이 시작될 때 한 번만 실행됩니다.
-
-   Firebase Auth는 onAuthStateChanged에서 자동으로 세션을 복원하므로,
-   Supabase처럼 getSession()을 수동으로 호출할 필요가 없습니다.
 */
 async function initApp() {
   /* 1) 저장된 테마 설정 적용 */
   applyTheme();
 
-  /* 2) Firebase가 설정되지 않은 경우 게스트 모드 */
+  /* 2) DOM 트리가 모두 로드되었음을 표시 */
+  isDomReady = true;
+
+  /* 3) Firebase가 설정되지 않은 경우 게스트 모드 적용 및 즉시 준비 완료 표시 */
   if (!auth) {
     setState('user', { id: 'guest', role: 'guest' });
+    isAuthReady = true;
   }
-  /* auth가 있으면 → onAuthStateChanged가 자동으로 유저 상태를 처리합니다 */
+  
+  /* 두 가지(DOM, Auth)가 다 준비되었는지 체크하고 앱 실행 */
+  checkAndStartApp();
 
-  /* 3) 스플래시 화면 → 메인 화면 전환 */
-  const splash = document.getElementById('splash-screen');
-  const appContainer = document.getElementById('app-container');
-
-  /* 1.2초 후에 스플래시를 숨기고 앱을 보여줌 */
+  /* 네트워크 지연 등으로 인증 응답이 너무 늦어질 경우를 대비해 5초 후 강제 실행 */
   setTimeout(() => {
-    if (appContainer) appContainer.style.display = 'flex';
-
-    if (splash) {
-      splash.classList.add('hide');  /* CSS 트랜지션으로 페이드아웃 */
-      splash.addEventListener('transitionend', () => splash.remove());
-      /* 혹시 트랜지션이 안 끝나면 0.5초 후 강제 제거 */
-      setTimeout(() => { if (splash.parentNode) splash.remove(); }, 500);
+    if (!isAppStarted) {
+      console.warn('인증 응답 지연으로 강제 시작합니다.');
+      isAuthReady = true;
+      checkAndStartApp();
     }
-
-    /* 4) 라우터 시작 → 현재 URL에 맞는 페이지 표시 */
-    initRouter();
-  }, 1200);
+  }, 5000);
 }
 
 
@@ -243,4 +251,56 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
   initApp();
+}
+
+/* ─────────────────────────────────────────────
+   섹션 9: 네이티브 하드웨어 뒤로가기 버튼 제어 (안드로이드)
+   ─────────────────────────────────────────────
+*/
+if (Capacitor.isNativePlatform()) {
+  let lastBackPressTime = 0;
+
+  function showExitToast() {
+    const toast = document.createElement('div');
+    toast.innerText = '한 번 더 누르시면 종료됩니다.';
+    Object.assign(toast.style, {
+      position: 'fixed',
+      bottom: '100px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      color: 'white',
+      padding: '12px 24px',
+      borderRadius: '24px',
+      zIndex: '10000',
+      fontSize: 'var(--text-sm)',
+      fontFamily: 'var(--font-sans)',
+      pointerEvents: 'none',
+      transition: 'opacity 0.3s ease'
+    });
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
+  }
+
+  App.addListener('backButton', ({ canGoBack }) => {
+    const currentPath = getCurrentPath();
+    const isRootRoute = currentPath === '/home' || currentPath === '/archive' || currentPath === '/settings' || currentPath === '/search' || currentPath === '/login';
+
+    if (isRootRoute) {
+      /* 루트 경로에서는 2번 누르면 종료 */
+      const now = new Date().getTime();
+      if (now - lastBackPressTime < 2000) {
+        App.exitApp();
+      } else {
+        lastBackPressTime = now;
+        showExitToast();
+      }
+    } else {
+      /* 하위 단계에서는 브라우저 뒤로가기 이벤트 발동 */
+      window.history.back();
+    }
+  });
 }

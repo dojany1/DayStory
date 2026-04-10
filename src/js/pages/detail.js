@@ -108,12 +108,6 @@ async function loadDetail(page, storyId) {
             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
           </svg>
         </button>
-        <!-- 더보기 버튼 -->
-        <button class="btn-icon" id="detail-more">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
-          </svg>
-        </button>
       </div>
     </div>
 
@@ -240,8 +234,4 @@ async function loadDetail(page, storyId) {
     navigate('/report', { storyId: story.id });
   });
 
-  /* 더보기 메뉴 (준비중) */
-  document.getElementById('detail-more')?.addEventListener('click', () => {
-    showToast('더보기 메뉴 (준비중)', 'info');
-  });
 }

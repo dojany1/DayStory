@@ -262,16 +262,36 @@ export function initRouter() {
       const item = e.target.closest('.nav-item');
       if (!item) return;
 
+      /* 튜토리얼 중엔 탭바 이동 금지 */
+      const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
+      if (tutStep < 3) {
+        // 간단한 토스트 알림 생성
+        const toast = document.createElement('div');
+        toast.innerText = '튜토리얼을 먼저 끝내주세요!';
+        toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:white;padding:10px 20px;border-radius:20px;z-index:9999;font-size:0.9rem;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
+        return;
+      }
+
       const route = item.dataset.route;
       const currentPath = getCurrentPath();
 
       /* 만약 홈 탭인데 이미 홈에 있다면 -> 오늘 날짜로 이동 */
       if (route === '/home' && currentPath === '/home') {
-        const calItems = document.querySelectorAll('.cal-item');
-        if (calItems.length > 0) {
-          const todayItem = calItems[calItems.length - 1];
-          if (todayItem && !todayItem.classList.contains('active')) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const monthNum = String(today.getMonth() + 1).padStart(2, '0');
+        const dayNum = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${monthNum}-${dayNum}`;
+        
+        const todayItem = document.querySelector(`.cal-item[data-date="${todayStr}"]`);
+        if (todayItem) {
+          if (!todayItem.classList.contains('active')) {
             todayItem.click();
+          } else {
+            /* 이미 오늘이 활성화되어 있다면, 중앙으로 스크롤만 트리거 (동기화 보장) */
+            todayItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
           }
         }
       }

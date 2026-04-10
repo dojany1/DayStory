@@ -177,7 +177,7 @@
 
 /* 홈 상단 헤더 — "Day Story" 타이틀 영역 */
 .home-header {
-  padding: var(--space-3) var(--space-3) var(--space-3); /* 위아래 3칸, 좌우 5칸 */
+  padding: var(--space-3) var(--space-3) var(--space-1);
   background: var(--color-bg-primary);
 }
 
@@ -190,6 +190,47 @@
   color: var(--color-accent);
 }
 
+/* 홈 페이지 월 스크롤 영역 */
+.home-month-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: var(--space-2);
+  padding: 0 calc(50% - 18px); /* 18px = month-item(36px) / 2 */
+  scrollbar-width: none;
+  border-top: 2px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
+  background-color: var(--color-bg-primary);
+  scroll-behavior: smooth;
+}
+
+.home-month-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.month-item {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  min-width: 36px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  border: 1.5px solid transparent; /* 활성화 시 덜컹거림 방지용 보이지 않는 뼈대 */
+  border-radius: 10%; /* .cal-date와 동일한 곡률 부여 */
+  flex-shrink: 0; /* 화면이 좁아도 컴포넌트가 찌그러지지 않게 방어 */
+}
+
+.month-item.active {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
 /* 주간 캘린더 스크롤 영역 — 가로 스크롤, 스크롤바 숨김
    양쪽 패딩을 50% - 아이템반폭으로 설정하여
    첫 번째/마지막 날짜도 중앙 정렬이 가능하게 한다 */
@@ -197,7 +238,7 @@
   display: flex;
   overflow-x: auto;
   gap: var(--space-2);
-  padding: 0 calc(50% - 19px); /* 19px = cal-item(38px) / 2 */
+  padding: 0 calc(50% - 18px); /* 18px = cal-item(36px) / 2 */
   scrollbar-width: none;
   border-top: 2px solid var(--color-border );
   border-bottom: 2px solid var(--color-border );
@@ -211,10 +252,12 @@
 
 /* 캘린더 날짜 아이템 — 요일 + 날짜 세로 배치 */
 .cal-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 38px;
+  min-width: 36px;
+  width: 36px;
   color: var(--color-text-tertiary);   /* 비활성 날짜: 연한 색 */
   transition: all var(--transition-fast);
   cursor: pointer;
@@ -232,11 +275,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1.5px solid var(--color-accent); /* 선택된 요소에 외곽선 적용 */
 }
 
 /* 날짜 아이템 터치 시 — 살짝 축소 */
 .cal-item:active {
   transform: scale(0.9);
+}
+
+/* 선택되지 않은 월의 날짜 희미해짐 효과 */
+.cal-item.faded {
+  opacity: 0.25;
 }
 
 /* 캘린더 요일 텍스트 (예: "월", "화") */
@@ -258,7 +307,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 20%;
+  border-radius: 10%;
 }
 
 /* 홈 카드 영역 — 남은 수직 공간을 채우며 카드를 중앙에 배치 */
@@ -372,65 +421,49 @@
 }
 
 
-/* ── 스와이프 튜토리얼 오버레이 ──
-   최초 1회만 표시되는 제스처 안내 화면 */
-
-/* 튜토리얼 오버레이 — 반투명 검정 배경, 전체 영역 덮기 */
+/* ── 터치/스와이프 인터랙티브 튜토리얼 ── */
 .tutorial-overlay {
   position: absolute;
   inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  text-align: center;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  transition: opacity 0.4s ease;
-  pointer-events: auto;
+  z-index: 150;
+  pointer-events: none; /* 클릭을 통과시켜 카드 이벤트를 받을 수 있도록 함 */
 }
 
-/* 튜토리얼 십자 레이아웃 — 상/좌/중앙/우/하 방향 안내 */
-.tutorial-cross {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: rgba(255,255,255,0.9);
-}
-
-/* 튜토리얼 중간 행 — 좌/중앙/우를 가로 배치 */
-.t-mid {
-  display: flex;
-  align-items: center;
-  gap: 3rem;
-}
-
-/* 튜토리얼 중앙 원 — 터치 포인트 시각화 */
-.t-center {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  border: 1px solid rgba(255,255,255,0.4);
-  border-radius: 50%;
-}
-
-/* 튜토리얼 중앙 원 내부 점 */
-.t-center::after {
-  content: '';
+/* 튜토리얼 지시어 버블 */
+.tutorial-bubble {
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 6px; height: 6px;
-  background: white;
+  background: var(--color-accent);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  pointer-events: none;
+  white-space: nowrap;
+  animation: bounceBubble 1.5s infinite;
+  transition: opacity 0.3s ease;
+}
+
+@keyframes bounceBubble {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.4); }
+}
+
+/* 읽지 않은 카드 알림 점 */
+.unread-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
+  background: #ff3b3b;
+  box-shadow: 0 0 4px rgba(255, 59, 59, 0.5);
+  z-index: 10;
 }
 
 

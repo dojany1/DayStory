@@ -339,15 +339,16 @@ ul, ol {
   padding-top: var(--space-2);
   padding-bottom: calc(var(--safe-area-bottom) + var(--space-4)); /* 하단 안전 영역 (iPhone 홈 바) */
   background: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-border);
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
   backdrop-filter: blur(20px);         /* 배경 블러 효과 */
   -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--color-divider);
+  box-shadow: 0 -12px 12px rgba(0, 0, 0, 0.05); /* 미세한 그림자 효과 */
 }
 
 /* 다크 테마 내비게이션 — 반투명 검정 배경 */
 [data-theme="dark"] .bottom-nav {
-  background: rgba(10, 10, 10, 0.85);
+  background: var(--color-bg-primary);
 }
 
 /* 내비게이션 아이템 (개별 버튼) — 아이콘 + 텍스트 세로 배치 */

@@ -73,6 +73,7 @@ registerRoute('/search', () => import('./js/pages/search.js').then(m => m.render
 registerRoute('/settings', () => import('./js/pages/settings.js').then(m => m.renderSettings()));
 registerRoute('/report', () => import('./js/pages/report.js').then(m => m.renderReport()));
 registerRoute('/editor', () => import('./js/pages/editor.js').then(m => m.renderEditor()));
+registerRoute('/editor/new', () => import('./js/pages/editor.js').then(m => m.renderEditorNew()));
 
 
 /* ─────────────────────────────────────────────
@@ -256,13 +257,87 @@ if (document.readyState === 'loading') {
 /* ─────────────────────────────────────────────
    섹션 9: 네이티브 하드웨어 뒤로가기 버튼 제어 (안드로이드)
    ─────────────────────────────────────────────
+   라우팅 뎁스(Depth) 구조:
+     Depth 0 : /home          (홈 — 최상위, 2회 터치 시 앱 종료)
+     Depth 1 : /login         (로그인 → 홈으로)
+     Depth 1 : /archive       (북마크 탭 → 홈으로)
+     Depth 1 : /search        (검색 탭 → 홈으로)
+     Depth 1 : /settings      (설정 탭 → 홈으로)
+     Depth 2 : /detail/:id    (카드 정보 → 북마크 탭으로)
+     Depth 2 : /report        (신고 → 카드 정보로, history.back 사용)
+     Depth 2 : /editor        (콘텐츠 관리 → 설정으로)
+     Depth 3 : (에디터 내 새 일화 작성 등은 에디터 내부에서 처리)
+
+   특수 케이스:
+     - 튜토리얼 오버레이 활성화 중 → 뒤로가기 무시
+     - Depth 0(홈) → 2초 내 연속 2회 터치 시 앱 종료
 */
 if (Capacitor.isNativePlatform()) {
+
+  /**
+   * ROUTE_DEPTH_MAP — 각 라우트의 뎁스와 부모 경로를 정의합니다.
+   * 
+   * depth  : 해당 화면이 몇 번째 깊이인지 (0이 가장 바깥)
+   * parent : 뒤로가기 시 이동할 부모 경로
+   *          null이면 최상위(홈)이므로 더 이상 뒤로 갈 곳이 없음
+   */
+  const ROUTE_DEPTH_MAP = {
+    '/home':     { depth: 0, parent: null },
+    '/login':    { depth: 1, parent: '/home' },
+    '/signup':   { depth: 1, parent: '/login' },
+    '/archive':  { depth: 1, parent: '/home' },
+    '/search':   { depth: 1, parent: '/home' },
+    '/settings': { depth: 1, parent: '/home' },
+    '/detail':   { depth: 2, parent: '/archive' },
+    '/report':   { depth: 2, parent: null },       /* history.back()으로 처리 (직전 detail 페이지) */
+    '/editor':   { depth: 2, parent: '/settings' },
+    '/editor/new': { depth: 3, parent: '/editor' },
+  };
+
+  /**
+   * getRouteInfo — 현재 경로에서 뎁스 정보를 가져옵니다.
+   * 동적 경로(예: /detail/abc123)도 처리합니다.
+   * 
+   * @param {string} path - 현재 라우트 경로
+   * @returns {{ depth: number, parent: string|null }}
+   */
+  function getRouteInfo(path) {
+    /* 1) 정확히 일치하는 경로 검색 */
+    if (ROUTE_DEPTH_MAP[path]) {
+      return ROUTE_DEPTH_MAP[path];
+    }
+
+    /* 2) 동적 경로 처리: /detail/abc123 → /detail 로 매칭 */
+    const basePath = '/' + path.split('/').filter(Boolean)[0];
+    if (ROUTE_DEPTH_MAP[basePath]) {
+      return ROUTE_DEPTH_MAP[basePath];
+    }
+
+    /* 3) 맵에 없는 경로는 Depth 1로 간주 (홈으로 이동) */
+    return { depth: 1, parent: '/home' };
+  }
+
+  /**
+   * isTutorialActive — 튜토리얼 오버레이가 현재 표시 중인지 확인합니다.
+   * localStorage의 swipe_tutorial_step 값이 3 미만이고,
+   * 현재 홈 화면에 있을 때 튜토리얼이 활성 상태입니다.
+   */
+  function isTutorialActive() {
+    const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
+    const currentPath = getCurrentPath();
+    return currentPath === '/home' && tutStep < 3;
+  }
+
+  /* 마지막으로 뒤로가기를 누른 시각 (앱 종료용 더블 탭 판별) */
   let lastBackPressTime = 0;
 
+  /**
+   * showExitToast — "한 번 더 누르면 종료됩니다" 토스트 메시지를 표시합니다.
+   * 2초 후 자동으로 사라집니다.
+   */
   function showExitToast() {
     const toast = document.createElement('div');
-    toast.innerText = '한 번 더 누르시면 종료됩니다.';
+    toast.innerText = '뒤로가기 버튼을 한 번 더 누르면 종료됩니다';
     Object.assign(toast.style, {
       position: 'fixed',
       bottom: '100px',
@@ -285,21 +360,33 @@ if (Capacitor.isNativePlatform()) {
     }, 2000);
   }
 
-  App.addListener('backButton', ({ canGoBack }) => {
-    const currentPath = getCurrentPath();
-    const isRootRoute = currentPath === '/home' || currentPath === '/archive' || currentPath === '/settings' || currentPath === '/search' || currentPath === '/login';
+  /* ── 메인 리스너: 안드로이드 하드웨어 뒤로가기 버튼 ── */
+  App.addListener('backButton', () => {
+    /* ① 튜토리얼 활성 상태 → 뒤로가기 완전 무시 */
+    if (isTutorialActive()) {
+      return;  /* 아무 동작도 하지 않음 */
+    }
 
-    if (isRootRoute) {
-      /* 루트 경로에서는 2번 누르면 종료 */
-      const now = new Date().getTime();
+    const currentPath = getCurrentPath();
+    const routeInfo = getRouteInfo(currentPath);
+
+    /* ② Depth 0 (홈) → 2초 내 2회 터치로 앱 종료 */
+    if (routeInfo.depth === 0) {
+      const now = Date.now();
       if (now - lastBackPressTime < 2000) {
         App.exitApp();
       } else {
         lastBackPressTime = now;
         showExitToast();
       }
+      return;
+    }
+
+    /* ③ Depth 1 이상 → 부모 경로로 이동 */
+    if (routeInfo.parent) {
+      navigate(routeInfo.parent);
     } else {
-      /* 하위 단계에서는 브라우저 뒤로가기 이벤트 발동 */
+      /* parent가 null인 경우(예: /report) → 브라우저 히스토리 뒤로가기 */
       window.history.back();
     }
   });

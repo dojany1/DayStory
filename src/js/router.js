@@ -280,19 +280,22 @@ export function initRouter() {
       /* 만약 홈 탭인데 이미 홈에 있다면 -> 오늘 날짜로 이동 */
       if (route === '/home' && currentPath === '/home') {
         const today = new Date();
-        const year = today.getFullYear();
-        const monthNum = String(today.getMonth() + 1).padStart(2, '0');
-        const dayNum = String(today.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${monthNum}-${dayNum}`;
+        const mNum = today.getMonth() + 1;
+        const dNum = today.getDate();
         
-        const todayItem = document.querySelector(`.cal-item[data-date="${todayStr}"]`);
-        if (todayItem) {
-          if (!todayItem.classList.contains('active')) {
-            todayItem.click();
-          } else {
-            /* 이미 오늘이 활성화되어 있다면, 중앙으로 스크롤만 트리거 (동기화 보장) */
-            todayItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-          }
+        const monthItem = document.querySelector(`#home-month-scroll .wheel-item[data-month="${mNum}"]`);
+        const dayItem = document.querySelector(`#home-calendar .wheel-item[data-day="${dNum}"]`);
+        
+        if (monthItem && !monthItem.classList.contains('active')) {
+          monthItem.click();
+        } else if (monthItem) {
+          monthItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        if (dayItem && !dayItem.classList.contains('active')) {
+          dayItem.click();
+        } else if (dayItem) {
+          dayItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
       }
       navigate(route);

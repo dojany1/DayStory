@@ -5,7 +5,7 @@
    
    기능:
      - 전체/발행됨/초안/예약 필터링
-     - 새 일화 작성 (모달 폼)
+     - 새 일화 작성 (전체 화면 탭: renderEditorNew)
      - 기존 일화 편집/삭제
      - 발행, 초안 저장, 예약 발행
    
@@ -13,7 +13,7 @@
      profiles 테이블의 role이 'editor'인 유저만 접근 가능합니다.
    ===================================================================== */
 
-import { navigate } from '../router.js';
+import { navigate, setBeforeNavigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { getState } from '../state.js';
 import {
@@ -22,18 +22,16 @@ import {
   updateStory,
   deleteStory,
   publishStory,
-  uploadImage
+  uploadImage,
+  fetchStoryById
 } from '../services/stories.js';
+import { auth } from '../firebase.js';
 
 
 /* ─────────────────────────────────────────────
-   섹션 1: 에디터 페이지 렌더링
+   섹션 1: 에디터 페이지 렌더링 (목록)
    ───────────────────────────────────────────── */
 
-/**
- * renderEditor — 에디터 페이지를 생성합니다
- * @returns {HTMLElement} 에디터 페이지 DOM 요소
- */
 export function renderEditor() {
   const page = document.createElement('div');
   page.className = 'editor-page page';
@@ -83,132 +81,29 @@ export function renderEditor() {
         <div class="loading-spinner"></div>
       </div>
     </div>
-
-    <!-- ===== 일화 작성/수정 모달 ===== -->
-    <div class="modal-overlay" id="story-modal" style="display:none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 id="modal-title">새 일화 작성</h2>
-          <button class="btn-icon" id="modal-close">✕</button>
-        </div>
-        <form id="story-form" class="story-form">
-          <!-- 인물/사건명 -->
-          <div class="input-group">
-            <label class="input-label">인물/사건명 *</label>
-            <input class="input-field" id="sf-figure" placeholder="예: Isaac Newton" required />
-          </div>
-          <!-- 제목 -->
-          <div class="input-group">
-            <label class="input-label">제목 *</label>
-            <input class="input-field" id="sf-title" placeholder="카드 제목" required />
-          </div>
-          <!-- 요약 -->
-          <div class="input-group">
-            <label class="input-label">요약</label>
-            <input class="input-field" id="sf-summary" placeholder="한 줄 요약" />
-          </div>
-          <!-- 본문 -->
-          <div class="input-group">
-            <label class="input-label">본문 *</label>
-            <textarea class="report-textarea" id="sf-body" placeholder="역사 일화 본문을 입력하세요..." style="min-height:150px;" required></textarea>
-          </div>
-          <!-- 역사적 날짜 / 연도 (2열 그리드) -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
-            <div class="input-group">
-              <label class="input-label">역사적 날짜</label>
-              <input class="input-field" id="sf-hist-date" placeholder="예: 1666년" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">연도 (숫자)</label>
-              <input class="input-field" type="number" id="sf-hist-year" placeholder="1666" />
-            </div>
-          </div>
-          <!-- 국가 / 발행일 (2열 그리드) -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
-            <div class="input-group">
-              <label class="input-label">국가</label>
-              <input class="input-field" id="sf-country" placeholder="영국" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">발행일 *</label>
-              <input class="input-field" type="date" id="sf-publish-date" required />
-            </div>
-          </div>
-          <!-- 이미지 업로드 및 URL -->
-          <div class="input-group">
-            <label class="input-label">이미지 업로드 및 URL</label>
-            <div style="display:flex; gap:var(--space-2); align-items:center;">
-              <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
-              <label for="sf-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
-                사진 추가
-              </label>
-              <input type="file" id="sf-image-file" accept="image/*" style="display:none;" />
-            </div>
-            <div id="sf-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">사진을 업로드하는 중입니다... ⏳</div>
-          </div>
-          <!-- 카드 번호 -->
-          <div class="input-group">
-            <label class="input-label">카드 번호</label>
-            <input class="input-field" id="sf-card-count" placeholder="21st" />
-          </div>
-          <!-- 액션 버튼들 -->
-          <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-4);">
-            <button type="submit" class="btn btn-primary btn-full">발행하기</button>
-            <div style="display:flex;gap:var(--space-3);">
-              <button type="button" class="btn btn-secondary btn-full" id="sf-save-draft">초안 저장</button>
-              <button type="button" class="btn btn-full" id="sf-schedule" style="background:var(--color-info);color:#fff;">예약 발행</button>
-            </div>
-          </div>
-        </form>
-        
-        <!-- 실시간 미리보기 영억 -->
-        <hr style="margin:2rem 0; border:none; border-top:1px solid var(--color-border);"/>
-        <h3 style="margin-bottom:var(--space-3); font-size:var(--text-lg);">📱 실시간 미리보기 (컬렉션 카드)</h3>
-        <div id="editor-preview-area" style="width: 200px; margin: 0 auto;"></div>
-        
-      </div>
-    </div>
   `;
 
+  let allStories = [];
+  let currentFilter = 'all';
 
-  /* ─────────────────────────────────────────────
-     섹션 2: 내부 상태 변수
-     ───────────────────────────────────────────── */
-
-  let allStories = [];       /* 전체 스토리 목록 */
-  let currentFilter = 'all'; /* 현재 선택된 필터 */
-  let editingId = null;      /* 수정 중인 스토리 ID (null이면 새로 작성) */
-
-
-  /* ─────────────────────────────────────────────
-     섹션 3: 내부 함수들
-     ───────────────────────────────────────────── */
-
-  /**
-   * loadStories — 서버에서 전체 스토리를 가져와 목록을 갱신합니다
-   */
   async function loadStories() {
     allStories = await fetchAllStoriesEditor();
     updateStats();
     renderList();
   }
 
-  /**
-   * updateStats — 통계 카드의 숫자를 업데이트합니다
-   */
   function updateStats() {
     const el = (id) => document.getElementById(id);
+    if(!el('stat-total')) return;
     el('stat-total').textContent = allStories.length;
     el('stat-published').textContent = allStories.filter(s => s.status === 'published').length;
     el('stat-draft').textContent = allStories.filter(s => s.status === 'draft').length;
     el('stat-scheduled').textContent = allStories.filter(s => s.status === 'scheduled').length;
   }
 
-  /**
-   * renderList — 현재 필터에 맞는 일화 목록을 화면에 표시합니다
-   */
   function renderList() {
     const listEl = document.getElementById('editor-list');
+    if(!listEl) return;
     const filtered = currentFilter === 'all'
       ? allStories
       : allStories.filter(s => s.status === currentFilter);
@@ -222,12 +117,10 @@ export function renderEditor() {
       return;
     }
 
-    /* 각 일화를 리스트 아이템으로 렌더링 */
     listEl.innerHTML = filtered.map(story => {
       const d = new Date(story.publish_date);
       const dateStr = `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
 
-      /* 상태에 따른 배지 색상 */
       const statusBadge = {
         published: '<span class="badge badge-accent">발행됨</span>',
         draft: '<span class="badge" style="background:var(--color-text-tertiary);color:#fff;">초안</span>',
@@ -244,7 +137,7 @@ export function renderEditor() {
           </div>
           <div class="editor-item-info">
             <div class="editor-item-meta">${dateStr} · ${story.country || '-'} ${statusBadge}</div>
-            <div class="editor-item-title">${story.figure_name || story.title}</div>
+            <div class="editor-item-title">${story.title || story.figure_name}</div>
           </div>
           <div class="editor-item-actions">
             <button class="btn-icon editor-edit-btn" data-id="${story.id}" title="편집">✏️</button>
@@ -254,15 +147,13 @@ export function renderEditor() {
       `;
     }).join('');
 
-    /* 편집 버튼 클릭 이벤트 */
     listEl.querySelectorAll('.editor-edit-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        e.stopPropagation();  /* 부모 요소의 클릭 이벤트 방지 */
-        openEditModal(btn.dataset.id);
+        e.stopPropagation();
+        navigate(`/editor/new?edit=${btn.dataset.id}`);
       });
     });
 
-    /* 삭제 버튼 클릭 이벤트 */
     listEl.querySelectorAll('.editor-delete-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -270,7 +161,7 @@ export function renderEditor() {
           try {
             await deleteStory(btn.dataset.id);
             showToast('삭제 완료', 'success');
-            loadStories();  /* 전제 목록 새로고침 */
+            loadStories();
           } catch (err) {
             showToast('삭제 실패: ' + err.message, 'error');
           }
@@ -279,110 +170,11 @@ export function renderEditor() {
     });
   }
 
-  /**
-   * openEditModal — 기존 일화를 수정하는 모달을 엽니다
-   * @param {string} id - 수정할 스토리 ID
-   */
-  function openEditModal(id) {
-    editingId = id;
-    const story = allStories.find(s => s.id === id);
-    if (!story) return;
-
-    /* 모달 제목 변경 및 폼 필드 채우기 */
-    document.getElementById('modal-title').textContent = '일화 수정';
-    document.getElementById('sf-figure').value = story.figure_name || '';
-    document.getElementById('sf-title').value = story.title || '';
-    document.getElementById('sf-summary').value = story.summary || '';
-    document.getElementById('sf-body').value = story.body || '';
-    document.getElementById('sf-hist-date').value = story.historical_date || '';
-    document.getElementById('sf-hist-year').value = story.historical_year || '';
-    document.getElementById('sf-country').value = story.country || '';
-    document.getElementById('sf-publish-date').value = story.publish_date || '';
-    document.getElementById('sf-image').value = story.image_url || '';
-    document.getElementById('sf-card-count').value = story.card_count || '';
-    document.getElementById('story-modal').style.display = 'flex';
-  }
-
-  /**
-   * openNewModal — 새 일화를 작성하는 모달을 엽니다
-   */
-  function openNewModal() {
-    editingId = null;
-    document.getElementById('modal-title').textContent = '새 일화 작성';
-    document.getElementById('story-form').reset();
-    document.getElementById('story-modal').style.display = 'flex';
-    // 모달 여는 즉시 미리보기 업데이트
-    setTimeout(updatePreview, 50);
-  }
-
-  /**
-   * closeModal — 모달을 닫습니다
-   */
-  function closeModal() {
-    document.getElementById('story-modal').style.display = 'none';
-  }
-
-  /**
-   * getFormData — 폼의 입력값을 객체로 수집합니다
-   * @returns {Object} 스토리 데이터 객체
-   */
-  function getFormData() {
-    return {
-      figure_name: document.getElementById('sf-figure').value.trim(),
-      title: document.getElementById('sf-title').value.trim(),
-      summary: document.getElementById('sf-summary').value.trim(),
-      body: document.getElementById('sf-body').value.trim(),
-      historical_date: document.getElementById('sf-hist-date').value.trim(),
-      historical_year: parseInt(document.getElementById('sf-hist-year').value) || null,
-      country: document.getElementById('sf-country').value.trim(),
-      publish_date: document.getElementById('sf-publish-date').value,
-      image_url: document.getElementById('sf-image').value.trim(),
-      card_count: document.getElementById('sf-card-count').value.trim(),
-    };
-  }
-
-
-  /* ─────────────────────────────────────────────
-     섹션 4: 이벤트 리스너 연결
-     ───────────────────────────────────────────── */
-
   setTimeout(() => {
-    /* 갤러리 이미지 업로드 (Firebase Storage) */
-    document.getElementById('sf-image-file')?.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const STATUS_EL = document.getElementById('sf-image-status');
-      const IMAGE_FIELD = document.getElementById('sf-image');
-      try {
-        STATUS_EL.style.display = 'block';
-        STATUS_EL.style.color = 'var(--color-primary)';
-        STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
-
-        const url = await uploadImage(file);
-        
-        IMAGE_FIELD.value = url;
-        STATUS_EL.textContent = '업로드 완료! ✅';
-        STATUS_EL.style.color = 'var(--color-info)'; // success 색상이 없으면 info 등 대체 확인
-        
-        // 미리보기 즉시 반영 이벤트 트리거
-        IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
-      } catch (err) {
-        STATUS_EL.style.color = 'red';
-        STATUS_EL.textContent = '업로드 실패: ' + err.message;
-        showToast('이미지 업로드 실패: ' + err.message, 'error');
-      } finally {
-        e.target.value = ''; // 같은 파일을 다시 선택할 수 있도록 초기화
-        setTimeout(() => { if (STATUS_EL.textContent.includes('완료')) STATUS_EL.style.display = 'none'; }, 3000);
-      }
+    document.getElementById('editor-new')?.addEventListener('click', () => {
+      navigate('/editor/new');
     });
 
-    /* 새 일화 버튼 */
-    document.getElementById('editor-new')?.addEventListener('click', openNewModal);
-    /* 모달 닫기 */
-    document.getElementById('modal-close')?.addEventListener('click', closeModal);
-
-    /* 필터 탭 클릭 */
     page.querySelectorAll('.editor-filter').forEach(btn => {
       btn.addEventListener('click', () => {
         page.querySelectorAll('.editor-filter').forEach(b => b.classList.remove('active'));
@@ -392,8 +184,265 @@ export function renderEditor() {
       });
     });
 
-    /* 초안 저장 버튼 */
+    loadStories();
+  }, 0);
+
+  return page;
+}
+
+/* ─────────────────────────────────────────────
+   섹션 2: 새 일화 작성 전체 화면 (renderEditorNew)
+   ───────────────────────────────────────────── */
+
+export function renderEditorNew() {
+  const page = document.createElement('div');
+  page.className = 'editor-new-page page';
+
+  const profile = getState('profile');
+  if (!profile || profile.role !== 'editor') {
+    page.innerHTML = `
+      <div class="page-header"><h1 class="page-header-title">권한 없음</h1></div>
+    `;
+    return page;
+  }
+
+  const hash = window.location.hash;
+  let editingId = null;
+  if(hash.includes('?')) {
+    const urlParams = new URLSearchParams(hash.split('?')[1]);
+    editingId = urlParams.get('edit');
+  }
+
+  page.innerHTML = `
+    <!-- 상단 헤더 -->
+    <div class="editor-new-header">
+      <button class="page-header-back" id="editor-new-back">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+      </button>
+      <h1 class="page-header-title" style="flex:1; text-align:center;">${editingId ? '일화 수정' : '새 일화 작성'}</h1>
+      <div style="width:36px;"></div> <!-- 중앙 정렬 맞춤용 -->
+    </div>
+
+    <!-- 미리보기 -->
+    <div class="editor-preview-section">
+      <div class="preview-scale-wrapper" id="editor-preview-area">
+        <!-- 스켈레톤 상태나 카드가 렌더링 될 영역 -->
+      </div>
+      <div style="text-align:center; margin-top:var(--space-3); font-size:var(--text-xs); color:var(--color-text-tertiary);"></div>
+    </div>
+
+    <!-- 입력 폼 -->
+    <div class="editor-form-section section">
+      <form id="story-form" class="story-form">
+        <!-- 1. 제목 (가로 단독) -->
+        <div class="input-group">
+          <label class="input-label">제목 (인물/사건명) *</label>
+          <input class="input-field" id="sf-title" placeholder="예: Isaac Newton" required />
+        </div>
+
+        <!-- 2. 역사적 연도 / 발행일 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+          <div class="input-group">
+            <label class="input-label">역사적 연도</label>
+            <input class="input-field" type="number" id="sf-hist-year" placeholder="1666" />
+          </div>
+          <div class="input-group">
+            <label class="input-label">발행일 *</label>
+            <input class="input-field" type="date" id="sf-publish-date" required />
+          </div>
+        </div>
+
+        <!-- 3. 국가 -->
+        <div class="input-group">
+          <label class="input-label">국가</label>
+          <input class="input-field" id="sf-country" placeholder="영국" />
+        </div>
+
+        <!-- 4. 본문 -->
+        <div class="input-group">
+          <label class="input-label">본문 *</label>
+          <textarea class="input-field" id="sf-body" placeholder="역사 일화 본문을 입력하세요..." style="min-height:200px; resize:vertical; line-height:1.6; font-family:var(--font-body);" required></textarea>
+        </div>
+
+        <!-- 5. 이미지 업로드/URL -->
+        <div class="input-group">
+          <label class="input-label">이미지 업로드 및 URL</label>
+          <div style="display:flex; gap:var(--space-2); align-items:center;">
+            <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
+            <label for="sf-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
+              사진 추가
+            </label>
+            <input type="file" id="sf-image-file" accept="image/*" style="display:none;" />
+          </div>
+          <div id="sf-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">사진을 업로드하는 중입니다... ⏳</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-6);margin-bottom:var(--space-10);">
+          <button type="submit" class="btn btn-primary btn-full" style="font-size:var(--text-md); padding:var(--space-4);">발행하기</button>
+          <div style="display:flex;gap:var(--space-3);">
+            <button type="button" class="btn btn-secondary btn-full" id="sf-save-draft">초안 저장</button>
+            <button type="button" class="btn btn-full" id="sf-schedule" style="background:var(--color-info);color:#fff;border:none;">예약 발행</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  `;
+
+  let unsavedChanges = false;
+  let saving = false; // 방어 로직 우회용
+  
+  // 브라우저 닫기/새로고침 방지 (PC 웹)
+  const blockClose = (e) => {
+    if (unsavedChanges && !saving) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
+  window.addEventListener('beforeunload', blockClose);
+
+  // 라우터 이동 방지 (SPA) & 하드웨어 뒤로가기
+  setBeforeNavigate((targetPath) => {
+    if (!saving && unsavedChanges) {
+      const confirmLeave = window.confirm("저장되지 않은 정보가 있습니다. 정말 나가시겠습니까?");
+      if (!confirmLeave) return false;
+    }
+    // 페이지 벗어날 때 리스너 제거
+    window.removeEventListener('beforeunload', blockClose);
+    setBeforeNavigate(null); // 훅 초기화
+    return true;
+  });
+
+  setTimeout(async () => {
+    let hasLoadedData = false;
+    
+    // 데이터 로드
+    if (editingId) {
+      const story = await fetchStoryById(editingId);
+      if (story) {
+        document.getElementById('sf-hist-year').value = story.historical_year || '';
+        document.getElementById('sf-publish-date').value = story.publish_date || '';
+        document.getElementById('sf-title').value = story.title || story.figure_name || '';
+        document.getElementById('sf-country').value = story.country || '';
+        document.getElementById('sf-body').value = story.body || '';
+        document.getElementById('sf-image').value = story.image_url || '';
+        hasLoadedData = true;
+      }
+    }
+    
+    // 뒤로가기
+    document.getElementById('editor-new-back')?.addEventListener('click', () => {
+      history.back();
+    });
+
+    // 입력 감지
+    const formEl = document.getElementById('story-form');
+    if (formEl) {
+      formEl.addEventListener('input', () => {
+        unsavedChanges = true;
+        updatePreview();
+      });
+    }
+
+    // 초기 스켈레톤 렌더링 또는 데이터 렌더링
+    updatePreview(hasLoadedData);
+
+    /* 갤러리 이미지 업로드 (Firebase Storage) */
+    document.getElementById('sf-image-file')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const STATUS_EL = document.getElementById('sf-image-status');
+      const IMAGE_FIELD = document.getElementById('sf-image');
+      if (!STATUS_EL || !IMAGE_FIELD) return;
+
+      try {
+        STATUS_EL.style.display = 'block';
+        STATUS_EL.style.color = 'var(--color-primary)';
+        STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
+
+        const url = await uploadImage(file);
+        
+        IMAGE_FIELD.value = url;
+        STATUS_EL.textContent = '업로드 완료! ✅';
+        STATUS_EL.style.color = 'var(--color-info)';
+        
+        unsavedChanges = true;
+        IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
+      } catch (err) {
+        console.error('이미지 업로드 오류:', err);
+        STATUS_EL.style.color = 'var(--color-error)';
+        STATUS_EL.textContent = '업로드 실패: ' + err.message;
+        showToast('이미지 업로드 실패: ' + err.message, 'error');
+      } finally {
+        e.target.value = '';
+        setTimeout(() => { 
+          if (STATUS_EL && STATUS_EL.textContent.includes('완료')) {
+            STATUS_EL.style.display = 'none';
+          }
+        }, 3000);
+      }
+    });
+
+    /* 예약 발행 버튼 활성/비활성 상태 관리 */
+    const scheduleBtn = document.getElementById('sf-schedule');
+    const publishDateInput = document.getElementById('sf-publish-date');
+
+    function updateScheduleBtn() {
+      if (!scheduleBtn || !publishDateInput) return;
+      const dateVal = publishDateInput.value;
+      if (!dateVal) {
+        scheduleBtn.disabled = true;
+        scheduleBtn.style.opacity = '0.4';
+        scheduleBtn.title = '발행일을 먼저 선택하세요';
+        return;
+      }
+      const selected = new Date(dateVal + 'T00:00:00'); // 로컬 시간 기준으로 파싱
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isFuture = selected > today;
+      scheduleBtn.disabled = !isFuture;
+      scheduleBtn.style.opacity = isFuture ? '1' : '0.4';
+      scheduleBtn.title = isFuture ? '' : '예약 발행일은 미래 날짜여야 합니다';
+    }
+
+    /* 초기 상태 + 날짜 변경 시 업데이트 */
+    updateScheduleBtn();
+    publishDateInput?.addEventListener('change', updateScheduleBtn);
+
+    /* 저장 로직 */
+    function getFormData() {
+      const titleStr = document.getElementById('sf-title').value.trim();
+      const histYear = parseInt(document.getElementById('sf-hist-year').value) || null;
+      
+      /* 현재 사용자의 계정 정보 가져오기 (Firebase Auth 중심, 없으면 State 폴백) */
+      const u = auth?.currentUser;
+      const stateUser = getState('user');
+      const stateProfile = getState('profile') || {};
+      
+      let editorInfo = {
+        uid: u?.uid || stateUser?.id || 'dokhubooks_uid',
+        email: u?.email || stateUser?.email || 'dokhubooks@gmail.com',
+        displayName: u?.displayName || stateProfile.displayName || (stateUser?.email ? stateUser.email.split('@')[0] : 'DayStory'),
+        photoURL: u?.photoURL || stateProfile.photoURL || ''
+      };
+
+      return {
+        figure_name: titleStr,
+        title: titleStr,
+        summary: '',
+        body: document.getElementById('sf-body').value.trim(),
+        historical_date: histYear ? `${histYear}년` : '',
+        historical_year: histYear,
+        country: document.getElementById('sf-country').value.trim(),
+        publish_date: document.getElementById('sf-publish-date').value,
+        image_url: document.getElementById('sf-image').value.trim(),
+        card_count: '',
+        editor: editorInfo,      /* 에디터 자동 할당 */
+      };
+    }
+
     document.getElementById('sf-save-draft')?.addEventListener('click', async () => {
+      saving = true;
       const data = getFormData();
       data.status = 'draft';
       try {
@@ -404,16 +453,16 @@ export function renderEditor() {
           await createStory(data);
           showToast('초안 생성 완료', 'success');
         }
-        closeModal();
-        loadStories();
+        history.back();
       } catch (err) {
+        saving = false;
         showToast('저장 실패: ' + err.message, 'error');
       }
     });
 
-    /* 발행하기 (폼 제출) */
-    document.getElementById('story-form')?.addEventListener('submit', async (e) => {
+    formEl?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      saving = true;
       const data = getFormData();
       data.status = 'published';
       data.published_at = new Date().toISOString();
@@ -425,30 +474,26 @@ export function renderEditor() {
           await createStory(data);
           showToast('새 일화 발행 완료!', 'success');
         }
-        closeModal();
-        loadStories();
+        history.back();
       } catch (err) {
+        saving = false;
         showToast('발행 실패: ' + err.message, 'error');
       }
     });
 
-    /* 예약 발행 버튼 */
     document.getElementById('sf-schedule')?.addEventListener('click', async () => {
       const data = getFormData();
-
-      /* 발행일 유효성 검사 */
       if (!data.publish_date) {
         showToast('예약 발행일을 선택해주세요', 'error');
         return;
       }
-      const publishDate = new Date(data.publish_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (publishDate <= today) {
-        showToast('예약 발행일은 미래 날짜여야 합니다', 'error');
-        return;
-      }
 
+      /* 예약 날짜를 YYYY-MM-DD 형식으로 정규화 (시간 정보 제거) */
+      data.publish_date = data.publish_date.split('T')[0];
+      /* 원래 예약일을 별도 필드에 기록 (추후 추적용) */
+      data.scheduled_date = data.publish_date;
+
+      saving = true;
       data.status = 'scheduled';
       try {
         if (editingId) {
@@ -457,70 +502,88 @@ export function renderEditor() {
           await createStory(data);
         }
         showToast(`${data.publish_date}에 발행 예약됨`, 'success');
-        closeModal();
-        loadStories();
+        history.back();
       } catch (err) {
+        saving = false;
         showToast('예약 실패: ' + err.message, 'error');
       }
     });
 
-    /* 모달 바깥 영역 클릭 시 닫기 */
-    document.getElementById('story-modal')?.addEventListener('click', (e) => {
-      if (e.target.id === 'story-modal') closeModal();
-    });
+  }, 0);
 
-    /* 초기 데이터 로딩 */
-    loadStories();
+  function updatePreview(hasForcedData = false) {
+    const previewArea = page.querySelector('#editor-preview-area');
+    if (!previewArea) return;
 
-    /* 실시간 미리보기 기능 추가 */
-    function updatePreview() {
-      const previewArea = page.querySelector('#editor-preview-area');
-      if (!previewArea) return;
+    const figureNameRaw = document.getElementById('sf-title')?.value.trim();
+    const bodyRaw = document.getElementById('sf-body')?.value.trim();
+    const imgRaw = document.getElementById('sf-image')?.value.trim();
 
-      const escapeHTML = str => (str || '').replace(/[&<>'"]/g, 
-        tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
-
-      const figureName = escapeHTML(page.querySelector('#sf-figure').value || '인물명');
-      const histYear = escapeHTML(page.querySelector('#sf-hist-year').value || '1911');
-      const country = escapeHTML(page.querySelector('#sf-country').value || '영국');
-      let pubDateStr = page.querySelector('#sf-publish-date').value;
-      if (!pubDateStr) pubDateStr = new Date().toISOString().split('T')[0];
-      const pubDate = new Date(pubDateStr);
-      const month = pubDate.getMonth() + 1;
-      const day = pubDate.getDate();
-      const displayYear = new Date().getFullYear();
-      const cardCount = escapeHTML(page.querySelector('#sf-card-count').value || '15th');
-      const imageUrl = escapeHTML(page.querySelector('#sf-image').value || 'https://via.placeholder.com/300x400?text=Image');
-
-      previewArea.innerHTML = `
-        <div class="history-card-mini" style="margin:0; box-shadow:0 10px 20px rgba(0,0,0,0.15);">
-          <div style="padding: 1rem 1rem 0.5rem; display:flex; justify-content:space-between; align-items:flex-start;">
-            <div class="card-top-left">
-              <div class="card-year" style="font-size:1.1rem; line-height:1; color:#000;">${histYear}</div>
-              <div class="card-date" style="font-size:2.8rem; line-height:0.9; margin-top:4px; color:#000;">${month}. ${day}</div>
-            </div>
-            <div class="card-top-right" style="text-align:right;">
-              <div class="card-meta" style="font-size:0.55rem; margin-top:2px; color:var(--color-text-secondary);">
-                ${cardCount} ${country}<br>
-                ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
-              </div>
-            </div>
-          </div>
-          <div class="history-card-image-wrap" style="margin: 0 0.75rem 0.75rem; border-radius:4px; overflow:hidden; position:relative; aspect-ratio:3/4;">
-            <img src="${imageUrl}" alt="preview image" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'"/>
-            <div style="position:absolute; bottom:0; left:0; right:0; padding:2rem 0.75rem 0.75rem; background:linear-gradient(transparent, rgba(0,0,0,0.7)); color:white; font-size:0.8rem; font-weight:600;">
-              ${figureName}
-            </div>
-          </div>
-        </div>
-      `;
+    /* 데이터가 전혀 없을 때 스켈레톤 표시 */
+    if (!hasForcedData && !figureNameRaw && !bodyRaw && !imgRaw) {
+      previewArea.innerHTML = `<div class="skeleton-card"></div>`;
+      return;
     }
 
-    // 폼 변경 시 실시간 미리보기 연동
-    const formEl = page.querySelector('#story-form');
-    if(formEl) formEl.addEventListener('input', updatePreview);
+    const escapeHTML = str => (str || '').replace(/[&<>'"]/g,
+      tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
 
-  }, 0);
+    const figureName = escapeHTML(figureNameRaw || '제목 없음');
+    const bodyText = (bodyRaw || '본문이 표시됩니다...').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHTML(p)}</p>` : '<p><br></p>').join('');
+    const histYear = escapeHTML(document.getElementById('sf-hist-year')?.value || '???');
+    const country = escapeHTML(document.getElementById('sf-country')?.value || '');
+
+    let pubDateStr = document.getElementById('sf-publish-date')?.value;
+    if (!pubDateStr) pubDateStr = new Date().toISOString().split('T')[0];
+    const pubDate = new Date(pubDateStr);
+    const month = pubDate.getMonth() + 1;
+    const day = pubDate.getDate();
+    const displayYear = new Date().getFullYear();
+    const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='14' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
+    const imageUrl = imgRaw || PLACEHOLDER_IMG;
+
+    /* 홈 카드(home.js 379~423줄)와 완전히 동일한 HTML 구조 */
+    previewArea.innerHTML = `
+      <div class="flip-container">
+        <div class="flipper" id="preview-flipper">
+          <div class="front history-card-front">
+            <div class="history-card-top">
+              <div class="card-top-left">
+                <div class="card-year">${histYear}</div>
+                <div class="card-date">${month}. ${day}</div>
+              </div>
+              <div class="card-top-right">
+                <div class="card-meta">
+                  ${country}<br>
+                  ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
+                </div>
+              </div>
+            </div>
+            <div class="history-card-image-wrap">
+              <img src="${escapeHTML(imageUrl)}" alt="${figureName}" onerror="this.style.display='none'" />
+              <div class="card-image-title">${figureName}</div>
+            </div>
+          </div>
+          <div class="back history-card-back">
+            <div class="back-title">${figureName}</div>
+            <hr class="back-divider" />
+            <div class="back-body">
+              ${bodyText || '<p>본문이 표시됩니다...</p>'}
+            </div>
+            <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    /* 카드 터치 시 플립 */
+    const flipper = previewArea.querySelector('#preview-flipper');
+    if (flipper) {
+      flipper.addEventListener('click', () => {
+        flipper.classList.toggle('flipped');
+      });
+    }
+  }
 
   return page;
 }

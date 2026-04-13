@@ -47,11 +47,19 @@ export function renderHome() {
       <h1 class="home-title"></h1>
     </div>
 
-    <!-- 상단 월 스크롤 -->
-    <div class="home-month-scroll" id="home-month-scroll"></div>
-
-    <!-- 주간 캘린더 바 (데이터 로드 후 채워짐) -->
-    <div class="home-calendar-scroll" id="home-calendar"></div>
+    <!-- 휠 피커 스타일 날짜 선택기 -->
+    <div class="wheel-pickers-container">
+      <!-- 월 피커 -->
+      <div class="wheel-picker-wrapper">
+        <div class="wheel-selection-box"></div>
+        <div class="modern-wheel-scroll" id="home-month-scroll"></div>
+      </div>
+      <!-- 일 피커 -->
+      <div class="wheel-picker-wrapper">
+        <div class="wheel-selection-box"></div>
+        <div class="modern-wheel-scroll" id="home-calendar"></div>
+      </div>
+    </div>
 
     <!-- 메인 카드 영역 (처음에는 로딩 스피너 표시) -->
     <div class="home-card-area" id="home-card-area">
@@ -113,159 +121,142 @@ async function loadHomeData(page) {
       }
     }
 
-    /* ---- 캘린더 날짜 생성 ---- */
-    const todayStr = todayStory.publish_date;               /* '2026-03-30' 형식 */
-    const today = new Date(todayStr + 'T00:00:00');         /* Date 객체로 변환 */
-    const calendarDates = [];
-
-    /* 올해 1월 1일부터 12월 31일까지 365개의 날짜 생성 */
-    const currentYear = today.getFullYear();
-    const startDate = new Date(currentYear, 0, 1);
-    const endDate = new Date(currentYear, 11, 31);
-    
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      calendarDates.push(new Date(d));
-    }
-
-    /* 요일 이름 배열 (일~토) */
-    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
-
-    /* 현재 화면에 표시된 날짜를 추적 (방향 판별용) */
+    const todayStr = todayStory.publish_date;
+    const today = new Date(todayStr + 'T00:00:00');
     let latestPathDate = today;
-
-    /* 캘린더 HTML 생성 */
-    const calendarHtml = calendarDates.map(date => {
-      const isToday = date.getTime() === today.getTime();
-      const year = date.getFullYear();
-      const monthNum = String(date.getMonth() + 1).padStart(2, '0');
-      const dayNum = String(date.getDate()).padStart(2, '0');
-      const isoDate = `${year}-${monthNum}-${dayNum}`;
-
-      const hasStory = allStories.some(s => s.publish_date === isoDate);
-      const isUnread = hasStory && !readDates.includes(isoDate);
-
-      return `
-        <div class="cal-item ${isToday ? 'active' : ''}" data-date="${isoDate}">
-          <div class="cal-day">${weekDays[date.getDay()]}</div>
-          <div class="cal-date">${date.getDate()}</div>
-          ${isUnread ? '<div class="unread-dot"></div>' : ''}
-        </div>
-      `;
-    }).join('');
 
     /* ---- DOM 요소 참조 가져오기 ---- */
     const monthElement = page.querySelector('#home-month-scroll');
     const calendarElement = page.querySelector('#home-calendar');
     const cardArea = page.querySelector('#home-card-area');
 
-    /* ---- 월 네비게이션 렌더링 ---- */
+    /* ---- 월 네비게이션 렌더링 (1~12) ---- */
     if (monthElement) {
       let monthHtml = '';
       for (let m = 1; m <= 12; m++) {
-        monthHtml += `<div class="month-item" data-month="${m}">${m}</div>`;
+        monthHtml += `<div class="wheel-item" data-month="${m}">${m}</div>`;
       }
       monthElement.innerHTML = monthHtml;
     }
 
-    /* ---- 캘린더 렌더링 및 이벤트 연결 ---- */
+    /* ---- 일 캘린더 렌더링 (1~31) ---- */
     if (calendarElement) {
-      calendarElement.innerHTML = calendarHtml;
+      let dayHtml = '';
+      for (let d = 1; d <= 31; d++) {
+        dayHtml += `<div class="wheel-item" data-day="${d}">${d}</div>`;
+      }
+      calendarElement.innerHTML = dayHtml;
 
-      /**
-       * scrollActiveCalItemToCenter — 현재 active인 캘린더 아이템을
-       * 중앙으로 스크롤
-       */
-      function scrollActiveCalItemToCenter() {
-        const activeItem = calendarElement.querySelector('.cal-item.active');
-        if (!activeItem) return;
-
-        const scrollTarget = activeItem.offsetLeft
-          - calendarElement.offsetWidth / 2
-          + activeItem.offsetWidth / 2;
-
-        calendarElement.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+      /* 휠 중앙 선택 및 동기화 로직 */
+      function getActiveItem(scrollArea) {
+        const boxCenter = scrollArea.getBoundingClientRect().left + scrollArea.offsetWidth / 2;
+        let closest = null;
+        let minDistance = Infinity;
+        scrollArea.querySelectorAll('.wheel-item').forEach(el => {
+          const elCenter = el.getBoundingClientRect().left + el.offsetWidth / 2;
+          // scrollLeft가 완전히 반영되지 않은 상태일 수 있으므로 getBoundingClientRect 사용
+          const distance = Math.abs(boxCenter - elCenter);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closest = el;
+          }
+        });
+        return closest;
       }
 
-      requestAnimationFrame(() => {
-        scrollActiveCalItemToCenter();
-      });
+      function updateWheelSelection(forceInstant = false) {
+        let activeMonth, activeDay;
 
-      /* 선택되지 않은 월 페이드 처리 및 1일로 점프 */
-      function filterByMonth(targetMonth, jumpToFirstDay = true) {
-        if (monthElement) {
-          monthElement.querySelectorAll('.month-item').forEach(m => m.classList.remove('active'));
-          const targetItem = monthElement.querySelector(`.month-item[data-month="${targetMonth}"]`);
-          if (targetItem) {
-            targetItem.classList.add('active');
-            /* 월 스크롤 자체도 중앙 정렬 */
-            const scrollTarget = targetItem.offsetLeft - monthElement.offsetWidth / 2 + targetItem.offsetWidth / 2;
-            monthElement.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+        if (forceInstant) {
+          // 클릭이나 스와이프로 명시적으로 누른 경우에는 이미 부여된 active 가져옴
+          activeMonth = monthElement.querySelector('.wheel-item.active');
+          activeDay = calendarElement.querySelector('.wheel-item.active');
+        } else {
+          // 순수 스크롤 작동 시에는 중앙에 있는 아이템을 찾아서 부여함
+          activeMonth = getActiveItem(monthElement);
+          activeDay = getActiveItem(calendarElement);
+
+          if (activeMonth) {
+            monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+            activeMonth.classList.add('active');
+          }
+          if (activeDay) {
+            calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+            activeDay.classList.add('active');
           }
         }
 
-        let firstDayOfTargetMonth = null;
-        calendarElement.querySelectorAll('.cal-item').forEach(el => {
-          const dt = new Date(el.dataset.date + 'T00:00:00');
-          const m = dt.getMonth() + 1;
-          if (m === targetMonth) {
-            el.classList.remove('faded');
-            if (!firstDayOfTargetMonth) firstDayOfTargetMonth = el;
-          } else {
-            el.classList.add('faded');
-          }
-        });
-
-        if (jumpToFirstDay && firstDayOfTargetMonth) {
-          const scrollTarget = firstDayOfTargetMonth.offsetLeft - calendarElement.offsetWidth / 2 + firstDayOfTargetMonth.offsetWidth / 2;
-          calendarElement.scrollTo({ left: scrollTarget, behavior: 'smooth' });
-        }
-      }
-
-      if (monthElement) {
-        monthElement.querySelectorAll('.month-item').forEach(m => {
-          m.addEventListener('click', () => {
-            const mm = parseInt(m.dataset.month, 10);
-            if (!isNaN(mm)) filterByMonth(mm, true);
-          });
-        });
-        
-        /* 초기 로드 시 당해 월로 포커싱 (첫째날 점프는 무시하고 오늘 위치 유지) */
-        filterByMonth(today.getMonth() + 1, false);
-      }
-
-      /* 각 날짜에 클릭 이벤트 추가 */
-      calendarElement.querySelectorAll('.cal-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-          // 튜토리얼 중에는 수동 캘린더 조작 금지 (e.isTrusted를 통해 스와이프로 발생한 프로그램적 강제 클릭은 허용)
-          const currentStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-          if (e && e.isTrusted && currentStep < 3) return;
-
-          if (item.classList.contains('active')) return; // 같은 날짜면 무시
-
-          /* 방향 판별 */
-          const selectedIsoDate = item.dataset.date;
+        if (activeMonth && activeDay) {
+          const mNum = String(activeMonth.dataset.month).padStart(2, '0');
+          const dNum = String(activeDay.dataset.day).padStart(2, '0');
+          const year = today.getFullYear();
+          const selectedIsoDate = `${year}-${mNum}-${dNum}`;
           const newDate = new Date(selectedIsoDate + 'T00:00:00');
+
+          /* 이미 렌더링된 동일 날짜면 중복 렌더링 건너뜀 (복귀 시 이상한 애니메이션 발생 방지) */
+          if (latestPathDate && latestPathDate.getTime() === newDate.getTime()) {
+            return;
+          }
+
+          /* 유효하지 않은 날짜 처리 (예: 2월 30일) */
+          if (String(newDate.getMonth() + 1).padStart(2, '0') !== mNum) {
+            return; // 할당시키지 않고 무시
+          }
+
+          let storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
+          
+          if (!storyForDate && tutorialStep < 3) {
+            storyForDate = DEMO_STORIES[Math.floor(Math.random() * DEMO_STORIES.length)];
+          }
+
           const direction = newDate > latestPathDate ? 'next' : 'prev';
           latestPathDate = newDate;
 
-          /* UI 업데이트 */
-          calendarElement.querySelectorAll('.cal-item').forEach(el => el.classList.remove('active'));
-          item.classList.add('active');
-          scrollActiveCalItemToCenter();
-
-          // 클릭한 날짜의 소속 월에 맞춰 상단 강조 표시 동기화
-          filterByMonth(newDate.getMonth() + 1, false);
-
-          /* 카드 영역 업데이트 (애니메이션 전환) 및 읽음 처리 */
           markAsRead(selectedIsoDate);
-          let storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
-          /* 튜토리얼 진행 중 빈 카드 방지: 더미 데이터를 대신 표시 */
-          if (tutorialStep < 3 && !storyForDate) {
-            storyForDate = DEMO_STORIES[Math.floor(Math.random() * DEMO_STORIES.length)];
-          }
-          renderCardToArea(cardArea, storyForDate, newDate, direction, bookmarkedIds, advanceTutorial, tutorialStep);
-        });
+          renderCardToArea(cardArea, storyForDate || null, newDate, direction, bookmarkedIds, advanceTutorial, tutorialStep);
+        }
+      }
+
+      let scrollTimeout;
+      const onScrollEnd = () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => updateWheelSelection(false), 150);
+      };
+
+      monthElement.addEventListener('scroll', onScrollEnd, { passive: true });
+      calendarElement.addEventListener('scroll', onScrollEnd, { passive: true });
+
+      const onClickItem = (container, item) => {
+        container.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        
+        // 딜레이를 없애기 위해 클릭 시 즉시 카드 업데이트 (디바운스 우회)
+        updateWheelSelection(true);
+
+        const scrollTarget = item.offsetLeft - container.offsetWidth / 2 + item.offsetWidth / 2;
+        container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+      };
+
+      monthElement.querySelectorAll('.wheel-item').forEach(item => {
+        item.addEventListener('click', () => onClickItem(monthElement, item));
       });
+      calendarElement.querySelectorAll('.wheel-item').forEach(item => {
+        item.addEventListener('click', () => onClickItem(calendarElement, item));
+      });
+
+      /* 초기 진입 시 오늘 날짜로 포커싱 맞추기 */
+      setTimeout(() => {
+        const targetMonthItem = monthElement.querySelector(`.wheel-item[data-month="${today.getMonth() + 1}"]`);
+        const targetDayItem = calendarElement.querySelector(`.wheel-item[data-day="${today.getDate()}"]`);
+        if (targetMonthItem) {
+          monthElement.scrollLeft = targetMonthItem.offsetLeft - monthElement.offsetWidth / 2 + targetMonthItem.offsetWidth / 2;
+          targetMonthItem.classList.add('active');
+        }
+        if (targetDayItem) {
+          calendarElement.scrollLeft = targetDayItem.offsetLeft - calendarElement.offsetWidth / 2 + targetDayItem.offsetWidth / 2;
+          targetDayItem.classList.add('active');
+        }
+      }, 0);
     }
 
     /* ---- 튜토리얼 상태 머신 (페이지 레벨) ---- */
@@ -415,7 +406,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
           <div class="back-title">${escapeHtml(story.figure_name)}</div>
           <hr class="back-divider" />
           <div class="back-body">
-            ${(story.body || '').split('\\n').map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '').join('')}
+            ${(story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('')}
           </div>
           <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
         </div>
@@ -526,18 +517,19 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     });
   }
 
-  // 상태 변수 (스와이프 핸들러)
   let touchStartX = 0;
   let touchStartY = 0;
   let isSwiping = false;
   let hapticTriggered = false;
+  let isBackBodyScroll = false;
   const SWIPE_THRESHOLD = 80;
 
-  const handleStart = (x, y) => {
+  const handleStart = (x, y, isBody = false) => {
     touchStartX = x;
     touchStartY = y;
     isSwiping = false;
     hapticTriggered = false;
+    isBackBodyScroll = isBody;
     // 터치 시작 시에는 transition을 끄지 않아 CSS의 :active 애니메이션(홀드 축소)이 작동하도록 함
   };
 
@@ -555,9 +547,9 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     if (tutStep === 1 && Math.abs(diffY) > Math.abs(diffX)) return;
     if (tutStep === 2 && Math.abs(diffX) > Math.abs(diffY)) return;
 
-    // 수직 스와이프(상하) 제한: 빈 카드이거나, 뒤집힌 상태면 무시하고 내용 스크롤을 방해하지 않음
+    // 수직 스와이프(상하) 제한: 빈 카드이거나, 본문(back-body) 스크롤 영역에서 시작된 터치면 무시하여 스크롤 방해 방지
     if (Math.abs(diffY) > Math.abs(diffX)) {
-      if (!story || isFlipped) return;
+      if (!story || isBackBodyScroll) return;
     }
 
     if (!isSwiping) {
@@ -598,7 +590,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     const isFlipped = flipper.classList.contains('flipped');
 
     if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(diffY) > Math.abs(diffX)) {
-      if (!story || isFlipped) {
+      if (!story || isBackBodyScroll) {
         flipper.style.transform = '';
         setTimeout(() => { flipper.style.transition = ''; isSwiping = false; }, 300);
         return;
@@ -619,7 +611,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
         overlay.innerHTML = `
           <div style="background:var(--color-bg-primary);padding:var(--space-6) var(--space-4);border-radius:var(--radius-xl);text-align:center;width:80%;max-width:320px;box-shadow:0 10px 25px rgba(0,0,0,0.5);transform:translateY(20px);transition:transform 0.3s ease;">
             <div style="font-size:3.5rem;margin-bottom:var(--space-2);">🎉</div>
-            <h3 style="margin-top:0;margin-bottom:var(--space-2);font-size:var(--text-xl);">튜토리얼 완료!</h3>
+            <h3 style="margin-top:0;margin-bottom:var(--space-2);font-size:var(--text-xl);color:var(--color-text-primary);">튜토리얼 완료!</h3>
             <p style="color:var(--color-text-secondary);font-size:var(--text-md);margin-bottom:var(--space-5);line-height:1.4;word-break:keep-all;">모든 기본 조작법을 익히셨습니다.<br>이제 자유롭게 기록들을 탐색해 보세요!</p>
             <button class="btn btn-primary btn-finish-tut" style="width:100%;border-radius:30px;font-weight:bold;font-size:1.1rem;padding:12px 0;">시작하기</button>
           </div>
@@ -687,16 +679,15 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
       if (typeof advanceTutorialFn === 'function') advanceTutorialFn(1);
 
-      const calItems = document.querySelectorAll('.cal-item');
-      let currentIndex = -1;
-      calItems.forEach((item, index) => {
-        if (item.classList.contains('active')) currentIndex = index;
-      });
-
-      if (diffX < 0 && currentIndex < calItems.length - 1) {
-        calItems[currentIndex + 1].click();
-      } else if (diffX > 0 && currentIndex > 0) {
-        calItems[currentIndex - 1].click();
+      const dayWrapper = document.getElementById('home-calendar');
+      if (dayWrapper) {
+        const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
+        const activeIdx = items.findIndex(el => el.classList.contains('active'));
+        if (diffX < 0 && activeIdx > -1 && activeIdx < items.length - 1) {
+          items[activeIdx + 1].click();
+        } else if (diffX > 0 && activeIdx > 0) {
+          items[activeIdx - 1].click();
+        }
       }
     }
     // 제자리로 복귀 (인라인 스타일을 지움으로써 CSS 클래스에 맡김)
@@ -711,7 +702,8 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
 
   // 터치 이벤트
   flipper.addEventListener('touchstart', (e) => {
-    handleStart(e.touches[0].clientX, e.touches[0].clientY);
+    const isBody = !!e.target.closest('.back-body');
+    handleStart(e.touches[0].clientX, e.touches[0].clientY, isBody);
   }, { passive: true });
 
   flipper.addEventListener('touchmove', (e) => {
@@ -726,9 +718,11 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
   // 마우스 이벤트 (데스크톱 드래그 대응)
   let isMouseDown = false;
   flipper.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.back-body') || e.target.closest('.card-action-btn')) return;
+    if (e.target.closest('.card-action-btn')) return;
+    const isBody = !!e.target.closest('.back-body');
+    if (isBody) return; // 마우스는 본문에서 드래그 스와이프 불가
     isMouseDown = true;
-    handleStart(e.clientX, e.clientY);
+    handleStart(e.clientX, e.clientY, isBody);
   });
 
   window.addEventListener('mousemove', (e) => {

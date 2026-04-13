@@ -6,7 +6,7 @@
    일관된 디자인을 유지한다.
 */
 /* ============================================
-   마지막 수정 날짜 : 2026-03-31 20:10
+   마지막 수정 날짜 : 2026-04-13 01:20
    ============================================
    : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
 */
@@ -39,6 +39,7 @@
   --color-accent: #000000;               /* 주 강조색 유지 */
   --color-accent-light: #444444;         /* 강조색 라이트 */
   --color-accent-dark: #000000;          /* 강조색 다크 */
+  --color-accent-border: #5f5f5f;        /* 강조색 테두리 */
 
   /* ── 테두리/구분선 색상 ── */
   --color-border: #eeeff2;               /* 배경과 더 잘 어우러지는 테두리 */
@@ -49,7 +50,7 @@
   --color-success: #34c759;              /* 성공 (Green) */
   --color-warning: #ff9f0a;              /* 경고 (Orange) */
   --color-error: #ff3b30;                /* 오류 (Red) */
-  --color-info: #007aff;                 /* 정보 (Blue) */
+  --color-info: #14ade5;                 /* 정보 (Blue) */
 
   /* ── 그림자 (깊이감 표현) ── */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -137,11 +138,11 @@
 */
 [data-theme="dark"] {
   /* ── 다크 테마 배경 색상 (가시성 대폭 개선) ── */
-  --color-bg-primary: #121212;              /* 순수 블랙보다 눈이 편하고 가시성이 좋은 다크 챠콜 */
-  --color-bg-secondary: #1c1c1e;            /* 보조 배경 */
-  --color-bg-card: #2c2c2e;                 /* 카드 배경 (배경과 명확히 구분되도록 상향) */
-  --color-bg-card-dark: #3a3a3c;            /* 카드 더 어두운 배경 */
-  --color-bg-elevated: #2c2c2e;             /* 부유 요소 배경 */
+  --color-bg-primary: #1c1c1e;              /* 순수 블랙보다 눈이 편하고 가시성이 좋은 다크 챠콜 */
+  --color-bg-secondary: #222224;            /* 보조 배경 */
+  --color-bg-card: #303033;                 /* 카드 배경 (배경과 명확히 구분되도록 상향) */
+  --color-bg-card-dark: #222224;            /* 카드 더 어두운 배경 */
+  --color-bg-elevated: #1c1c1e;             /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.75);
 
   /* ── 다크 테마 텍스트 색상 ── */
@@ -154,11 +155,12 @@
   --color-accent: #ffffff;                  /* 강조색 (흰색) */
   --color-accent-light: #cccccc;
   --color-accent-dark: #ffffff;
+  --color-accent-border: #646269;
 
   /* ── 다크 테마 테두리 (대비 강화) ── */
   --color-border: #3a3a3c;                  /* 카드 테두리를 더 선명하게 */
   --color-border-light: #2c2c2e;
-  --color-divider: #38383a;
+  --color-divider: #2a2a2b;                 /* 구분선 */
 
   /* ── 다크 테마 그림자 ── */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);

@@ -14,6 +14,7 @@
 
 import { db, storage } from '../firebase.js';
 import { DEMO_STORIES } from '../data/demo.js';
+import { getLocalToday } from '../utils/date.js';
 
 /*
  * Firestore 함수 임포트
@@ -68,6 +69,46 @@ function docToData(docSnap) {
   return { id: docSnap.id, ...docSnap.data() };
 }
 
+/**
+ * autoPublishScheduled — 발행 예정일이 오늘이거나 지난 예약 글을 자동 발행합니다
+ * 
+ * 왜 클라이언트에서 처리하나?
+ *   서버 측 크론잡(정기 실행 스크립트)이 없는 구조이므로,
+ *   앱에 접속할 때마다 "아직 scheduled인데 날짜가 지난 글"을 찾아서
+ *   자동으로 published 상태로 변경합니다.
+ * 
+ * @param {string} todayStr - 오늘 날짜 'YYYY-MM-DD' (로컬 시간 기준)
+ */
+async function autoPublishScheduled(todayStr) {
+  if (!db) return;
+  try {
+    /* scheduled 상태이면서 발행 예정일이 오늘이거나 지난 글을 검색 */
+    const q = query(
+      collection(db, 'stories'),
+      where('status', '==', 'scheduled'),
+      where('publish_date', '<=', todayStr)
+    );
+    const snapshot = await getDocs(q);
+    
+    /* 발견된 글들을 모두 published로 업데이트 */
+    const updates = snapshot.docs.map(docSnap => {
+      return updateDoc(doc(db, 'stories', docSnap.id), {
+        status: 'published',
+        published_at: new Date().toISOString(),
+        updated_at: serverTimestamp(),
+      });
+    });
+    
+    if (updates.length > 0) {
+      await Promise.all(updates);
+      console.log(`[DayStory] ${updates.length}개 예약 글 자동 발행 완료`);
+    }
+  } catch (err) {
+    /* 복합 인덱스 오류 발생 시 콘솔에 인덱스 생성 링크가 표시됩니다 */
+    console.warn('예약 발행 자동 전환 실패:', err.message);
+  }
+}
+
 
 /* ─────────────────────────────────────────────
    섹션 2: 스토리 조회 함수 (읽기 전용)
@@ -80,7 +121,12 @@ export async function fetchStories() {
   if (!db) return DEMO_STORIES;
 
   try {
-    const today = new Date().toISOString().split('T')[0];
+    /* 사용자 기기의 로컬 시간 기준으로 오늘 날짜를 가져옴 (UTC가 아님!) */
+    const today = getLocalToday();
+
+    /* ★ 핵심: 예약 발행 자동 전환 — scheduled → published */
+    await autoPublishScheduled(today);
+
     const q = query(
       collection(db, 'stories'),
       where('publish_date', '<=', today),
@@ -101,12 +147,13 @@ export async function fetchStories() {
  */
 export async function fetchTodayStory() {
   if (!db) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalToday();
     return DEMO_STORIES.find(s => s.publish_date === today) || DEMO_STORIES[DEMO_STORIES.length - 1];
   }
 
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
+    /* 사용자 기기의 로컬 시간 기준 오늘 날짜 */
+    const todayStr = getLocalToday();
     const q = query(
       collection(db, 'stories'),
       where('publish_date', '<=', todayStr),
@@ -125,7 +172,7 @@ export async function fetchTodayStory() {
   }
 
   /* 최종 폴백: 데모 데이터 */
-  const fallbackToday = new Date().toISOString().split('T')[0];
+  const fallbackToday = getLocalToday();
   const demoToday = DEMO_STORIES.find(s => s.publish_date === fallbackToday);
   return demoToday || DEMO_STORIES[DEMO_STORIES.length - 1];
 }

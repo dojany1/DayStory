@@ -164,6 +164,7 @@
 .flipper {
   position: relative;
   width: 100%;
+  max-height: 100%;                  /* 부모 높이를 초과하지 않도록 제한 */
   aspect-ratio: var(--card-aspect-ratio); /* 변수 사용 (3.1 / 4.8) */
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.6, 1.2) 0.05s; /* 길어진 스프링 회전 및 0.05초 딜레이 추가 */
   transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 */
@@ -377,11 +378,7 @@
   padding-right: 4px;                  /* 스크롤바 공간 확보 */
 }
 
-/* 뒷면 본문 문단 — 각 문단 사이 간격 */
-.back-body p {
-  margin-bottom: var(--space-3);
-  word-break: keep-all;                /* 한글 단어 사이에서만 줄바꿈 */
-}
+
 
 /* 뒷면 본문 스크롤바 — 얇은 미니멀 디자인 */
 .back-body::-webkit-scrollbar {
@@ -417,7 +414,7 @@
 .history-card-mini {
   position: relative;
   width: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--color-bg-card);
   box-shadow: var(--shadow-sm);

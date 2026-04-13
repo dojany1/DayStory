@@ -408,7 +408,14 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
           <div class="back-body">
             ${(story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('')}
           </div>
-          <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+          <div class="back-footer">
+            <button class="back-editor-btn" type="button" title="에디터 한마디" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}">
+              ${story.editor && story.editor.photoURL
+                ? `<img src="${escapeHtml(story.editor.photoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
+                : '<span class="back-editor-avatar-fallback">✍️</span>'}
+            </button>
+            <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+          </div>
         </div>
       </div>
     `;
@@ -741,7 +748,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
     if (tutStep > 0 && tutStep < 3) return; // 튜토리얼 단계가 1, 2일 때 탭 조작 금지
     if (!story) return; // 기록 없는 카드 탭 무시
-    if (e.target.closest('.back-body') || e.target.closest('.card-action-btn')) return;
+    if (e.target.closest('.back-body') || e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn')) return;
     if (isSwiping) return; // 스와이프 처리 중이면 탭 무시
     
     flipper.classList.toggle('flipped');
@@ -749,4 +756,27 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     /* 튜토리얼: 탭 완료 처리 */
     if (typeof advanceTutorialFn === 'function') advanceTutorialFn(0);
   });
+
+  /* 에디터 한마디 버튼 클릭 → 코멘트 말풍선 표시 */
+  const editorBtn = flipContainer.querySelector('.back-editor-btn');
+  if (editorBtn) {
+    editorBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const comment = editorBtn.dataset.comment;
+      const editorName = editorBtn.dataset.editorName || 'DayStory';
+      
+      /* 이미 열려있으면 닫기 */
+      const existing = flipContainer.querySelector('.editor-comment-bubble');
+      if (existing) { existing.remove(); return; }
+      
+      /* 코멘트가 없는 경우 */
+      if (!comment) return;
+      
+      const bubble = document.createElement('div');
+      bubble.className = 'editor-comment-bubble';
+      bubble.innerHTML = `<span class="editor-comment-name">${editorName}</span>${comment}`;
+      editorBtn.parentElement.appendChild(bubble);
+      setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 4000);
+    });
+  }
 }

@@ -264,6 +264,12 @@ export function renderEditorNew() {
           <textarea class="input-field" id="sf-body" placeholder="역사 일화 본문을 입력하세요..." style="min-height:200px; resize:vertical; line-height:1.6; font-family:var(--font-body);" required></textarea>
         </div>
 
+        <!-- 4-1. 에디터 한마디 -->
+        <div class="input-group">
+          <label class="input-label">에디터 한마디</label>
+          <input class="input-field" id="sf-editor-comment" placeholder="카드 뒷면에 표시될 에디터의 코멘트" />
+        </div>
+
         <!-- 5. 이미지 업로드/URL -->
         <div class="input-group">
           <label class="input-label">이미지 업로드 및 URL</label>
@@ -325,6 +331,7 @@ export function renderEditorNew() {
         document.getElementById('sf-country').value = story.country || '';
         document.getElementById('sf-body').value = story.body || '';
         document.getElementById('sf-image').value = story.image_url || '';
+        document.getElementById('sf-editor-comment').value = story.editor_comment || (story.editor && story.editor.comment) || '';
         hasLoadedData = true;
       }
     }
@@ -438,6 +445,7 @@ export function renderEditorNew() {
         image_url: document.getElementById('sf-image').value.trim(),
         card_count: '',
         editor: editorInfo,      /* 에디터 자동 할당 */
+        editor_comment: document.getElementById('sf-editor-comment').value.trim(),
       };
     }
 
@@ -542,6 +550,12 @@ export function renderEditorNew() {
     const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='14' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
     const imageUrl = imgRaw || PLACEHOLDER_IMG;
 
+    /* 에디터 프로필 정보 (미리보기용) */
+    const u = auth?.currentUser;
+    const stateProfile = getState('profile') || {};
+    const editorPhotoURL = u?.photoURL || stateProfile.photoURL || '';
+    const editorComment = escapeHTML(document.getElementById('sf-editor-comment')?.value.trim() || '');
+
     /* 홈 카드(home.js 379~423줄)와 완전히 동일한 HTML 구조 */
     previewArea.innerHTML = `
       <div class="flip-container">
@@ -570,7 +584,13 @@ export function renderEditorNew() {
             <div class="back-body">
               ${bodyText || '<p>본문이 표시됩니다...</p>'}
             </div>
-            <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
+            <div class="back-footer">
+              <button class="back-editor-btn" type="button" title="에디터 한마디">
+                <img src="${escapeHTML(editorPhotoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                <span class="back-editor-avatar-fallback" style="display:none">✍️</span>
+              </button>
+              <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
+            </div>
           </div>
         </div>
       </div>
@@ -579,8 +599,25 @@ export function renderEditorNew() {
     /* 카드 터치 시 플립 */
     const flipper = previewArea.querySelector('#preview-flipper');
     if (flipper) {
-      flipper.addEventListener('click', () => {
+      flipper.addEventListener('click', (e) => {
+        if (e.target.closest('.back-editor-btn')) return;
         flipper.classList.toggle('flipped');
+      });
+    }
+
+    /* 에디터 한마디 버튼 클릭 시 코멘트 표시 */
+    const editorBtn = previewArea.querySelector('.back-editor-btn');
+    if (editorBtn) {
+      editorBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const comment = document.getElementById('sf-editor-comment')?.value.trim() || '에디터 코멘트가 없습니다.';
+        const existing = previewArea.querySelector('.editor-comment-bubble');
+        if (existing) { existing.remove(); return; }
+        const bubble = document.createElement('div');
+        bubble.className = 'editor-comment-bubble';
+        bubble.textContent = comment;
+        editorBtn.parentElement.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 3000);
       });
     }
   }

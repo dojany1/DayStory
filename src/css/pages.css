@@ -1434,9 +1434,25 @@
   font-size: 0.75rem;
   padding: 0 1rem 1rem;
 }
+.preview-scale-wrapper .back-footer {
+  padding: 0.5rem 1rem;
+  margin-top: var(--space-1);
+}
 .preview-scale-wrapper .back-date {
   font-size: 0.6rem;
-  padding: 0.8rem 1rem;
+}
+.preview-scale-wrapper .back-editor-btn {
+  width: 22px;
+  height: 22px;
+}
+.preview-scale-wrapper .back-editor-avatar-fallback {
+  font-size: 0.6rem;
+}
+.preview-scale-wrapper .editor-comment-bubble {
+  font-size: 0.55rem;
+  padding: 4px 6px;
+  max-width: 140px;
+  min-width: 60px;
 }
 
 /* 미리보기 내부의 플립 컨테이너는 홈과 완전히 동일한 스타일을 상속받음 */

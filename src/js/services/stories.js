@@ -12,7 +12,7 @@
      - (에디터 전용) CRUD 함수들
    ===================================================================== */
 
-import { db, storage } from '../firebase.js';
+import { db, storage, auth } from '../firebase.js';
 import { DEMO_STORIES } from '../data/demo.js';
 import { getLocalToday } from '../utils/date.js';
 
@@ -37,7 +37,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 
 /* ─────────────────────────────────────────────
@@ -286,6 +286,18 @@ export async function updateStory(id, updates) {
  */
 export async function deleteStory(id) {
   if (!db) throw new Error('Firebase 미설정');
+  try {
+    const d = await getDoc(doc(db, 'stories', id));
+    if (d.exists()) {
+      const data = d.data();
+      if (data.image_url && (data.image_url.includes('firebasestorage') || data.image_url.includes('.firebasestorage.app'))) {
+        const imgRef = ref(storage, data.image_url);
+        await deleteObject(imgRef).catch(e => console.warn('Storage delete fail', e));
+      }
+    }
+  } catch(e) {
+    console.warn('deleteStory image delete skip:', e);
+  }
   await deleteDoc(doc(db, 'stories', id));
 }
 
@@ -300,14 +312,52 @@ export async function publishStory(id) {
 }
 
 /**
+ * fetchStoriesWithLicense — 이미지 출처(image_license)가 있는 발행된 스토리만 가져옵니다.
+ * 날짜 기준 최신순(내림차순)으로 정렬합니다.
+ * 라이선스 페이지 전용 함수입니다.
+ */
+export async function fetchStoriesWithLicense() {
+  if (!db) {
+    /* 폴백: 데모 데이터에서 라이선스 있는 것만 필터링 */
+    return DEMO_STORIES
+      .filter(s => s.image_license && s.image_license.trim() !== '')
+      .sort((a, b) => b.publish_date.localeCompare(a.publish_date));
+  }
+
+  try {
+    const today = getLocalToday();
+    /* 발행된 전체 스토리를 날짜 내림차순으로 가져옴 (복합 인덱스 오류 방지를 위해 status 필터는 JS에서 처리) */
+    const q = query(
+      collection(db, 'stories'),
+      where('publish_date', '<=', today),
+      orderBy('publish_date', 'desc')
+    );
+    const snapshot = await withTimeout(getDocs(q));
+    
+    /* JS 레벨에서 published 상태이면서 image_license 필드가 있는 항목만 필터링 */
+    return snapshot.docs
+      .map(docToData)
+      .filter(s => s.status === 'published' && s.image_license && s.image_license.trim() !== '');
+  } catch (err) {
+    console.warn('라이선스 스토리 조회 실패:', err.message);
+    return [];
+  }
+}
+
+/**
  * uploadImage — 이미지를 Firebase Storage에 업로드하고 URL을 반환합니다
  */
 export async function uploadImage(file) {
   if (!storage) throw new Error('Firebase Storage 미설정');
   
+  const uid = auth?.currentUser?.uid || 'guest';
+  
   // 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
   const fileName = `${Date.now()}_${file.name}`;
-  const storageRef = ref(storage, `images/${fileName}`);
+  
+  // 'images/' 폴더에 대한 Firebase 권한(403) 오류를 해결하기 위해,
+  // 유저별 전용 폴더 구조로 업로드 경로를 변경합니다.
+  const storageRef = ref(storage, `users/${uid}/editor_images/${fileName}`);
   
   // 파일 업로드
   await uploadBytes(storageRef, file);

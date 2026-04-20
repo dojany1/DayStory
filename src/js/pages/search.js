@@ -33,8 +33,8 @@ export function renderSearch() {
 
   page.innerHTML = `
     <!-- 페이지 제목 -->
-    <div class="page-header" style="padding-left:0;padding-right:0;">
-      <h1 class="page-header-title">검색</h1>
+    <div class="page-header" style="height: 60px; padding: 0 16px; align-items:center; display:flex;">
+      <h1 class="page-header-title" style="margin:0; line-height:1;">검색</h1>
     </div>
 
     <!-- 검색창 -->

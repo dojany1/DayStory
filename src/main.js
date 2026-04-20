@@ -31,7 +31,7 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
    - firebase.js: 백엔드(Firebase) 연결 설정
 */
 import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath } from './js/router.js';
-import { getState, setState, applyTheme } from './js/state.js';
+import { getState, setState, applyTheme, subscribe } from './js/state.js';
 import { auth, db } from './js/firebase.js';
 
 /*
@@ -58,7 +58,7 @@ import { Capacitor } from '@capacitor/core';
    ─────────────────────────────────────────────
    빠른 초기 구동을 위해 홈페이지만 먼저 불러오고, 나머지는 클릭 시(지연 로딩) 가져옵니다.
 */
-import { renderHome } from './js/pages/home.js';
+import { renderEditorStory } from './js/pages/editorstory.js';
 
 /* ─────────────────────────────────────────────
    섹션 4: 라우트(경로) 등록 및 Lazy Loading 분할
@@ -66,14 +66,17 @@ import { renderHome } from './js/pages/home.js';
 */
 registerRoute('/login', () => import('./js/pages/login.js').then(m => m.renderLogin()));
 registerRoute('/signup', () => import('./js/pages/login.js').then(m => m.renderSignup()));
-registerRoute('/home', () => renderHome()); /* 홈은 최우선 렌더링을 위해 정적 유지 */
+registerRoute('/editorstory', () => renderEditorStory()); /* 에디터 일화는 최우선 렌더링을 위해 정적 유지 */
 registerRoute('/detail/:id', (params) => import('./js/pages/detail.js').then(m => m.renderDetail(params)));
-registerRoute('/archive', () => import('./js/pages/archive.js').then(m => m.renderArchive()));
+registerRoute('/profile', () => import('./js/pages/profile.js').then(m => m.renderProfile()));
 registerRoute('/search', () => import('./js/pages/search.js').then(m => m.renderSearch()));
 registerRoute('/settings', () => import('./js/pages/settings.js').then(m => m.renderSettings()));
 registerRoute('/report', () => import('./js/pages/report.js').then(m => m.renderReport()));
 registerRoute('/editor', () => import('./js/pages/editor.js').then(m => m.renderEditor()));
 registerRoute('/editor/new', () => import('./js/pages/editor.js').then(m => m.renderEditorNew()));
+registerRoute('/mystory', () => import('./js/pages/mystory.js').then(m => m.renderMyStory()));
+registerRoute('/mystory/new', () => import('./js/pages/mystory.js').then(m => m.renderMyStoryNew()));
+registerRoute('/license', () => import('./js/pages/license.js').then(m => m.renderLicense()));
 
 
 /* ─────────────────────────────────────────────
@@ -94,13 +97,13 @@ setBeforeNavigate((path) => {
   /* 하단 내비게이션 바 표시/숨김 제어 */
   const nav = document.getElementById('bottom-nav');
   if (nav) {
-    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup';
+    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
   }
 
   /* 이미 로그인한 유저가 로그인/회원가입 페이지 접근 시 홈으로 리다이렉트 */
   if ((path === '/login' || path === '/signup') && user && user.id !== 'guest') {
-    navigate('/home');
+    navigate('/editorstory');
     return false;
   }
 
@@ -109,7 +112,29 @@ setBeforeNavigate((path) => {
 
 
 /* ─────────────────────────────────────────────
-   섹션 6: 앱 로딩 및 인증 상태 변화 감지
+   섹션 6: 유저 프로필 탭 아이콘 업데이트 로직
+   ───────────────────────────────────────────── */
+function updateProfileNavIcon(userProfile) {
+  const navWrap = document.querySelector('.nav-profile-img-wrap');
+  
+  if (!navWrap) return;
+
+  if (userProfile && userProfile.photoURL) {
+    navWrap.innerHTML = `<img src="${userProfile.photoURL}" alt="profile" style="width:100%; height:100%; object-fit:cover;" />`;
+    navWrap.style.borderColor = 'transparent';
+  } else {
+    navWrap.innerHTML = `
+      <svg class="nav-icon guest-avatar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+    `;
+  }
+}
+subscribe('profile', updateProfileNavIcon);
+
+/* ─────────────────────────────────────────────
+   섹션 7: 앱 로딩 및 인증 상태 변화 감지
    ─────────────────────────────────────────────
 */
 let isAuthReady = false;
@@ -156,7 +181,7 @@ if (auth) {
             const profileSnap = await getDoc(profileRef);
             let profileData = null;
 
-            const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com'];
+            const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
             const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
 
             if (profileSnap.exists()) {
@@ -187,7 +212,7 @@ if (auth) {
 
         const currentHash = window.location.hash;
         if (currentHash === '#/login' || currentHash === '#/signup' || !currentHash) {
-          navigate('/home');
+          navigate('/editorstory');
         }
 
       } else {
@@ -197,7 +222,7 @@ if (auth) {
 
         /* 
          * 로그인 페이지 접근을 방해하지 않도록
-         * 이전처럼 무조건 navigate('/home')을 하지 않습니다.
+         * 이전처럼 무조건 navigate('/editorstory')를 하지 않습니다.
          */
       }
     } catch (err) {
@@ -258,7 +283,7 @@ if (document.readyState === 'loading') {
    섹션 9: 네이티브 하드웨어 뒤로가기 버튼 제어 (안드로이드)
    ─────────────────────────────────────────────
    라우팅 뎁스(Depth) 구조:
-     Depth 0 : /home          (홈 — 최상위, 2회 터치 시 앱 종료)
+     Depth 0 : /editorstory   (에디터 일화 — 최상위, 2회 터치 시 앱 종료)
      Depth 1 : /login         (로그인 → 홈으로)
      Depth 1 : /archive       (북마크 탭 → 홈으로)
      Depth 1 : /search        (검색 탭 → 홈으로)
@@ -282,12 +307,12 @@ if (Capacitor.isNativePlatform()) {
    *          null이면 최상위(홈)이므로 더 이상 뒤로 갈 곳이 없음
    */
   const ROUTE_DEPTH_MAP = {
-    '/home':     { depth: 0, parent: null },
-    '/login':    { depth: 1, parent: '/home' },
-    '/signup':   { depth: 1, parent: '/login' },
-    '/archive':  { depth: 1, parent: '/home' },
-    '/search':   { depth: 1, parent: '/home' },
-    '/settings': { depth: 1, parent: '/home' },
+    '/editorstory': { depth: 0, parent: null },
+    '/login':       { depth: 1, parent: '/editorstory' },
+    '/mystory':     { depth: 1, parent: '/editorstory' },
+    '/archive':     { depth: 1, parent: '/editorstory' },
+    '/search':      { depth: 1, parent: '/editorstory' },
+    '/settings':    { depth: 1, parent: '/editorstory' },
     '/detail':   { depth: 2, parent: '/archive' },
     '/report':   { depth: 2, parent: null },       /* history.back()으로 처리 (직전 detail 페이지) */
     '/editor':   { depth: 2, parent: '/settings' },
@@ -313,8 +338,8 @@ if (Capacitor.isNativePlatform()) {
       return ROUTE_DEPTH_MAP[basePath];
     }
 
-    /* 3) 맵에 없는 경로는 Depth 1로 간주 (홈으로 이동) */
-    return { depth: 1, parent: '/home' };
+    /* 3) 맵에 없는 경로는 Depth 1로 간주 (에디터 일화으로 이동) */
+    return { depth: 1, parent: '/editorstory' };
   }
 
   /**
@@ -323,9 +348,12 @@ if (Capacitor.isNativePlatform()) {
    * 현재 홈 화면에 있을 때 튜토리얼이 활성 상태입니다.
    */
   function isTutorialActive() {
-    const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
+    const raw = localStorage.getItem('swipe_tutorial_step');
+    // null = 아직 결정 안 됨(웰컴 모달 표시 중), 0~1 = 튜토리얼 진행 중
+    if (raw === null) return true;
+    const tutStep = parseInt(raw, 10);
     const currentPath = getCurrentPath();
-    return currentPath === '/home' && tutStep < 3;
+    return currentPath === '/editorstory' && tutStep < 2;
   }
 
   /* 마지막으로 뒤로가기를 누른 시각 (앱 종료용 더블 탭 판별) */

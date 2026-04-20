@@ -160,7 +160,8 @@ export async function getBookmarkedStories() {
     let storyIds = [];
 
     if (user.id === 'guest') {
-      storyIds = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
+      const savedIds = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
+      storyIds = [...new Set(savedIds)];
       if (storyIds.length === 0) return [];
     } else {
       if (!db) return [];
@@ -181,7 +182,8 @@ export async function getBookmarkedStories() {
         const timeB = b.created_at ? (b.created_at.toMillis ? b.created_at.toMillis() : new Date(b.created_at).getTime()) : 0;
         return timeB - timeA;
       });
-      storyIds = docsData.map(d => d.story_id);
+      /* 중복 북마크 방지: 동일한 story_id가 중복 저장된 경우를 대비해 Set으로 고유값만 추출 */
+      storyIds = [...new Set(docsData.map(d => d.story_id))];
     }
 
     if (!db) return [];

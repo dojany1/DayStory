@@ -6,9 +6,12 @@
      URL의 # 뒤 부분(해시)을 이용해 "어떤 페이지를 보여줄지" 결정합니다.
    
    예시:
-     http://localhost:5173/#/home     → 홈 화면
+     http://localhost:5173/#/editorstory     → 홈 화면
      http://localhost:5173/#/archive  → 컬렉션 화면
      http://localhost:5173/#/settings → 설정 화면
+     http://localhost:5173/#/mystory  → 나의 일화 화면
+     http://localhost:5173/#/editor/new → 새 일화 작성 화면
+     http://localhost:5173/#/editor/edit/:id → 기존 일화 수정 화면
    ===================================================================== */
 
 
@@ -18,7 +21,7 @@
 
 /**
  * routes: URL 경로와 페이지 렌더링 함수를 짝지어 저장하는 Map
- * 예: '/home' → renderHome 함수
+ * 예: '/editorstory' → renderEditorStory 함수
  */
 const routes = new Map();
 
@@ -38,11 +41,11 @@ let beforeNavigateHook = null;
 
 /**
  * registerRoute — 새로운 경로를 등록합니다
- * @param {string} path     - URL 경로 (예: '/home', '/detail/:id')
+ * @param {string} path     - URL 경로 (예: '/editorstory', '/detail/:id')
  * @param {Function} handler - 해당 경로에서 실행할 함수 (페이지를 그리는 함수)
  * 
  * 사용 예시:
- *   registerRoute('/home', () => renderHome());
+ *   registerRoute('/editorstory', () => renderEditorStory());
  */
 export function registerRoute(path, handler) {
   routes.set(path, handler);
@@ -65,11 +68,11 @@ export function setBeforeNavigate(fn) {
 
 /**
  * navigate — 다른 페이지로 이동합니다
- * @param {string} path   - 이동할 경로 (예: '/home')
+ * @param {string} path   - 이동할 경로 (예: '/editorstory')
  * @param {Object} params - URL에 붙일 추가 정보 (선택사항)
  * 
  * 사용 예시:
- *   navigate('/home');
+ *   navigate('/editorstory');
  *   navigate('/detail/abc123');
  */
 export function navigate(path, params = {}) {
@@ -99,10 +102,10 @@ export function getParams() {
  * @returns {string} 현재 경로
  * 
  * 예시:
- *   URL이 #/home?tab=1 이면 → '/home' 반환
+ *   URL이 #/editorstory?tab=1 이면 → '/editorstory' 반환
  */
 export function getCurrentPath() {
-  const hash = window.location.hash.slice(1) || '/home';
+  const hash = window.location.hash.slice(1) || '/editorstory';
   return hash.split('?')[0];
 }
 
@@ -262,12 +265,13 @@ export function initRouter() {
       const item = e.target.closest('.nav-item');
       if (!item) return;
 
-      /* 튜토리얼 중엔 탭바 이동 금지 */
-      const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-      if (tutStep < 3) {
+      /* 튜토리얼 중엔 탭바 이동 금지 (null = 웰컴 모달 표시 중) */
+      const tutRaw = localStorage.getItem('swipe_tutorial_step');
+      const tutStep = tutRaw === null ? -1 : parseInt(tutRaw, 10);
+      if (tutStep < 2) {
         // 간단한 토스트 알림 생성
         const toast = document.createElement('div');
-        toast.innerText = '튜토리얼을 먼저 끝내주세요!';
+        toast.innerText = tutStep === -1 ? '먼저 안내를 확인해주세요!' : '튜토리얼을 먼저 끝내주세요!';
         toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:white;padding:10px 20px;border-radius:20px;z-index:9999;font-size:0.9rem;';
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 1500);
@@ -277,14 +281,14 @@ export function initRouter() {
       const route = item.dataset.route;
       const currentPath = getCurrentPath();
 
-      /* 만약 홈 탭인데 이미 홈에 있다면 -> 오늘 날짜로 이동 */
-      if (route === '/home' && currentPath === '/home') {
+      /* 만약 에디터 일화 탭인데 이미 에디터 일화에 있다면 -> 오늘 날짜로 이동 */
+      if (route === '/editorstory' && currentPath === '/editorstory') {
         const today = new Date();
         const mNum = today.getMonth() + 1;
         const dNum = today.getDate();
         
-        const monthItem = document.querySelector(`#home-month-scroll .wheel-item[data-month="${mNum}"]`);
-        const dayItem = document.querySelector(`#home-calendar .wheel-item[data-day="${dNum}"]`);
+        const monthItem = document.querySelector(`#editorstory-month-scroll .wheel-item[data-month="${mNum}"]`);
+        const dayItem = document.querySelector(`#editorstory-calendar .wheel-item[data-day="${dNum}"]`);
         
         if (monthItem && !monthItem.classList.contains('active')) {
           monthItem.click();
@@ -297,14 +301,41 @@ export function initRouter() {
         } else if (dayItem) {
           dayItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
+        return; // 라우팅 중단
       }
+
+      /* 만약 나의 일화 탭인데 이미 나의 일화에 있다면 -> 오늘 날짜로 이동 */
+      if (route === '/mystory' && currentPath === '/mystory') {
+        const today = new Date();
+        const mNum = today.getMonth() + 1;
+        const dNum = today.getDate();
+        
+        const monthItem = document.querySelector(`#mystory-month-scroll .wheel-item[data-month="${mNum}"]`);
+        const dayItem = document.querySelector(`#mystory-calendar .wheel-item[data-day="${dNum}"]`);
+        
+        if (monthItem && !monthItem.classList.contains('active')) {
+          monthItem.click();
+        } else if (monthItem) {
+          monthItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        if (dayItem && !dayItem.classList.contains('active')) {
+          dayItem.click();
+        } else if (dayItem) {
+          dayItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+        return; // 라우팅 중단
+      }
+
+      // 이미 다른 탭 같은 경로라면 동일하게 새로 렌더링 무시
+      if (route === currentPath) return;
       navigate(route);
     });
   }
 
   /* 초기 URL이 없으면 홈으로 설정 */
   if (!window.location.hash) {
-    window.location.hash = '/home';
+    window.location.hash = '/editorstory';
   } else {
     handleRoute();
   }

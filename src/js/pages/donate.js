@@ -24,13 +24,13 @@ export function renderDonate() {
 
   page.innerHTML = `
     <!-- 페이지 헤더: 뒤로가기 + 제목 -->
-    <div class="page-header" style="justify-content:flex-start;">
-      <button class="page-header-back" id="donate-back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="page-header" style="height: 60px; padding: 0 16px; align-items:center; display:flex; justify-content:flex-start; gap:8px;">
+      <button class="page-header-back" id="donate-back" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </button>
-      <h1 class="page-header-title" style="margin-left:var(--space-3)">후원하기</h1>
+      <h1 class="page-header-title" style="margin:0; font-size:1.2rem; line-height:1;">후원하기</h1>
     </div>
 
     <!-- 후원 안내 영역 -->

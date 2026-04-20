@@ -118,27 +118,34 @@
 
         <!--
           하단 내비게이션 바:
-          홈, 컬렉션, 설정 세 개의 텍스트 버튼으로 구성됩니다.
+          홈, 임시, 프로필 세 개의 버튼으로 구성됩니다.
           data-route 속성을 보고 router.js에서 해당 경로로 이동합니다.
         -->
         <nav id="bottom-nav" class="bottom-nav redesigned-nav" style="display:none;">
-          <button class="nav-item active" data-route="/home" id="nav-home" aria-label="홈">
+          <button class="nav-item active" data-route="/editorstory" id="nav-editorstory" aria-label="에디터 일화">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
             </svg>
           </button>
-          <button class="nav-item" data-route="/archive" id="nav-archive" aria-label="컬렉션">
+          
+          <!-- 나의 일화 탭 -->
+          <button class="nav-item" data-route="/mystory" id="nav-mystory" aria-label="나의 일화">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+              <!-- 오픈된 책, 일기장 느낌의 아이콘 -->
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
             </svg>
           </button>
-          <button class="nav-item" data-route="/settings" id="nav-settings" aria-label="설정">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
+
+          <!-- 유저 프로필 탭 (로그인 여부에 따라 js에서 동적 업데이트) -->
+          <button class="nav-item" data-route="/profile" id="nav-profile" aria-label="프로필">
+            <div class="nav-profile-img-wrap">
+              <svg class="nav-icon guest-avatar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
           </button>
         </nav>
 

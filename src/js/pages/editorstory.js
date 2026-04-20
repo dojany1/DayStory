@@ -1,5 +1,5 @@
 /* =====================================================================
-   home.js — 홈 페이지 (메인 화면)
+   editorstory.js — 에디터 일화 페이지 (메인 화면)
    =====================================================================
    앱에서 가장 먼저 보이는 메인 화면입니다.
    
@@ -26,43 +26,43 @@ import { DEMO_STORIES } from '../data/demo.js';
 
 
 /* ─────────────────────────────────────────────
-   섹션 1: 홈 페이지 렌더링 함수
+   섹션 1: 에디터 일화 페이지 렌더링 함수
    ───────────────────────────────────────────── */
 
 /**
- * renderHome — 홈 페이지의 HTML 구조를 생성하고 반환합니다
- * @returns {HTMLElement} 홈 페이지 DOM 요소
+ * renderEditorStory — 에디터 일화 페이지의 HTML 구조를 생성하고 반환합니다
+ * @returns {HTMLElement} 에디터 일화 페이지 DOM 요소
  * 
  * 이 함수가 호출되면:
  *   1) 빈 페이지 틀을 만들고 (로딩 스피너 포함)
- *   2) loadHomeData()를 비동기로 실행해 실제 데이터를 채웁니다
+ *   2) loadEditorStoryData()를 비동기로 실행해 실제 데이터를 채웁니다
  */
-export function renderHome() {
+export function renderEditorStory() {
   const page = document.createElement('div');
-  page.className = 'home-page page';
+  page.className = 'editorstory-page page';
 
   page.innerHTML = `
     <!-- 상단 제목 -->
-    <div class="home-header">
-      <h1 class="home-title"></h1>
+    <div class="editorstory-header">
+      <h1 class="editorstory-title"></h1>
     </div>
 
     <!-- 휠 피커 스타일 날짜 선택기 -->
-    <div class="wheel-pickers-container">
+    <div class="wheel-pickers-container" style="margin-top: 10px;">
       <!-- 월 피커 -->
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
-        <div class="modern-wheel-scroll" id="home-month-scroll"></div>
+        <div class="modern-wheel-scroll" id="editorstory-month-scroll"></div>
       </div>
       <!-- 일 피커 -->
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
-        <div class="modern-wheel-scroll" id="home-calendar"></div>
+        <div class="modern-wheel-scroll" id="editorstory-calendar"></div>
       </div>
     </div>
 
     <!-- 메인 카드 영역 (처음에는 로딩 스피너 표시) -->
-    <div class="home-card-area" id="home-card-area">
+    <div class="editorstory-card-area" id="editorstory-card-area">
       <div style="display:flex;justify-content:center;padding:var(--space-8);width:100%;">
         <div class="loading-spinner"></div>
       </div>
@@ -70,7 +70,7 @@ export function renderHome() {
   `;
 
   /* 데이터를 비동기로 불러와서 페이지를 채움 */
-  loadHomeData(page);
+  loadEditorStoryData(page);
 
   return page;
 }
@@ -81,8 +81,8 @@ export function renderHome() {
    ───────────────────────────────────────────── */
 
 /**
- * loadHomeData — 서버에서 스토리 데이터를 가져와 페이지를 완성합니다
- * @param {HTMLElement} page - renderHome()에서 만든 페이지 요소
+ * loadEditorStoryData — 서버에서 스토리 데이터를 가져와 페이지를 완성합니다
+ * @param {HTMLElement} page - renderEditorStory()에서 만든 페이지 요소
  * 
  * 동작 순서:
  *   1) 전체 스토리 목록과 오늘의 스토리를 서버에서 가져옴
@@ -91,7 +91,7 @@ export function renderHome() {
  *   4) 오늘의 카드를 화면에 표시
  *   5) 오류 발생 시 에러 메시지와 새로고침 버튼 표시
  */
-async function loadHomeData(page) {
+async function loadEditorStoryData(page) {
   try {
     /* 서버에서 데이터 가져오기 (Promise.all을 통한 진정한 병렬 실행으로 로딩 속도 2배 최적화) */
     const [allStories, todayStory, bookmarkedIds] = await Promise.all([
@@ -113,10 +113,18 @@ async function loadHomeData(page) {
       if (!readDates.includes(isoDate)) {
         readDates.push(isoDate);
         localStorage.setItem('read_dates', JSON.stringify(readDates));
-        const item = calendarElement ? calendarElement.querySelector(`.cal-item[data-date="${isoDate}"]`) : document.querySelector(`.cal-item[data-date="${isoDate}"]`);
-        if (item) {
-          const dot = item.querySelector('.unread-dot');
-          if (dot) dot.remove();
+        
+        // Wheel Picker에서 해당 날짜의 도트 제거
+        const [y, m, d] = isoDate.split('-');
+        const currentMonth = parseInt(monthElement.querySelector('.wheel-item.active')?.dataset.month, 10);
+        
+        // 현재 선택된 월과 일치하는 경우에만 UI에서 즉시 제거
+        if (parseInt(m, 10) === currentMonth) {
+          const item = calendarElement.querySelector(`.wheel-item[data-day="${parseInt(d, 10)}"]`);
+          if (item) {
+            const dot = item.querySelector('.unread-dot');
+            if (dot) dot.remove();
+          }
         }
       }
     }
@@ -126,9 +134,9 @@ async function loadHomeData(page) {
     let latestPathDate = today;
 
     /* ---- DOM 요소 참조 가져오기 ---- */
-    const monthElement = page.querySelector('#home-month-scroll');
-    const calendarElement = page.querySelector('#home-calendar');
-    const cardArea = page.querySelector('#home-card-area');
+    const monthElement = page.querySelector('#editorstory-month-scroll');
+    const calendarElement = page.querySelector('#editorstory-calendar');
+    const cardArea = page.querySelector('#editorstory-card-area');
 
     /* ---- 월 네비게이션 렌더링 (1~12) ---- */
     if (monthElement) {
@@ -147,12 +155,53 @@ async function loadHomeData(page) {
       }
       calendarElement.innerHTML = dayHtml;
 
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth() + 1;
+      const currentDate = today.getDate();
+
+      function applyDisabledState() {
+        monthElement.querySelectorAll('.wheel-item').forEach(el => {
+          const m = parseInt(el.dataset.month, 10);
+          if (m > currentMonth) el.classList.add('disabled');
+          else el.classList.remove('disabled');
+        });
+
+        const activeMonth = monthElement.querySelector('.wheel-item.active') || getActiveItem(monthElement);
+        if (!activeMonth) return;
+        const selectedMonth = parseInt(activeMonth.dataset.month, 10);
+
+        calendarElement.querySelectorAll('.wheel-item').forEach(el => {
+          const d = parseInt(el.dataset.day, 10);
+          
+          // 기존 도트 제거 후 새로 렌더링 (월 변경 시 대비)
+          const existingDot = el.querySelector('.unread-dot');
+          if (existingDot) existingDot.remove();
+
+          const isoDate = `${currentYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const hasUnreadStory = allStories.some(s => s.publish_date === isoDate) && !readDates.includes(isoDate);
+          
+          if (hasUnreadStory) {
+            const dot = document.createElement('div');
+            dot.className = 'unread-dot';
+            el.appendChild(dot);
+          }
+
+          if (selectedMonth > currentMonth) {
+            el.classList.add('disabled');
+          } else if (selectedMonth === currentMonth && d > currentDate) {
+            el.classList.add('disabled');
+          } else {
+            el.classList.remove('disabled');
+          }
+        });
+      }
+
       /* 휠 중앙 선택 및 동기화 로직 */
       function getActiveItem(scrollArea) {
         const boxCenter = scrollArea.getBoundingClientRect().left + scrollArea.offsetWidth / 2;
         let closest = null;
         let minDistance = Infinity;
-        scrollArea.querySelectorAll('.wheel-item').forEach(el => {
+        scrollArea.querySelectorAll('.wheel-item:not(.disabled)').forEach(el => {
           const elCenter = el.getBoundingClientRect().left + el.offsetWidth / 2;
           // scrollLeft가 완전히 반영되지 않은 상태일 수 있으므로 getBoundingClientRect 사용
           const distance = Math.abs(boxCenter - elCenter);
@@ -165,6 +214,7 @@ async function loadHomeData(page) {
       }
 
       function updateWheelSelection(forceInstant = false) {
+        applyDisabledState();
         let activeMonth, activeDay;
 
         if (forceInstant) {
@@ -205,15 +255,15 @@ async function loadHomeData(page) {
 
           let storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
           
-          if (!storyForDate && tutorialStep < 3) {
+          if (!storyForDate && tutorialStep < 2) {
             storyForDate = DEMO_STORIES[Math.floor(Math.random() * DEMO_STORIES.length)];
           }
 
           const direction = newDate > latestPathDate ? 'next' : 'prev';
           latestPathDate = newDate;
 
-          markAsRead(selectedIsoDate);
-          renderCardToArea(cardArea, storyForDate || null, newDate, direction, bookmarkedIds, advanceTutorial, tutorialStep);
+          // 날짜 선택 시점에는 읽음 처리하지 않음 (뒤집을 때 처리)
+          renderCardToArea(cardArea, storyForDate || null, newDate, direction, bookmarkedIds, advanceTutorial, tutorialStep, markAsRead);
         }
       }
 
@@ -222,11 +272,11 @@ async function loadHomeData(page) {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => updateWheelSelection(false), 150);
       };
-
       monthElement.addEventListener('scroll', onScrollEnd, { passive: true });
       calendarElement.addEventListener('scroll', onScrollEnd, { passive: true });
 
       const onClickItem = (container, item) => {
+        if (item.classList.contains('disabled')) return;
         container.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
         item.classList.add('active');
         
@@ -260,18 +310,26 @@ async function loadHomeData(page) {
     }
 
     /* ---- 튜토리얼 상태 머신 (페이지 레벨) ---- */
-    let tutorialStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
+    /*
+     * swipe_tutorial_step 값에 따른 상태:
+     *   null (키 없음) → 미결정: 웰컴 모달을 띄워 참여 여부를 묻는다
+     *   0, 1          → 튜토리얼 진행 중 (각 단계별 안내 버블 표시)
+     *   2 이상        → 튜토리얼 완료 (일반 모드)
+     */
+    const tutRaw = localStorage.getItem('swipe_tutorial_step');
+    const isUndecided = (tutRaw === null);  // 최초 접속자: 아직 결정 안 함
+    let tutorialStep = isUndecided ? 99 : parseInt(tutRaw, 10);
+    // 미결정 상태에서는 99(완료 취급)로 설정하여 데모 데이터/버블 없이 실제 카드를 보여준다
 
     function renderTutorialBubble() {
       const existing = page.querySelector('#tutorial-overlay');
       if (existing) existing.remove();
 
-      if (tutorialStep >= 3) return;
+      if (tutorialStep >= 2) return;
 
       let message = '';
       if (tutorialStep === 0) message = '카드를 탭해서 내용을 확인하세요 👆';
       else if (tutorialStep === 1) message = '좌우로 밀어 다른 날의 일화를 보세요 ↔️';
-      else if (tutorialStep === 2) message = '위아래로 밀어 저장하거나 공유하세요 ↕️';
 
       const overlay = document.createElement('div');
       overlay.className = 'tutorial-overlay';
@@ -289,21 +347,126 @@ async function loadHomeData(page) {
     }
 
     /* ---- 오늘의 카드 초기 렌더링 (방향 없이 즉시) ---- */
-    /* 튜토리얼이 아직 끝나지 않았고 오늘 날짜에 스토리가 없으면 더미 데이터 사용 */
     let initialStory = todayStory;
-    if (tutorialStep < 3) {
-      initialStory = DEMO_STORIES[DEMO_STORIES.length - 1]; // 첫 화면 무조건 더미로!
+
+    if (!isUndecided && tutorialStep < 2) {
+      /* 튜토리얼 진행 중 → 데모 데이터 사용 */
+      initialStory = DEMO_STORIES[DEMO_STORIES.length - 1];
     }
-    markAsRead(todayStr);
-    renderCardToArea(cardArea, initialStory, today, null, bookmarkedIds, advanceTutorial, tutorialStep);
+    /* 미결정 상태(isUndecided)일 때는 실제 todayStory를 배경으로 보여준다 */
+
+    // 초기 로드 시점에는 읽음 처리하지 않음 (뒤집을 때 처리)
+    renderCardToArea(cardArea, initialStory, today, null, bookmarkedIds, advanceTutorial, tutorialStep, markAsRead);
     renderTutorialBubble();
+
+    /* ---- 웰컴 모달 (최초 접속 시에만 표시) ---- */
+    if (isUndecided) {
+      const welcomeOverlay = document.createElement('div');
+      welcomeOverlay.id = 'welcome-modal-overlay';
+      welcomeOverlay.style.cssText = `
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.65);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      `;
+      welcomeOverlay.innerHTML = `
+        <div style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 82%;
+          max-width: 340px;
+          padding: var(--space-6) var(--space-5);
+          background: var(--color-bg-primary);
+          border-radius: var(--radius-xl);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+          text-align: center;
+          transform: translateY(20px);
+          transition: transform 0.3s ease;
+        ">
+          <div style="font-size: 3rem; margin-bottom: var(--space-2);"></div>
+          <h3 style="margin: 0 0 var(--space-2); font-size: var(--text-xl); color: var(--color-text-primary); font-weight: 700;">
+            환영합니다!
+          </h3>
+          <p style="
+            margin: 0 0 var(--space-5);
+            color: var(--color-text-secondary);
+            font-size: var(--text-md);
+            line-height: 1.5;
+            word-break: keep-all;
+          ">
+            간단한 사용법을 안내하는<br>튜토리얼을 진행할까요?
+          </p>
+          <div style="display: flex; gap: var(--space-3); width: 100%;">
+            <button id="welcome-btn-no" class="btn btn-secondary" style="
+              flex: 1;
+              border-radius: 30px;
+              padding: 12px 0;
+              font-weight: 600;
+              font-size: 1rem;
+            ">다음에</button>
+            <button id="welcome-btn-yes" class="btn btn-primary" style="
+              flex: 1;
+              border-radius: 30px;
+              padding: 12px 0;
+              font-weight: 600;
+              font-size: 1rem;
+            ">좋아요!</button>
+          </div>
+        </div>
+      `;
+      page.appendChild(welcomeOverlay);
+
+      /* 페이드인 애니메이션 */
+      requestAnimationFrame(() => {
+        welcomeOverlay.style.opacity = '1';
+        welcomeOverlay.querySelector('div').style.transform = 'translateY(0)';
+      });
+
+      /* ── "네" 버튼: 튜토리얼 시작 ── */
+      welcomeOverlay.querySelector('#welcome-btn-yes').addEventListener('click', () => {
+        tutorialStep = 0;
+        localStorage.setItem('swipe_tutorial_step', '0');
+
+        /* 모달 닫기 애니메이션 */
+        welcomeOverlay.style.opacity = '0';
+        welcomeOverlay.querySelector('div').style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          welcomeOverlay.remove();
+          /* 데모 카드로 교체 + 튜토리얼 버블 시작 */
+          const demoStory = DEMO_STORIES[DEMO_STORIES.length - 1];
+          renderCardToArea(cardArea, demoStory, today, null, bookmarkedIds, advanceTutorial, tutorialStep);
+          renderTutorialBubble();
+        }, 300);
+      });
+
+      /* ── "아니요" 버튼: 스킵 ── */
+      welcomeOverlay.querySelector('#welcome-btn-no').addEventListener('click', () => {
+        tutorialStep = 2;
+        localStorage.setItem('swipe_tutorial_step', '2');
+
+        /* 모달 닫기 애니메이션 */
+        welcomeOverlay.style.opacity = '0';
+        welcomeOverlay.querySelector('div').style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          welcomeOverlay.remove();
+          /* 안내 토스트 표시 */
+          showToast('설정 > 튜토리얼 다시 보기 에서 언제든 다시 볼 수 있어요!', 'info');
+        }, 300);
+      });
+    }
 
   } catch (err) {
     /* 데이터 로딩 실패 시 에러 화면 표시 */
-    console.error('홈 데이터 로딩 실패:', err);
+    console.error('에디터 일화 데이터 로딩 실패:', err);
     page.innerHTML = `
-      <div class="home-header">
-        <h1 class="home-title">Day Story</h1>
+      <div class="editorstory-header">
+        <h1 class="editorstory-title">Day Story</h1>
       </div>
       <div class="empty-state">
         <div class="empty-state-title">데이터를 불러오지 못했습니다.</div>
@@ -332,7 +495,7 @@ async function loadHomeData(page) {
  * @param {string|null} direction - 'next' (미래로), 'prev' (과거로) 또는 null (초기 로드)
  * @param {Array}       bookmarkedIds - 사용자가 북마크한 스토리 ID 배열
  */
-function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarkedIds = [], advanceTutorialFn = null, currentTutorialStep = 3) {
+function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarkedIds = [], advanceTutorialFn = null, currentTutorialStep = 3, markAsReadFn = null) {
   if (!cardArea) return;
 
   /* 버그 수정: 카드 여러 장이 겹쳐서 남는 현상 방지 */
@@ -360,7 +523,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
       <div class="flipper">
         <div class="front history-card-front empty-story-card">
           <div class="empty-story-day-circle">${day}</div>
-          <div class="empty-story-title">이 날의 기록이 없습니다.</div>
+          <div class="empty-story-title">아직 기록되지 않은 날입니다.</div>
           <div class="empty-story-date">${formattedDate}</div>
         </div>
       </div>
@@ -398,7 +561,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" />
+            <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
           </div>
         </div>
@@ -409,7 +572,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
             ${(story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('')}
           </div>
           <div class="back-footer">
-            <button class="back-editor-btn" type="button" title="에디터 한마디" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}">
+            <button class="back-editor-btn" type="button" title="에디터 한마디" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${story.editor_comment && story.editor_comment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
               ${story.editor && story.editor.photoURL
                 ? `<img src="${escapeHtml(story.editor.photoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
                 : '<span class="back-editor-avatar-fallback">✍️</span>'}
@@ -425,7 +588,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
   if (!direction || !oldCard) {
     cardArea.innerHTML = '';
     cardArea.appendChild(newCard);
-    bindCardEvents(newCard, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep);
+    bindCardEvents(newCard, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep, markAsReadFn);
     return;
   }
 
@@ -453,21 +616,21 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
     newCard.classList.remove('card-stack-item', `stack-enter-${direction}`, 'active');
 
     /* 상호작용 활성화 */
-    bindCardEvents(newCard, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep);
+    bindCardEvents(newCard, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep, markAsReadFn);
   };
 
   newCard.addEventListener('transitionend', onAnimationEnd, { once: true });
   /* 혹시 transitionend가 발생하지 않는 네트워크/성능 문제를 대비해 타임아웃 백업 */
   setTimeout(() => {
     if (newCard.classList.contains('card-stack-item')) onAnimationEnd();
-  }, 700);
+  }, 400);
 }
 
 
 /**
  * bindCardEvents — 개별 카드 요소에 필기, 클릭, 스와이프 등 모든 이벤트를 연결합니다
  */
-function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutorialFn = null, currentTutorialStep = 3) {
+function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep, markAsReadFn) {
   const flipper = flipContainer.querySelector('.flipper');
   if (!flipper) return;
 
@@ -479,7 +642,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     shareBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-      if (tutStep < 3) return; // 튜토리얼 중에는 기능 제한
+      if (tutStep < 2) return; // 튜토리얼 중에는 기능 제한
       const user = getState('user');
       if (user && user.id === 'guest') {
         showToast('로그인이 필요한 기능입니다.', 'info');
@@ -500,7 +663,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     bookmarkBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-      if (tutStep < 3) return; // 튜토리얼 중에는 기능 제한
+      if (tutStep < 2) return; // 튜토리얼 중에는 기능 제한
       const user = getState('user');
       if (user && user.id === 'guest') {
         showToast('로그인이 필요한 기능입니다.', 'info');
@@ -527,56 +690,64 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
   let touchStartX = 0;
   let touchStartY = 0;
   let isSwiping = false;
+  let swipeAxis = null;
+  let isAnimating = false;
   let hapticTriggered = false;
   let isBackBodyScroll = false;
   const SWIPE_THRESHOLD = 80;
 
+  /* ── back-body 탭 vs 스크롤 구분용 변수 ── */
+  let tapStartTime = 0;
+  let tapStartX = 0;
+  let tapStartY = 0;
+  let touchStartTarget = null;  // 터치 시작 시 대상 요소 저장
+
   const handleStart = (x, y, isBody = false) => {
+    if (isAnimating || flipper.classList.contains('is-flipping')) return;
+    
     touchStartX = x;
     touchStartY = y;
     isSwiping = false;
+    swipeAxis = null;
     hapticTriggered = false;
     isBackBodyScroll = isBody;
-    // 터치 시작 시에는 transition을 끄지 않아 CSS의 :active 애니메이션(홀드 축소)이 작동하도록 함
+
+    /* 탭 판별용 시작 시간·좌표 저장 */
+    tapStartTime = Date.now();
+    tapStartX = x;
+    tapStartY = y;
   };
 
   const handleMove = async (x, y, isTouch = false) => {
+    if (isAnimating) return;
+    
     const diffX = x - touchStartX;
     const diffY = y - touchStartY;
 
-    if (Math.abs(diffX) < 5 && Math.abs(diffY) < 5) return; // 미세한 움직임 무시
+    /* 이동 거리가 일정 수준 이상이면 탭이 아닌 스와이프로 간주하여 타겟 초기화 */
+    if (Math.abs(diffX) > 15 || Math.abs(diffY) > 15) {
+      touchStartTarget = null;
+    }
+
+    if (!swipeAxis) {
+      if (Math.abs(diffX) < 15 && Math.abs(diffY) < 15) return; // 미세한 마우스/터치 떨림 무시
+      swipeAxis = Math.abs(diffX) > Math.abs(diffY) ? 'x' : 'y';
+    }
 
     const isFlipped = flipper.classList.contains('flipped');
-    
     const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-    // 튜토리얼 제한: 지시된 방향 외의 상호작용 차단
-    if (tutStep === 0) return;
-    if (tutStep === 1 && Math.abs(diffY) > Math.abs(diffX)) return;
-    if (tutStep === 2 && Math.abs(diffX) > Math.abs(diffY)) return;
-
-    // 수직 스와이프(상하) 제한: 빈 카드이거나, 본문(back-body) 스크롤 영역에서 시작된 터치면 무시하여 스크롤 방해 방지
-    if (Math.abs(diffY) > Math.abs(diffX)) {
-      if (!story || isBackBodyScroll) return;
-    }
+    
+    if (tutStep === 0) return; // 튜토리얼 0단계(탭 안내)일 때 스와이프 무시
+    if (swipeAxis === 'y') return; // 위아래 스와이프 폐기
 
     if (!isSwiping) {
-      // 실제로 드래그가 시작됐을 때만 transition을 끔
       flipper.style.transition = 'none';
+      isSwiping = true;
     }
-    isSwiping = true;
 
-    // 뒤집혀 있을 때 CSS transform의 rotateY와 자바스크립트 translateY/X 가 충돌하지 않게 병합
     const baseTransform = isFlipped ? 'rotateY(180deg)' : '';
 
-    if (Math.abs(diffY) > Math.abs(diffX)) {
-      const moveY = diffY * 0.4;
-      flipper.style.transform = `translateY(${moveY}px) ${baseTransform}`;
-      if (Math.abs(diffY) > SWIPE_THRESHOLD && !hapticTriggered) {
-        hapticTriggered = true;
-        try { await Haptics.impact({ style: ImpactStyle.Light }); } catch (err) { }
-      }
-    }
-    else {
+    if (swipeAxis === 'x') {
       const moveX = diffX * 0.4;
       flipper.style.transform = `translateX(${moveX}px) ${baseTransform}`;
       if (Math.abs(diffX) > SWIPE_THRESHOLD && !hapticTriggered) {
@@ -587,30 +758,39 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
   };
 
   const handleEnd = async (x, y) => {
-    if (!isSwiping) return;
+    if (!isSwiping || isAnimating) return;
+    
+    isAnimating = true;
 
     const diffX = x - touchStartX;
     const diffY = y - touchStartY;
 
-    flipper.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // 애니메이션 효과
+    flipper.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // 빠른 튕김 복귀 애니메이션
+    flipper.classList.add('is-flipping'); // 스와이프 복귀 중 터치 차단
 
-    const isFlipped = flipper.classList.contains('flipped');
-
-    if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(diffY) > Math.abs(diffX)) {
+    if (swipeAxis === 'y') {
+      // 위아래 스와이프 폐기: 카드 복귀 처리
+      flipper.style.transform = '';
+      setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
+      return;
+    }
+    
+    if (swipeAxis === 'x' && Math.abs(diffX) > SWIPE_THRESHOLD) {
       if (!story || isBackBodyScroll) {
         flipper.style.transform = '';
-        setTimeout(() => { flipper.style.transition = ''; isSwiping = false; }, 300);
+        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
         return;
       }
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
       const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-      const wasInTutorial = tutStep < 3;
-      if (typeof advanceTutorialFn === 'function') advanceTutorialFn(2);
+      const wasInTutorial = tutStep < 2;
+
+      if (typeof advanceTutorialFn === 'function') advanceTutorialFn(1);
 
       if (wasInTutorial) {
-        /* 실제 공유/북마크 기능 방어 후 초기 위치 복구 */
+        /* 실제 x축 이동 기능 방어 후 초기 위치 복구 */
         flipper.style.transform = '';
-        setTimeout(() => { flipper.style.transition = ''; isSwiping = false; }, 300);
+        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
         
         /* 튜토리얼 종료 안내 센터 팝업 노출 */
         const overlay = document.createElement('div');
@@ -623,7 +803,8 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
             <button class="btn btn-primary btn-finish-tut" style="width:100%;border-radius:30px;font-weight:bold;font-size:1.1rem;padding:12px 0;">시작하기</button>
           </div>
         `;
-        document.body.appendChild(overlay);
+        const wrapper = document.querySelector('.mobile-wrapper') || document.body;
+        wrapper.appendChild(overlay);
         
         void overlay.offsetWidth; /* 강제 리플로우 */
         overlay.style.opacity = '1';
@@ -634,82 +815,41 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
           overlay.querySelector('div').style.transform = 'translateY(20px)';
           setTimeout(() => {
             overlay.remove();
-            /* 튜토리얼 더미에서 진짜(원래) 데이터로 돌아가기 위해 홈 페이지 새로고침 */
             window.location.reload();
           }, 300);
         });
         
-        return; /* 실제 작업(공유/저장) 생략 */
+        return; /* 실제 작업 생략 */
       }
 
-      if (diffY > 0) {
-        // 아래로 스와이프: 북마크
-        const user = getState('user');
-        if (user && user.id === 'guest') {
-          showToast('로그인이 필요한 기능입니다.', 'info');
-          navigate('/login');
-          flipper.style.transform = '';
-          return;
-        }
-        const res = await toggleBookmark(story.id);
-        if (res.error) {
-          showToast(res.error, 'error');
-        } else {
-          showToast(res.bookmarked ? '북마크 추가!' : '북마크 해제!', 'success');
-          if (bookmarkBtn) {
-            bookmarkBtn.querySelector('svg').style.fill = res.bookmarked ? 'currentColor' : 'none';
-          }
-          if (res.bookmarked && !bookmarkedIds.includes(story.id)) {
-            bookmarkedIds.push(story.id);
-          } else if (!res.bookmarked) {
-            const idx = bookmarkedIds.indexOf(story.id);
-            if (idx > -1) bookmarkedIds.splice(idx, 1);
-          }
-        }
-      } else {
-        // 위로 스와이프: 공유
-        const user = getState('user');
-        if (user && user.id === 'guest') {
-          showToast('로그인이 필요한 기능입니다.', 'info');
-          navigate('/login');
-          flipper.style.transform = '';
-          return;
-        }
-        try {
-          const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? `https://daystory.app/detail/${story.id}`
-            : window.location.href;
-          await Share.share({ title: story.figure_name, text: `[DayStory] ${story.figure_name}\n\n${story.summary || ''}`, url: shareUrl });
-        } catch (err) { }
-      }
-    } else if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(diffX) > Math.abs(diffY)) {
-      try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
-      if (typeof advanceTutorialFn === 'function') advanceTutorialFn(1);
-
-      const dayWrapper = document.getElementById('home-calendar');
+      const dayWrapper = document.getElementById('editorstory-calendar');
       if (dayWrapper) {
         const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
         const activeIdx = items.findIndex(el => el.classList.contains('active'));
         if (diffX < 0 && activeIdx > -1 && activeIdx < items.length - 1) {
-          items[activeIdx + 1].click();
+          if (!items[activeIdx + 1].classList.contains('disabled')) {
+            items[activeIdx + 1].click();
+          }
         } else if (diffX > 0 && activeIdx > 0) {
           items[activeIdx - 1].click();
         }
       }
     }
-    // 제자리로 복귀 (인라인 스타일을 지움으로써 CSS 클래스에 맡김)
+    // 제자리로 복귀
     flipper.style.transform = '';
 
-    /* 스와이프(카드 날아가기/원복) 애니메이션이 끝날 즈음 transition 초기화 */
     setTimeout(() => {
       flipper.style.transition = '';
+      flipper.classList.remove('is-flipping');
       isSwiping = false;
+      isAnimating = false;
     }, 250);
   };
 
   // 터치 이벤트
   flipper.addEventListener('touchstart', (e) => {
     const isBody = !!e.target.closest('.back-body');
+    touchStartTarget = e.target;   // 터치 대상 저장
     handleStart(e.touches[0].clientX, e.touches[0].clientY, isBody);
   }, { passive: true });
 
@@ -718,11 +858,47 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     if (isSwiping) e.preventDefault();
   }, { passive: false });
 
-  flipper.addEventListener('touchend', (e) => {
-    handleEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  flipper.addEventListener('touchend', async (e) => {
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+
+    /* ── back-body 탭 감지: touchend에서 직접 뒤집기 실행 ──
+       모바일에서 overflow-y:auto 요소는 click 이벤트가 발생하지 않는
+       경우가 많으므로, touchend에서 짧은 탭을 직접 판별합니다. */
+    if (touchStartTarget && touchStartTarget.closest('.back-body') && !isSwiping) {
+      const tapDuration = Date.now() - tapStartTime;
+      const tapDiffX = Math.abs(endX - tapStartX);
+      const tapDiffY = Math.abs(endY - tapStartY);
+
+      /* 임계값 완화: 400ms 이내 + 이동 20px 이하 → 탭으로 판정 */
+      if (tapDuration <= 400 && tapDiffX <= 20 && tapDiffY <= 20) {
+        if (!story) return;
+        if (flipper.classList.contains('is-flipping')) return;
+        const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
+        if (tutStep === 1) return;
+
+        flipper.classList.add('is-flipping');
+        
+        /* 즉각적인 반응성: 진동을 기다리지 않고 즉시 뒤집기 */
+        Haptics.selectionChanged().catch(() => {});
+        flipper.classList.toggle('flipped');
+
+        // 뒤집기 완료 시 읽음 처리 수행
+        if (typeof markAsReadFn === 'function' && story && story.publish_date) {
+          markAsReadFn(story.publish_date);
+        }
+        
+        /* CSS transition 0.4s와 동기화 */
+        setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
+        if (typeof advanceTutorialFn === 'function') advanceTutorialFn(0);
+        return; 
+      }
+    }
+
+    handleEnd(endX, endY);
   });
 
-  // 마우스 이벤트 (데스크톱 드래그 대응)
+  // 마우스 이벤트 (데스크톱 드래그 대응, 윈도우 전역 리스너 중첩 방지)
   let isMouseDown = false;
   flipper.addEventListener('mousedown', (e) => {
     if (e.target.closest('.card-action-btn')) return;
@@ -732,26 +908,54 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
     handleStart(e.clientX, e.clientY, isBody);
   });
 
-  window.addEventListener('mousemove', (e) => {
+  if (window._editorStoryMouseMove) window.removeEventListener('mousemove', window._editorStoryMouseMove);
+  if (window._editorStoryMouseUp) window.removeEventListener('mouseup', window._editorStoryMouseUp);
+
+  window._editorStoryMouseMove = (e) => {
     if (!isMouseDown) return;
     handleMove(e.clientX, e.clientY);
-  });
+  };
 
-  window.addEventListener('mouseup', (e) => {
+  window._editorStoryMouseUp = (e) => {
     if (!isMouseDown) return;
     isMouseDown = false;
     handleEnd(e.clientX, e.clientY);
-  });
+  };
+
+  window.addEventListener('mousemove', window._editorStoryMouseMove);
+  window.addEventListener('mouseup', window._editorStoryMouseUp);
 
   // 일반 클릭: 뒤집기
-  flipper.addEventListener('click', (e) => {
+  flipper.addEventListener('click', async (e) => {
     const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-    if (tutStep > 0 && tutStep < 3) return; // 튜토리얼 단계가 1, 2일 때 탭 조작 금지
+    if (tutStep === 1) return; // 튜토리얼 단계가 1일 때 탭 조작 금지
     if (!story) return; // 기록 없는 카드 탭 무시
-    if (e.target.closest('.back-body') || e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn')) return;
+    if (e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn')) return;
+
+    /* back-body 영역: 터치 기반 탭은 touchend에서 이미 처리했으므로, 
+       터치 입력(pointerType === 'touch')인 경우만 click 핸들러에서 차단합니다. 
+       마우스 클릭은 여기서 정상 처리됩니다. */
+    if (e.pointerType === 'touch' && e.target.closest('.back-body')) return;
+
     if (isSwiping) return; // 스와이프 처리 중이면 탭 무시
     
+    // 회전 애니메이션 중 중복 클릭 및 터치 차단
+    if (flipper.classList.contains('is-flipping')) return;
+    flipper.classList.add('is-flipping');
+    
+    /* 탭 반응성 최적화 */
+    Haptics.selectionChanged().catch(() => {});
     flipper.classList.toggle('flipped');
+    
+    // 뒤집기 완료 시 읽음 처리 수행
+    if (typeof markAsReadFn === 'function' && story && story.publish_date) {
+      markAsReadFn(story.publish_date);
+    }
+    
+    // CSS에 정의된 transition 시간 (0.4s) 후 보호 해제
+    setTimeout(() => {
+      flipper.classList.remove('is-flipping');
+    }, 400);
     
     /* 튜토리얼: 탭 완료 처리 */
     if (typeof advanceTutorialFn === 'function') advanceTutorialFn(0);
@@ -760,8 +964,12 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
   /* 에디터 한마디 버튼 클릭 → 코멘트 말풍선 표시 */
   const editorBtn = flipContainer.querySelector('.back-editor-btn');
   if (editorBtn) {
-    editorBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
+    const showBubble = (e) => {
+      if (e) {
+        e.stopPropagation();
+        if (e.type === 'touchend') e.preventDefault(); /* 터치 이벤트 시 후속 click 방지 */
+      }
+      
       const comment = editorBtn.dataset.comment;
       const editorName = editorBtn.dataset.editorName || 'DayStory';
       
@@ -777,6 +985,13 @@ function bindCardEvents(flipContainer, story, bookmarkedIds = [], advanceTutoria
       bubble.innerHTML = `<span class="editor-comment-name">${editorName}</span>${comment}`;
       editorBtn.parentElement.appendChild(bubble);
       setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 4000);
+    };
+
+    editorBtn.addEventListener('click', showBubble);
+    editorBtn.addEventListener('touchend', (e) => {
+      /* 카드 플리퍼가 스와이프 움직임 중이면 터치를 무시함 */
+      if (isSwiping) return; 
+      showBubble(e);
     });
   }
 }

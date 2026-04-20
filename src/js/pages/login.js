@@ -106,7 +106,7 @@ export function renderLogin() {
     /* 닫기 버튼 */
     document.getElementById('close-login-btn')?.addEventListener('click', () => {
       document.getElementById('bottom-nav').style.display = 'flex';
-      navigate('/home');
+      navigate('/editorstory');
     });
 
     /* 로그인 폼 제출 처리 */
@@ -160,7 +160,7 @@ export function renderLogin() {
 
         showToast('로그인 성공!', 'success');
         document.getElementById('bottom-nav').style.display = 'flex';
-        navigate('/home');
+        navigate('/editorstory');
       } catch (err) {
         showToast(err.message || '로그인 실패', 'error');
         btnText.textContent = '로그인';
@@ -218,7 +218,7 @@ export function renderLogin() {
 
         showToast('구글 로그인 성공!', 'success');
         document.getElementById('bottom-nav').style.display = 'flex';
-        navigate('/home');
+        navigate('/editorstory');
       } catch (err) {
         showToast(err.message || 'Google 로그인 실패', 'error');
       }
@@ -308,7 +308,7 @@ export function renderSignup() {
     /* 닫기 버튼 */
     document.getElementById('close-signup-btn')?.addEventListener('click', () => {
       document.getElementById('bottom-nav').style.display = 'flex';
-      navigate('/home');
+      navigate('/editorstory');
     });
 
     const form = document.getElementById('signup-form');
@@ -364,7 +364,7 @@ export function renderSignup() {
 
         showToast('회원가입 완료!', 'success');
         document.getElementById('bottom-nav').style.display = 'flex';
-        navigate('/home');
+        navigate('/editorstory');
       } catch (err) {
         showToast(err.message || '회원가입 실패', 'error');
         btnText.textContent = '가입하기';

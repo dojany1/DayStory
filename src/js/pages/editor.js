@@ -27,6 +27,9 @@ import {
 } from '../services/stories.js';
 import { auth } from '../firebase.js';
 
+import Cropper from 'cropperjs';
+import 'cropperjs/dist/cropper.css';
+
 
 /* ─────────────────────────────────────────────
    섹션 1: 에디터 페이지 렌더링 (목록)
@@ -59,20 +62,12 @@ export function renderEditor() {
       </button>
     </div>
 
-    <!-- 통계 카드: 전체/발행/초안/예약 개수 -->
+    <!-- 통계 카드: 전체/발행/초안/예약 개수 (클릭 시 필터 역할) -->
     <div class="editor-stats" id="editor-stats">
-      <div class="editor-stat"><span class="editor-stat-value" id="stat-total">-</span><span class="editor-stat-label">전체</span></div>
-      <div class="editor-stat"><span class="editor-stat-value" id="stat-published">-</span><span class="editor-stat-label">발행됨</span></div>
-      <div class="editor-stat"><span class="editor-stat-value" id="stat-draft">-</span><span class="editor-stat-label">초안</span></div>
-      <div class="editor-stat"><span class="editor-stat-value" id="stat-scheduled">-</span><span class="editor-stat-label">예약</span></div>
-    </div>
-
-    <!-- 필터 탭: 전체/발행됨/초안/예약 -->
-    <div class="editor-filter-bar">
-      <button class="editor-filter active" data-filter="all">전체</button>
-      <button class="editor-filter" data-filter="published">발행됨</button>
-      <button class="editor-filter" data-filter="draft">초안</button>
-      <button class="editor-filter" data-filter="scheduled">예약</button>
+      <div class="editor-stat active" data-filter="all"><span class="editor-stat-value" id="stat-total">-</span><span class="editor-stat-label">전체</span></div>
+      <div class="editor-stat" data-filter="published"><span class="editor-stat-value" id="stat-published">-</span><span class="editor-stat-label">발행됨</span></div>
+      <div class="editor-stat" data-filter="scheduled"><span class="editor-stat-value" id="stat-scheduled">-</span><span class="editor-stat-label">예약</span></div>
+      <div class="editor-stat" data-filter="draft"><span class="editor-stat-value" id="stat-draft">-</span><span class="editor-stat-label">초안</span></div>
     </div>
 
     <!-- 일화 목록 -->
@@ -140,8 +135,12 @@ export function renderEditor() {
             <div class="editor-item-title">${story.title || story.figure_name}</div>
           </div>
           <div class="editor-item-actions">
-            <button class="btn-icon editor-edit-btn" data-id="${story.id}" title="편집">✏️</button>
-            <button class="btn-icon editor-delete-btn" data-id="${story.id}" title="삭제">🗑️</button>
+            <button class="editor-edit-btn" data-id="${story.id}" aria-label="편집">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </button>
+            <button class="editor-delete-btn" data-id="${story.id}" aria-label="삭제">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
           </div>
         </div>
       `;
@@ -175,11 +174,12 @@ export function renderEditor() {
       navigate('/editor/new');
     });
 
-    page.querySelectorAll('.editor-filter').forEach(btn => {
-      btn.addEventListener('click', () => {
-        page.querySelectorAll('.editor-filter').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.filter;
+    /* ---- 통계 카드 클릭 시 필터 적용 ---- */
+    page.querySelectorAll('.editor-stat').forEach(stat => {
+      stat.addEventListener('click', () => {
+        page.querySelectorAll('.editor-stat').forEach(s => s.classList.remove('active'));
+        stat.classList.add('active');
+        currentFilter = stat.dataset.filter;
         renderList();
       });
     });
@@ -267,7 +267,7 @@ export function renderEditorNew() {
         <!-- 4-1. 에디터 한마디 -->
         <div class="input-group">
           <label class="input-label">에디터 한마디</label>
-          <input class="input-field" id="sf-editor-comment" placeholder="카드 뒷면에 표시될 에디터의 코멘트" />
+          <textarea class="input-field" id="sf-editor-comment" placeholder="카드 뒷면에 표시될 에디터의 코멘트" rows="3" style="resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
         </div>
 
         <!-- 5. 이미지 업로드/URL -->
@@ -275,12 +275,19 @@ export function renderEditorNew() {
           <label class="input-label">이미지 업로드 및 URL</label>
           <div style="display:flex; gap:var(--space-2); align-items:center;">
             <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
+            <button type="button" id="sf-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">편집</button>
             <label for="sf-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
               사진 추가
             </label>
             <input type="file" id="sf-image-file" accept="image/*" style="display:none;" />
           </div>
           <div id="sf-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">사진을 업로드하는 중입니다... ⏳</div>
+        </div>
+
+        <!-- 6. 이미지 출처 및 라이선스 -->
+        <div class="input-group">
+          <label class="input-label">이미지 출처 및 라이선스</label>
+          <input class="input-field" id="sf-image-source" placeholder="예: Unsplash (CC0), Wikimedia Commons" />
         </div>
 
         <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-6);margin-bottom:var(--space-10);">
@@ -320,6 +327,10 @@ export function renderEditorNew() {
 
   setTimeout(async () => {
     let hasLoadedData = false;
+    let allStories = [];
+    try {
+      allStories = await fetchAllStoriesEditor();
+    } catch(e) { }
     
     // 데이터 로드
     if (editingId) {
@@ -331,6 +342,7 @@ export function renderEditorNew() {
         document.getElementById('sf-country').value = story.country || '';
         document.getElementById('sf-body').value = story.body || '';
         document.getElementById('sf-image').value = story.image_url || '';
+        document.getElementById('sf-image-source').value = story.image_source || '';
         document.getElementById('sf-editor-comment').value = story.editor_comment || (story.editor && story.editor.comment) || '';
         hasLoadedData = true;
       }
@@ -342,22 +354,141 @@ export function renderEditorNew() {
     });
 
     // 입력 감지
+    // 이미지 [편집] 버튼 가시성 제어 함수
+    function updateImageEditBtn() {
+      const url = document.getElementById('sf-image')?.value.trim();
+      const btn = document.getElementById('sf-image-edit-btn');
+      if (btn) btn.style.display = url ? 'inline-block' : 'none';
+    }
+
     const formEl = document.getElementById('story-form');
     if (formEl) {
       formEl.addEventListener('input', () => {
         unsavedChanges = true;
         updatePreview();
+        updateImageEditBtn();
       });
     }
 
-    // 초기 스켈레톤 렌더링 또는 데이터 렌더링
+    // 초기 렌더링
     updatePreview(hasLoadedData);
+    updateImageEditBtn();
 
-    /* 갤러리 이미지 업로드 (Firebase Storage) */
-    document.getElementById('sf-image-file')?.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    /** 공통: 이미지 편집기(Cropper) 모달 띄우기 함수 */
+    async function openCropModal(imageSrc, isCrossOrigin = false, callbackBlobFile) {
+      /* 외부 URL인 경우, fetch로 이미지를 다운로드해서 로컬 Blob URL로 변환합니다.
+         Firebase Storage URL만 지원하며, 외부 이미지(Pinterest 등)는 CORS 제한으로 편집 불가. */
+      let localSrc = imageSrc;
+      if (isCrossOrigin) {
+        const isFirebaseUrl = imageSrc.includes('firebasestorage.googleapis.com')
+                           || imageSrc.includes('.firebasestorage.app');
+        if (!isFirebaseUrl) {
+          showToast('외부 이미지는 편집할 수 없습니다.\n[사진 추가]로 새 이미지를 업로드해주세요.', 'error');
+          return;
+        }
+        try {
+          const res = await fetch(imageSrc);
+          if (!res.ok) throw new Error('이미지 다운로드 실패');
+          const blob = await res.blob();
+          localSrc = URL.createObjectURL(blob);
+        } catch (err) {
+          console.error('이미지 fetch 실패:', err);
+          showToast('이미지를 불러올 수 없습니다. 다시 시도해주세요.', 'error');
+          return;
+        }
+      }
 
+      const overlay = document.createElement('div');
+      overlay.className = 'crop-modal-overlay';
+      
+      overlay.innerHTML = `
+        <div class="crop-modal-header">자르기 및 회전</div>
+        <div class="crop-modal-body">
+          <img id="cropper-image" src="${localSrc}" style="max-width: 100%; display: block;" />
+        </div>
+        <div class="crop-modal-footer">
+          <button type="button" class="btn-rotate" id="btn-crop-rotate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.53-11.23l5.67 5.66" />
+            </svg>
+            회전
+          </button>
+          <button type="button" class="btn-crop-confirm" id="btn-crop-confirm">다음</button>
+        </div>
+      `;
+      const wrapper = document.querySelector('.mobile-wrapper') || document.body;
+      wrapper.appendChild(overlay);
+
+      // 페이드인 효과
+      setTimeout(() => overlay.style.opacity = '1', 10);
+
+      const image = overlay.querySelector('#cropper-image');
+      let cropper;
+
+      image.onload = () => {
+        // Cropper 인스턴스 생성 (카드 비율인 3/4.8 = 0.625 고정)
+        cropper = new Cropper(image, {
+          aspectRatio: 3 / 4.8, 
+          viewMode: 1,
+          dragMode: 'move',
+          autoCropArea: 0.9,
+          restore: false,
+          guides: true,
+          center: true,
+          highlight: false,
+          cropBoxMovable: true,
+          cropBoxResizable: true,
+          toggleDragModeOnDblclick: false,
+        });
+      };
+
+      image.onerror = () => {
+        showToast('이미지를 불러올 수 없어 편집이 제한됩니다.', 'error');
+        if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
+        overlay.remove();
+      };
+
+      // 회전 기능
+      overlay.querySelector('#btn-crop-rotate').addEventListener('click', () => {
+        if(cropper) cropper.rotate(90);
+      });
+
+      // 자르기 완료 (다음) 버튼
+      overlay.querySelector('#btn-crop-confirm').addEventListener('click', () => {
+        const btn = overlay.querySelector('#btn-crop-confirm');
+        btn.textContent = '처리 중...';
+        btn.disabled = true;
+
+        if(!cropper) return;
+
+        cropper.getCroppedCanvas({
+          maxWidth: 1200,
+          maxHeight: 1920,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+        }).toBlob(async (blob) => {
+          if (!blob) {
+            showToast('크롭 오류가 발생했습니다.', 'error');
+            btn.textContent = '다음';
+            btn.disabled = false;
+            return;
+          }
+          
+          // 모달 닫기
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            cropper.destroy();
+            if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
+            overlay.remove();
+          }, 300);
+
+          callbackBlobFile(blob);
+        }, 'image/jpeg', 0.85); // 고화질 셋팅
+      });
+    }
+
+    /* 공통 업로드 함수 (Cropper Blob 데이터를 Firebase 로 올림) */
+    async function processUploadBlob(blob, fallbackName) {
       const STATUS_EL = document.getElementById('sf-image-status');
       const IMAGE_FIELD = document.getElementById('sf-image');
       if (!STATUS_EL || !IMAGE_FIELD) return;
@@ -366,8 +497,9 @@ export function renderEditorNew() {
         STATUS_EL.style.display = 'block';
         STATUS_EL.style.color = 'var(--color-primary)';
         STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
-
-        const url = await uploadImage(file);
+        
+        blob.name = fallbackName;
+        const url = await uploadImage(blob);
         
         IMAGE_FIELD.value = url;
         STATUS_EL.textContent = '업로드 완료! ✅';
@@ -381,13 +513,37 @@ export function renderEditorNew() {
         STATUS_EL.textContent = '업로드 실패: ' + err.message;
         showToast('이미지 업로드 실패: ' + err.message, 'error');
       } finally {
-        e.target.value = '';
+        const fileInput = document.getElementById('sf-image-file');
+        if(fileInput) fileInput.value = '';
         setTimeout(() => { 
           if (STATUS_EL && STATUS_EL.textContent.includes('완료')) {
             STATUS_EL.style.display = 'none';
           }
         }, 3000);
       }
+    }
+
+    /* 갤러리/카메라 사진 추가 버튼 */
+    document.getElementById('sf-image-file')?.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        openCropModal(event.target.result, false, (blob) => {
+          processUploadBlob(blob, file.name || 'cropped_image.jpeg');
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    /* 할당 된 이미지 [편집] 버튼 연동 */
+    document.getElementById('sf-image-edit-btn')?.addEventListener('click', async () => {
+      const url = document.getElementById('sf-image')?.value.trim();
+      if (!url) return;
+      openCropModal(url, true, (blob) => {
+        processUploadBlob(blob, 'edited_image.jpeg');
+      });
     });
 
     /* 예약 발행 버튼 활성/비활성 상태 관리 */
@@ -414,7 +570,19 @@ export function renderEditorNew() {
 
     /* 초기 상태 + 날짜 변경 시 업데이트 */
     updateScheduleBtn();
-    publishDateInput?.addEventListener('change', updateScheduleBtn);
+    publishDateInput?.addEventListener('change', (e) => {
+      const selected = e.target.value;
+      if (selected) {
+        const conflict = allStories.find(s => s.publish_date === selected && String(s.id) !== String(editingId));
+        if (conflict) {
+          showToast('이미 등록된 일화가 있는 날짜입니다.', 'error');
+          e.target.value = '';
+          unsavedChanges = true;
+          updatePreview();
+        }
+      }
+      updateScheduleBtn();
+    });
 
     /* 저장 로직 */
     function getFormData() {
@@ -443,6 +611,7 @@ export function renderEditorNew() {
         country: document.getElementById('sf-country').value.trim(),
         publish_date: document.getElementById('sf-publish-date').value,
         image_url: document.getElementById('sf-image').value.trim(),
+        image_source: document.getElementById('sf-image-source').value.trim(),
         card_count: '',
         editor: editorInfo,      /* 에디터 자동 할당 */
         editor_comment: document.getElementById('sf-editor-comment').value.trim(),
@@ -529,7 +698,7 @@ export function renderEditorNew() {
 
     /* 데이터가 전혀 없을 때 스켈레톤 표시 */
     if (!hasForcedData && !figureNameRaw && !bodyRaw && !imgRaw) {
-      previewArea.innerHTML = `<div class="skeleton-card"></div>`;
+      previewArea.innerHTML = `<div style="width:360px; max-width:100%; zoom:0.7;"><div class="skeleton-card"></div></div>`;
       return;
     }
 
@@ -556,44 +725,58 @@ export function renderEditorNew() {
     const editorPhotoURL = u?.photoURL || stateProfile.photoURL || '';
     const editorComment = escapeHTML(document.getElementById('sf-editor-comment')?.value.trim() || '');
 
-    /* 홈 카드(home.js 379~423줄)와 완전히 동일한 HTML 구조 */
+    /* 에디터 일화 카드(editorstory.js)와 완전히 동일한 HTML 구조 */
     previewArea.innerHTML = `
-      <div class="flip-container">
-        <div class="flipper" id="preview-flipper">
-          <div class="front history-card-front">
-            <div class="history-card-top">
-              <div class="card-top-left">
-                <div class="card-year">${histYear}</div>
-                <div class="card-date">${month}. ${day}</div>
-              </div>
-              <div class="card-top-right">
-                <div class="card-meta">
-                  ${country}<br>
-                  ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
+        <div class="flip-container">
+          <div class="flipper" id="preview-flipper">
+            <div class="front history-card-front">
+              <div class="history-card-top">
+                <div class="card-top-left">
+                  <div class="card-year">${histYear}</div>
+                  <div class="card-date">${month}. ${day}</div>
+                </div>
+                <div class="card-top-right">
+                  <div class="card-actions">
+                    <!-- 미리보기용 비활성 액션 버튼 -->
+                    <button class="card-action-btn" aria-label="공유" disabled>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                      </svg>
+                    </button>
+                    <button class="card-action-btn" aria-label="북마크" disabled>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="card-meta">
+                    ${country}<br>
+                    ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
+                  </div>
                 </div>
               </div>
+              <div class="history-card-image-wrap">
+                <img src="${escapeHTML(imageUrl)}" alt="${figureName}" onerror="this.style.display='none'" draggable="false" />
+                <div class="card-image-title">${figureName}</div>
+              </div>
             </div>
-            <div class="history-card-image-wrap">
-              <img src="${escapeHTML(imageUrl)}" alt="${figureName}" onerror="this.style.display='none'" />
-              <div class="card-image-title">${figureName}</div>
-            </div>
-          </div>
-          <div class="back history-card-back">
-            <div class="back-title">${figureName}</div>
-            <hr class="back-divider" />
-            <div class="back-body">
-              ${bodyText || '<p>본문이 표시됩니다...</p>'}
-            </div>
-            <div class="back-footer">
-              <button class="back-editor-btn" type="button" title="에디터 한마디">
-                <img src="${escapeHTML(editorPhotoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-                <span class="back-editor-avatar-fallback" style="display:none">✍️</span>
-              </button>
-              <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
+            <div class="back history-card-back">
+              <div class="back-title">${figureName}</div>
+              <hr class="back-divider" />
+              <div class="back-body">
+                ${bodyText || '<p>본문이 표시됩니다...</p>'}
+              </div>
+              <div class="back-footer">
+                <button class="back-editor-btn" type="button" title="에디터 한마디" style="${editorComment && editorComment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
+                  <img src="${escapeHTML(editorPhotoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                  <span class="back-editor-avatar-fallback" style="display:none">✍️</span>
+                </button>
+                <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
     `;
 
     /* 카드 터치 시 플립 */
@@ -608,8 +791,11 @@ export function renderEditorNew() {
     /* 에디터 한마디 버튼 클릭 시 코멘트 표시 */
     const editorBtn = previewArea.querySelector('.back-editor-btn');
     if (editorBtn) {
-      editorBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+      const showBubble = (e) => {
+        if (e) {
+          e.stopPropagation();
+          if (e.type === 'touchend') e.preventDefault();
+        }
         const comment = document.getElementById('sf-editor-comment')?.value.trim() || '에디터 코멘트가 없습니다.';
         const existing = previewArea.querySelector('.editor-comment-bubble');
         if (existing) { existing.remove(); return; }
@@ -617,8 +803,11 @@ export function renderEditorNew() {
         bubble.className = 'editor-comment-bubble';
         bubble.textContent = comment;
         editorBtn.parentElement.appendChild(bubble);
-        setTimeout(() => bubble.remove(), 3000);
-      });
+        setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 3000);
+      };
+      
+      editorBtn.addEventListener('click', showBubble);
+      editorBtn.addEventListener('touchend', showBubble);
     }
   }
 

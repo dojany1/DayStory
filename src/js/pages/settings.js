@@ -45,46 +45,14 @@ export function renderSettings() {
 
   /* ---- HTML 구조 생성 ---- */
   page.innerHTML = `
-    <!-- 페이지 제목 -->
-    <div class="page-header">
-      <h1 class="page-header-title">설정</h1>
-    </div>
-
-    <!-- ===== 로그인 사용자 정보 섹션 ===== -->
-    <div class="settings-user-info" style="margin: 0 var(--space-4) var(--space-6) var(--space-4); padding: var(--space-4); background: var(--color-bg-secondary); border-radius: var(--radius-lg);">
-      ${user && user.id !== 'guest' ? `
-        <div style="display:flex; align-items:center; gap: var(--space-4);">
-          <div style="width:50px; height:50px; background:var(--color-border); border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:1.5rem;">
-            👤
-          </div>
-          <div>
-            <div style="font-size:var(--text-lg); font-weight:600; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;">
-              ${user.displayName || (user.email ? user.email.split('@')[0] : '사용자')}
-              ${profile && profile.role === 'editor' ? '<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: var(--color-accent); color: var(--color-text-tertiary); margin-left: var(--space-1);">관리자</span>' : ''}
-            </div>
-            <div style="font-size:var(--text-sm); color:var(--color-text-tertiary);">
-              ${user.email || '이메일 정보 없음'}
-            </div>
-          </div>
-        </div>
-      ` : `
-        <div style="display:flex; align-items:center; gap: var(--space-4); margin-bottom: var(--space-4);">
-          <div style="width:50px; height:50px; background:var(--color-border); border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:1.5rem;">
-            👋
-          </div>
-          <div>
-            <div style="font-size:var(--text-lg); font-weight:600; color:var(--color-text-primary);">
-              게스트 모드
-            </div>
-            <div style="font-size:var(--text-sm); color:var(--color-text-tertiary);">
-              로그인하고 기록을 저장하세요
-            </div>
-          </div>
-        </div>
-        <button id="goto-login-btn" class="btn btn-primary" style="width:100%; padding: 8px 16px; font-size: var(--text-sm);">
-          로그인 / 회원가입 하러 가기
-        </button>
-      `}
+    <!-- 페이지 제목 & 뒤로가기 -->
+    <div class="page-header" style="height: 60px; padding: 0 16px; align-items:center; display:flex; justify-content:flex-start; gap:12px;">
+      <button class="settings-back-btn" onclick="history.back()" style="width:32px; height:32px; padding:0; background:none; border:none; display:flex; align-items:center; justify-content:center; color:var(--color-text-primary); cursor:pointer;">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <h1 class="page-header-title" style="margin:0; font-size:1.2rem; line-height:1;">앱 설정</h1>
     </div>
 
 
@@ -162,6 +130,16 @@ export function renderSettings() {
           </svg>
         </div>
       </div>
+      <div class="list-item" id="setting-license">
+        <div class="list-item-content">
+          <div class="list-item-title">이미지 출처 및 라이선스</div>
+        </div>
+        <div class="list-item-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      </div>
     </div>
 
     <!-- 개인정보처리방침 -->
@@ -186,11 +164,6 @@ export function renderSettings() {
   */
 
 
-  /* ---- 상단 로그인 버튼 (게스트용) ---- */
-  page.querySelector('#goto-login-btn')?.addEventListener('click', () => {
-    navigate('/login');
-  });
-
   /* ---- 테마 직접 선택 (UI/UX 개선) ---- */
   page.querySelectorAll('.theme-option').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -212,9 +185,14 @@ export function renderSettings() {
 
   /* ---- 튜토리얼 다시보기 ---- */
   page.querySelector('#setting-tutorial')?.addEventListener('click', () => {
-    localStorage.removeItem('swipe_tutorial_step');
-    showToast('튜토리얼이 초기화되었습니다.', 'success');
-    navigate('/home');
+    localStorage.setItem('swipe_tutorial_step', '0');
+    showToast('튜토리얼 초기화', 'success');
+    navigate('/editorstory');
+  });
+
+  /* ---- 이미지 출처 안내 ---- */
+  page.querySelector('#setting-license')?.addEventListener('click', () => {
+    navigate('/license');
   });
 
 
@@ -281,7 +259,7 @@ export function renderSettings() {
       setState('profile', null);
       const nav = document.getElementById('bottom-nav');
       if (nav) nav.style.display = 'flex'; // 탈퇴 후 홈으로 가므로 네비 보이기
-      navigate('/home');
+      navigate('/editorstory');
 
     } catch (err) {
       console.error('회원 탈퇴 실패:', err);

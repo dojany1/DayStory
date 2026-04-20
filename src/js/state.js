@@ -135,7 +135,7 @@ export function applyTheme() {
 
 
 /* ─────────────────────────────────────────────
-   섹션 4: 초기 설정
+   섹션 4: 초기 설정 및 OS 테마 변경 감지
    ─────────────────────────────────────────────
    파일이 로드되는 즉시 테마를 적용하고,
    이후 테마/폰트가 바뀔 때마다 자동으로 다시 적용되게 합니다.
@@ -143,3 +143,8 @@ export function applyTheme() {
 applyTheme();
 subscribe('theme', applyTheme);
 subscribe('fontSize', applyTheme);
+
+/* OS 시스템 테마(다크모드/라이트모드)가 실시간으로 변경될 때 즉각 반영하기 위한 리스너 */
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (state.theme === 'system') applyTheme();
+});

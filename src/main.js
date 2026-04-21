@@ -343,17 +343,11 @@ if (Capacitor.isNativePlatform()) {
   }
 
   /**
-   * isTutorialActive — 튜토리얼 오버레이가 현재 표시 중인지 확인합니다.
-   * localStorage의 swipe_tutorial_step 값이 3 미만이고,
-   * 현재 홈 화면에 있을 때 튜토리얼이 활성 상태입니다.
+   * isTutorialActive — 새 튜토리얼은 패널 방식으로 앱 기능을 막지 않습니다.
+   * 끊버튼도 사용 가능하므로 항상 false를 반환합니다.
    */
   function isTutorialActive() {
-    const raw = localStorage.getItem('swipe_tutorial_step');
-    // null = 아직 결정 안 됨(웰컴 모달 표시 중), 0~1 = 튜토리얼 진행 중
-    if (raw === null) return true;
-    const tutStep = parseInt(raw, 10);
-    const currentPath = getCurrentPath();
-    return currentPath === '/editorstory' && tutStep < 2;
+    return false;
   }
 
   /* 마지막으로 뒤로가기를 누른 시각 (앱 종료용 더블 탭 판별) */

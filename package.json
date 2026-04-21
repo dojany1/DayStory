@@ -25,6 +25,6 @@
     "@capacitor/status-bar": "^8.0.2",
     "browser-image-compression": "^2.0.2",
     "cropperjs": "^1.6.2",
-    "firebase": "^12.11.0"
+    "firebase": "^10.14.1"
   }
 }

@@ -265,19 +265,6 @@ export function initRouter() {
       const item = e.target.closest('.nav-item');
       if (!item) return;
 
-      /* 튜토리얼 중엔 탭바 이동 금지 (null = 웰컴 모달 표시 중) */
-      const tutRaw = localStorage.getItem('swipe_tutorial_step');
-      const tutStep = tutRaw === null ? -1 : parseInt(tutRaw, 10);
-      if (tutStep < 2) {
-        // 간단한 토스트 알림 생성
-        const toast = document.createElement('div');
-        toast.innerText = tutStep === -1 ? '먼저 안내를 확인해주세요!' : '튜토리얼을 먼저 끝내주세요!';
-        toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:white;padding:10px 20px;border-radius:20px;z-index:9999;font-size:0.9rem;';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 1500);
-        return;
-      }
-
       const route = item.dataset.route;
       const currentPath = getCurrentPath();
 

@@ -22,7 +22,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
 import { getState } from '../state.js';
 import { navigate } from '../router.js';
-import { DEMO_STORIES } from '../data/demo.js';
+
 
 
 /* ─────────────────────────────────────────────
@@ -79,55 +79,14 @@ export function renderEditorStory() {
 /* ─────────────────────────────────────────────
    섹션 2: 데이터 로딩 및 캘린더/카드 초기화
    ───────────────────────────────────────────── */
-
-/**
- * loadEditorStoryData — 서버에서 스토리 데이터를 가져와 페이지를 완성합니다
- * @param {HTMLElement} page - renderEditorStory()에서 만든 페이지 요소
- * 
- * 동작 순서:
- *   1) 전체 스토리 목록과 오늘의 스토리를 서버에서 가져옴
- *   2) 주간 캘린더 날짜들을 생성하고 화면에 표시
- *   3) 각 날짜에 클릭 이벤트를 연결 (클릭 → 해당 날짜의 카드로 변경)
- *   4) 오늘의 카드를 화면에 표시
- *   5) 오류 발생 시 에러 메시지와 새로고침 버튼 표시
- */
 async function loadEditorStoryData(page) {
   try {
-    /* 서버에서 데이터 가져오기 (Promise.all을 통한 진정한 병렬 실행으로 로딩 속도 2배 최적화) */
+    /* 서버에서 데이터 가져오기 */
     const [allStories, todayStory, bookmarkedIds] = await Promise.all([
       fetchStories(),
       fetchTodayStory(),
       getBookmarkedStoryIds()
     ]);
-
-    /* 로컬에 저장된 읽은 날짜 목록 가져오기 */
-    let readDates = [];
-    try {
-      readDates = JSON.parse(localStorage.getItem('read_dates')) || [];
-    } catch (e) {
-      readDates = [];
-    }
-
-    /* 날짜를 매끄럽게 '읽음' 처리하는 내부 헬퍼 */
-    function markAsRead(isoDate) {
-      if (!readDates.includes(isoDate)) {
-        readDates.push(isoDate);
-        localStorage.setItem('read_dates', JSON.stringify(readDates));
-        
-        // Wheel Picker에서 해당 날짜의 도트 제거
-        const [y, m, d] = isoDate.split('-');
-        const currentMonth = parseInt(monthElement.querySelector('.wheel-item.active')?.dataset.month, 10);
-        
-        // 현재 선택된 월과 일치하는 경우에만 UI에서 즉시 제거
-        if (parseInt(m, 10) === currentMonth) {
-          const item = calendarElement.querySelector(`.wheel-item[data-day="${parseInt(d, 10)}"]`);
-          if (item) {
-            const dot = item.querySelector('.unread-dot');
-            if (dot) dot.remove();
-          }
-        }
-      }
-    }
 
     const todayStr = todayStory.publish_date;
     const today = new Date(todayStr + 'T00:00:00');
@@ -172,19 +131,6 @@ async function loadEditorStoryData(page) {
 
         calendarElement.querySelectorAll('.wheel-item').forEach(el => {
           const d = parseInt(el.dataset.day, 10);
-          
-          // 기존 도트 제거 후 새로 렌더링 (월 변경 시 대비)
-          const existingDot = el.querySelector('.unread-dot');
-          if (existingDot) existingDot.remove();
-
-          const isoDate = `${currentYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          const hasUnreadStory = allStories.some(s => s.publish_date === isoDate) && !readDates.includes(isoDate);
-          
-          if (hasUnreadStory) {
-            const dot = document.createElement('div');
-            dot.className = 'unread-dot';
-            el.appendChild(dot);
-          }
 
           if (selectedMonth > currentMonth) {
             el.classList.add('disabled');
@@ -254,16 +200,10 @@ async function loadEditorStoryData(page) {
           }
 
           let storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
-          
-          if (!storyForDate && tutorialStep < 2) {
-            storyForDate = DEMO_STORIES[Math.floor(Math.random() * DEMO_STORIES.length)];
-          }
-
           const direction = newDate > latestPathDate ? 'next' : 'prev';
           latestPathDate = newDate;
 
-          // 날짜 선택 시점에는 읽음 처리하지 않음 (뒤집을 때 처리)
-          renderCardToArea(cardArea, storyForDate || null, newDate, direction, bookmarkedIds, advanceTutorial, tutorialStep, markAsRead);
+          renderCardToArea(cardArea, storyForDate || null, newDate, direction, bookmarkedIds);
         }
       }
 
@@ -309,156 +249,13 @@ async function loadEditorStoryData(page) {
       }, 0);
     }
 
-    /* ---- 튜토리얼 상태 머신 (페이지 레벨) ---- */
-    /*
-     * swipe_tutorial_step 값에 따른 상태:
-     *   null (키 없음) → 미결정: 웰컴 모달을 띄워 참여 여부를 묻는다
-     *   0, 1          → 튜토리얼 진행 중 (각 단계별 안내 버블 표시)
-     *   2 이상        → 튜토리얼 완료 (일반 모드)
-     */
-    const tutRaw = localStorage.getItem('swipe_tutorial_step');
-    const isUndecided = (tutRaw === null);  // 최초 접속자: 아직 결정 안 함
-    let tutorialStep = isUndecided ? 99 : parseInt(tutRaw, 10);
-    // 미결정 상태에서는 99(완료 취급)로 설정하여 데모 데이터/버블 없이 실제 카드를 보여준다
+    /* ---- 오늘의 카드 초기 렌더링 ---- */
+    renderCardToArea(cardArea, todayStory, today, null, bookmarkedIds);
 
-    function renderTutorialBubble() {
-      const existing = page.querySelector('#tutorial-overlay');
-      if (existing) existing.remove();
-
-      if (tutorialStep >= 2) return;
-
-      let message = '';
-      if (tutorialStep === 0) message = '카드를 탭해서 내용을 확인하세요 👆';
-      else if (tutorialStep === 1) message = '좌우로 밀어 다른 날의 일화를 보세요 ↔️';
-
-      const overlay = document.createElement('div');
-      overlay.className = 'tutorial-overlay';
-      overlay.id = 'tutorial-overlay';
-      overlay.innerHTML = `<div class="tutorial-bubble">${message}</div>`;
-      page.appendChild(overlay);
-    }
-
-    function advanceTutorial(fromStep) {
-      if (tutorialStep === fromStep) {
-        tutorialStep++;
-        localStorage.setItem('swipe_tutorial_step', tutorialStep.toString());
-        renderTutorialBubble();
-      }
-    }
-
-    /* ---- 오늘의 카드 초기 렌더링 (방향 없이 즉시) ---- */
-    let initialStory = todayStory;
-
-    if (!isUndecided && tutorialStep < 2) {
-      /* 튜토리얼 진행 중 → 데모 데이터 사용 */
-      initialStory = DEMO_STORIES[DEMO_STORIES.length - 1];
-    }
-    /* 미결정 상태(isUndecided)일 때는 실제 todayStory를 배경으로 보여준다 */
-
-    // 초기 로드 시점에는 읽음 처리하지 않음 (뒤집을 때 처리)
-    renderCardToArea(cardArea, initialStory, today, null, bookmarkedIds, advanceTutorial, tutorialStep, markAsRead);
-    renderTutorialBubble();
-
-    /* ---- 웰컴 모달 (최초 접속 시에만 표시) ---- */
-    if (isUndecided) {
-      const welcomeOverlay = document.createElement('div');
-      welcomeOverlay.id = 'welcome-modal-overlay';
-      welcomeOverlay.style.cssText = `
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.65);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      `;
-      welcomeOverlay.innerHTML = `
-        <div style="
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: 82%;
-          max-width: 340px;
-          padding: var(--space-6) var(--space-5);
-          background: var(--color-bg-primary);
-          border-radius: var(--radius-xl);
-          box-shadow: 0 12px 32px rgba(0,0,0,0.4);
-          text-align: center;
-          transform: translateY(20px);
-          transition: transform 0.3s ease;
-        ">
-          <div style="font-size: 3rem; margin-bottom: var(--space-2);"></div>
-          <h3 style="margin: 0 0 var(--space-2); font-size: var(--text-xl); color: var(--color-text-primary); font-weight: 700;">
-            환영합니다!
-          </h3>
-          <p style="
-            margin: 0 0 var(--space-5);
-            color: var(--color-text-secondary);
-            font-size: var(--text-md);
-            line-height: 1.5;
-            word-break: keep-all;
-          ">
-            간단한 사용법을 안내하는<br>튜토리얼을 진행할까요?
-          </p>
-          <div style="display: flex; gap: var(--space-3); width: 100%;">
-            <button id="welcome-btn-no" class="btn btn-secondary" style="
-              flex: 1;
-              border-radius: 30px;
-              padding: 12px 0;
-              font-weight: 600;
-              font-size: 1rem;
-            ">다음에</button>
-            <button id="welcome-btn-yes" class="btn btn-primary" style="
-              flex: 1;
-              border-radius: 30px;
-              padding: 12px 0;
-              font-weight: 600;
-              font-size: 1rem;
-            ">좋아요!</button>
-          </div>
-        </div>
-      `;
-      page.appendChild(welcomeOverlay);
-
-      /* 페이드인 애니메이션 */
-      requestAnimationFrame(() => {
-        welcomeOverlay.style.opacity = '1';
-        welcomeOverlay.querySelector('div').style.transform = 'translateY(0)';
-      });
-
-      /* ── "네" 버튼: 튜토리얼 시작 ── */
-      welcomeOverlay.querySelector('#welcome-btn-yes').addEventListener('click', () => {
-        tutorialStep = 0;
-        localStorage.setItem('swipe_tutorial_step', '0');
-
-        /* 모달 닫기 애니메이션 */
-        welcomeOverlay.style.opacity = '0';
-        welcomeOverlay.querySelector('div').style.transform = 'translateY(20px)';
-        setTimeout(() => {
-          welcomeOverlay.remove();
-          /* 데모 카드로 교체 + 튜토리얼 버블 시작 */
-          const demoStory = DEMO_STORIES[DEMO_STORIES.length - 1];
-          renderCardToArea(cardArea, demoStory, today, null, bookmarkedIds, advanceTutorial, tutorialStep);
-          renderTutorialBubble();
-        }, 300);
-      });
-
-      /* ── "아니요" 버튼: 스킵 ── */
-      welcomeOverlay.querySelector('#welcome-btn-no').addEventListener('click', () => {
-        tutorialStep = 2;
-        localStorage.setItem('swipe_tutorial_step', '2');
-
-        /* 모달 닫기 애니메이션 */
-        welcomeOverlay.style.opacity = '0';
-        welcomeOverlay.querySelector('div').style.transform = 'translateY(20px)';
-        setTimeout(() => {
-          welcomeOverlay.remove();
-          /* 안내 토스트 표시 */
-          showToast('설정 > 튜토리얼 다시 보기 에서 언제든 다시 볼 수 있어요!', 'info');
-        }, 300);
-      });
+    /* ---- 튜토리얼 (최초 실행 시에만) ---- */
+    const tutDone = localStorage.getItem('tutorial_done') === 'true';
+    if (!tutDone) {
+      setTimeout(() => showTutorial(page), 500);
     }
 
   } catch (err) {
@@ -484,6 +281,131 @@ async function loadEditorStoryData(page) {
 
 
 /* ─────────────────────────────────────────────
+   섹션 2-1: 새 튜토리얼 패널
+   ─────────────────────────────────────────────
+   최초 실행 시 하단에서 슬라이드업되는 3단계 안내 패널입니다.
+   실제 오늘의 카드 위에서 작동하며, 카드 기능을 막지 않습니다.
+*/
+function showTutorial(page) {
+  /* 이미 패널이 있으면 중복 생성 방지 */
+  if (document.getElementById('tutorial-panel')) return;
+
+  const STEPS = [
+    {
+      title: '카드를 탭해보세요',
+      desc: '카드를 탭하면 오늘 날짜의 역사 일화를 읽을 수 있습니다.',
+      target: '#editorstory-card-area .flip-container',
+      autoEvent: 'ds:card-flipped',
+    },
+    {
+      title: '날짜를 바꿔보세요',
+      desc: '위의 숫자를 스크롤하거나 탭하면 다른 날의 이야기를 탐색할 수 있습니다.',
+      target: '.wheel-pickers-container',
+    },
+    {
+      title: '나의 일화를 남겨보세요',
+      desc: '하단의 책 모양 탭을 누르면 오늘의 기억을 직접 기록할 수 있습니다.',
+      target: '#nav-mystory',
+    },
+  ];
+
+  let step = 0;
+  let autoListener = null;
+
+  const panel = document.createElement('div');
+  panel.id = 'tutorial-panel';
+  panel.className = 'tutorial-panel';
+
+  function clearHighlights() {
+    document.querySelectorAll('.tut-highlight').forEach(el => el.classList.remove('tut-highlight'));
+  }
+
+  function applyHighlight(selector) {
+    clearHighlights();
+    if (!selector) return;
+    const el = document.querySelector(selector);
+    if (el) el.classList.add('tut-highlight');
+  }
+
+  function render() {
+    const s = STEPS[step];
+    const isLast = step === STEPS.length - 1;
+
+    panel.innerHTML = `
+      <div class="tutorial-panel-inner">
+        <div class="tutorial-progress">
+          ${STEPS.map((_, i) =>
+            `<span class="tutorial-dot ${i < step ? 'done' : i === step ? 'active' : ''}"></span>`
+          ).join('')}
+        </div>
+        <div class="tutorial-title">${s.title}</div>
+        <div class="tutorial-desc">${s.desc}</div>
+        <div class="tutorial-actions">
+          <button class="tutorial-skip" id="tut-skip">건너뛰기</button>
+          <button class="tutorial-next" id="tut-next">${isLast ? '시작하기' : '다음'}</button>
+        </div>
+      </div>
+    `;
+
+    applyHighlight(s.target);
+
+    /* 이전 자동 진행 이벤트 제거 */
+    if (autoListener) {
+      document.removeEventListener('ds:card-flipped', autoListener);
+      autoListener = null;
+    }
+
+    /* Step 0: 카드 탭 시 자동으로 다음 단계 이동 */
+    if (s.autoEvent) {
+      autoListener = () => {
+        document.removeEventListener('ds:card-flipped', autoListener);
+        autoListener = null;
+        setTimeout(advance, 500);
+      };
+      document.addEventListener('ds:card-flipped', autoListener, { once: true });
+    }
+
+    panel.querySelector('#tut-next').addEventListener('click', advance);
+    panel.querySelector('#tut-skip').addEventListener('click', finish);
+  }
+
+  function advance() {
+    if (step < STEPS.length - 1) {
+      step += 1;
+      render();
+    } else {
+      finish();
+    }
+  }
+
+  function finish() {
+    localStorage.setItem('tutorial_done', 'true');
+    clearHighlights();
+    if (autoListener) {
+      document.removeEventListener('ds:card-flipped', autoListener);
+      autoListener = null;
+    }
+    panel.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 1, 1), opacity 0.3s ease';
+    panel.style.transform = 'translateX(-50%) translateY(calc(100% + 40px))';
+    panel.style.opacity = '0';
+    setTimeout(() => panel.remove(), 380);
+  }
+
+  /* 패널 마운트 및 슬라이드인 애니메이션 */
+  const wrapper = document.querySelector('.mobile-wrapper') || document.body;
+  wrapper.appendChild(panel);
+  render();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      panel.style.transition = 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
+      panel.style.transform = 'translateX(-50%) translateY(0)';
+    });
+  });
+}
+
+
+/* ─────────────────────────────────────────────
    섹션 3: 카드 렌더링 및 전환 함수
    ───────────────────────────────────────────── */
 
@@ -495,7 +417,7 @@ async function loadEditorStoryData(page) {
  * @param {string|null} direction - 'next' (미래로), 'prev' (과거로) 또는 null (초기 로드)
  * @param {Array}       bookmarkedIds - 사용자가 북마크한 스토리 ID 배열
  */
-function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarkedIds = [], advanceTutorialFn = null, currentTutorialStep = 3, markAsReadFn = null) {
+function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarkedIds = []) {
   if (!cardArea) return;
 
   /* 버그 수정: 카드 여러 장이 겹쳐서 남는 현상 방지 */
@@ -588,7 +510,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
   if (!direction || !oldCard) {
     cardArea.innerHTML = '';
     cardArea.appendChild(newCard);
-    bindCardEvents(newCard, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep, markAsReadFn);
+    bindCardEvents(newCard, story, bookmarkedIds);
     return;
   }
 
@@ -616,7 +538,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
     newCard.classList.remove('card-stack-item', `stack-enter-${direction}`, 'active');
 
     /* 상호작용 활성화 */
-    bindCardEvents(newCard, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep, markAsReadFn);
+    bindCardEvents(newCard, story, bookmarkedIds);
   };
 
   newCard.addEventListener('transitionend', onAnimationEnd, { once: true });
@@ -630,7 +552,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
 /**
  * bindCardEvents — 개별 카드 요소에 필기, 클릭, 스와이프 등 모든 이벤트를 연결합니다
  */
-function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, currentTutorialStep, markAsReadFn) {
+function bindCardEvents(flipContainer, story, bookmarkedIds) {
   const flipper = flipContainer.querySelector('.flipper');
   if (!flipper) return;
 
@@ -641,8 +563,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, 
   if (shareBtn) {
     shareBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-      if (tutStep < 2) return; // 튜토리얼 중에는 기능 제한
       const user = getState('user');
       if (user && user.id === 'guest') {
         showToast('로그인이 필요한 기능입니다.', 'info');
@@ -662,8 +582,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, 
   if (bookmarkBtn) {
     bookmarkBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-      if (tutStep < 2) return; // 튜토리얼 중에는 기능 제한
       const user = getState('user');
       if (user && user.id === 'guest') {
         showToast('로그인이 필요한 기능입니다.', 'info');
@@ -735,9 +653,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, 
     }
 
     const isFlipped = flipper.classList.contains('flipped');
-    const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-    
-    if (tutStep === 0) return; // 튜토리얼 0단계(탭 안내)일 때 스와이프 무시
     if (swipeAxis === 'y') return; // 위아래 스와이프 폐기
 
     if (!isSwiping) {
@@ -782,45 +697,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, 
         return;
       }
       try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
-      const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-      const wasInTutorial = tutStep < 2;
-
-      if (typeof advanceTutorialFn === 'function') advanceTutorialFn(1);
-
-      if (wasInTutorial) {
-        /* 실제 x축 이동 기능 방어 후 초기 위치 복구 */
-        flipper.style.transform = '';
-        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
-        
-        /* 튜토리얼 종료 안내 센터 팝업 노출 */
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease;';
-        overlay.innerHTML = `
-          <div style="background:var(--color-bg-primary);padding:var(--space-6) var(--space-4);border-radius:var(--radius-xl);text-align:center;width:80%;max-width:320px;box-shadow:0 10px 25px rgba(0,0,0,0.5);transform:translateY(20px);transition:transform 0.3s ease;">
-            <div style="font-size:3.5rem;margin-bottom:var(--space-2);">🎉</div>
-            <h3 style="margin-top:0;margin-bottom:var(--space-2);font-size:var(--text-xl);color:var(--color-text-primary);">튜토리얼 완료!</h3>
-            <p style="color:var(--color-text-secondary);font-size:var(--text-md);margin-bottom:var(--space-5);line-height:1.4;word-break:keep-all;">모든 기본 조작법을 익히셨습니다.<br>이제 자유롭게 기록들을 탐색해 보세요!</p>
-            <button class="btn btn-primary btn-finish-tut" style="width:100%;border-radius:30px;font-weight:bold;font-size:1.1rem;padding:12px 0;">시작하기</button>
-          </div>
-        `;
-        const wrapper = document.querySelector('.mobile-wrapper') || document.body;
-        wrapper.appendChild(overlay);
-        
-        void overlay.offsetWidth; /* 강제 리플로우 */
-        overlay.style.opacity = '1';
-        overlay.querySelector('div').style.transform = 'translateY(0)';
-        
-        overlay.querySelector('.btn-finish-tut').addEventListener('click', () => {
-          overlay.style.opacity = '0';
-          overlay.querySelector('div').style.transform = 'translateY(20px)';
-          setTimeout(() => {
-            overlay.remove();
-            window.location.reload();
-          }, 300);
-        });
-        
-        return; /* 실제 작업 생략 */
-      }
 
       const dayWrapper = document.getElementById('editorstory-calendar');
       if (dayWrapper) {
@@ -874,23 +750,26 @@ function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, 
       if (tapDuration <= 400 && tapDiffX <= 20 && tapDiffY <= 20) {
         if (!story) return;
         if (flipper.classList.contains('is-flipping')) return;
-        const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-        if (tutStep === 1) return;
 
         flipper.classList.add('is-flipping');
-        
-        /* 즉각적인 반응성: 진동을 기다리지 않고 즉시 뒤집기 */
         Haptics.selectionChanged().catch(() => {});
         flipper.classList.toggle('flipped');
+        document.dispatchEvent(new CustomEvent('ds:card-flipped'));
 
-        // 뒤집기 완료 시 읽음 처리 수행
-        if (typeof markAsReadFn === 'function' && story && story.publish_date) {
-          markAsReadFn(story.publish_date);
+        /* 뒤집기 후 에디터 한마디 넛지 */
+        if (flipper.classList.contains('flipped')) {
+          const btn = flipContainer.querySelector('.back-editor-btn');
+          if (btn && btn.style.visibility !== 'hidden' && !btn.querySelector('.editor-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'editor-badge';
+            badge.textContent = '!';
+            btn.appendChild(badge);
+          }
         }
-        
+
         /* CSS transition 0.4s와 동기화 */
         setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
-        if (typeof advanceTutorialFn === 'function') advanceTutorialFn(0);
+
         return; 
       }
     }
@@ -927,38 +806,29 @@ function bindCardEvents(flipContainer, story, bookmarkedIds, advanceTutorialFn, 
 
   // 일반 클릭: 뒤집기
   flipper.addEventListener('click', async (e) => {
-    const tutStep = parseInt(localStorage.getItem('swipe_tutorial_step') || '0', 10);
-    if (tutStep === 1) return; // 튜토리얼 단계가 1일 때 탭 조작 금지
-    if (!story) return; // 기록 없는 카드 탭 무시
+    if (!story) return;
     if (e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn')) return;
-
-    /* back-body 영역: 터치 기반 탭은 touchend에서 이미 처리했으므로, 
-       터치 입력(pointerType === 'touch')인 경우만 click 핸들러에서 차단합니다. 
-       마우스 클릭은 여기서 정상 처리됩니다. */
     if (e.pointerType === 'touch' && e.target.closest('.back-body')) return;
-
-    if (isSwiping) return; // 스와이프 처리 중이면 탭 무시
-    
-    // 회전 애니메이션 중 중복 클릭 및 터치 차단
+    if (isSwiping) return;
     if (flipper.classList.contains('is-flipping')) return;
+
     flipper.classList.add('is-flipping');
-    
-    /* 탭 반응성 최적화 */
     Haptics.selectionChanged().catch(() => {});
     flipper.classList.toggle('flipped');
-    
-    // 뒤집기 완료 시 읽음 처리 수행
-    if (typeof markAsReadFn === 'function' && story && story.publish_date) {
-      markAsReadFn(story.publish_date);
+    document.dispatchEvent(new CustomEvent('ds:card-flipped'));
+
+    /* 뒤집기 후 에디터 한마디 넛지: 뒷면이 보일 때 버튼 강조 */
+    if (flipper.classList.contains('flipped')) {
+      const btn = flipContainer.querySelector('.back-editor-btn');
+      if (btn && btn.style.visibility !== 'hidden' && !btn.querySelector('.editor-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'editor-badge';
+        badge.textContent = '!';
+        btn.appendChild(badge);
+      }
     }
-    
-    // CSS에 정의된 transition 시간 (0.4s) 후 보호 해제
-    setTimeout(() => {
-      flipper.classList.remove('is-flipping');
-    }, 400);
-    
-    /* 튜토리얼: 탭 완료 처리 */
-    if (typeof advanceTutorialFn === 'function') advanceTutorialFn(0);
+
+    setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
   });
 
   /* 에디터 한마디 버튼 클릭 → 코멘트 말풍선 표시 */

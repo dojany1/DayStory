@@ -459,49 +459,112 @@
 }
 
 
-/* ── 터치/스와이프 인터랙티브 튜토리얼 ── */
-.tutorial-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 150;
-  pointer-events: none; /* 클릭을 통과시켜 카드 이벤트를 받을 수 있도록 함 */
-}
-
-/* 튜토리얼 지시어 버블 */
-.tutorial-bubble {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--color-accent);
-  color: var(--color-text-inverse);      /* 테마에 따라 반전 색상 적용 (라이트→흰색, 다크→검정) */
-  padding: 10px 20px;
-  border-radius: 20px;
-  font-family: var(--font-sans);
-  font-size: 0.95rem;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+/* ── 튜토리얼 패널 (새 버전) ── */
+.tutorial-panel {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  width: min(430px, 100%);
+  padding: 0 16px 8px;
+  z-index: 500;
   pointer-events: none;
-  white-space: nowrap;
-  animation: bounceBubble 1.5s infinite;
-  transition: opacity 0.3s ease;
+  transform: translateX(-50%) translateY(calc(100% + 40px));
 }
 
-@keyframes bounceBubble {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.4); }
+.tutorial-panel-inner {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 20px 20px 16px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.18), 0 1px 0 rgba(255,255,255,0.04) inset;
+  pointer-events: all;
 }
 
-/* 읽지 않은 카드 알림 점 */
-.unread-dot {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ff3b3b;
-  box-shadow: 0 0 4px rgba(255, 59, 59, 0.5);
-  z-index: 10;
+.tutorial-progress {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.tutorial-dot {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-divider);
+  transition: background 0.25s ease, width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tutorial-dot.active {
+  background: var(--color-accent);
+  width: 30px;
+}
+
+.tutorial-dot.done {
+  background: var(--color-accent);
+  opacity: 0.35;
+}
+
+.tutorial-title {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.tutorial-desc {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+  word-break: keep-all;
+  margin-bottom: 16px;
+}
+
+.tutorial-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tutorial-skip {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  background: none;
+  border: none;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.tutorial-next {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+
+/* 튜토리얼 하이라이트 링 */
+.tut-highlight {
+  box-shadow: 0 0 0 3px var(--color-tutorial), 0 0 16px color-mix(in srgb, var(--color-tutorial) 45%, transparent) !important;
+  border-radius: 12px;
+  transition: box-shadow 0.3s ease;
+  position: relative;
+  z-index: 1;
+  animation: tutPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tutPulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--color-tutorial), 0 0 16px color-mix(in srgb, var(--color-tutorial) 45%, transparent); }
+  50% { box-shadow: 0 0 0 5px var(--color-tutorial), 0 0 28px color-mix(in srgb, var(--color-tutorial) 60%, transparent); }
 }
 
 

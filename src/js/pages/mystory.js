@@ -849,8 +849,16 @@ export function renderMyStoryNew() {
 
     document.getElementById('mystory-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      /* 이미지 업로드 중이면 저장 차단 */
+      const statusEl = document.getElementById('ms-image-status');
+      if (statusEl && statusEl.style.display !== 'none' && statusEl.textContent.includes('업로드')) {
+        showToast('사진 업로드가 완료될 때까지 기다려주세요', 'warning');
+        return;
+      }
+
       const data = {
-        uid: uid,  // Firebase auth.currentUser.uid (Firestore 규칙의 request.auth.uid와 일치)
+        uid: uid,
         title: document.getElementById('ms-title').value.trim(),
         publish_date: document.getElementById('ms-date').value,
         body: document.getElementById('ms-body').value.trim(),

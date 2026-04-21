@@ -185,8 +185,8 @@ export function renderSettings() {
 
   /* ---- 튜토리얼 다시보기 ---- */
   page.querySelector('#setting-tutorial')?.addEventListener('click', () => {
-    localStorage.setItem('swipe_tutorial_step', '0');
-    showToast('튜토리얼 초기화', 'success');
+    localStorage.removeItem('tutorial_done');
+    showToast('튜토리얼이 초기화되었습니다', 'success');
     navigate('/editorstory');
   });
 

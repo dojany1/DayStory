@@ -140,7 +140,7 @@ export function renderLogin() {
         /* 로그인 성공: 유저 정보와 프로필 저장 */
         setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
 
-        const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com'];
+        const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
         const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
         
         if (db) {
@@ -200,7 +200,7 @@ export function renderLogin() {
             const profileSnap = await getDoc(profileRef);
             let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
             
-            const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com'];
+            const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
             const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
             
             if (isAdmin && profileData.role !== 'editor') {
@@ -344,7 +344,7 @@ export function renderSignup() {
 
         setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
 
-        const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com'];
+        const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
         const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
 
         if (db) {

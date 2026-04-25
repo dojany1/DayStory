@@ -224,6 +224,30 @@
   flex-direction: column;
 }
 
+.card-detail-shortcut-btn {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.card-detail-shortcut-btn:active {
+  transform: scale(0.97);
+  background: var(--color-bg-card-dark);
+}
+
+.card-detail-shortcut-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* 카드 연도 텍스트 (예: "1879") */
 .card-year {
   font-family: var(--font-body);
@@ -290,9 +314,10 @@
 
 /* 카드 이미지 감싸기 — 남은 공간을 채우는 이미지 영역 */
 .history-card-image-wrap {
-  flex: 1;                             /* 남은 세로 공간 모두 차지 */
+  flex: 0 0 auto;
   position: relative;
   margin: 0 var(--space-4) var(--space-4) var(--space-4);
+  aspect-ratio: 4 / 5;
   overflow: hidden;                    /* 이미지가 영역 밖으로 넘치지 않도록 */
 }
 
@@ -315,7 +340,6 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(0,0,0,0.05);
   pointer-events: none;               /* 클릭이 이미지로 통과 */
 }
 
@@ -410,6 +434,13 @@
   color: var(--color-text-secondary);
 }
 
+.back-date-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
 /* 에디터 프로필 아이콘 버튼 */
 .back-editor-btn {
   width: 32px;
@@ -452,7 +483,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--color-error);
+  background: var(--color-editor-comment, #ffe16a);
   color: #fff;
   font-size: 9px;
   font-weight: 700;

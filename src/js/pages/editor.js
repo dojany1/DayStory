@@ -30,6 +30,8 @@ import { auth } from '../firebase.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
+const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
+
 
 /* ─────────────────────────────────────────────
    섹션 1: 에디터 페이지 렌더링 (목록)
@@ -426,9 +428,8 @@ export function renderEditorNew() {
       let cropper;
 
       image.onload = () => {
-        // Cropper 인스턴스 생성 (카드 비율인 3/4.8 = 0.625 고정)
         cropper = new Cropper(image, {
-          aspectRatio: 3 / 4.8, 
+          aspectRatio: CARD_IMAGE_CROP_ASPECT_RATIO, 
           viewMode: 1,
           dragMode: 'move',
           autoCropArea: 0.9,
@@ -463,7 +464,7 @@ export function renderEditorNew() {
 
         cropper.getCroppedCanvas({
           maxWidth: 1200,
-          maxHeight: 1920,
+          maxHeight: 1500,
           imageSmoothingEnabled: true,
           imageSmoothingQuality: 'high',
         }).toBlob(async (blob) => {
@@ -772,7 +773,10 @@ export function renderEditorNew() {
                   <img src="${escapeHTML(editorPhotoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
                   <span class="back-editor-avatar-fallback" style="display:none">✍️</span>
                 </button>
-                <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
+                <div class="back-date-actions">
+                  <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
+                  <button class="card-detail-shortcut-btn" type="button" aria-label="상세 보기" title="상세 보기" disabled>상세 보기</button>
+                </div>
               </div>
             </div>
           </div>
@@ -783,7 +787,13 @@ export function renderEditorNew() {
     const flipper = previewArea.querySelector('#preview-flipper');
     if (flipper) {
       flipper.addEventListener('click', (e) => {
-        if (e.target.closest('.back-editor-btn')) return;
+        if (e.target.closest('.back-editor-btn') || e.target.closest('.card-detail-shortcut-btn')) return;
+        /* 말풍선이 떠 있는 상태에서 바깥 클릭은 말풍선만 닫고 플립은 건너뜀 */
+        const openBubble = previewArea.querySelector('.editor-comment-bubble');
+        if (openBubble && !openBubble.contains(e.target)) {
+          openBubble.remove();
+          return;
+        }
         flipper.classList.toggle('flipped');
       });
     }
@@ -791,19 +801,69 @@ export function renderEditorNew() {
     /* 에디터 한마디 버튼 클릭 시 코멘트 표시 */
     const editorBtn = previewArea.querySelector('.back-editor-btn');
     if (editorBtn) {
+      let lastEditorTouchAt = 0;
+      let editorBubbleTimer = null;
+      let removeOutsideBubbleListeners = null;
+      const removeEditorBubble = () => {
+        const bubble = previewArea.querySelector('.editor-comment-bubble');
+        if (bubble) bubble.remove();
+        if (editorBubbleTimer) clearTimeout(editorBubbleTimer);
+        editorBubbleTimer = null;
+        if (removeOutsideBubbleListeners) {
+          removeOutsideBubbleListeners();
+          removeOutsideBubbleListeners = null;
+        }
+      };
+      const bindOutsideBubbleDismiss = () => {
+        if (removeOutsideBubbleListeners) removeOutsideBubbleListeners();
+
+        const handleOutsideBubbleInput = (event) => {
+          const bubble = previewArea.querySelector('.editor-comment-bubble');
+          if (!bubble) {
+            if (removeOutsideBubbleListeners) {
+              removeOutsideBubbleListeners();
+              removeOutsideBubbleListeners = null;
+            }
+            return;
+          }
+
+          const target = event.target;
+          if (editorBtn.contains(target) || bubble.contains(target)) return;
+
+          removeEditorBubble();
+        };
+
+        document.addEventListener('click', handleOutsideBubbleInput);
+        document.addEventListener('touchstart', handleOutsideBubbleInput, { passive: true });
+        removeOutsideBubbleListeners = () => {
+          document.removeEventListener('click', handleOutsideBubbleInput);
+          document.removeEventListener('touchstart', handleOutsideBubbleInput);
+        };
+      };
       const showBubble = (e) => {
         if (e) {
           e.stopPropagation();
-          if (e.type === 'touchend') e.preventDefault();
+          if (e.type === 'touchend') {
+            lastEditorTouchAt = Date.now();
+            e.preventDefault();
+          }
+          if (e.type === 'click' && Date.now() - lastEditorTouchAt < 650) return;
         }
         const comment = document.getElementById('sf-editor-comment')?.value.trim() || '에디터 코멘트가 없습니다.';
+        /* 이미 말풍선이 떠 있으면 다시 누른 것은 닫기 동작 (바깥 클릭과 동일) */
         const existing = previewArea.querySelector('.editor-comment-bubble');
-        if (existing) { existing.remove(); return; }
+        if (existing) {
+          removeEditorBubble();
+          return;
+        }
         const bubble = document.createElement('div');
         bubble.className = 'editor-comment-bubble';
         bubble.textContent = comment;
         editorBtn.parentElement.appendChild(bubble);
-        setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 3000);
+        bindOutsideBubbleDismiss();
+        editorBubbleTimer = setTimeout(() => {
+          removeEditorBubble();
+        }, 3000);
       };
       
       editorBtn.addEventListener('click', showBubble);

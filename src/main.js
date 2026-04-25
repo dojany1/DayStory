@@ -114,22 +114,17 @@ setBeforeNavigate((path) => {
 /* ─────────────────────────────────────────────
    섹션 6: 유저 프로필 탭 아이콘 업데이트 로직
    ───────────────────────────────────────────── */
-function updateProfileNavIcon(userProfile) {
+function updateProfileNavIcon() {
   const navWrap = document.querySelector('.nav-profile-img-wrap');
   
   if (!navWrap) return;
 
-  if (userProfile && userProfile.photoURL) {
-    navWrap.innerHTML = `<img src="${userProfile.photoURL}" alt="profile" style="width:100%; height:100%; object-fit:cover;" />`;
-    navWrap.style.borderColor = 'transparent';
-  } else {
-    navWrap.innerHTML = `
-      <svg class="nav-icon guest-avatar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-        <circle cx="12" cy="7" r="4"></circle>
-      </svg>
-    `;
-  }
+  navWrap.innerHTML = `
+    <svg class="nav-icon guest-avatar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
+    </svg>
+  `;
 }
 subscribe('profile', updateProfileNavIcon);
 

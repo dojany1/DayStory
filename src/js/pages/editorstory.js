@@ -23,6 +23,64 @@ import { Share } from '@capacitor/share';
 import { getState } from '../state.js';
 import { navigate } from '../router.js';
 
+const DETAIL_BUTTON_LABEL = '상세 보기';
+const EDITOR_COMMENT_SEEN_PREFIX = 'daystory:editor-comment-seen:';
+const DAILY_LETTER_OPENED_PREFIX = 'daystory:daily-letter-opened:';
+
+function getEditorCommentSeenKey(editorBtn) {
+  const storyId = editorBtn?.dataset?.storyId;
+  return storyId ? `${EDITOR_COMMENT_SEEN_PREFIX}${storyId}` : '';
+}
+
+function hasSeenEditorComment(editorBtn) {
+  const key = getEditorCommentSeenKey(editorBtn);
+  if (!key) return editorBtn?.dataset.commentSeen === 'true';
+
+  return localStorage.getItem(key) === 'true';
+}
+
+function markEditorCommentSeen(editorBtn) {
+  const key = getEditorCommentSeenKey(editorBtn);
+  editorBtn.dataset.commentSeen = 'true';
+  if (key) localStorage.setItem(key, 'true');
+}
+
+function dismissEditorBadge(editorBtn) {
+  if (!editorBtn) return;
+  markEditorCommentSeen(editorBtn);
+  editorBtn.querySelector('.editor-badge')?.remove();
+}
+
+function showEditorBadge(flipContainer) {
+  const editorBtn = flipContainer.querySelector('.back-editor-btn');
+  if (!editorBtn) return;
+  if (editorBtn.style.visibility === 'hidden') return;
+  if (hasSeenEditorComment(editorBtn)) {
+    editorBtn.querySelector('.editor-badge')?.remove();
+    return;
+  }
+  if (editorBtn.querySelector('.editor-badge')) return;
+
+  const badge = document.createElement('span');
+  badge.className = 'editor-badge';
+  badge.textContent = '!';
+  editorBtn.appendChild(badge);
+}
+
+function getDailyLetterOpenedKey(story) {
+  return story?.id ? `${DAILY_LETTER_OPENED_PREFIX}${story.id}` : '';
+}
+
+function hasOpenedDailyLetter(story) {
+  const key = getDailyLetterOpenedKey(story);
+  return key ? localStorage.getItem(key) === 'true' : true;
+}
+
+function markDailyLetterOpened(story) {
+  const key = getDailyLetterOpenedKey(story);
+  if (key) localStorage.setItem(key, 'true');
+}
+
 
 
 /* ─────────────────────────────────────────────
@@ -249,13 +307,19 @@ async function loadEditorStoryData(page) {
       }, 0);
     }
 
-    /* ---- 오늘의 카드 초기 렌더링 ---- */
-    renderCardToArea(cardArea, todayStory, today, null, bookmarkedIds);
-
     /* ---- 튜토리얼 (최초 실행 시에만) ---- */
     const tutDone = localStorage.getItem('tutorial_done') === 'true';
-    if (!tutDone) {
+    const startTutorial = () => {
+      if (tutDone) return;
       setTimeout(() => showTutorial(page), 500);
+    };
+
+    /* ---- 오늘의 카드 초기 렌더링 ---- */
+    if (!hasOpenedDailyLetter(todayStory)) {
+      renderDailyLetterGate(cardArea, todayStory, today, bookmarkedIds, startTutorial);
+    } else {
+      renderCardToArea(cardArea, todayStory, today, null, bookmarkedIds);
+      startTutorial();
     }
 
   } catch (err) {
@@ -293,9 +357,23 @@ function showTutorial(page) {
   const STEPS = [
     {
       title: '카드를 탭해보세요',
-      desc: '카드를 탭하면 오늘 날짜의 역사 일화를 읽을 수 있습니다.',
+      desc: '카드를 탭하면 오늘 날짜의 역사 일화로 뒷면이 펼쳐집니다.',
       target: '#editorstory-card-area .flip-container',
       autoEvent: 'ds:card-flipped',
+    },
+    {
+      title: '상세 보기로 더 깊이',
+      desc: '뒷면 우측의 "상세 보기" 버튼을 누르면 카드의 모든 내용을 한 화면에서 자세히 읽을 수 있어요.',
+      target: '.card-detail-shortcut-btn',
+      requireFlipped: true,
+    },
+    {
+      title: '에디터 한마디',
+      desc: '에디터 프로필 배지를 탭하면 오늘의 카드에 담긴 짧은 한마디가 떠올라요. 다시 탭하거나 바깥을 탭하면 닫힙니다.',
+      target: '.back-editor-btn',
+      requireFlipped: true,
+      skipIfHidden: true,
+      demo: 'editor-bubble',
     },
     {
       title: '날짜를 바꿔보세요',
@@ -304,13 +382,72 @@ function showTutorial(page) {
     },
     {
       title: '나의 일화를 남겨보세요',
-      desc: '하단의 책 모양 탭을 누르면 오늘의 기억을 직접 기록할 수 있습니다.',
+      desc: '하단의 책 모양 탭을 누르면 오늘의 기억을 직접 기록할 수 있어요.',
       target: '#nav-mystory',
     },
   ];
 
   let step = 0;
   let autoListener = null;
+  let autoAdvanceTimer = null;
+  let demoTimer = null;
+  let repositionListener = null;
+
+  /* 카드를 강제로 뒷면으로 뒤집어 두는 헬퍼 — 실제로 뒤집은 경우 true 반환 */
+  function ensureCardFlipped() {
+    const flipper = document.querySelector('#editorstory-card-area .flipper');
+    if (!flipper) return false;
+    if (flipper.classList.contains('flipped')) return false;
+    flipper.classList.add('flipped');
+    document.dispatchEvent(new CustomEvent('ds:card-flipped'));
+    return true;
+  }
+
+  /* 데모용 상호작용을 정리(예: 열린 말풍선 닫기) */
+  function clearDemoState() {
+    if (demoTimer) {
+      clearTimeout(demoTimer);
+      demoTimer = null;
+    }
+    document.querySelectorAll('.editor-comment-bubble').forEach(b => b.remove());
+  }
+
+  /* 대상 요소를 뷰포트 중앙으로 부드럽게 스크롤 */
+  function focusTarget(selector) {
+    if (!selector) return;
+    const el = document.querySelector(selector);
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    } catch {
+      try { el.scrollIntoView(); } catch { /* noop */ }
+    }
+  }
+
+  /* 단계별 데모 상호작용 자동 실행 */
+  function runDemo(s) {
+    if (!s || !s.demo) return;
+    if (s.demo === 'editor-bubble') {
+      demoTimer = setTimeout(() => {
+        const editorBtn = document.querySelector('.back-editor-btn');
+        if (!editorBtn) return;
+        const style = window.getComputedStyle(editorBtn);
+        if (style.visibility === 'hidden') return;
+        editorBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      }, 650);
+    }
+  }
+
+  function isStepDisplayable(s) {
+    if (!s) return false;
+    if (!s.skipIfHidden) return true;
+    const el = document.querySelector(s.target);
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    if (style.visibility === 'hidden' || style.display === 'none') return false;
+    if (el.offsetParent === null && style.position !== 'fixed') return false;
+    return true;
+  }
 
   const panel = document.createElement('div');
   panel.id = 'tutorial-panel';
@@ -327,9 +464,71 @@ function showTutorial(page) {
     if (el) el.classList.add('tut-highlight');
   }
 
+  /* 툴팁(말풍선)을 하이라이트 대상 옆으로 자동 배치 */
+  function positionTip() {
+    const s = STEPS[step];
+    if (!s || !s.target) return;
+    const target = document.querySelector(s.target);
+    if (!target || typeof target.getBoundingClientRect !== 'function') return;
+
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const margin = 12;
+    const arrowGap = 16;
+    const tipWidth = panel.offsetWidth || 320;
+    const tipHeight = panel.offsetHeight || 180;
+
+    /* 1) 세로 배치 — 아래쪽 우선, 공간 부족 시 위쪽 */
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+    let placement;
+    let top;
+    if (spaceBelow >= tipHeight + arrowGap + margin || spaceBelow >= spaceAbove) {
+      placement = 'bottom';
+      top = rect.bottom + arrowGap;
+    } else {
+      placement = 'top';
+      top = rect.top - tipHeight - arrowGap;
+    }
+    top = Math.max(margin, Math.min(top, vh - tipHeight - margin));
+
+    /* 2) 가로 배치 — 대상 중심에 정렬, 뷰포트 안으로 클램프 */
+    const targetCenterX = rect.left + rect.width / 2;
+    let left = targetCenterX - tipWidth / 2;
+    left = Math.max(margin, Math.min(left, vw - tipWidth - margin));
+
+    /* 3) 화살표가 대상 중심을 가리키도록 위치 조정 */
+    const arrowLeft = Math.max(20, Math.min(tipWidth - 20, targetCenterX - left));
+
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+    panel.dataset.placement = placement;
+    panel.style.setProperty('--tut-arrow-left', arrowLeft + 'px');
+  }
+
   function render() {
     const s = STEPS[step];
     const isLast = step === STEPS.length - 1;
+
+    /* 이전 단계의 데모 상태 정리 */
+    clearDemoState();
+
+    /* 큐에 남아있던 자동 진행 타이머 / 리스너를 먼저 제거 — 그래야 ensureCardFlipped가
+       발생시키는 ds:card-flipped 이벤트가 step 0 리스너를 다시 발화시키지 않습니다. */
+    if (autoListener) {
+      document.removeEventListener('ds:card-flipped', autoListener);
+      autoListener = null;
+    }
+    if (autoAdvanceTimer) {
+      clearTimeout(autoAdvanceTimer);
+      autoAdvanceTimer = null;
+    }
+
+    /* 카드 뒷면이 필요한 단계면 자동으로 뒤집기 (실제로 뒤집힌 경우만 settle을 지연) */
+    const flipJustHappened = s.requireFlipped ? ensureCardFlipped() : false;
 
     panel.innerHTML = `
       <div class="tutorial-panel-inner">
@@ -342,66 +541,139 @@ function showTutorial(page) {
         <div class="tutorial-desc">${s.desc}</div>
         <div class="tutorial-actions">
           <button class="tutorial-skip" id="tut-skip">건너뛰기</button>
-          <button class="tutorial-next" id="tut-next">${isLast ? '시작하기' : '다음'}</button>
+          <div class="tutorial-actions-right">
+            <button class="tutorial-prev" id="tut-prev" ${step === 0 ? 'disabled aria-hidden="true"' : ''}>이전</button>
+            <button class="tutorial-next" id="tut-next">${isLast ? '시작하기' : '다음'}</button>
+          </div>
         </div>
       </div>
     `;
 
-    applyHighlight(s.target);
+    /* 새 패널 콘텐츠가 그려진 직후 한 번 위치 잡기 */
+    requestAnimationFrame(positionTip);
 
-    /* 이전 자동 진행 이벤트 제거 */
-    if (autoListener) {
-      document.removeEventListener('ds:card-flipped', autoListener);
-      autoListener = null;
+    /* 카드 플립이 방금 실행된 경우에만 트랜지션 종료를 기다린 뒤 하이라이트/스크롤 */
+    const settle = () => {
+      applyHighlight(s.target);
+      focusTarget(s.target);
+      requestAnimationFrame(positionTip);
+      runDemo(s);
+    };
+    if (flipJustHappened) {
+      setTimeout(settle, 420);
+    } else {
+      settle();
     }
 
     /* Step 0: 카드 탭 시 자동으로 다음 단계 이동 */
     if (s.autoEvent) {
+      const stepWhenRegistered = step;
       autoListener = () => {
         document.removeEventListener('ds:card-flipped', autoListener);
         autoListener = null;
-        setTimeout(advance, 500);
+        autoAdvanceTimer = setTimeout(() => {
+          autoAdvanceTimer = null;
+          /* 사용자가 그 사이 수동으로 다음/이전을 눌러 단계가 바뀌었으면 진행하지 않음 */
+          if (step === stepWhenRegistered) advance();
+        }, 600);
       };
       document.addEventListener('ds:card-flipped', autoListener, { once: true });
     }
 
     panel.querySelector('#tut-next').addEventListener('click', advance);
     panel.querySelector('#tut-skip').addEventListener('click', finish);
+    const prevBtn = panel.querySelector('#tut-prev');
+    if (prevBtn && step > 0) prevBtn.addEventListener('click', goBack);
   }
 
   function advance() {
-    if (step < STEPS.length - 1) {
-      step += 1;
-      render();
-    } else {
+    let next = step + 1;
+    /* 표시할 수 없는 단계(예: 에디터 한마디가 없는 경우)는 건너뜀 */
+    while (next < STEPS.length && !isStepDisplayable(STEPS[next])) next += 1;
+    if (next >= STEPS.length) {
       finish();
+      return;
     }
+    step = next;
+    render();
+  }
+
+  function goBack() {
+    let prev = step - 1;
+    while (prev > 0 && !isStepDisplayable(STEPS[prev])) prev -= 1;
+    if (prev < 0) prev = 0;
+    step = prev;
+    render();
   }
 
   function finish() {
     localStorage.setItem('tutorial_done', 'true');
     clearHighlights();
+    clearDemoState();
     if (autoListener) {
       document.removeEventListener('ds:card-flipped', autoListener);
       autoListener = null;
     }
-    panel.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 1, 1), opacity 0.3s ease';
-    panel.style.transform = 'translateX(-50%) translateY(calc(100% + 40px))';
-    panel.style.opacity = '0';
-    setTimeout(() => panel.remove(), 380);
+    if (autoAdvanceTimer) {
+      clearTimeout(autoAdvanceTimer);
+      autoAdvanceTimer = null;
+    }
+    if (repositionListener) {
+      window.removeEventListener('scroll', repositionListener, true);
+      window.removeEventListener('resize', repositionListener);
+      repositionListener = null;
+    }
+    panel.classList.remove('visible');
+    setTimeout(() => panel.remove(), 320);
   }
 
-  /* 패널 마운트 및 슬라이드인 애니메이션 */
-  const wrapper = document.querySelector('.mobile-wrapper') || document.body;
-  wrapper.appendChild(panel);
+  /* 패널 마운트 및 페이드+스케일 인 애니메이션. body에 직접 붙여 어떤 컨테이너의
+     overflow / transform 영향도 받지 않도록 함. */
+  document.body.appendChild(panel);
   render();
+
+  /* 스크롤·리사이즈 시 툴팁이 대상을 따라가도록 추적 */
+  repositionListener = () => positionTip();
+  window.addEventListener('scroll', repositionListener, { capture: true, passive: true });
+  window.addEventListener('resize', repositionListener);
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      panel.style.transition = 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
-      panel.style.transform = 'translateX(-50%) translateY(0)';
+      panel.classList.add('visible');
     });
   });
+}
+
+function renderDailyLetterGate(cardArea, story, dateObj, bookmarkedIds, onOpen) {
+  if (!cardArea || !story) return;
+
+  const month = dateObj.getMonth() + 1;
+  const day = dateObj.getDate();
+  const letter = document.createElement('button');
+  letter.type = 'button';
+  letter.className = 'daily-letter-gate';
+  letter.setAttribute('aria-label', '오늘의 편지 열기');
+  letter.innerHTML = `
+    <span class="daily-letter-postcard" aria-hidden="true">
+      <span class="daily-letter-stamp">DayStory</span>
+      <span class="daily-letter-postmark">${month}. ${day}</span>
+      <span class="daily-letter-title">오늘의 편지</span>
+      <span class="daily-letter-lines">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </span>
+  `;
+
+  letter.addEventListener('click', () => {
+    markDailyLetterOpened(story);
+    renderCardToArea(cardArea, story, dateObj, null, bookmarkedIds);
+    if (typeof onOpen === 'function') onOpen();
+  });
+
+  cardArea.innerHTML = '';
+  cardArea.appendChild(letter);
 }
 
 
@@ -494,12 +766,15 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
             ${(story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('')}
           </div>
           <div class="back-footer">
-            <button class="back-editor-btn" type="button" title="에디터 한마디" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${story.editor_comment && story.editor_comment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
+            <button class="back-editor-btn" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${story.editor_comment && story.editor_comment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
               ${story.editor && story.editor.photoURL
                 ? `<img src="${escapeHtml(story.editor.photoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
                 : '<span class="back-editor-avatar-fallback">✍️</span>'}
             </button>
-            <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+            <div class="back-date-actions">
+              <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+              <button class="card-detail-shortcut-btn" type="button" aria-label="${DETAIL_BUTTON_LABEL}" title="${DETAIL_BUTTON_LABEL}">${DETAIL_BUTTON_LABEL}</button>
+            </div>
           </div>
         </div>
       </div>
@@ -556,9 +831,19 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   const flipper = flipContainer.querySelector('.flipper');
   if (!flipper) return;
 
+  const detailBtn = flipContainer.querySelector('.card-detail-shortcut-btn');
+
   /* 상단 액션 버튼 이벤트 */
   const shareBtn = flipContainer.querySelector('.card-action-btn[aria-label="공유"]');
   const bookmarkBtn = flipContainer.querySelector('.card-action-btn[aria-label="북마크"]');
+
+  if (detailBtn && story) {
+    detailBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      navigate(`/detail/${story.id}`);
+    });
+  }
 
   if (shareBtn) {
     shareBtn.addEventListener('click', async (e) => {
@@ -612,12 +897,15 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   let isAnimating = false;
   let hapticTriggered = false;
   let isBackBodyScroll = false;
+  let lastTouchInputAt = 0;
   const SWIPE_THRESHOLD = 80;
+  const SYNTHETIC_MOUSE_IGNORE_MS = 650;
 
   /* ── back-body 탭 vs 스크롤 구분용 변수 ── */
   let tapStartTime = 0;
   let tapStartX = 0;
   let tapStartY = 0;
+  let isInteractiveTouch = false;
   let touchStartTarget = null;  // 터치 시작 시 대상 요소 저장
 
   const handleStart = (x, y, isBody = false) => {
@@ -691,7 +979,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     }
     
     if (swipeAxis === 'x' && Math.abs(diffX) > SWIPE_THRESHOLD) {
-      if (!story || isBackBodyScroll) {
+      if (isBackBodyScroll) {
         flipper.style.transform = '';
         setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
         return;
@@ -724,17 +1012,32 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
 
   // 터치 이벤트
   flipper.addEventListener('touchstart', (e) => {
+    lastTouchInputAt = Date.now();
+    if (e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn') || e.target.closest('.card-detail-shortcut-btn')) {
+      isInteractiveTouch = true;
+      touchStartTarget = null;
+      isSwiping = false;
+      swipeAxis = null;
+      return;
+    }
+    isInteractiveTouch = false;
     const isBody = !!e.target.closest('.back-body');
     touchStartTarget = e.target;   // 터치 대상 저장
     handleStart(e.touches[0].clientX, e.touches[0].clientY, isBody);
   }, { passive: true });
 
   flipper.addEventListener('touchmove', (e) => {
+    if (isInteractiveTouch) return;
     handleMove(e.touches[0].clientX, e.touches[0].clientY, true);
     if (isSwiping) e.preventDefault();
   }, { passive: false });
 
   flipper.addEventListener('touchend', async (e) => {
+    lastTouchInputAt = Date.now();
+    if (isInteractiveTouch) {
+      isInteractiveTouch = false;
+      return;
+    }
     const endX = e.changedTouches[0].clientX;
     const endY = e.changedTouches[0].clientY;
 
@@ -751,6 +1054,13 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         if (!story) return;
         if (flipper.classList.contains('is-flipping')) return;
 
+        /* 말풍선이 떠 있는 상태에서 바깥 탭은 말풍선만 닫고 플립은 건너뜀 */
+        const openBubble = flipContainer.querySelector('.editor-comment-bubble');
+        if (openBubble && !openBubble.contains(touchStartTarget)) {
+          openBubble.remove();
+          return;
+        }
+
         flipper.classList.add('is-flipping');
         Haptics.selectionChanged().catch(() => {});
         flipper.classList.toggle('flipped');
@@ -758,13 +1068,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
 
         /* 뒤집기 후 에디터 한마디 넛지 */
         if (flipper.classList.contains('flipped')) {
-          const btn = flipContainer.querySelector('.back-editor-btn');
-          if (btn && btn.style.visibility !== 'hidden' && !btn.querySelector('.editor-badge')) {
-            const badge = document.createElement('span');
-            badge.className = 'editor-badge';
-            badge.textContent = '!';
-            btn.appendChild(badge);
-          }
+          showEditorBadge(flipContainer);
         }
 
         /* CSS transition 0.4s와 동기화 */
@@ -780,7 +1084,8 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   // 마우스 이벤트 (데스크톱 드래그 대응, 윈도우 전역 리스너 중첩 방지)
   let isMouseDown = false;
   flipper.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.card-action-btn')) return;
+    if (Date.now() - lastTouchInputAt < SYNTHETIC_MOUSE_IGNORE_MS) return;
+    if (e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn') || e.target.closest('.card-detail-shortcut-btn')) return;
     const isBody = !!e.target.closest('.back-body');
     if (isBody) return; // 마우스는 본문에서 드래그 스와이프 불가
     isMouseDown = true;
@@ -807,10 +1112,17 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   // 일반 클릭: 뒤집기
   flipper.addEventListener('click', async (e) => {
     if (!story) return;
-    if (e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn')) return;
+    if (e.target.closest('.card-action-btn') || e.target.closest('.back-editor-btn') || e.target.closest('.card-detail-shortcut-btn')) return;
     if (e.pointerType === 'touch' && e.target.closest('.back-body')) return;
     if (isSwiping) return;
     if (flipper.classList.contains('is-flipping')) return;
+
+    /* 말풍선이 떠 있는 상태에서 바깥 클릭은 말풍선만 닫고 플립은 건너뜀 */
+    const openBubble = flipContainer.querySelector('.editor-comment-bubble');
+    if (openBubble && !openBubble.contains(e.target)) {
+      openBubble.remove();
+      return;
+    }
 
     flipper.classList.add('is-flipping');
     Haptics.selectionChanged().catch(() => {});
@@ -819,13 +1131,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
 
     /* 뒤집기 후 에디터 한마디 넛지: 뒷면이 보일 때 버튼 강조 */
     if (flipper.classList.contains('flipped')) {
-      const btn = flipContainer.querySelector('.back-editor-btn');
-      if (btn && btn.style.visibility !== 'hidden' && !btn.querySelector('.editor-badge')) {
-        const badge = document.createElement('span');
-        badge.className = 'editor-badge';
-        badge.textContent = '!';
-        btn.appendChild(badge);
-      }
+      showEditorBadge(flipContainer);
     }
 
     setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
@@ -834,27 +1140,81 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   /* 에디터 한마디 버튼 클릭 → 코멘트 말풍선 표시 */
   const editorBtn = flipContainer.querySelector('.back-editor-btn');
   if (editorBtn) {
+    let lastEditorTouchAt = 0;
+    let editorBubbleTimer = null;
+    let removeOutsideBubbleListeners = null;
+    const removeEditorBubble = () => {
+      const bubble = flipContainer.querySelector('.editor-comment-bubble');
+      if (bubble) bubble.remove();
+      if (editorBubbleTimer) clearTimeout(editorBubbleTimer);
+      editorBubbleTimer = null;
+      if (removeOutsideBubbleListeners) {
+        removeOutsideBubbleListeners();
+        removeOutsideBubbleListeners = null;
+      }
+    };
+    const bindOutsideBubbleDismiss = () => {
+      if (removeOutsideBubbleListeners) removeOutsideBubbleListeners();
+
+      const handleOutsideBubbleInput = (event) => {
+        const bubble = flipContainer.querySelector('.editor-comment-bubble');
+        if (!bubble) {
+          if (removeOutsideBubbleListeners) {
+            removeOutsideBubbleListeners();
+            removeOutsideBubbleListeners = null;
+          }
+          return;
+        }
+
+        const target = event.target;
+        if (editorBtn.contains(target) || bubble.contains(target)) return;
+
+        removeEditorBubble();
+      };
+
+      document.addEventListener('click', handleOutsideBubbleInput);
+      document.addEventListener('touchstart', handleOutsideBubbleInput, { passive: true });
+      removeOutsideBubbleListeners = () => {
+        document.removeEventListener('click', handleOutsideBubbleInput);
+        document.removeEventListener('touchstart', handleOutsideBubbleInput);
+      };
+    };
     const showBubble = (e) => {
       if (e) {
         e.stopPropagation();
-        if (e.type === 'touchend') e.preventDefault(); /* 터치 이벤트 시 후속 click 방지 */
+        if (e.type === 'touchend') {
+          lastEditorTouchAt = Date.now();
+          e.preventDefault();
+        }
+        if (e.type === 'click' && Date.now() - lastEditorTouchAt < 650) return;
       }
       
+      dismissEditorBadge(editorBtn);
       const comment = editorBtn.dataset.comment;
       const editorName = editorBtn.dataset.editorName || 'DayStory';
-      
-      /* 이미 열려있으면 닫기 */
+
+      /* 이미 말풍선이 떠 있으면 다시 누른 것은 닫기 동작 (바깥 클릭과 동일) */
       const existing = flipContainer.querySelector('.editor-comment-bubble');
-      if (existing) { existing.remove(); return; }
+      if (existing) {
+        removeEditorBubble();
+        return;
+      }
       
       /* 코멘트가 없는 경우 */
       if (!comment) return;
       
       const bubble = document.createElement('div');
       bubble.className = 'editor-comment-bubble';
-      bubble.innerHTML = `<span class="editor-comment-name">${editorName}</span>${comment}`;
+      const nameEl = document.createElement('span');
+      nameEl.className = 'editor-comment-name';
+      nameEl.textContent = editorName;
+      bubble.appendChild(nameEl);
+      bubble.appendChild(document.createTextNode(comment));
       editorBtn.parentElement.appendChild(bubble);
-      setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 4000);
+      bindOutsideBubbleDismiss();
+      editorBubbleTimer = setTimeout(() => {
+        removeEditorBubble();
+      }, 4000);
     };
 
     editorBtn.addEventListener('click', showBubble);

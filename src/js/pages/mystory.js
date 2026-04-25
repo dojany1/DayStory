@@ -17,6 +17,8 @@ import imageCompression from 'browser-image-compression';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
+const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
+
 /* ─────────────────────────────────────────────
    섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커)
    ───────────────────────────────────────────── */
@@ -239,12 +241,16 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
           <div class="empty-story-date">${formattedDate}</div>
           
           <button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
-            + 이 날의 일화 쓰기
+            + 나의 일화 쓰기
           </button>
         </div>
       </div>
     `;
   } else {
+    const [storyYearRaw, storyMonthRaw, storyDayRaw] = String(story.publish_date || isoDateStr).split('-');
+    const storyYear = parseInt(storyYearRaw, 10) || displayYear;
+    const storyMonth = parseInt(storyMonthRaw, 10) || month;
+    const storyDay = parseInt(storyDayRaw, 10) || day;
     const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E";
     const imageUrl = story.image_url || PLACEHOLDER_IMG;
     const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
@@ -255,8 +261,8 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
         <div class="front history-card-front">
           <div class="history-card-top">
             <div class="card-top-left">
-              <div class="card-year mystory-card-year">${parseInt(month)}/${parseInt(day)}</div>
-              <div class="card-date">${displayYear}</div>
+              <div class="card-year mystory-card-year">${storyYear}</div>
+              <div class="card-date">${storyMonth}. ${storyDay}</div>
             </div>
             <div class="card-top-right">
               <div class="card-actions">
@@ -289,7 +295,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
           <hr class="back-divider" />
           <div class="back-body">${bodyHtml}</div>
           <div class="back-footer">
-            <div class="back-date">${displayYear}년 ${month}월 ${day}일</div>
+            <div class="back-date">${storyYear}년 ${storyMonth}월 ${storyDay}일</div>
           </div>
         </div>
       </div>
@@ -379,7 +385,9 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
   let isAnimating = false;
   let hapticTriggered = false;
   let isBackBodyScroll = false;
+  let lastTouchInputAt = 0;
   const SWIPE_THRESHOLD = 80;
+  const SYNTHETIC_MOUSE_IGNORE_MS = 650;
 
   /* ── back-body 탭 vs 스크롤 구분용 변수 ── */
   let tapStartTime = 0;
@@ -446,7 +454,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     flipper.classList.add('is-flipping');
 
     if (swipeAxis === 'x' && Math.abs(diffX) > SWIPE_THRESHOLD) {
-      if (!story || isBackBodyScroll) {
+      if (isBackBodyScroll) {
         flipper.style.transform = '';
         setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
         return;
@@ -475,6 +483,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
   };
 
   flipper.addEventListener('touchstart', (e) => {
+    lastTouchInputAt = Date.now();
     const isBody = !!e.target.closest('.back-body');
     touchStartTarget = e.target;
     handleStart(e.touches[0].clientX, e.touches[0].clientY, isBody);
@@ -486,6 +495,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
   }, { passive: false });
 
   flipper.addEventListener('touchend', async (e) => {
+    lastTouchInputAt = Date.now();
     const endX = e.changedTouches[0].clientX;
     const endY = e.changedTouches[0].clientY;
 
@@ -510,6 +520,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
 
   let isMouseDown = false;
   flipper.addEventListener('mousedown', (e) => {
+    if (Date.now() - lastTouchInputAt < SYNTHETIC_MOUSE_IGNORE_MS) return;
     if (e.target.closest('button')) return;
     const isBody = !!e.target.closest('.back-body');
     if (isBody) return;
@@ -728,7 +739,7 @@ export function renderMyStoryNew() {
 
       image.onload = () => {
         cropper = new Cropper(image, {
-          aspectRatio: 3 / 4.8, 
+          aspectRatio: CARD_IMAGE_CROP_ASPECT_RATIO, 
           viewMode: 1,
           dragMode: 'move',
           autoCropArea: 0.9,
@@ -761,7 +772,7 @@ export function renderMyStoryNew() {
 
         cropper.getCroppedCanvas({
           maxWidth: 1200,
-          maxHeight: 1920,
+          maxHeight: 1500,
           imageSmoothingEnabled: true,
           imageSmoothingQuality: 'high',
         }).toBlob(async (blob) => {

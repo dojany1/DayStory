@@ -104,14 +104,13 @@ export function renderProfile() {
       `}
     </div>
     
-    <!-- 북마크된 카드 리스트 헤더 및 검색창 (좌우 균등, 중앙 배치) --> 
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4); gap: var(--space-2);">
-      <h2 style="font-size: var(--text-base); font-weight: 600; line-height: 1; margin: 0; color: var(--color-text-secondary); white-space: nowrap; transform: translateY(1px);">보관한 스토리</h2>
-      <div class="search-bar" id="collection-search-bar" style="margin: 0; padding: 6px 12px; flex: 0 1 180px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; flex-shrink: 0;">
+    <!-- 북마크된 카드 검색창 -->
+    <div class="profile-collection-toolbar">
+      <div class="search-bar profile-collection-search" id="collection-search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input type="text" id="collection-search-input" placeholder="검색..." autocomplete="off" style="font-size: var(--text-sm);" />
+        <input type="text" id="collection-search-input" placeholder="검색..." autocomplete="off" />
       </div>
     </div>
 
@@ -169,10 +168,7 @@ async function loadCollection(page) {
      * - 5초가 지나면 타임아웃 에러 발생 → catch 블록으로 이동
      * 이렇게 하면 서버가 느려도 무한 로딩을 방지할 수 있습니다.
      */
-    const stories = await Promise.race([
-      getBookmarkedStories(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('시간 초과')), 5000))
-    ]);
+    const stories = await getBookmarkedStories();
 
     const allBookmarks = stories || [];
 

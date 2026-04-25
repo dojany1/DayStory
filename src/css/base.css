@@ -290,7 +290,7 @@ ul, ol {
 .splash-loader {
   width: 120px;
   height: 2px;
-  background: var(--color-bg-secondary);
+  background: transparent;
   border-radius: var(--radius-full);
   margin: var(--space-8) auto 0;
   overflow: hidden;
@@ -334,7 +334,7 @@ ul, ol {
   height: calc(var(--nav-height) + var(--safe-area-bottom));
   padding-top: var(--space-2);
   padding-bottom: calc(var(--safe-area-bottom) + var(--space-3)); /* 하단 안전 영역 (iPhone 홈 바) */
-  background: var(--color-bg-secondary);
+  background: transparent;
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
   backdrop-filter: blur(20px);         /* 배경 블러 효과 */
   -webkit-backdrop-filter: blur(20px);
@@ -409,24 +409,19 @@ ul, ol {
   height: 28px;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--color-bg-secondary);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid transparent;
-  transition: border-color var(--transition-fast);
 }
 
 /* 게스트 아바타의 경우 내부에 작게 들어가도록 조절 */
 .nav-profile-img-wrap .guest-avatar {
-  width: 16px !important;
-  height: 16px !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* 활성화 상태일 때 프로필 이미지 래퍼 테두리 표시 */
-.nav-item.active .nav-profile-img-wrap {
-  border-color: var(--color-text-primary);
-}
 
 /* 내비게이션 라벨 텍스트 — 표시 여부 제어 */
 .nav-item .nav-label {

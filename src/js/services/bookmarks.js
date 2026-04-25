@@ -189,17 +189,18 @@ export async function getBookmarkedStories() {
     if (!db) return [];
 
     /* 2단계: 각 스토리 문서를 개별 조회 (Firestore는 'in' 쿼리로 최대 30개 지원) */
-    const stories = [];
-    for (const sid of storyIds) {
-      try {
-        const docSnap = await getDoc(doc(db, 'stories', sid));
-        if (docSnap.exists()) {
-          stories.push({ id: docSnap.id, ...docSnap.data() });
-        }
-      } catch { /* 개별 실패 무시 */ }
-    }
+    const storySnapshots = await Promise.allSettled(
+      storyIds.map((sid) => withTimeout(getDoc(doc(db, 'stories', sid))))
+    );
 
-    return stories;
+    return storySnapshots.flatMap((result) => {
+      if (result.status !== 'fulfilled') return [];
+
+      const docSnap = result.value;
+      if (!docSnap.exists()) return [];
+
+      return [{ id: docSnap.id, ...docSnap.data() }];
+    });
   } catch (err) {
     console.error('북마크 데이터 조회 실패:', err);
     return [];

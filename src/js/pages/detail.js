@@ -12,7 +12,6 @@
    마지막 수정 날짜 : 2026-03-31 20:20
    ===================================================================== */
 
-import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { fetchStoryById } from '../services/stories.js';
 import { toggleBookmark, isBookmarked } from '../services/bookmarks.js';
@@ -80,53 +79,73 @@ async function loadDetail(page, storyId) {
     .filter(paragraph => paragraph.trim())
     .map(paragraph => `<p>${escapeHtml(paragraph)}</p>`)
     .join('');
+  const editorComment = (story.editor_comment || (story.editor && story.editor.comment) || '').trim();
+  const editorName = ((story.editor && story.editor.displayName) || 'DayStory').trim() || 'DayStory';
+  const editorAvatar = (story.editor && story.editor.photoURL) || '';
+  const editorCommentHtml = escapeHtml(editorComment).replace(/\n/g, '<br />');
+  const historicalMetaHtml = [story.historical_date, story.country]
+    .map(value => String(value ?? '').trim())
+    .filter(Boolean)
+    .map(value => escapeHtml(value))
+    .join(' · ');
 
   /* 참고 자료 목록 */
   const sources = story.story_sources || story.sources || [];
 
   /* ---- 페이지 HTML 생성 ---- */
   page.innerHTML = `
-    <!-- 상단 헤더: 뒤로가기 + 액션 버튼들 -->
+    <!-- 상단 헤더: 뒤로가기 -->
     <div class="detail-header" id="detail-header">
       <button class="page-header-back" id="detail-back">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </button>
-      <div class="detail-header-actions">
-        <!-- 북마크 버튼 -->
-        <button class="btn-icon bookmark-btn ${bookmarked ? 'active' : ''}" id="detail-bookmark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
-        </button>
-        <!-- 공유 버튼 -->
-        <button class="btn-icon" id="detail-share">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-          </svg>
-        </button>
-      </div>
     </div>
 
     <!-- 히어로 이미지 영역 -->
     <div class="detail-hero">
       <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" />
-      <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
       <div class="detail-hero-overlay">
         <div class="detail-hero-year">${escapeHtml(story.historical_year)}</div>
         <div class="detail-hero-monthday">${month}. ${day < 10 ? '0' + day : day}</div>
-        <span class="detail-hero-tag">${escapeHtml(story.card_count || '')} &nbsp;·&nbsp; ${escapeHtml(story.country)}</span>
       </div>
     </div>
 
     <!-- 본문 영역 -->
     <div class="detail-content">
-      <h1 class="detail-figure-name">${escapeHtml(story.figure_name)}</h1>
+      <div class="detail-title-row">
+        <h1 class="detail-figure-name">${escapeHtml(story.figure_name)}</h1>
+        <div class="detail-title-actions">
+          <button class="btn-icon bookmark-btn ${bookmarked ? 'active' : ''}" id="detail-bookmark" aria-label="북마크">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
+          <button class="btn-icon" id="detail-share" aria-label="공유">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+          </button>
+        </div>
+      </div>
       <div class="detail-body">${bodyHtml}</div>
-      <div class="detail-historical-date">${escapeHtml(story.historical_date)}</div>
+      <div class="detail-historical-date">${historicalMetaHtml}</div>
+      ${editorComment ? `
+        <section class="detail-editor-note" aria-label="에디터의 말">
+          <div class="detail-editor-note-header">
+            <div class="detail-editor-avatar-wrap">
+              ${editorAvatar
+                ? `<img class="detail-editor-avatar" src="${escapeHtml(editorAvatar)}" alt="${escapeHtml(editorName)}" />`
+                : `<span class="detail-editor-avatar-fallback" aria-hidden="true">D</span>`}
+            </div>
+            <div class="detail-editor-name">${escapeHtml(editorName)}</div>
+          </div>
+          <p class="detail-editor-note-text">${editorCommentHtml}</p>
+        </section>
+      ` : ''}
 
       <!-- 참고 자료 (있을 때만 표시) -->
       ${sources.length ? `
@@ -143,31 +162,6 @@ async function loadDetail(page, storyId) {
           `).join('')}
         </div>
       ` : ''}
-
-      <!-- 하단 액션 바 -->
-      <div class="detail-actions-bar">
-        <button class="detail-action-btn ${bookmarked ? 'active' : ''}" id="action-bookmark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span>북마크</span>
-        </button>
-        <button class="detail-action-btn" id="action-share">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-            <polyline points="16 6 12 2 8 6"/>
-            <line x1="12" y1="2" x2="12" y2="15"/>
-          </svg>
-          <span>공유</span>
-        </button>
-        <button class="detail-action-btn" id="action-report">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          <span>오류 신고</span>
-        </button>
-      </div>
     </div>
   `;
 
@@ -192,14 +186,13 @@ async function loadDetail(page, storyId) {
     bookmarked = result.bookmarked;
 
     /* 상단 + 하단의 북마크 버튼 모두 업데이트 */
-    page.querySelectorAll('#detail-bookmark, #action-bookmark').forEach(btn => {
+    page.querySelectorAll('#detail-bookmark').forEach(btn => {
       btn.classList.toggle('active', bookmarked);
     });
 
     showToast(bookmarked ? '북마크에 저장했습니다' : '북마크를 해제했습니다', 'success');
   };
   document.getElementById('detail-bookmark')?.addEventListener('click', handleBookmark);
-  document.getElementById('action-bookmark')?.addEventListener('click', handleBookmark);
 
   /**
    * shareAction — 공유 기능
@@ -227,11 +220,5 @@ async function loadDetail(page, storyId) {
     } catch { /* 사용자가 공유를 취소한 경우 무시 */ }
   };
   document.getElementById('detail-share')?.addEventListener('click', shareAction);
-  document.getElementById('action-share')?.addEventListener('click', shareAction);
-
-  /* 오류 신고 페이지로 이동 */
-  document.getElementById('action-report')?.addEventListener('click', () => {
-    navigate('/report', { storyId: story.id });
-  });
 
 }

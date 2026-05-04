@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="default_web_client_id" translatable="false">1063822349351-rnk0hgs8gg6nuae0k4ocfl4qhvcg2u2s.apps.googleusercontent.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">1063822349351</string>
+    <string name="google_api_key" translatable="false">AIzaSyCy9PbZ401mepxUP4WnxdWhGS26YmFquTE</string>
+    <string name="google_app_id" translatable="false">1:1063822349351:android:4a5d2c48fed789e0e32a02</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCy9PbZ401mepxUP4WnxdWhGS26YmFquTE</string>
+    <string name="google_storage_bucket" translatable="false">dokhu-daystory.firebasestorage.app</string>
+    <string name="project_id" translatable="false">dokhu-daystory</string>
+</resources>

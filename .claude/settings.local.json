@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node --input-type=module --check)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(git -C \"c:/Users/ppipa/OneDrive/Documents/GitHub/dayStory/DayStory-test\" diff --stat HEAD)",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}

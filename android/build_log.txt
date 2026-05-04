@@ -1,0 +1,164 @@
+
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :capacitor-android:preBuild UP-TO-DATE
+> Task :capacitor-android:preReleaseBuild UP-TO-DATE
+> Task :capacitor-android:processReleaseNavigationResources UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:preBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:preReleaseBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:processReleaseNavigationResources UP-TO-DATE
+> Task :capacitor-device:preBuild UP-TO-DATE
+> Task :capacitor-device:preReleaseBuild UP-TO-DATE
+> Task :capacitor-device:processReleaseNavigationResources UP-TO-DATE
+> Task :capacitor-firebase-authentication:preBuild UP-TO-DATE
+> Task :capacitor-firebase-authentication:preReleaseBuild UP-TO-DATE
+> Task :capacitor-firebase-authentication:processReleaseNavigationResources UP-TO-DATE
+> Task :capacitor-haptics:preBuild UP-TO-DATE
+> Task :capacitor-haptics:preReleaseBuild UP-TO-DATE
+> Task :capacitor-haptics:processReleaseNavigationResources UP-TO-DATE
+> Task :capacitor-share:preBuild UP-TO-DATE
+> Task :capacitor-share:preReleaseBuild UP-TO-DATE
+> Task :capacitor-share:processReleaseNavigationResources UP-TO-DATE
+> Task :capacitor-splash-screen:preBuild UP-TO-DATE
+> Task :capacitor-splash-screen:preReleaseBuild UP-TO-DATE
+> Task :capacitor-splash-screen:processReleaseNavigationResources UP-TO-DATE
+> Task :capacitor-status-bar:preBuild UP-TO-DATE
+> Task :capacitor-status-bar:preReleaseBuild UP-TO-DATE
+> Task :capacitor-status-bar:processReleaseNavigationResources UP-TO-DATE
+> Task :app:processReleaseNavigationResources UP-TO-DATE
+> Task :app:compileReleaseNavigationResources UP-TO-DATE
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :app:processReleaseGoogleServices UP-TO-DATE
+> Task :capacitor-android:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-android:generateReleaseResources UP-TO-DATE
+> Task :capacitor-android:packageReleaseResources UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:generateReleaseResources UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:packageReleaseResources UP-TO-DATE
+> Task :capacitor-device:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-device:generateReleaseResources UP-TO-DATE
+> Task :capacitor-device:packageReleaseResources UP-TO-DATE
+> Task :capacitor-firebase-authentication:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-firebase-authentication:generateReleaseResources UP-TO-DATE
+> Task :capacitor-firebase-authentication:packageReleaseResources UP-TO-DATE
+> Task :capacitor-haptics:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-haptics:generateReleaseResources UP-TO-DATE
+> Task :capacitor-haptics:packageReleaseResources UP-TO-DATE
+> Task :capacitor-share:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-share:generateReleaseResources UP-TO-DATE
+> Task :capacitor-share:packageReleaseResources UP-TO-DATE
+> Task :capacitor-splash-screen:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-splash-screen:generateReleaseResources UP-TO-DATE
+> Task :capacitor-splash-screen:packageReleaseResources UP-TO-DATE
+> Task :capacitor-status-bar:generateReleaseResValues UP-TO-DATE
+> Task :capacitor-status-bar:generateReleaseResources UP-TO-DATE
+> Task :capacitor-status-bar:packageReleaseResources UP-TO-DATE
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:mergeReleaseResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-android:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-android:processReleaseManifest UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:processReleaseManifest UP-TO-DATE
+> Task :capacitor-device:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-device:processReleaseManifest UP-TO-DATE
+> Task :capacitor-firebase-authentication:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-firebase-authentication:processReleaseManifest UP-TO-DATE
+> Task :capacitor-haptics:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-haptics:processReleaseManifest UP-TO-DATE
+> Task :capacitor-share:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-share:processReleaseManifest UP-TO-DATE
+> Task :capacitor-splash-screen:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-splash-screen:processReleaseManifest UP-TO-DATE
+> Task :capacitor-status-bar:extractDeepLinksRelease UP-TO-DATE
+> Task :capacitor-status-bar:processReleaseManifest UP-TO-DATE
+> Task :app:processReleaseMainManifest UP-TO-DATE
+> Task :app:processReleaseManifest UP-TO-DATE
+> Task :app:processApplicationManifestReleaseForBundle UP-TO-DATE
+> Task :capacitor-android:writeReleaseAarMetadata UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:writeReleaseAarMetadata UP-TO-DATE
+> Task :capacitor-device:writeReleaseAarMetadata UP-TO-DATE
+> Task :capacitor-firebase-authentication:writeReleaseAarMetadata UP-TO-DATE
+> Task :capacitor-haptics:writeReleaseAarMetadata UP-TO-DATE
+> Task :capacitor-share:writeReleaseAarMetadata UP-TO-DATE
+> Task :capacitor-splash-screen:writeReleaseAarMetadata UP-TO-DATE
+> Task :capacitor-status-bar:writeReleaseAarMetadata UP-TO-DATE
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:processReleaseManifestForPackage UP-TO-DATE
+> Task :capacitor-android:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-android:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-android:generateReleaseRFile UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:generateReleaseRFile UP-TO-DATE
+> Task :capacitor-device:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-device:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-device:generateReleaseRFile UP-TO-DATE
+> Task :capacitor-firebase-authentication:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-firebase-authentication:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-firebase-authentication:generateReleaseRFile UP-TO-DATE
+> Task :capacitor-haptics:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-haptics:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-haptics:generateReleaseRFile UP-TO-DATE
+> Task :capacitor-share:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-share:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-share:generateReleaseRFile UP-TO-DATE
+> Task :capacitor-splash-screen:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-splash-screen:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-splash-screen:generateReleaseRFile UP-TO-DATE
+> Task :capacitor-status-bar:compileReleaseLibraryResources UP-TO-DATE
+> Task :capacitor-status-bar:parseReleaseLocalResources UP-TO-DATE
+> Task :capacitor-status-bar:generateReleaseRFile UP-TO-DATE
+> Task :app:processReleaseResources UP-TO-DATE
+> Task :app:bundleReleaseResources UP-TO-DATE
+> Task :app:extractReleaseVersionControlInfo UP-TO-DATE
+> Task :capacitor-android:javaPreCompileRelease UP-TO-DATE
+> Task :capacitor-android:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :capacitor-android:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :capacitor-firebase-authentication:javaPreCompileRelease UP-TO-DATE
+> Task :capacitor-firebase-authentication:compileReleaseJavaWithJavac FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/ppipa/OneDrive/Documents/GitHub/dayStory/DayStory/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':capacitor-firebase-authentication:compileReleaseJavaWithJavac'.
+> java.io.IOException: Unable to delete directory 'C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes'
+    Failed to delete some children. This might happen because a process has files open or has its working directory set in the target directory.
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins\firebase\authentication\classes\options
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins\firebase\authentication\classes\results
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins\firebase\authentication\classes
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins\firebase\authentication\handlers
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins\firebase\authentication\interfaces
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins\firebase\authentication
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins\firebase
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs\plugins
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome\capacitorjs
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io\capawesome
+    - C:\Users\ppipa\OneDrive\Documents\GitHub\dayStory\DayStory\node_modules\@capacitor-firebase\authentication\android\build\intermediates\javac\release\compileReleaseJavaWithJavac\classes\io
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 4s
+104 actionable tasks: 1 executed, 103 up-to-date

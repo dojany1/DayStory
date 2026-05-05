@@ -1028,6 +1028,21 @@
   color: var(--color-accent);
 }
 
+.badge-draft {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.badge-scheduled {
+  background: rgba(20, 173, 229, 0.14);
+  color: var(--color-info);
+}
+
+.badge-archived {
+  background: var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
 /* 성공 뱃지 — 초록 계열 배경 */
 .badge-success {
   background: rgba(76, 175, 80, 0.15);

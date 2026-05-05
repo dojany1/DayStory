@@ -1538,58 +1538,212 @@
    9. 에디터 페이지
    ============================================
    관리자가 일화를 추가/수정/삭제하는 페이지이다.
-   통계 + 필터 + 일화 목록으로 구성된다.
+   통계 + 필터 + 월간 캘린더로 구성된다.
 */
 
 /* 에디터 페이지 전체 */
 .editor-page {
-  padding: var(--space-5);
-}
-
-/* 에디터 통계 카드 그룹 — 가로 배치 */
-.editor-stats {
+  padding: var(--space-3) var(--space-4) var(--space-6);
   display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  margin: var(--space-3) 0;
 }
 
-/* 개별 통계 카드 (클릭 시 필터 역할) */
-.editor-stat {
-  /* 1. Positioning */
-  flex: 1;
-  /* 2. Box Model */
-  padding: var(--space-2);
-  /* 3. Typography */
-  text-align: center; 
-  /* 4. Visuals */
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-  border: 2px solid transparent;
-  /* 5. Misc */
+.editor-calendar-header {
+  padding-top: var(--space-2);
+}
+
+.editor-calendar-title-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.editor-new-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-bg-primary);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-/* 활성화된 통계 카드 — 선택된 필터 강조 */
+/* 에디터 필터 — 일반 캘린더 토글과 같은 작은 세그먼트 컨트롤 */
+.editor-stats {
+  display: inline-flex;
+  align-self: center;
+  width: min(100%, 300px);
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-secondary);
+  margin: 0;
+}
+
+/* 개별 필터 버튼 */
+.editor-stat {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
+  text-align: center;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  font: inherit;
+}
+
 .editor-stat.active {
-  border-color: var(--color-accent);
+  color: var(--color-bg-primary);
+  background: var(--color-accent);
+}
+
+.editor-stat-value {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: currentColor;
+  letter-spacing: 0;
+}
+
+.editor-stat-label {
+  font-size: var(--text-xs);
+  color: currentColor;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.editor-month-nav {
+  margin-top: var(--space-1);
+}
+
+.editor-calendar-grid {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  padding: 0;
+  display: grid;
+}
+
+.editor-calendar-cell {
+  aspect-ratio: 3 / 4;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 0;
+  padding: 4px 4px 0;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-calendar-cell:not(.editor-calendar-cell-blank):active {
+  transform: scale(.96);
+}
+
+.editor-calendar-cell-blank {
+  cursor: default;
+  background: transparent;
+  border: 0;
+}
+
+.editor-calendar-cell-empty {
   background: var(--color-bg-card);
 }
 
-/* 통계 숫자 값 */
-.editor-stat-value {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--color-accent);
-  letter-spacing: 0.5px;
+.editor-calendar-stories {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  margin-top: 4px;
 }
 
-/* 통계 라벨 */
-.editor-stat-label {
-  font-size: var(--text-xs);
+.editor-calendar-story {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.editor-calendar-thumb {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-calendar-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.editor-calendar-thumb-placeholder {
   color: var(--color-text-tertiary);
-  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.editor-calendar-story-title {
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-calendar-story-meta {
+  font-size: .62rem;
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-calendar-story .badge {
+  width: fit-content;
+  padding: 1px 5px;
+  font-size: .58rem;
+  line-height: 1.2;
+}
+
+.editor-calendar-actions {
+  display: none;
+}
+
+.editor-calendar-empty-mark {
+  margin: auto;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  opacity: .45;
 }
 
 /* 에디터 일화 목록 — 세로 나열 */

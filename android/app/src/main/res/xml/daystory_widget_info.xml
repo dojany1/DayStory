@@ -9,5 +9,4 @@
     android:previewLayout="@layout/widget_daystory"
     android:resizeMode="none"
     android:widgetCategory="home_screen"
-    android:configure=""
     android:description="@string/widget_description" />

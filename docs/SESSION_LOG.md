@@ -316,3 +316,29 @@ Antigravity 가 파일을 망가뜨린 뒤 어설프게 복구해 더 이상해�
 **변경파일:**
 - `src/js/firebase.js`
 - `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-05 13:24 — Codex CLI
+
+**요구사항:**
+`docs/SESSION_LOG.md`의 2026-05-04 업데이트 내용을 참고해 누락된 기능을 다시 구현.
+
+**구현방법:**
+- 2026-05-04 최종 상태 기준으로 관리자 콘텐츠 관리 페이지를 세로 리스트에서 월간 캘린더 그리드로 복구. 날짜 셀 클릭은 `/editor/new?date=YYYY-MM-DD`, 기존 일화 클릭은 편집 이동으로 유지.
+- 11:44 로그의 최종 결정에 따라 홈/나의 일화 side peek은 되살리지 않고, 테스트로 `.card-side-peek` 미생성을 고정.
+- 10:24 로그의 위젯 오류 수정에 맞춰 `daystory_widget_info.xml`의 빈 `android:configure=""` 제거.
+- 0바이트였던 AndroidManifest를 5월 4일 복구 로그 기준으로 되살려 알림 권한, 위젯 receiver, `daystory://` 딥링크를 복구.
+- Gradle 9 환경에서 Android 검증을 막던 기본 ProGuard 파일명을 `proguard-android-optimize.txt`로 갱신.
+- 회귀 테스트 추가: 관리자 캘린더 렌더링, 날짜 프리필, 위젯 configure 제거, 캘린더 CSS.
+- 검증: `npm test` 6 files / 47 tests 통과, `npm run build` 성공, `npx cap sync android` 성공, `android/gradlew.bat assembleDebug` 성공.
+
+**변경파일:**
+- `src/js/pages/editor.js`
+- `src/css/pages.css`
+- `src/css/components.css`
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/res/xml/daystory_widget_info.xml`
+- `android/app/build.gradle`
+- `tests/editor_management_calendar.spec.js`
+- `docs/SESSION_LOG.md`

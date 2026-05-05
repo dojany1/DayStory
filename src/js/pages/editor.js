@@ -16,12 +16,11 @@
 import { navigate, setBeforeNavigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { getState } from '../state.js';
+import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import {
   fetchAllStoriesEditor,
   createStory,
   updateStory,
-  deleteStory,
-  publishStory,
   uploadImage,
   fetchStoryById
 } from '../services/stories.js';
@@ -54,39 +53,64 @@ export function renderEditor() {
     return page;
   }
 
-  /* ---- 페이지 HTML 구조 생성 ---- */
   page.innerHTML = `
-    <!-- 헤더: 제목 + 새 일화 버튼 -->
-    <div class="page-header">
-      <h1 class="page-header-title">콘텐츠 관리</h1>
-      <button class="btn btn-primary" id="editor-new" style="padding:var(--space-2) var(--space-4);font-size:var(--text-sm);">
-        + 새 일화
+    <div class="editor-calendar-header calendar-header">
+      <div class="editor-calendar-title-row">
+        <button class="page-header-back" id="editor-back" aria-label="뒤로가기">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="calendar-title">콘텐츠 관리</h1>
+        <button class="editor-new-btn" id="editor-new" type="button">새 일화</button>
+      </div>
+    </div>
+
+    <div class="editor-stats" id="editor-stats">
+      <button type="button" class="editor-stat active" data-filter="all"><span class="editor-stat-label">전체</span><span class="editor-stat-value" id="stat-total">-</span></button>
+      <button type="button" class="editor-stat" data-filter="published"><span class="editor-stat-label">발행</span><span class="editor-stat-value" id="stat-published">-</span></button>
+      <button type="button" class="editor-stat" data-filter="scheduled"><span class="editor-stat-label">예약</span><span class="editor-stat-value" id="stat-scheduled">-</span></button>
+      <button type="button" class="editor-stat" data-filter="draft"><span class="editor-stat-label">초안</span><span class="editor-stat-value" id="stat-draft">-</span></button>
+    </div>
+
+    <div class="calendar-month-nav editor-month-nav">
+      <button type="button" class="calendar-month-arrow" id="editor-prev-month" aria-label="이전 달">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="calendar-month-label" id="editor-month-label">-</div>
+      <button type="button" class="calendar-month-arrow" id="editor-next-month" aria-label="다음 달">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
       </button>
     </div>
 
-    <!-- 통계 카드: 전체/발행/초안/예약 개수 (클릭 시 필터 역할) -->
-    <div class="editor-stats" id="editor-stats">
-      <div class="editor-stat active" data-filter="all"><span class="editor-stat-value" id="stat-total">-</span><span class="editor-stat-label">전체</span></div>
-      <div class="editor-stat" data-filter="published"><span class="editor-stat-value" id="stat-published">-</span><span class="editor-stat-label">발행됨</span></div>
-      <div class="editor-stat" data-filter="scheduled"><span class="editor-stat-value" id="stat-scheduled">-</span><span class="editor-stat-label">예약</span></div>
-      <div class="editor-stat" data-filter="draft"><span class="editor-stat-value" id="stat-draft">-</span><span class="editor-stat-label">초안</span></div>
+    <div class="calendar-weekdays editor-calendar-weekdays" aria-hidden="true">
+      <div class="calendar-weekday sun">일</div>
+      <div class="calendar-weekday">월</div>
+      <div class="calendar-weekday">화</div>
+      <div class="calendar-weekday">수</div>
+      <div class="calendar-weekday">목</div>
+      <div class="calendar-weekday">금</div>
+      <div class="calendar-weekday sat">토</div>
     </div>
 
-    <!-- 일화 목록 -->
-    <div id="editor-list" class="editor-list">
-      <div style="display:flex;justify-content:center;padding:var(--space-8);">
-        <div class="loading-spinner"></div>
-      </div>
+    <div id="editor-calendar-grid" class="editor-calendar-grid calendar-grid">
+      <div class="calendar-grid-loading"><div class="loading-spinner"></div></div>
     </div>
   `;
 
   let allStories = [];
   let currentFilter = 'all';
+  const now = new Date();
+  let visibleYear = now.getFullYear();
+  let visibleMonth = now.getMonth();
 
   async function loadStories() {
     allStories = await fetchAllStoriesEditor();
+    const initial = getLatestStoryDate(allStories);
+    if (initial) {
+      visibleYear = initial.year;
+      visibleMonth = initial.monthIndex;
+    }
     updateStats();
-    renderList();
+    renderCalendar();
   }
 
   function updateStats() {
@@ -98,80 +122,123 @@ export function renderEditor() {
     el('stat-scheduled').textContent = allStories.filter(s => s.status === 'scheduled').length;
   }
 
-  function renderList() {
-    const listEl = document.getElementById('editor-list');
-    if(!listEl) return;
-    const filtered = currentFilter === 'all'
-      ? allStories
-      : allStories.filter(s => s.status === currentFilter);
+  function renderCalendar() {
+    const gridEl = page.querySelector('#editor-calendar-grid');
+    const labelEl = page.querySelector('#editor-month-label');
+    if (!gridEl || !labelEl) return;
 
-    if (!filtered.length) {
-      listEl.innerHTML = `
-        <div class="empty-state" style="padding:var(--space-6);">
-          <div class="empty-state-title">아직 콘텐츠가 없습니다</div>
-        </div>
-      `;
-      return;
+    labelEl.textContent = `${visibleYear}년 ${visibleMonth + 1}월`;
+
+    const firstDay = new Date(visibleYear, visibleMonth, 1).getDay();
+    const lastDate = new Date(visibleYear, visibleMonth + 1, 0).getDate();
+    const cells = [];
+
+    for (let i = 0; i < firstDay; i += 1) {
+      cells.push('<div class="editor-calendar-cell editor-calendar-cell-blank cal-cell cal-cell-blank" aria-hidden="true"></div>');
     }
 
-    listEl.innerHTML = filtered.map(story => {
-      const d = new Date(story.publish_date);
-      const dateStr = `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
+    for (let day = 1; day <= lastDate; day += 1) {
+      const isoDate = formatIsoDate(visibleYear, visibleMonth, day);
+      const stories = getStoriesForDate(isoDate);
+      const weekday = new Date(visibleYear, visibleMonth, day).getDay();
+      const weekdayClass = weekday === 0 ? ' sun' : weekday === 6 ? ' sat' : '';
+      const storyClass = stories.length ? ' editor-calendar-cell-has-story' : ' editor-calendar-cell-empty';
 
-      const statusBadge = {
-        published: '<span class="badge badge-accent">발행됨</span>',
-        draft: '<span class="badge" style="background:var(--color-text-tertiary);color:#fff;">초안</span>',
-        scheduled: '<span class="badge" style="background:var(--color-info);color:#fff;">예약</span>',
-        archived: '<span class="badge" style="background:var(--color-bg-secondary);">보관</span>',
-      }[story.status] || '';
-
-      return `
-        <div class="editor-item" data-id="${story.id}">
-          <div class="editor-item-thumb">
-            ${story.image_url
-              ? `<img src="${story.image_url}" alt="" />`
-              : '<div style="width:100%;height:100%;background:var(--color-bg-secondary);display:flex;align-items:center;justify-content:center;">📷</div>'}
+      cells.push(`
+        <div class="editor-calendar-cell cal-cell${weekdayClass}${storyClass}" data-date="${isoDate}" role="button" tabindex="0">
+          <div class="cal-cell-day">${day}</div>
+          <div class="editor-calendar-stories">
+            ${stories.map(renderCalendarStory).join('')}
           </div>
-          <div class="editor-item-info">
-            <div class="editor-item-meta">${dateStr} · ${story.country || '-'} ${statusBadge}</div>
-            <div class="editor-item-title">${story.title || story.figure_name}</div>
-          </div>
-          <div class="editor-item-actions">
-            <button class="editor-edit-btn" data-id="${story.id}" aria-label="편집">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-            </button>
-            <button class="editor-delete-btn" data-id="${story.id}" aria-label="삭제">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-            </button>
-          </div>
+          ${stories.length ? '' : '<div class="editor-calendar-empty-mark">+</div>'}
         </div>
-      `;
-    }).join('');
+      `);
+    }
 
-    listEl.querySelectorAll('.editor-edit-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        navigate(`/editor/new?edit=${btn.dataset.id}`);
+    gridEl.innerHTML = cells.join('');
+
+    gridEl.querySelectorAll('.editor-calendar-cell[data-date]').forEach((cell) => {
+      const openNewStory = () => navigate(`/editor/new?date=${cell.dataset.date}`);
+      cell.addEventListener('click', (event) => {
+        if (event.target.closest('.editor-calendar-story')) return;
+        openNewStory();
+      });
+      cell.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openNewStory();
+        }
       });
     });
 
-    listEl.querySelectorAll('.editor-delete-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (confirm('이 일화를 삭제하시겠습니까?')) {
-          try {
-            await deleteStory(btn.dataset.id);
-            showToast('삭제 완료', 'success');
-            loadStories();
-          } catch (err) {
-            showToast('삭제 실패: ' + err.message, 'error');
-          }
-        }
+    gridEl.querySelectorAll('.editor-calendar-story').forEach((storyEl) => {
+      storyEl.addEventListener('click', (event) => {
+        event.stopPropagation();
+        navigate(`/editor/new?edit=${storyEl.dataset.id}`);
       });
     });
   }
 
+  function getStoriesForDate(isoDate) {
+    return allStories
+      .filter((story) => story.publish_date === isoDate)
+      .filter((story) => currentFilter === 'all' || story.status === currentFilter);
+  }
+
+  function renderCalendarStory(story) {
+    const title = escapeHtml(story.title || story.figure_name || '제목 없음');
+    const country = escapeHtml(story.country || '');
+    const imageUrl = sanitizeUrl(story.image_url || '');
+    const badge = getStatusBadge(story.status);
+
+    return `
+      <button type="button" class="editor-calendar-story" data-id="${escapeHtml(story.id)}">
+        <span class="editor-calendar-thumb">
+          ${imageUrl
+            ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />`
+            : '<span class="editor-calendar-thumb-placeholder">+</span>'}
+        </span>
+        <span class="editor-calendar-story-title">${title}</span>
+        <span class="editor-calendar-story-meta">${country}</span>
+        ${badge}
+        <span class="editor-calendar-actions" aria-hidden="true"></span>
+      </button>
+    `;
+  }
+
+  function getStatusBadge(status) {
+    const statusMap = {
+      published: ['badge-accent', '발행됨'],
+      draft: ['badge-draft', '초안'],
+      scheduled: ['badge-scheduled', '예약'],
+      archived: ['badge-archived', '보관'],
+    };
+    const [className, label] = statusMap[status] || ['', status || '상태 없음'];
+    return `<span class="badge ${className}">${escapeHtml(label)}</span>`;
+  }
+
+  function getLatestStoryDate(stories) {
+    const latest = [...stories]
+      .filter((story) => isIsoDate(story.publish_date))
+      .sort((a, b) => b.publish_date.localeCompare(a.publish_date))[0];
+    if (!latest) return null;
+    const [year, month] = latest.publish_date.split('-').map(Number);
+    return { year, monthIndex: month - 1 };
+  }
+
+  function formatIsoDate(year, monthIndex, day) {
+    return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  function isIsoDate(value) {
+    return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  }
+
   setTimeout(() => {
+    document.getElementById('editor-back')?.addEventListener('click', () => {
+      history.back();
+    });
+
     document.getElementById('editor-new')?.addEventListener('click', () => {
       navigate('/editor/new');
     });
@@ -182,8 +249,26 @@ export function renderEditor() {
         page.querySelectorAll('.editor-stat').forEach(s => s.classList.remove('active'));
         stat.classList.add('active');
         currentFilter = stat.dataset.filter;
-        renderList();
+        renderCalendar();
       });
+    });
+
+    document.getElementById('editor-prev-month')?.addEventListener('click', () => {
+      visibleMonth -= 1;
+      if (visibleMonth < 0) {
+        visibleMonth = 11;
+        visibleYear -= 1;
+      }
+      renderCalendar();
+    });
+
+    document.getElementById('editor-next-month')?.addEventListener('click', () => {
+      visibleMonth += 1;
+      if (visibleMonth > 11) {
+        visibleMonth = 0;
+        visibleYear += 1;
+      }
+      renderCalendar();
     });
 
     loadStories();
@@ -210,9 +295,11 @@ export function renderEditorNew() {
 
   const hash = window.location.hash;
   let editingId = null;
+  let prefillDate = null;
   if(hash.includes('?')) {
     const urlParams = new URLSearchParams(hash.split('?')[1]);
     editingId = urlParams.get('edit');
+    prefillDate = urlParams.get('date');
   }
 
   page.innerHTML = `
@@ -348,6 +435,8 @@ export function renderEditorNew() {
         document.getElementById('sf-editor-comment').value = story.editor_comment || (story.editor && story.editor.comment) || '';
         hasLoadedData = true;
       }
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(prefillDate || '')) {
+      document.getElementById('sf-publish-date').value = prefillDate;
     }
     
     // 뒤로가기

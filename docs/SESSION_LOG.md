@@ -342,3 +342,33 @@ Antigravity 가 파일을 망가뜨린 뒤 어설프게 복구해 더 이상해�
 - `android/app/build.gradle`
 - `tests/editor_management_calendar.spec.js`
 - `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-05 15:55 — Claude Code
+
+**요구사항:**
+3개 버그 한 번에 적용. (1) 사진 편집(추가) 모달의 나가기 버튼 누락 + 좌측 회전 아이콘 깨짐 + 다크모드 우측 확인 버튼 글자 안 보임. (2) 홈 카드 날짜가 캘린더와 동기화 안 됨 (오늘 5월 1일인데 4월 30일 카드 표시). (3) 앱 아이콘이 기본 안드로이드 마스코트 그대로 (DayStory 브랜딩 미적용).
+
+**구현방법:**
+- #1-A `editor.js openCropModal` 의 `crop-modal-header` 좌측에 X 닫기 버튼(`btn-crop-cancel`) 추가, 누르면 `cropper.destroy()` + `overlay.remove()` (cross-origin blob URL revoke 포함).
+- #1-B `btn-crop-rotate` SVG path 를 viewBox 밖으로 튀어나가던 기존 path → lucide `rotate-cw` 표준 path 로 교체 (`M21 12a9 9 0 1 1-3-6.7 / M21 3v5h-5`).
+- #1-C `components.css .btn-crop-confirm` 글자색 `var(--color-text-on-image)`(라이트/다크 모두 #fff) → `var(--color-text-inverse)`(라이트=#fff, 다크=#111). 다크모드에서 흰 배경 + 흰 글자 충돌 해소. `profile.js` 의 동일 모달도 같은 클래스 사용해 자동 반영.
+- #2 `editorstory.js loadEditorStoryData` 의 `today` 기준을 `fetchedStory.publish_date` → `getLocalToday()` 로 변경. 오늘 날짜에 매칭되는 story 가 없으면 빈 카드(`아직 기록되지 않은 날입니다.`) + 휠은 실제 오늘 날짜에 포커싱. `allStoriesPromise` 도착 시점에 오늘 카드가 발견되면 갱신. `calendar.js` 와 동일 기준 사용.
+- #3 `assets/icon-foreground.png` (icon-only.png 복사) 추가 후 `npx capacitor-assets generate --android --iconBackgroundColor "#FFF8F0" --iconBackgroundColorDark "#000000"` 실행. 생성된 `mipmap-anydpi-v26/ic_launcher{,_round}.xml` 의 background drawable 참조가 존재하지 않는 mipmap PNG 를 가리켜 빌드 깨지는 문제를 `@color/ic_launcher_background` 참조로 우회. `values/ic_launcher_background.xml` 색상을 `#FFFFFF` → `#FFF8F0` (라이트 아이콘 배경 톤) 로 변경. `npx cap sync android` 완료.
+- 테스트 정합성: `editorstory.ui.spec.js` 에 `getLocalToday` mock 추가 (테스트 mock story 의 `publish_date` 와 시스템 today 일치시키기 위해 `'2026-04-24'` 반환). `regression.bugs.spec.js` 의 swipe 회귀 테스트에 `vi.setSystemTime('2026-04-26')` 추가.
+- 검증: `npm test` 11 files **101/101 통과**, `npm run build` 성공.
+
+**변경파일:**
+- `src/js/pages/editor.js`
+- `src/css/components.css`
+- `src/js/pages/editorstory.js`
+- `tests/editorstory.ui.spec.js`
+- `tests/regression.bugs.spec.js`
+- `assets/icon-foreground.png` (새 파일)
+- `android/app/src/main/res/mipmap-{ldpi,mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/ic_launcher{,_round,_foreground}.png` (재생성)
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+- `android/app/src/main/res/values/ic_launcher_background.xml`
+- `android/app/src/main/assets/capacitor.config.json` (cap sync)
+- `docs/SESSION_LOG.md`

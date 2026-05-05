@@ -6,11 +6,12 @@
      - Auth(인증)와 Firestore(데이터베이스) 인스턴스를 만들어 내보냅니다.
 
    보안 사항:
-     - API 키 등은 .env 파일에서 불러옵니다 (VITE_ 접두사 필요).
+     - .env 파일의 VITE_FIREBASE_* 값이 있으면 그 값을 우선 사용합니다.
      - .env 파일은 .gitignore에 의해 Git에 올라가지 않습니다.
+     - 아래 기본값은 2026-05-05에 12.aab 웹 번들에서 복구한 Firebase 공개 설정입니다.
 
-   환경변수 미설정 시:
-     - 폴백(fallback) 객체를 사용해 앱이 멈추지 않고 게스트 모드로 동작합니다.
+   환경변수와 기본값 모두 미설정 시:
+     - Firebase를 초기화하지 않고 게스트 모드로 동작합니다.
    ===================================================================== */
 
 import { initializeApp } from 'firebase/app';
@@ -23,22 +24,22 @@ import {
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-/*
- * .env 파일에 아래처럼 설정합니다:
- *   VITE_FIREBASE_API_KEY=AIzaSy...
- *   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
- *   VITE_FIREBASE_PROJECT_ID=your-project
- *   VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
- *   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
- *   VITE_FIREBASE_APP_ID=1:123456789:web:abc123
- */
+const aabFirebaseConfig = {
+  apiKey: 'AIzaSyChrxkQDK9gdE493vL-skW2WdQxa8LDOY0',
+  authDomain: 'dokhu-daystory.firebaseapp.com',
+  projectId: 'dokhu-daystory',
+  storageBucket: 'dokhu-daystory.firebasestorage.app',
+  messagingSenderId: '1063822349351',
+  appId: '1:1063822349351:web:1f3eb5f05b361d2de32a02',
+};
+
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY || aabFirebaseConfig.apiKey,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || aabFirebaseConfig.authDomain,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID || aabFirebaseConfig.projectId,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || aabFirebaseConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || aabFirebaseConfig.messagingSenderId,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID || aabFirebaseConfig.appId,
 };
 
 /*

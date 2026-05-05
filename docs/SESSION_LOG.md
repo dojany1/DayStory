@@ -299,3 +299,20 @@ Antigravity 가 파일을 망가뜨린 뒤 어설프게 복구해 더 이상해�
 - `scripts/session-checkpoint.sh`
 - `../.claude/settings.json`
 - `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-05 13:08 — Codex CLI
+
+**요구사항:**
+자동 GitHub 백업이 앞으로 동작하는지 확인하고, `12.aab`와 docs를 참고해 Firebase 연결을 복구하고 세션별 업데이트를 다시 기록.
+
+**구현방법:**
+- 자동 백업은 `recovery` 브랜치 Stop hook + 체크포인트 스크립트로 동작함을 확인.
+- `12.aab` 웹 번들에서 `dokhu-daystory` Firebase 웹 설정을 확인하고, `.env` 값이 없을 때도 해당 공개 설정으로 초기화되도록 `src/js/firebase.js` 기본값을 복구.
+- `.env`가 있으면 기존처럼 `VITE_FIREBASE_*` 값이 우선되도록 유지.
+- 검증: `npm run build` 성공, 번들에 `dokhu-daystory` Firebase 설정 포함 확인, `npm test` 5 files / 42 tests 통과.
+
+**변경파일:**
+- `src/js/firebase.js`
+- `docs/SESSION_LOG.md`

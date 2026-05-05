@@ -1909,6 +1909,144 @@
 
 
 /* ============================================
+   12-X. 포커싱 말풍선 튜토리얼 (Tutorial Tour)
+   ============================================
+   tutorialTour.js 가 사용하는 스포트라이트 + 말풍선 UI.
+   세션 1 #3: 좁은 모바일에서 말풍선이 화면 밖으로 잘리지 않도록
+              max-height 와 overflow-y:auto 를 추가했다.
+*/
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 250ms ease;
+  pointer-events: auto;
+}
+.tour-overlay.visible { opacity: 1; }
+
+.tutorial-tour-layer {
+  pointer-events: auto;
+}
+
+.tour-hole {
+  position: fixed;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48);
+  pointer-events: none;
+  transition: left 200ms ease, top 200ms ease, width 200ms ease, height 200ms ease;
+}
+
+.tour-bubble {
+  position: fixed;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  color: var(--color-text-primary);
+  pointer-events: auto;
+  z-index: 10001;
+  --arrow-left: 50%;
+  /* 좁은 모바일 화면에서 말풍선이 화면 밖으로 잘리지 않도록 높이 제한 + 내부 스크롤 (세션 1 #3) */
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.tour-bubble[data-placement="below"]::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: var(--arrow-left);
+  width: 14px;
+  height: 14px;
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.tour-bubble[data-placement="above"]::before {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: var(--arrow-left);
+  width: 14px;
+  height: 14px;
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.tour-bubble-progress {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-2);
+}
+
+.tour-bubble-title {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+  line-height: 1.35;
+}
+
+.tour-bubble-body {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.tour-bubble-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.tour-btn-prev,
+.tour-btn-next {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 80ms;
+}
+
+.tour-btn-prev {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.tour-btn-next {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+
+.tour-btn-prev:active,
+.tour-btn-next:active {
+  transform: translateY(1px);
+}
+
+.tour-btn-prev:disabled,
+.tour-btn-next:disabled {
+  cursor: default;
+  opacity: 0.6;
+  transform: none;
+}
+
+
+/* ============================================
    13. 프로필 편집 모달
    ============================================
    로그인 사용자가 닉네임과 프로필 사진을
@@ -2183,3 +2321,474 @@
   /* 4. Visuals */
   /* 5. Misc */
 }
+
+
+/* ============================================================
+   ===== 5월 1일 AAB 복원 — 추가 페이지 스타일 =====
+   ============================================================
+   Antigravity 가 손상시키기 전 사용자가 4월 26일 이후 추가했던
+   캘린더, 설정, 디테일, 에디터, 마이스토리 빈 상태, 크롭 취소
+   버튼 스타일을 release AAB index-p6n7li6U.css 에서 복원.
+*/
+
+
+/* ===== 캘린더 페이지 (5월 1일 AAB) ===== */
+.calendar-page {
+  padding:var(--space-3) var(--space-4) var(--space-6);
+  gap:var(--space-3);
+  flex-direction:column;
+  display:flex}
+
+.calendar-header {
+  align-items:center;
+  gap:var(--space-3);
+  padding-top:var(--space-2);
+  flex-direction:column;
+  display:flex}
+
+.calendar-title {
+  font-family:var(--font-display,var(--font-sans));
+  font-size:var(--text-2xl);
+  letter-spacing:-.02em;
+  text-align:center;
+  width:100%;
+  margin:0;
+  font-weight:800}
+
+.calendar-toggle {
+  background:var(--color-bg-secondary);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-full);
+  align-self:center;
+  width:min(100%,240px);
+  padding:4px;
+  display:inline-flex;
+  position:relative}
+
+.calendar-toggle-btn {
+  z-index:2;
+  padding:var(--space-2) var(--space-5);
+  border-radius:var(--radius-full);
+  font-family:var(--font-sans);
+  font-size:var(--text-sm);
+  color:var(--color-text-secondary);
+  text-align:center;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:color var(--transition-fast);
+  -webkit-tap-highlight-color:transparent;
+  background:0 0;
+  border:0;
+  flex:1 1 0;
+  font-weight:600;
+  position:relative}
+
+.calendar-toggle-btn.active {
+  color:var(--color-bg-primary)}
+
+.calendar-toggle-thumb {
+  border-radius:var(--radius-full);
+  background:var(--color-accent);
+  z-index:1;
+  width:calc(50% - 4px);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+  position:absolute;
+  top:4px;
+  bottom:4px;
+  left:4px}
+
+.calendar-toggle[data-mode=mine] .calendar-toggle-thumb {
+  transform:translate(100%)}
+
+.calendar-month-nav {
+  justify-content:center;
+  align-items:center;
+  gap:var(--space-4);
+  padding:var(--space-1) 0;
+  display:flex}
+
+.calendar-month-arrow {
+  width:36px;
+  height:36px;
+  color:var(--color-text-primary);
+  border-radius:var(--radius-full);
+  cursor:pointer;
+  transition:background var(--transition-fast), opacity var(--transition-fast);
+  background:0 0;
+  border:0;
+  justify-content:center;
+  align-items:center;
+  display:flex}
+
+.calendar-month-arrow:active {
+  background:var(--color-bg-secondary)}
+
+.calendar-month-arrow:disabled,.calendar-month-arrow.disabled {
+  opacity:.3;
+  cursor:default;
+  pointer-events:none}
+
+.calendar-month-label {
+  text-align:center;
+  min-width:9rem;
+  font-family:var(--font-sans);
+  font-size:var(--text-lg);
+  letter-spacing:-.01em;
+  font-weight:700}
+
+.calendar-weekdays {
+  text-align:center;
+  font-size:var(--text-xs);
+  color:var(--color-text-tertiary);
+  letter-spacing:.04em;
+  grid-template-columns:repeat(7,1fr);
+  padding:0 2px;
+  font-weight:600;
+  display:grid}
+
+.calendar-weekday {
+  padding:4px 0}
+
+.calendar-weekday.sun {
+  color:var(--color-sunday)}
+
+.calendar-weekday.sat {
+  color:var(--color-saturday)}
+
+.calendar-grid {
+  grid-template-columns:repeat(7,1fr);
+  gap:0;
+  padding:0;
+  display:grid}
+
+.calendar-grid-loading {
+  padding:var(--space-8);
+  grid-column:1/-1;
+  justify-content:center;
+  display:flex}
+
+.cal-cell {
+  aspect-ratio:3/4;
+  background:var(--color-bg-card);
+  border:1px solid var(--color-border);
+  cursor:pointer;
+  text-align:left;
+  font:inherit;
+  color:var(--color-text-primary);
+  transition:transform var(--transition-fast), border-color var(--transition-fast);
+  border-radius:0;
+  flex-direction:column;
+  align-items:stretch;
+  padding:4px 4px 0;
+  display:flex;
+  position:relative;
+  overflow:hidden}
+
+.cal-cell:not(:disabled):active {
+  transform:scale(.96)}
+
+.cal-cell-blank {
+  cursor:default;
+  background:0 0;
+  border:0}
+
+.cal-cell-empty {
+  cursor:default}
+
+.cal-cell-mine-write {
+  cursor:pointer}
+
+.cal-cell-future .cal-cell-day {
+  opacity:.35}
+
+.cal-cell-today {
+  border-color:var(--color-accent)}
+
+.cal-cell-day {
+  z-index:2;
+  font-family:var(--font-body,var(--font-sans));
+  color:var(--color-text-primary);
+  font-size:.78rem;
+  font-weight:700;
+  line-height:1;
+  position:relative}
+
+.cal-cell.sun .cal-cell-day {
+  color:var(--color-sunday)}
+
+.cal-cell.sat .cal-cell-day {
+  color:var(--color-saturday)}
+
+.cal-cell-peek {
+  background:var(--color-bg-card);
+  border:1px solid var(--color-border);
+  pointer-events:none;
+  z-index:1;
+  border-bottom:none;
+  border-radius:0;
+  flex-direction:column;
+  height:88%;
+  display:flex;
+  position:absolute;
+  bottom:-38%;
+  left:6%;
+  right:6%;
+  overflow:hidden}
+
+.cal-cell-peek-img {
+  object-fit:cover;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-user-drag:none;
+  width:100%;
+  height:100%;
+  display:block}
+
+.cal-cell-peek-title {
+  color:var(--color-text-on-image);
+  text-shadow:0 1px 2px #000000b3;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  background:linear-gradient(#0000 0%,#00000040 40%,#000000a6 100%);
+  padding:16px 4px 4px;
+  font-size:.55rem;
+  font-weight:800;
+  line-height:1.1;
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  overflow:hidden}
+
+.cal-cell-has-story:hover {
+  border-color:var(--color-accent-border,var(--color-border))}
+
+.calendar-card-popup {
+  z-index:var(--z-modal,200);
+  padding:var(--space-5);
+  background:var(--color-bg-overlay);
+  opacity:0;
+  pointer-events:none;
+  justify-content:center;
+  align-items:center;
+  transition:opacity .22s;
+  display:flex;
+  position:fixed;
+  inset:0}
+
+.calendar-card-popup.open {
+  opacity:1;
+  pointer-events:auto}
+
+.calendar-card-popup-inner {
+  align-items:center;
+  gap:var(--space-3);
+  flex-direction:column;
+  width:100%;
+  max-width:360px;
+  transition:transform .28s cubic-bezier(.16,1,.3,1);
+  display:flex;
+  position:relative;
+  transform:translateY(12px)scale(.97)}
+
+.calendar-card-popup.open .calendar-card-popup-inner {
+  transform:translateY(0)scale(1)}
+
+.calendar-card-popup-close {
+  color:#fff;
+  cursor:pointer;
+  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(6px);
+  width:36px;
+  height:36px;
+  transition:background var(--transition-fast);
+  background:#ffffff1f;
+  border:0;
+  border-radius:50%;
+  justify-content:center;
+  align-self:flex-end;
+  align-items:center;
+  display:flex}
+
+.calendar-card-popup-close:active {
+  background:#ffffff38}
+
+.calendar-card-popup-stage {
+  width:100%}
+
+.calendar-card-popup-stage .flip-container {
+  width:100%;
+  min-width:0;
+  aspect-ratio:var(--card-aspect-ratio)}
+
+.calendar-card-popup-stage .flipper {
+  width:100%;
+  height:100%;
+  aspect-ratio:unset}
+
+.calendar-card-popup .back-footer {
+  justify-content:flex-end}
+
+.calendar-card-popup .back-date-actions {
+  align-items:flex-end;
+  max-width:58%;
+  margin-left:auto}
+
+.calendar-card-popup .card-detail-shortcut-btn {
+  max-width:100%}
+
+.calendar-card-popup-hint {
+  font-size:var(--text-xs);
+  color:#ffffffbf;
+  letter-spacing:.02em}
+
+
+/* ===== 설정 페이지 헤더 & 행 (5월 1일 AAB) ===== */
+
+.settings-main-header {
+  text-align:center;
+  padding:var(--space-4) var(--space-5) var(--space-2);
+  justify-content:center}
+
+.settings-main-header .page-header-title {
+  font-size:var(--text-2xl);
+  margin:0;
+  font-weight:800}
+
+.settings-page-header {
+  height:60px;
+  padding:0 var(--space-4)}
+
+.settings-page-header .page-header-title {
+  margin:0;
+  line-height:1}
+
+.settings-row-danger {
+  color:var(--color-error)}
+
+.settings-row-muted {
+  color:var(--color-text-tertiary)}
+
+.settings-privacy-link {
+  margin-top:var(--space-8);
+  text-align:center;
+  margin-bottom:-12px}
+
+.settings-privacy-link a {
+  color:var(--color-text-tertiary);
+  font-size:var(--text-xs);
+  opacity:.8;
+  text-decoration:underline}
+
+.settings-version {
+  padding:var(--space-6);
+  color:var(--color-text-tertiary);
+  font-size:var(--text-xs);
+  text-align:center}
+
+.settings-subsection-title {
+  font-size:var(--text-xs);
+  color:var(--color-text-tertiary);
+  margin:var(--space-3) var(--space-5) var(--space-2);
+  letter-spacing:.04em;
+  font-weight:600}
+
+
+/* ===== 디테일 페이지 추가 (5월 1일 AAB) ===== */
+
+.detail-attribution {
+  margin-top:var(--space-6);
+  gap:var(--space-3);
+  flex-direction:column;
+  display:flex}
+
+.detail-license,.detail-sources {
+  padding:var(--space-5);
+  background:var(--color-bg-secondary);
+  border-radius:var(--radius-lg)}
+
+.detail-attribution .detail-sources {
+  margin-top:0}
+
+.detail-license-text,.detail-source-text {
+  font-size:var(--text-sm);
+  color:var(--color-text-secondary);
+  word-break:break-word;
+  line-height:1.6}
+
+.detail-source-text {
+  align-items:center;
+  gap:var(--space-3);
+  padding:var(--space-2) 0;
+  display:flex}
+
+
+/* ===== 에디터 헤더 (5월 1일 AAB) ===== */
+
+.editor-list-header {
+  padding:0}
+
+.editor-header-action {
+  border-radius:var(--radius-full);
+  background:var(--color-accent);
+  width:36px;
+  height:36px;
+  color:var(--color-text-inverse);
+  cursor:pointer;
+  transition:transform var(--transition-fast), background var(--transition-fast);
+  border:0;
+  grid-column:3;
+  justify-content:center;
+  justify-self:end;
+  align-items:center;
+  padding:0;
+  display:flex}
+
+.editor-header-action:active {
+  background:var(--color-accent-dark);
+  transform:scale(.96)}
+
+.editor-header-action svg {
+  width:20px;
+  height:20px}
+
+
+/* ===== 마이스토리 빈 상태 (5월 1일 AAB) ===== */
+
+.empty-story-content {
+  flex-direction:column;
+  align-items:center;
+  margin:auto 0;
+  display:flex}
+
+.mystory-write-icon {
+  stroke:currentColor;
+  stroke-width:2.2px;
+  flex-shrink:0;
+  width:22px;
+  height:22px;
+  display:block;
+  overflow:visible}
+
+
+/* ===== 이미지 크롭 모달 — 취소 버튼 (5월 1일 AAB) ===== */
+
+.btn-crop-cancel {
+  left:var(--space-2);
+  width:40px;
+  height:40px;
+  padding:var(--space-2);
+  color:var(--color-text-primary);
+  cursor:pointer;
+  background:0 0;
+  border:none;
+  justify-content:center;
+  align-items:center;
+  display:flex;
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%)}
+
+.btn-crop-cancel svg {
+  width:24px;
+  height:24px}

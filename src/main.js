@@ -76,6 +76,8 @@ registerRoute('/editor', () => import('./js/pages/editor.js').then(m => m.render
 registerRoute('/editor/new', () => import('./js/pages/editor.js').then(m => m.renderEditorNew()));
 registerRoute('/mystory', () => import('./js/pages/mystory.js').then(m => m.renderMyStory()));
 registerRoute('/mystory/new', () => import('./js/pages/mystory.js').then(m => m.renderMyStoryNew()));
+registerRoute('/calendar', () => import('./js/pages/calendar.js').then(m => m.renderCalendar()));
+registerRoute('/bookmarks', () => import('./js/pages/bookmarks.js').then(m => m.renderBookmarks()));
 registerRoute('/license', () => import('./js/pages/license.js').then(m => m.renderLicense()));
 
 

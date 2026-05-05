@@ -19,6 +19,11 @@ import 'cropperjs/dist/cropper.css';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
+/* 스와이프 commit 가드 — bindCardEvents 가 카드 재렌더로 다시 호출돼도
+   짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다 (세션 1 #2). */
+let lastSwipeCommitAt = 0;
+const SWIPE_COMMIT_GUARD_MS = 1500;
+
 /* ─────────────────────────────────────────────
    섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커)
    ───────────────────────────────────────────── */
@@ -55,6 +60,8 @@ export function renderMyStory() {
 }
 
 async function loadMyStoryData(page) {
+  /* 새 페이지 진입 시 swipe commit 가드 리셋 (세션 1 #2). */
+  lastSwipeCommitAt = 0;
   try {
     const user = getState('user') || { id: 'guest' };
     // Firebase Auth의 실제 UID를 우선 사용 (Firestore 보안 규칙의 request.auth.uid와 일치해야 함)
@@ -459,16 +466,36 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
         setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
         return;
       }
-      try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
+      /* 세션 1 #2: 짧은 시간 내 두 번째 commit 차단 */
+      if (Date.now() - lastSwipeCommitAt >= SWIPE_COMMIT_GUARD_MS) {
+        lastSwipeCommitAt = Date.now();
+        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
 
-      const dayWrapper = document.getElementById('mystory-calendar');
-      if (dayWrapper) {
-        const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
-        const activeIdx = items.findIndex(el => el.classList.contains('active'));
-        if (diffX < 0 && activeIdx > -1 && activeIdx < items.length - 1) {
-          if (!items[activeIdx + 1].classList.contains('disabled')) items[activeIdx + 1].click();
-        } else if (diffX > 0 && activeIdx > 0) {
-          items[activeIdx - 1].click();
+        const offset = diffX < 0 ? 1 : -1;
+        const dayWrapper = document.getElementById('mystory-calendar');
+        const monthWrapper = document.getElementById('mystory-month-scroll');
+        if (dayWrapper) {
+          const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
+          const activeIdx = items.findIndex(el => el.classList.contains('active'));
+          const candidate = items[activeIdx + offset];
+
+          if (candidate && !candidate.classList.contains('disabled')) {
+            candidate.click();
+          } else if (monthWrapper) {
+            /* Task #2: 월 경계 자동 전환 — 마지막 일/첫 일에서 swipe 시 다음·이전 월로. */
+            const monthItems = Array.from(monthWrapper.querySelectorAll('.wheel-item'));
+            const activeMonthIdx = monthItems.findIndex(el => el.classList.contains('active'));
+            const targetMonthItem = monthItems[activeMonthIdx + offset];
+            if (targetMonthItem && !targetMonthItem.classList.contains('disabled')) {
+              targetMonthItem.click();
+              setTimeout(() => {
+                const refreshedItems = Array.from(dayWrapper.querySelectorAll('.wheel-item:not(.disabled)'));
+                if (!refreshedItems.length) return;
+                const target = offset > 0 ? refreshedItems[0] : refreshedItems[refreshedItems.length - 1];
+                if (target && !target.classList.contains('active')) target.click();
+              }, 30);
+            }
+          }
         }
       }
     }

@@ -27,6 +27,11 @@ const DETAIL_BUTTON_LABEL = '상세 보기';
 const EDITOR_COMMENT_SEEN_PREFIX = 'daystory:editor-comment-seen:';
 const DAILY_LETTER_OPENED_PREFIX = 'daystory:daily-letter-opened:';
 
+/* 스와이프 commit 가드 — bindCardEvents가 카드 재렌더로 다시 호출돼도
+   직전 swipe 후 짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다 (세션 1 #2). */
+let lastSwipeCommitAt = 0;
+const SWIPE_COMMIT_GUARD_MS = 1500;
+
 function getEditorCommentSeenKey(editorBtn) {
   const storyId = editorBtn?.dataset?.storyId;
   return storyId ? `${EDITOR_COMMENT_SEEN_PREFIX}${storyId}` : '';
@@ -138,6 +143,8 @@ export function renderEditorStory() {
    섹션 2: 데이터 로딩 및 캘린더/카드 초기화
    ───────────────────────────────────────────── */
 async function loadEditorStoryData(page) {
+  /* 새 페이지 진입 시 swipe commit 가드 리셋 — 이전 세션 잔여 상태가 첫 swipe를 막지 않도록. */
+  lastSwipeCommitAt = 0;
   try {
     /* 서버에서 데이터 가져오기 */
     const [allStories, todayStory, bookmarkedIds] = await Promise.all([
@@ -742,7 +749,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
                   </svg>
                 </button>
                 <!-- 북마크 버튼 -->
-                <button class="card-action-btn" aria-label="북마크">
+                <button class="card-action-btn" aria-label="보관함">
                   <svg viewBox="0 0 24 24" fill="${story && bookmarkedIds.includes(story.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                   </svg>
@@ -835,7 +842,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
 
   /* 상단 액션 버튼 이벤트 */
   const shareBtn = flipContainer.querySelector('.card-action-btn[aria-label="공유"]');
-  const bookmarkBtn = flipContainer.querySelector('.card-action-btn[aria-label="북마크"]');
+  const bookmarkBtn = flipContainer.querySelector('.card-action-btn[aria-label="보관함"]');
 
   if (detailBtn && story) {
     detailBtn.addEventListener('click', (e) => {
@@ -879,7 +886,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         showToast(res.error, 'error');
         return;
       }
-      showToast(res.bookmarked ? '북마크 추가' : '해제', 'success');
+      showToast(res.bookmarked ? '보관함에 추가했습니다' : '보관함에서 해제했습니다', 'success');
       bookmarkBtn.querySelector('svg').style.fill = res.bookmarked ? 'currentColor' : 'none';
       if (res.bookmarked && !bookmarkedIds.includes(story.id)) {
         bookmarkedIds.push(story.id);
@@ -984,18 +991,39 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
         return;
       }
-      try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
+      /* 세션 1 #2: 카드 재렌더 후 짧은 시간 내 두 번째 commit 차단 (한 번 swipe 로 두 칸 이동 방지) */
+      if (Date.now() - lastSwipeCommitAt >= SWIPE_COMMIT_GUARD_MS) {
+        lastSwipeCommitAt = Date.now();
+        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
 
-      const dayWrapper = document.getElementById('editorstory-calendar');
-      if (dayWrapper) {
-        const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
-        const activeIdx = items.findIndex(el => el.classList.contains('active'));
-        if (diffX < 0 && activeIdx > -1 && activeIdx < items.length - 1) {
-          if (!items[activeIdx + 1].classList.contains('disabled')) {
-            items[activeIdx + 1].click();
+        const offset = diffX < 0 ? 1 : -1;
+        const dayWrapper = document.getElementById('editorstory-calendar');
+        const monthWrapper = document.getElementById('editorstory-month-scroll');
+        if (dayWrapper) {
+          const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
+          const activeIdx = items.findIndex(el => el.classList.contains('active'));
+          const candidate = items[activeIdx + offset];
+
+          if (candidate && !candidate.classList.contains('disabled')) {
+            candidate.click();
+          } else if (monthWrapper) {
+            /* Task #2: 같은 달 안에서 인접 날짜가 없거나 disabled → 월을 자동 전환.
+               5월 1일에서 뒤로 가면 4월 30일로, 4월 30일에서 앞으로 가면 5월 1일로. */
+            const monthItems = Array.from(monthWrapper.querySelectorAll('.wheel-item'));
+            const activeMonthIdx = monthItems.findIndex(el => el.classList.contains('active'));
+            const targetMonthItem = monthItems[activeMonthIdx + offset];
+            if (targetMonthItem && !targetMonthItem.classList.contains('disabled')) {
+              targetMonthItem.click();
+              /* 월이 바뀌면 day wheel 의 active 가 자동 정규화되지만,
+                 마지막 날 / 첫 날을 명시적으로 한 번 더 선택해 카드를 재로드한다. */
+              setTimeout(() => {
+                const refreshedItems = Array.from(dayWrapper.querySelectorAll('.wheel-item:not(.disabled)'));
+                if (!refreshedItems.length) return;
+                const target = offset > 0 ? refreshedItems[0] : refreshedItems[refreshedItems.length - 1];
+                if (target && !target.classList.contains('active')) target.click();
+              }, 30);
+            }
           }
-        } else if (diffX > 0 && activeIdx > 0) {
-          items[activeIdx - 1].click();
         }
       }
     }

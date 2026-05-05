@@ -15,7 +15,12 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 /*
@@ -51,7 +56,20 @@ if (isConfigValid) {
   try {
     app  = initializeApp(firebaseConfig);
     auth = getAuth(app);
-    db   = getFirestore(app);
+    /*
+     * 세션 1 #8: Firestore 오프라인 캐시 활성화 — 네트워크가 없거나 느려도 기존 데이터를 표시.
+     * IndexedDB 차단 같은 환경에서 실패하면 메모리 캐시로 폴백한다.
+     */
+    try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
+    } catch (cacheErr) {
+      console.warn('Firestore 영구 캐시 활성화 실패, 메모리 캐시로 동작:', cacheErr);
+      db = getFirestore(app);
+    }
     storage = getStorage(app);
   } catch (err) {
     console.error('Firebase 초기화 실패:', err);

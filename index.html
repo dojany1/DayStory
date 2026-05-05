@@ -122,28 +122,47 @@
           data-route 속성을 보고 router.js에서 해당 경로로 이동합니다.
         -->
         <nav id="bottom-nav" class="bottom-nav redesigned-nav" style="display:none;">
-          <button class="nav-item active" data-route="/editorstory" id="nav-editorstory" aria-label="에디터 일화">
+          <!-- 편지 탭 (오늘의 편지 = 에디터 일화) -->
+          <button class="nav-item active" data-route="/editorstory" id="nav-editorstory" aria-label="편지">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect>
               <path d="M3.5 7.5 12 13.5 20.5 7.5"></path>
             </svg>
           </button>
-          
-          <!-- 나의 일화 탭 -->
-          <button class="nav-item" data-route="/mystory" id="nav-mystory" aria-label="나의 일화">
+
+          <!-- 캘린더 탭 -->
+          <button class="nav-item" data-route="/calendar" id="nav-calendar" aria-label="캘린더">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <!-- 오픈된 책, 일기장 느낌의 아이콘 -->
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
             </svg>
           </button>
 
-          <!-- 유저 프로필 탭 (로그인 여부에 따라 js에서 동적 업데이트) -->
-          <button class="nav-item" data-route="/profile" id="nav-profile" aria-label="프로필">
+          <!-- 내 일기 탭 (중앙 원형 강조 버튼) -->
+          <button class="nav-item nav-item-center" data-route="/mystory" id="nav-mystory" aria-label="내 일기">
+            <span class="nav-center-circle">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+              </svg>
+            </span>
+          </button>
+
+          <!-- 보관함 탭 (세션 1 #7: AAB의 "북마크" → "보관함") -->
+          <button class="nav-item" data-route="/bookmarks" id="nav-bookmarks" aria-label="보관함">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+
+          <!-- 설정 탭 (로그인 여부에 따라 js에서 동적 업데이트) -->
+          <button class="nav-item" data-route="/profile" id="nav-profile" aria-label="설정">
             <div class="nav-profile-img-wrap">
-              <svg class="nav-icon guest-avatar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
+              <svg class="nav-icon settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
               </svg>
             </div>
           </button>

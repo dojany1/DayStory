@@ -393,24 +393,20 @@
 /* 뒷면 본문 — 스크롤 가능한 역사 일화 텍스트 */
 .back-body {
   flex: 1;                             /* 남은 공간 모두 차지 */
-  overflow-y: auto;                    /* 긴 텍스트는 스크롤 */
+  overflow-y: auto;                    /* 긴 텍스트는 스크롤 (스크롤은 가능, 스크롤바만 숨김) */
   font-family: var(--font-body);
   font-size: 0.9rem;
   line-height: 2;
   color: var(--color-text-secondary);
-  padding-right: 4px;                  /* 스크롤바 공간 확보 */
+  scrollbar-width: none;               /* Firefox: 스크롤바 숨김 */
+  -ms-overflow-style: none;            /* 레거시 Edge/IE */
 }
 
-
-
-/* 뒷면 본문 스크롤바 — 얇은 미니멀 디자인 */
+/* 카드 뒷면 스크롤바 숨김 (스크롤은 작동, 표시만 안 함) */
 .back-body::-webkit-scrollbar {
-  width: 2px;
-}
-
-/* 뒷면 본문 스크롤바 썸 */
-.back-body::-webkit-scrollbar-thumb {
-  background: var(--color-divider);
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 /* 뒷면 하단 바 — 에디터 프로필(좌) + 날짜(우) */
@@ -1160,3 +1156,409 @@
 .btn-crop-confirm:disabled {
   opacity: 0.5;
 }
+
+
+/* ============================================================
+   ===== 5월 1일 AAB 복원 — 추가 컴포넌트 스타일 =====
+   ============================================================
+   페이지 헤더 변형, 확인 다이얼로그, 알림 설정 시트,
+   위젯 테마 프리뷰 — release AAB 에서 복원.
+*/
+
+
+/* ===== 페이지 헤더 변형 (5월 1일 AAB) ===== */
+.page-header-centered {
+  text-align:center;
+  justify-content:center}
+
+.page-header-with-back {
+  gap:var(--space-2);
+  grid-template-columns:36px minmax(0,1fr) 36px;
+  align-items:center;
+  display:grid}
+
+.page-header-centered .page-header-title,.page-header-with-back .page-header-title {
+  text-align:center;
+  grid-column:2;
+  justify-self:center;
+  min-width:0}
+
+.page-header-with-back .page-header-back {
+  grid-column:1;
+  justify-self:start}
+
+.page-header-spacer {
+  grid-column:3;
+  width:36px;
+  height:36px}
+
+.page-header-actions {
+  gap:var(--space-3)}
+
+
+/* ===== 확인 다이얼로그 (5월 1일 AAB) ===== */
+
+.confirm-dialog-overlay {
+  z-index:10000;
+  opacity:0;
+  padding:var(--space-4);
+  background:#00000073;
+  justify-content:center;
+  align-items:center;
+  transition:opacity .18s;
+  display:flex;
+  position:fixed;
+  inset:0}
+
+.confirm-dialog-overlay.visible {
+  opacity:1}
+
+.confirm-dialog {
+  background:var(--color-bg-card);
+  color:var(--color-text-primary);
+  border-radius:var(--radius-lg);
+  width:min(320px,100%);
+  padding:var(--space-5);
+  transition:transform .18s;
+  transform:scale(.96);
+  box-shadow:0 12px 32px #0000002e}
+
+.confirm-dialog-overlay.visible .confirm-dialog {
+  transform:scale(1)}
+
+.confirm-dialog-title {
+  font-size:var(--text-md);
+  margin-bottom:var(--space-2);
+  font-weight:700}
+
+.confirm-dialog-message {
+  font-size:var(--text-sm);
+  color:var(--color-text-secondary);
+  margin-bottom:var(--space-5);
+  line-height:1.5}
+
+.confirm-dialog-line {
+  margin:0}
+
+.confirm-dialog-line+.confirm-dialog-line {
+  margin-top:var(--space-1)}
+
+.confirm-dialog-actions {
+  gap:var(--space-2);
+  justify-content:flex-end;
+  display:flex}
+
+.confirm-dialog-btn {
+  padding:var(--space-3) var(--space-4);
+  font-size:var(--text-sm);
+  border-radius:var(--radius-md);
+  border:1px solid var(--color-border);
+  background:var(--color-bg-secondary);
+  color:var(--color-text-primary);
+  cursor:pointer;
+  flex:1;
+  font-weight:600;
+  transition:background .15s}
+
+.confirm-dialog-btn:active {
+  transform:scale(.98)}
+
+.confirm-dialog-confirm {
+  background:var(--color-accent);
+  color:var(--color-text-inverse);
+  border-color:#0000}
+
+.confirm-dialog-confirm.is-danger {
+  background:var(--color-error,#d33);
+  color:var(--color-text-on-image)}
+
+
+/* ===== 알림 설정 시트 (5월 1일 AAB) ===== */
+
+.notification-settings-sheet {
+  padding:var(--space-5)}
+
+.notification-settings-header {
+  margin-bottom:var(--space-4);
+  justify-content:space-between;
+  align-items:center;
+  display:flex}
+
+.notification-settings-header h2 {
+  font-size:var(--text-lg);
+  color:var(--color-text-primary);
+  margin:0;
+  font-weight:700}
+
+.notification-settings-close {
+  width:36px;
+  height:36px;
+  color:var(--color-text-secondary);
+  cursor:pointer;
+  background:0 0;
+  border:0;
+  border-radius:50%;
+  justify-content:center;
+  align-items:center;
+  padding:0;
+  display:flex}
+
+.notification-settings-close:active {
+  background:var(--color-bg-secondary)}
+
+.notification-settings-close svg,.notification-settings-icon svg {
+  width:20px;
+  height:20px}
+
+.notification-settings-list {
+  margin-bottom:var(--space-5);
+  border-top:1px solid var(--color-border-light);
+  flex-direction:column;
+  display:flex}
+
+.notification-settings-row {
+  align-items:center;
+  gap:var(--space-3);
+  min-height:96px;
+  padding:var(--space-4) 0;
+  border-bottom:1px solid var(--color-border-light);
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"copy toggle""time time";
+  display:grid}
+
+.notification-settings-copy {
+  grid-area:copy;
+  min-width:0}
+
+.notification-settings-row-title {
+  font-size:var(--text-base);
+  color:var(--color-text-primary);
+  font-weight:600}
+
+.notification-settings-row-subtitle {
+  font-size:var(--text-sm);
+  color:var(--color-text-tertiary);
+  margin-top:2px}
+
+.notification-settings-row .toggle {
+  grid-area:toggle}
+
+.notification-settings-time-control {
+  gap:var(--space-2);
+  grid-area:time;
+  grid-template-columns:1fr 1fr 1fr;
+  width:100%;
+  min-width:0;
+  display:grid}
+
+.notification-settings-time-select {
+  width:100%;
+  min-width:0;
+  padding:var(--space-2);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-bg-secondary);
+  color:var(--color-text-primary);
+  font-family:var(--font-ui);
+  font-size:var(--text-sm);
+  line-height:1.2}
+
+.notification-settings-time-select:focus {
+  border-color:var(--color-accent);
+  outline:none}
+
+
+/* ===== 위젯 테마 프리뷰 (5월 1일 AAB) ===== */
+
+.widget-theme-option-group {
+  margin:0 var(--space-5) var(--space-4);
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  display:flex}
+
+.widget-theme-option {
+  align-items:center;
+  gap:var(--space-3);
+  border:2px solid var(--color-border);
+  background:var(--color-bg-secondary);
+  cursor:pointer;
+  width:100%;
+  max-width:360px;
+  color:var(--color-text-secondary);
+  border-radius:24px;
+  flex-direction:column;
+  padding:14px;
+  transition:border-color .18s,transform .18s,box-shadow .18s;
+  display:flex}
+
+.widget-theme-option.active {
+  border-color:var(--color-accent);
+  color:var(--color-text-primary);
+  box-shadow:0 0 0 3px #0000000f}
+
+.widget-theme-option:not(.active):active {
+  transform:scale(.97)}
+
+.widget-theme-preview {
+  aspect-ratio:1;
+  color:#000;
+  background:#fff;
+  border:8px solid #e2e2e2;
+  border-radius:32px;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:center;
+  width:min(312px,100%);
+  padding:32px;
+  display:flex;
+  position:relative;
+  box-shadow:0 14px 17.8px -9px #00000069}
+
+.widget-preview-top {
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  width:100%;
+  display:flex}
+
+.widget-preview-date {
+  flex-direction:column;
+  align-items:flex-start;
+  min-width:0;
+  display:flex}
+
+.widget-preview-weekday {
+  letter-spacing:.04em;
+  font-size:28px;
+  font-weight:800;
+  line-height:1}
+
+.widget-preview-day {
+  margin-top:10px;
+  font-size:76px;
+  font-weight:900;
+  line-height:.9}
+
+.widget-preview-month {
+  color:#333;
+  letter-spacing:.01em;
+  white-space:nowrap;
+  margin-top:22px;
+  font-size:20px;
+  font-weight:800;
+  line-height:1}
+
+.widget-preview-envelope {
+  color:#000;
+  flex:none;
+  justify-content:flex-end;
+  align-items:flex-start;
+  width:36px;
+  height:36px;
+  display:inline-flex;
+  position:relative}
+
+.widget-preview-envelope-icon {
+  width:34px;
+  height:34px}
+
+.widget-preview-dot {
+  background:#ff5a5f;
+  border-radius:50%;
+  width:9px;
+  height:9px;
+  position:absolute;
+  top:-5px;
+  right:-4px}
+
+.widget-preview-pen-button {
+  color:#000;
+  background:#fff;
+  border:2px solid #d8d8d8;
+  border-radius:18px;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+  height:72px;
+  display:flex}
+
+.widget-preview-pen-icon {
+  width:32px;
+  height:32px}
+
+.widget-theme-preview-light {
+  color:#000;
+  background:#fff;
+  border-color:#e2e2e2}
+
+.widget-theme-preview-dark {
+  color:#f3f3f4;
+  background:#1b1b1d;
+  border-color:#303036}
+
+.widget-theme-preview-dark .widget-preview-month {
+  color:#b7b7bc}
+
+.widget-theme-preview-dark .widget-preview-envelope,.widget-theme-preview-dark .widget-preview-pen-button {
+  color:#f3f3f4}
+
+.widget-theme-preview-dark .widget-preview-pen-button {
+  background:#242428;
+  border-color:#3a3a40}
+
+.widget-theme-sheet-options {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  padding:4px 0 16px;
+  display:grid}
+
+.widget-theme-settings-sheet .widget-theme-option {
+  border-radius:16px;
+  gap:8px;
+  max-width:none;
+  padding:10px}
+
+.widget-theme-settings-sheet .widget-theme-preview {
+  border-width:4px;
+  border-radius:20px;
+  width:min(132px,100%);
+  padding:12px;
+  box-shadow:0 10px 13px -10px #0000005c}
+
+.widget-theme-settings-sheet .widget-preview-top {
+  gap:8px}
+
+.widget-theme-settings-sheet .widget-preview-weekday {
+  font-size:13px}
+
+.widget-theme-settings-sheet .widget-preview-day {
+  margin-top:4px;
+  font-size:38px}
+
+.widget-theme-settings-sheet .widget-preview-month {
+  margin-top:10px;
+  font-size:9px}
+
+.widget-theme-settings-sheet .widget-preview-envelope {
+  width:20px;
+  height:20px}
+
+.widget-theme-settings-sheet .widget-preview-envelope-icon {
+  width:18px;
+  height:18px}
+
+.widget-theme-settings-sheet .widget-preview-dot {
+  width:5px;
+  height:5px;
+  top:-2px;
+  right:-2px}
+
+.widget-theme-settings-sheet .widget-preview-pen-button {
+  border-width:1px;
+  border-radius:10px;
+  height:30px}
+
+.widget-theme-settings-sheet .widget-preview-pen-icon {
+  width:16px;
+  height:16px}

@@ -117,7 +117,7 @@ async function loadDetail(page, storyId) {
       <div class="detail-title-row">
         <h1 class="detail-figure-name">${escapeHtml(story.figure_name)}</h1>
         <div class="detail-title-actions">
-          <button class="btn-icon bookmark-btn ${bookmarked ? 'active' : ''}" id="detail-bookmark" aria-label="북마크">
+          <button class="btn-icon bookmark-btn ${bookmarked ? 'active' : ''}" id="detail-bookmark" aria-label="보관함">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
             </svg>
@@ -190,7 +190,7 @@ async function loadDetail(page, storyId) {
       btn.classList.toggle('active', bookmarked);
     });
 
-    showToast(bookmarked ? '북마크에 저장했습니다' : '북마크를 해제했습니다', 'success');
+    showToast(bookmarked ? '보관함에 저장했습니다' : '보관함에서 해제했습니다', 'success');
   };
   document.getElementById('detail-bookmark')?.addEventListener('click', handleBookmark);
 

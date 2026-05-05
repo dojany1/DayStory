@@ -745,7 +745,7 @@ export function renderEditorNew() {
                         <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                       </svg>
                     </button>
-                    <button class="card-action-btn" aria-label="북마크" disabled>
+                    <button class="card-action-btn" aria-label="보관함" disabled>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                       </svg>

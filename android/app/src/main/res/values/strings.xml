@@ -4,4 +4,8 @@
     <string name="title_activity_main">DayStory</string>
     <string name="package_name">com.daystory.app</string>
     <string name="custom_url_scheme">com.daystory.app</string>
+    <string name="widget_label">DayStory</string>
+    <string name="widget_description">오늘의 편지와 일기를 한 번에</string>
+    <string name="widget_letter_desc">오늘의 편지</string>
+    <string name="widget_diary_desc">오늘의 일기 쓰기</string>
 </resources>

@@ -278,3 +278,24 @@ Antigravity 가 파일을 망가뜨린 뒤 어설프게 복구해 더 이상해�
 - `index.html` (bottom-nav 4버튼 → 5버튼)
 - `docs/SESSION_LOG.md` (이 항목)
 
+---
+
+## 2026-05-05 13:00 — Codex CLI
+
+**요구사항:**
+세션이 끝날 때마다 자동으로 GitHub에 저장되도록, 어디서 작업하든 다시 작업물이 날아가지 않게 시스템을 이어서 완성.
+
+**구현방법:**
+- Claude Code Stop hook 설정을 확인하고 timeout을 120초로 늘림.
+- 현재 Codex/PowerShell 환경에서 `bash`가 PATH에 없어도 동작하도록 `scripts/session-checkpoint.ps1`을 추가하고 Stop hook을 PowerShell 스크립트 호출로 전환.
+- Codex 등 다른 에이전트도 같은 체크포인트 스크립트를 호출하도록 `AGENTS.md`와 `CLAUDE.md`에 Session Checkpoint 규칙을 정리.
+- 상위 작업 폴더에서 Claude Code가 종료되어도 `DayStory/scripts/session-checkpoint.ps1`이 실행되도록 로컬 `.claude/settings.json`을 추가.
+
+**변경파일:**
+- `AGENTS.md`
+- `CLAUDE.md`
+- `.claude/settings.json`
+- `scripts/session-checkpoint.ps1`
+- `scripts/session-checkpoint.sh`
+- `../.claude/settings.json`
+- `docs/SESSION_LOG.md`

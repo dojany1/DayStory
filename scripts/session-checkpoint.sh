@@ -3,8 +3,8 @@
 # session-checkpoint.sh — 세션 종료 직전 자동 깃허브 백업
 # =============================================================================
 # 호출 시점:
-#   • Claude Code: .claude/settings.json 의 Stop hook 으로 자동 호출
-#   • Codex / Cursor / 그 외 AI: 세션 종료 직전 직접 실행
+#   • Bash 환경: 세션 종료 직전 직접 실행
+#   • Windows/Claude Code 기본 경로는 session-checkpoint.ps1 을 사용
 #
 # 동작:
 #   1) 변경사항 없으면 no-op

@@ -372,3 +372,84 @@ Antigravity 가 파일을 망가뜨린 뒤 어설프게 복구해 더 이상해�
 - `android/app/src/main/res/values/ic_launcher_background.xml`
 - `android/app/src/main/assets/capacitor.config.json` (cap sync)
 - `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-05 16:18 — Claude Code
+
+**요구사항:**
+SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더) 시점 — 즉 Antigravity 가 망가뜨리기 전 — 의 버그 수정 상태가 현재 코드에 그대로 반영되어 있는지 확인.
+
+**구현방법:**
+- 점검 결과 5/4 10:24 의 8개 버그 수정 (#1 위젯 configure 제거, #2 swipe 가드 1500ms + 모듈 스코프, #3 tour-bubble max-height, #4 AUTH_SESSION_KEY localStorage, #5 AndroidManifest 알림 권한, #6 `.back-body` 스크롤바 숨김, #7 보관함 라벨, #8 Firestore persistentLocalCache) 와 5/4 11:44 의 side peek 제거 + 콘텐츠 관리 캘린더 헤더 (`editor-calendar-header`, `calendar-title`) 모두 현재 코드에 적용되어 있음.
+- `card-side-peek` 클래스는 `src/` 어디에도 없고, `aria-label="북마크"` 도 남아있지 않음 (모두 "보관함").
+- 추가 코드 변경 불필요.
+- 검증: `npm test` 6 files / 47 tests 통과.
+
+**변경파일:**
+- DayStory/docs/SESSION_LOG.md
+
+---
+
+## 2026-05-05 16:35 — Claude Code
+
+**요구사항:**
+하단 네비게이션의 "내 프로필" 탭을 "설정" 으로 정리. 페이지 헤더 명칭 변경 + 프로필 페이지의 검색바·북마크 카드 그리드(이미 보관함 페이지가 담당) 자리에 기존 `/settings` 페이지의 항목들을 이식.
+
+**구현방법:**
+- `src/js/pages/profile.js` 재작성: 헤더 "내 프로필" → "설정", 우측 톱니바퀴 버튼 제거(페이지 자체가 설정), 사용자 정보 카드와 프로필 편집 모달은 그대로 유지. 검색바(`profile-collection-toolbar`, `collection-search-bar`)와 카드 그리드(`#archive-content`, `archive-grid`, `loadCollection`, `renderMiniCard`)를 모두 삭제하고 그 자리에 디스플레이(테마)·에디터 도구(권한 한정)·계정(로그아웃·회원 탈퇴)·앱 정보(튜토리얼·라이선스)·개인정보처리방침·앱 버전 섹션을 인라인. `getBookmarkedStories` import 제거, `signOut/deleteUser/deleteDoc/getDocs/query/where/collection` 와 `pkg` 추가.
+- 페이지 className 을 `archive-page page` → `settings-page page` 로 교체.
+- 하단 네비게이션(`index.html`)은 이미 `aria-label="설정"` + 톱니바퀴 SVG 였으므로 추가 변경 없음.
+- `/settings` 라우트 자체는 그대로 두고(다른 진입점이 있을 수 있음), `/profile` 만 새 동작.
+- 회귀 테스트(`tests/regression.bugs.spec.js`) 갱신: 더 이상 의미 없는 두 테스트(검색바 존재 검사, 5초 타임아웃 후 mini 카드 렌더 검사)를 제거하고, 대신 (1) `/profile` 에 검색바·카드 그리드가 없음, (2) 헤더가 "설정" + 테마/계정/앱 정보 섹션이 인라인됨, 두 테스트 추가.
+
+**검증:**
+- `npm test` 6 files / **47 tests 통과**.
+- `npm run build` 성공 (profile chunk 16.82 KB / gzip 5.10 KB).
+
+**변경파일:**
+- `src/js/pages/profile.js`
+- `tests/regression.bugs.spec.js`
+- `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-05 16:47 — Claude Code
+
+**요구사항:**
+3개 정리. (1) 설정 페이지 헤더의 "설정" 텍스트를 다른 페이지처럼 가운데로. (2) 헤더의 우측 콘텐츠 관리(편집) 단축 버튼 제거. (3) 라이트 테마에서 하단 네비게이션이 유리처럼 뒤가 비쳐 보이는 문제 해결.
+
+**구현방법:**
+- `profile.js` 헤더 구조 변경: `<div class="page-header" style="...justify-content:space-between;">` + 우측 `.settings-editor-btn` 조건부 렌더 → `<div class="page-header page-header-centered"><h1 class="page-header-title">설정</h1></div>` 단일 구조. 인라인 스타일도 제거하고 기존 `page-header-centered` 클래스(이미 보관함 등에서 쓰는 패턴) 사용. 에디터는 본문의 "에디터 도구" 섹션 → 콘텐츠 관리 항목으로 그대로 진입 가능하므로 헤더 단축 제거해도 접근성 손실 없음.
+- 헤더 버튼이 사라졌으므로 `setTimeout` 안의 `.settings-editor-btn` 이벤트 바인딩 제거.
+- `base.css` `.bottom-nav` 의 라이트 테마 배경 `transparent` → `var(--color-bg-primary)` 로 변경. `backdrop-filter: blur(20px)` 는 그대로 두어 지원 환경에서 추가 블러 효과 유지. WebView/Capacitor 등 backdrop-filter 미적용 환경에서 nav 가 투명해져 콘텐츠가 비쳐 보이던 문제 해소. 다크 테마는 이미 `var(--color-bg-primary)` 라 추가 변경 없음.
+- `regression.bugs.spec.js` 의 `.settings-editor-btn` 검증 테스트(헤더 버튼 style 속성/aria-label 분리 확인) 제거 — 해당 버튼 자체가 더 이상 존재하지 않음.
+
+**검증:**
+- `npm test` 6 files / **46 tests 통과** (헤더 버튼 검사 1개 제거).
+- `npm run build` 성공.
+
+**변경파일:**
+- `src/js/pages/profile.js`
+- `src/css/base.css`
+- `tests/regression.bugs.spec.js`
+- `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-05 20:56 — Codex CLI
+
+**요구사항:**
+직전 설정 페이지 정리 작업을 이어서 검증하고, 프로필 탭에 이식된 설정 섹션이 기존 `/settings` 의 앱 정보 항목과 맞도록 마무리.
+
+**구현방법:**
+- `renderSettingsSections()` 공유 설정 섹션의 앱 정보 영역에 `setting-license` 행을 추가.
+- `bindSettingsSections()` 에서 `setting-license` 클릭 시 `/license` 로 이동하도록 바인딩.
+- 실패하던 회귀 테스트(`profile` 설정 섹션 인라인 검증)가 실제 구현과 맞도록 복구.
+
+**검증:**
+- `npm test -- --run tests/regression.bugs.spec.js` 통과.
+
+**변경파일:**
+- `src/js/components/settingsSections.js`
+- `docs/SESSION_LOG.md`

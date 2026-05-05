@@ -334,9 +334,9 @@ ul, ol {
   height: calc(var(--nav-height) + var(--safe-area-bottom));
   padding-top: var(--space-2);
   padding-bottom: calc(var(--safe-area-bottom) + var(--space-3)); /* 하단 안전 영역 (iPhone 홈 바) */
-  background: transparent;
+  background: var(--color-bg-primary); /* 항상 불투명 — backdrop-filter 미지원 환경에서 뒤가 비치지 않도록 */
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
-  backdrop-filter: blur(20px);         /* 배경 블러 효과 */
+  backdrop-filter: blur(20px);         /* 배경 블러 효과 (지원 환경에서만 추가 효과) */
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--color-divider);
   box-shadow: 0 -12px 12px rgba(0, 0, 0, 0.05); /* 미세한 그림자 효과 */

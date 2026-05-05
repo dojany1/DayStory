@@ -67,6 +67,11 @@ export function renderSettingsSections() {
         title: '튜토리얼 다시 보기',
         icon: helpIcon(),
       })}
+      ${renderSettingsRow({
+        id: 'setting-license',
+        title: '이미지 출처 및 라이선스',
+        icon: imageIcon(),
+      })}
     </div>
 
     <div class="settings-privacy-link">
@@ -89,6 +94,7 @@ export function bindSettingsSections(page) {
     startTutorialTour(navigate);
     showToast('페이지별 안내가 다시 표시됩니다', 'success');
   });
+  bindRow(page, '#setting-license', () => navigate('/license'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
 }

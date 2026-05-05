@@ -273,67 +273,25 @@ describe('Regression bugs', () => {
     vi.useRealTimers();
   });
 
-  it('Given many bookmarks on a slow device, when bookmark loading exceeds five seconds, then the profile page should still render the saved cards instead of timing out', async () => {
-    getBookmarkedStoriesMock.mockImplementation(() => new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([makeEditorStory(24)]);
-      }, 5500);
-    }));
-
+  it('Given the profile tab is now the settings page, when the page renders, then the bookmark search bar and bookmark grid should not appear (moved to /bookmarks)', () => {
     const page = renderProfile();
     document.body.appendChild(page);
 
-    await flushTimers(5500);
-
-    expect(page.querySelector('.history-card-mini')).not.toBeNull();
+    expect(page.querySelector('#collection-search-bar')).toBeNull();
+    expect(page.querySelector('.profile-collection-toolbar')).toBeNull();
+    expect(page.querySelector('.history-card-mini')).toBeNull();
+    expect(page.querySelector('.archive-grid')).toBeNull();
   });
 
-  it('Given the profile page collection search, when the page renders, then the saved-story title should be removed and the search bar should fill the row proportionally', () => {
-    getBookmarkedStoriesMock.mockResolvedValue([]);
-
+  it('Given the profile tab is now the settings page, when the page renders, then the settings sections (display/account/app info) should be inlined and the header should read 설정', () => {
     const page = renderProfile();
     document.body.appendChild(page);
 
-    const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
-    const searchRule = css.match(/\.profile-collection-search\s*\{[\s\S]*?\}/)?.[0];
-    const searchBar = page.querySelector('#collection-search-bar');
-
-    expect(page.textContent || '').not.toContain('보관한 스토리');
-    expect(page.querySelector('.profile-collection-toolbar')).not.toBeNull();
-    expect(searchBar).not.toBeNull();
-    expect(searchBar?.classList.contains('profile-collection-search')).toBe(true);
-    expect(searchRule).toMatch(/flex:\s*1\s+1\s+auto/);
-  });
-
-  it('Given an admin account on a mobile profile page, when the page renders, then the content manager button should keep its style attribute separate from the aria label', () => {
-    getStateMock.mockImplementation((key) => {
-      if (key === 'user') {
-        return {
-          id: 'admin-1',
-          email: 'admin@example.com',
-          displayName: 'Admin',
-        };
-      }
-
-      if (key === 'profile') {
-        return {
-          nickname: 'Admin',
-          role: 'editor',
-        };
-      }
-
-      return null;
-    });
-    getBookmarkedStoriesMock.mockResolvedValue([]);
-
-    const page = renderProfile();
-    document.body.appendChild(page);
-
-    const editorButton = page.querySelector('.settings-editor-btn');
-
-    expect(editorButton).not.toBeNull();
-    expect(editorButton?.getAttribute('aria-label')).not.toContain('style=');
-    expect(editorButton?.getAttribute('style')).toContain('width: 32px');
+    expect(page.querySelector('.page-header-title')?.textContent?.trim()).toBe('설정');
+    expect(page.querySelector('.theme-option-group')).not.toBeNull();
+    expect(page.querySelector('#setting-logout')).not.toBeNull();
+    expect(page.querySelector('#setting-tutorial')).not.toBeNull();
+    expect(page.querySelector('#setting-license')).not.toBeNull();
   });
 
   it('Given an admin account on the settings page, when the editor tools section renders, then the content manager label should not include broken markup text', () => {

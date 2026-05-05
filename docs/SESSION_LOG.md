@@ -277,3 +277,4 @@ Antigravity 가 파일을 망가뜨린 뒤 어설프게 복구해 더 이상해�
 - `src/css/base.css` (490→540줄, +50)
 - `index.html` (bottom-nav 4버튼 → 5버튼)
 - `docs/SESSION_LOG.md` (이 항목)
+

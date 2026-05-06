@@ -21,9 +21,9 @@ import {
   fetchAllStoriesEditor,
   createStory,
   updateStory,
-  uploadImage,
   fetchStoryById
 } from '../services/stories.js';
+import { uploadCardImageVariants } from '../services/images.js';
 import { auth } from '../firebase.js';
 
 import Cropper from 'cropperjs';
@@ -364,6 +364,7 @@ export function renderEditorNew() {
           <label class="input-label">이미지 업로드 및 URL</label>
           <div style="display:flex; gap:var(--space-2); align-items:center;">
             <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
+            <input type="hidden" id="sf-image-thumb" />
             <button type="button" id="sf-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">편집</button>
             <label for="sf-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
               사진 추가
@@ -431,6 +432,7 @@ export function renderEditorNew() {
         document.getElementById('sf-country').value = story.country || '';
         document.getElementById('sf-body').value = story.body || '';
         document.getElementById('sf-image').value = story.image_url || '';
+        document.getElementById('sf-image-thumb').value = story.image_thumb_url || '';
         document.getElementById('sf-image-source').value = story.image_source || '';
         document.getElementById('sf-editor-comment').value = story.editor_comment || (story.editor && story.editor.comment) || '';
         hasLoadedData = true;
@@ -589,9 +591,11 @@ export function renderEditorNew() {
         STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
         
         blob.name = fallbackName;
-        const url = await uploadImage(blob);
+        const uploadUid = auth?.currentUser?.uid || getState('user')?.id || 'guest';
+        const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'editor_images' });
         
-        IMAGE_FIELD.value = url;
+        IMAGE_FIELD.value = image_url;
+        document.getElementById('sf-image-thumb').value = image_thumb_url || '';
         STATUS_EL.textContent = '업로드 완료! ✅';
         STATUS_EL.style.color = 'var(--color-info)';
         
@@ -701,6 +705,7 @@ export function renderEditorNew() {
         country: document.getElementById('sf-country').value.trim(),
         publish_date: document.getElementById('sf-publish-date').value,
         image_url: document.getElementById('sf-image').value.trim(),
+        image_thumb_url: document.getElementById('sf-image-thumb')?.value.trim() || '',
         image_source: document.getElementById('sf-image-source').value.trim(),
         card_count: '',
         editor: editorInfo,      /* 에디터 자동 할당 */

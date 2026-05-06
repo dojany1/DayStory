@@ -227,6 +227,13 @@ async function loadEditorStoryData(page) {
         return closest;
       }
 
+      function markActiveDateTourTarget(activeDay) {
+        calendarElement.querySelectorAll('[data-tour-target="editor-date-active"]').forEach(el => {
+          delete el.dataset.tourTarget;
+        });
+        if (activeDay) activeDay.dataset.tourTarget = 'editor-date-active';
+      }
+
       function updateWheelSelection(forceInstant = false) {
         applyDisabledState();
         let activeMonth, activeDay;
@@ -249,6 +256,8 @@ async function loadEditorStoryData(page) {
             activeDay.classList.add('active');
           }
         }
+
+        markActiveDateTourTarget(activeDay);
 
         if (activeMonth && activeDay) {
           const mNum = String(activeMonth.dataset.month).padStart(2, '0');
@@ -314,6 +323,7 @@ async function loadEditorStoryData(page) {
         if (targetDayItem) {
           calendarElement.scrollLeft = targetDayItem.offsetLeft - calendarElement.offsetWidth / 2 + targetDayItem.offsetWidth / 2;
           targetDayItem.classList.add('active');
+          markActiveDateTourTarget(targetDayItem);
         }
       }, 0);
     }
@@ -665,6 +675,7 @@ function renderDailyLetterGate(cardArea, story, dateObj, bookmarkedIds, onOpen) 
   const letter = document.createElement('button');
   letter.type = 'button';
   letter.className = 'daily-letter-gate';
+  letter.dataset.tourTarget = 'today-letter';
   letter.setAttribute('aria-label', '오늘의 편지 열기');
   letter.innerHTML = `
     <span class="daily-letter-postcard" aria-hidden="true">
@@ -721,6 +732,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
 
   const newCard = document.createElement('div');
   newCard.className = 'flip-container';
+  newCard.dataset.tourTarget = 'today-card';
   newCard.id = `card-${Date.now()}`;
 
   if (!story) {

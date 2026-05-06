@@ -20,49 +20,49 @@ const TARGET_PADDING   = 8;
 export const TUTORIAL_TOUR_STEPS = [
   {
     route: '/editorstory',
-    selector: '.daily-letter-gate, .flip-container',
+    selector: '[data-tour-target="today-letter"], [data-tour-target="today-card"]',
     title: '오늘의 카드',
     body: '매일 한 장의 역사 카드가 도착합니다.\n카드를 탭하면 뒷면에서 자세한 이야기를 읽을 수 있어요.',
   },
   {
     route: '/editorstory',
-    selector: '#editorstory-calendar .wheel-item.active',
+    selector: '[data-tour-target="editor-date-active"]',
     title: '날짜 이동',
     body: '월과 날짜를 좌우로 움직이면\n다른 날의 카드를 빠르게 찾아볼 수 있습니다.',
   },
   {
     route: '/calendar',
-    selector: '.calendar-toggle-btn.active, .calendar-toggle-btn',
+    selector: '[data-tour-target="calendar-toggle"]',
     title: '캘린더 전환',
     body: '역사 일화와 나의 일화를 토글로 전환하고,\n날짜를 눌러 해당 날의 카드를 확인하세요.',
   },
   {
     route: '/mystory',
-    selector: '.mystory-write-btn, .flip-container',
+    selector: '[data-tour-target="mystory-write"], [data-tour-target="mystory-card"]',
     title: '나의 일화',
     body: '비어있는 날에는 작성 버튼이 나타나고,\n쓴 날에는 내 카드가 보입니다.\n카드를 탭하면 뒷면을 볼 수 있어요.',
   },
   {
     route: '/bookmarks',
-    selector: '#collection-search-input, .profile-collection-search',
+    selector: '[data-tour-target="bookmarks-search"]',
     title: '보관함 & 검색',
     body: '카드 앞면의 보관함 버튼으로 저장한 카드를 모아봅니다.\n인물이나 사건 이름으로 검색할 수도 있어요.',
   },
   {
     route: '/profile',
-    selector: '.theme-option-group',
+    selector: '[data-tour-target="theme-options"]',
     title: '디스플레이',
     body: '라이트, 다크, 시스템 중에서\n원하는 테마를 선택할 수 있습니다.',
   },
   {
     route: '/profile',
-    selector: '#setting-notifications',
+    selector: '[data-tour-target="setting-notifications"]',
     title: '알림 설정',
     body: '오늘의 역사 카드 알림과\n나의 일화 작성 알림 시간을 설정합니다.',
   },
   {
     route: '/profile',
-    selector: '#setting-tutorial',
+    selector: '[data-tour-target="setting-tutorial"]',
     title: '튜토리얼 다시 보기',
     body: '이 안내는 언제든\n여기에서 다시 시작할 수 있습니다.',
   },
@@ -126,15 +126,17 @@ function endTour() {
 function waitForTarget(step, idx, navigateFn, attempt) {
   const target = findTarget(step.selector);
   if (target && isVisible(target)) {
-    showStep(step, idx, target, navigateFn);
+    waitForStableTargetFrame(target, (stableTarget) => {
+      if (!isActive() || currentIdx() !== idx) return;
+      showStep(step, idx, stableTarget, navigateFn);
+    });
     return;
   }
   if (attempt >= MAX_TARGET_WAIT) {
-    /* 타겟을 찾지 못하면 자동으로 다음 스텝으로 건너뜀 */
     const fallbackTarget = document.querySelector('#page-container .page')
       || document.querySelector('#page-container')
       || document.body;
-    showStep(step, idx, fallbackTarget, navigateFn);
+    waitForStableTargetFrame(fallbackTarget, (stableTarget) => showStep(step, idx, stableTarget, navigateFn));
     return;
   }
   pollTimer = setTimeout(() => waitForTarget(step, idx, navigateFn, attempt + 1), TARGET_POLL_MS);
@@ -142,14 +144,39 @@ function waitForTarget(step, idx, navigateFn, attempt) {
 
 function findTarget(selector) {
   /* 쉼표로 구분된 여러 셀렉터 중 첫 번째 매칭 */
+  const routeScope = getRouteScope();
   const selectors = selector.split(',').map(s => s.trim());
   for (const sel of selectors) {
     try {
-      const el = document.querySelector(sel);
+      const el = Array.from(routeScope.querySelectorAll(sel)).find(isVisible);
       if (el) return el;
     } catch { /* 잘못된 셀렉터 무시 */ }
   }
   return null;
+}
+
+function getRouteScope() {
+  return document.querySelector('#page-container .page')
+    || document.querySelector('#page-container')
+    || document;
+}
+
+function waitForStableTargetFrame(target, callback) {
+  target?.scrollIntoView?.({ block: 'center', inline: 'center', behavior: 'instant' });
+  const frame = typeof requestAnimationFrame === 'function'
+    ? requestAnimationFrame
+    : (handler) => setTimeout(handler, 0);
+  frame(() => {
+    frame(() => {
+      const rect = target?.getBoundingClientRect?.();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        callback(target);
+        return;
+      }
+      const fallbackTarget = document.querySelector('#page-container .page') || document.body;
+      callback(fallbackTarget);
+    });
+  });
 }
 
 function isVisible(el) {
@@ -163,9 +190,6 @@ function isVisible(el) {
 
 function showStep(step, idx, target, navigateFn) {
   cleanup();
-
-  /* 타겟 스크롤 */
-  target.scrollIntoView?.({ block: 'center', inline: 'center', behavior: 'instant' });
 
   /* 오버레이 */
   overlay = document.createElement('div');

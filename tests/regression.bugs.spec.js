@@ -324,6 +324,11 @@ describe('Regression bugs', () => {
     expect(tutorial).not.toMatch(/selector:\s*'[^']*#editorstory-card-area[^']*'/);
     expect(tutorial).not.toMatch(/selector:\s*'[^']*#mystory-card-area[^']*'/);
     expect(tutorial).not.toMatch(/selector:\s*'[^']*bookmarks-page[^']*'/);
+    expect(tutorial).not.toMatch(/selector:\s*'[^']*\.flip-container[^']*'/);
+    expect(tutorial).not.toMatch(/calendar-toggle-btn\.active/);
+    expect(tutorial).toMatch(/\[data-tour-target="calendar-toggle"\]/);
+    expect(tutorial).toMatch(/getRouteScope/);
+    expect(tutorial).toMatch(/waitForStableTargetFrame/);
     expect(tutorial).toMatch(/fallbackTarget/);
   });
 

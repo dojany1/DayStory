@@ -21,7 +21,7 @@ export function renderSettingsSections() {
 
     <div class="settings-section">
       <div class="settings-section-title">디스플레이</div>
-      <div class="theme-option-group" role="group" aria-label="테마 선택">
+      <div class="theme-option-group" data-tour-target="theme-options" role="group" aria-label="테마 선택">
         ${renderThemeOption('light', '라이트', currentTheme, sunIcon())}
         ${renderThemeOption('dark', '다크', currentTheme, moonIcon())}
         ${renderThemeOption('system', '시스템', currentTheme, systemIcon())}
@@ -66,6 +66,7 @@ export function renderSettingsSections() {
         id: 'setting-tutorial',
         title: '튜토리얼 다시 보기',
         icon: helpIcon(),
+        tourTarget: 'setting-tutorial',
       })}
       ${renderSettingsRow({
         id: 'setting-license',
@@ -108,9 +109,9 @@ function renderThemeOption(theme, label, currentTheme, icon) {
   `;
 }
 
-function renderSettingsRow({ id, title, subtitle = '', icon, titleClass = '', showChevron = true }) {
+function renderSettingsRow({ id, title, subtitle = '', icon, titleClass = '', showChevron = true, tourTarget = '' }) {
   return `
-    <div class="list-item" id="${id}" role="button" tabindex="0">
+    <div class="list-item" id="${id}" ${tourTarget ? `data-tour-target="${tourTarget}"` : ''} role="button" tabindex="0">
       <div class="list-item-icon">${icon}</div>
       <div class="list-item-content">
         <div class="list-item-title ${titleClass}">${title}</div>

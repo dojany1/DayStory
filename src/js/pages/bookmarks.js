@@ -9,6 +9,7 @@ import { navigate } from '../router.js';
 import { getBookmarkedStories } from '../services/bookmarks.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { safeStoryDateParts } from '../utils/date.js';
+import { getStoryImageUrl } from '../utils/imageLoading.js';
 
 const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E";
 
@@ -23,7 +24,7 @@ export function renderBookmarks() {
     </div>
 
     <div class="profile-collection-toolbar">
-      <div class="search-bar profile-collection-search" id="collection-search-bar">
+      <div class="search-bar profile-collection-search" id="collection-search-bar" data-tour-target="bookmarks-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
@@ -128,7 +129,7 @@ function renderMiniCard(story) {
   const dateMeta = valid
     ? `${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`
     : '';
-  const imageUrl = story.image_url || PLACEHOLDER_IMG;
+  const imageUrl = getStoryImageUrl(story, 'thumb') || PLACEHOLDER_IMG;
 
   return `
     <div class="history-card-mini" data-story-id="${escapeHtml(story.id)}">

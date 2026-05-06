@@ -153,11 +153,13 @@ describe('Editor Story badge styles', () => {
     expect(imageOverlayRule).toMatch(/pointer-events:\s*none/);
   });
 
-  it('Given image-heavy card surfaces, when source is inspected, then visible images should decode async and the editor upload path should compress before storage', () => {
+  it('Given image-heavy card surfaces, when source is inspected, then visible images should decode async and uploads should create display and thumbnail variants', () => {
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
     const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
     const detail = readFileSync(resolve(process.cwd(), 'src/js/pages/detail.js'), 'utf8');
     const storiesService = readFileSync(resolve(process.cwd(), 'src/js/services/stories.js'), 'utf8');
+    const imageService = readFileSync(resolve(process.cwd(), 'src/js/services/images.js'), 'utf8');
+    const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
 
     expect(editorStory).toMatch(/loading="eager"/);
     expect(editorStory).toMatch(/decoding="async"/);
@@ -167,9 +169,23 @@ describe('Editor Story badge styles', () => {
     expect(myStory).toMatch(/preloadStoryImages/);
     expect(detail).toMatch(/fetchpriority="high"/);
     expect(detail).toMatch(/preloadImage/);
-    expect(storiesService).toMatch(/imageCompression/);
-    expect(storiesService).toMatch(/maxSizeMB:\s*0\.[0-9]+/);
-    expect(storiesService).toMatch(/uploadBytes\(storageRef,\s*optimizedFile\)/);
+    expect(storiesService).toMatch(/uploadCardImageVariants/);
+    expect(imageService).toMatch(/export async function uploadCardImageVariants/);
+    expect(imageService).toMatch(/image_thumb_url/);
+    expect(imageService).toMatch(/maxSizeMB:\s*0\.[0-9]+/);
+    expect(imageService).toMatch(/uploadBytes\(storageRef,\s*optimizedFile\)/);
+    expect(editor).toMatch(/id="sf-image-thumb"/);
+    expect(editor).toMatch(/image_thumb_url/);
+  });
+
+  it('Given compact image surfaces, when source is inspected, then calendar, bookmarks, and search should prefer thumbnail URLs', () => {
+    const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
+    const bookmarks = readFileSync(resolve(process.cwd(), 'src/js/pages/bookmarks.js'), 'utf8');
+    const search = readFileSync(resolve(process.cwd(), 'src/js/pages/search.js'), 'utf8');
+
+    expect(calendar).toMatch(/getStoryImageUrl\(story,\s*'thumb'\)/);
+    expect(bookmarks).toMatch(/getStoryImageUrl\(story,\s*'thumb'\)/);
+    expect(search).toMatch(/getStoryImageUrl\(story,\s*'thumb'\)/);
   });
 
   it('Given the daily letter gate, when styles and code are inspected, then opening the letter should not use postcard or card reveal animations', () => {

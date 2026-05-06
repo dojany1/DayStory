@@ -11,13 +11,12 @@ import { showToast } from '../components/toast.js';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { auth, storage } from '../firebase.js';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import imageCompression from 'browser-image-compression';
+import { auth } from '../firebase.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { syncDiaryStateFromList } from '../services/widget.js';
 import { preloadStoryImages } from '../utils/imageLoading.js';
+import { uploadCardImageVariants } from '../services/images.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
@@ -239,6 +238,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
 
   const newCard = document.createElement('div');
   newCard.className = 'flip-container';
+  newCard.dataset.tourTarget = 'mystory-card';
   newCard.id = `card-${Date.now()}`;
 
   if (!story) {
@@ -252,7 +252,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
           <div class="empty-story-title">이 날의 기록이 없습니다.</div>
           <div class="empty-story-date">${formattedDate}</div>
           
-          <button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
+          <button class="btn btn-primary mystory-write-btn" data-tour-target="mystory-write" data-date="${isoDateStr}">
             + 나의 일화 쓰기
           </button>
         </div>
@@ -647,7 +647,8 @@ export function renderMyStoryNew() {
         <div class="input-group">
           <label class="input-label">이미지 업로드 및 URL</label>
           <div style="display:flex; gap:var(--space-2); align-items:center;">
-            <input class="input-field" id="ms-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
+          <input class="input-field" id="ms-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
+          <input type="hidden" id="ms-image-thumb" />
             <button type="button" id="ms-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">편집</button>
             <label for="ms-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
               사진 추가
@@ -706,6 +707,7 @@ export function renderMyStoryNew() {
         document.getElementById('ms-date').value = story.publish_date || defaultDate;
         document.getElementById('ms-body').value = story.body || '';
         document.getElementById('ms-image').value = story.image_url || '';
+        document.getElementById('ms-image-thumb').value = story.image_thumb_url || '';
       }
     }
 
@@ -836,20 +838,12 @@ export function renderMyStoryNew() {
         STATUS_EL.style.color = 'var(--color-primary)';
         STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
 
-        const options = {
-          maxSizeMB: 0.3,
-          maxWidthOrHeight: 1080,
-          useWebWorker: true,
-          initialQuality: 0.85
-        };
-        const compressedFile = await imageCompression(new File([blob], fallbackName, { type: 'image/jpeg' }), options);
-
         const uploadUid = uid || 'guest';
-        const fileRef = ref(storage, `users/${uploadUid}/diary/${Date.now()}.jpg`);
-        await uploadBytes(fileRef, compressedFile);
-        const downloadUrl = await getDownloadURL(fileRef);
+        blob.name = fallbackName;
+        const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'diary' });
 
-        IMAGE_FIELD.value = downloadUrl;
+        IMAGE_FIELD.value = image_url;
+        document.getElementById('ms-image-thumb').value = image_thumb_url || '';
         STATUS_EL.textContent = '업로드 완료! ✅';
         STATUS_EL.style.color = 'var(--color-info)';
         IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
@@ -906,7 +900,8 @@ export function renderMyStoryNew() {
         title: document.getElementById('ms-title').value.trim(),
         publish_date: document.getElementById('ms-date').value,
         body: document.getElementById('ms-body').value.trim(),
-        image_url: document.getElementById('ms-image').value.trim()
+        image_url: document.getElementById('ms-image').value.trim(),
+        image_thumb_url: document.getElementById('ms-image-thumb')?.value.trim() || ''
       };
 
       if (!data.title || !data.body || !data.publish_date) return showToast('필수 항목을 모두 입력해주세요', 'warning');

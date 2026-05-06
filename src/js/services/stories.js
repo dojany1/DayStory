@@ -37,8 +37,21 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 
-import imageCompression from 'browser-image-compression';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, deleteObject } from 'firebase/storage';
+import { uploadCardImageVariants } from './images.js';
+
+const STORIES_CACHE_TTL_MS = 60000;
+let storiesCachePromise = null;
+let storiesCacheAt = 0;
+
+export function invalidateStoriesCache() {
+  storiesCachePromise = null;
+  storiesCacheAt = 0;
+}
+
+export function warmStoriesCache() {
+  return fetchStories();
+}
 
 
 /* ─────────────────────────────────────────────
@@ -118,7 +131,7 @@ async function autoPublishScheduled(todayStr) {
 /**
  * fetchStories — 발행된(published) 전체 스토리를 최신순으로 가져옵니다
  */
-export async function fetchStories() {
+async function fetchStoriesFresh() {
   if (!db) return DEMO_STORIES;
 
   try {
@@ -141,6 +154,20 @@ export async function fetchStories() {
     console.warn('스토리 목록 조회 실패, 데모 데이터 사용:', err.message);
     return DEMO_STORIES;
   }
+}
+
+export async function fetchStories() {
+  const now = Date.now();
+  if (storiesCachePromise && now - storiesCacheAt < STORIES_CACHE_TTL_MS) {
+    return storiesCachePromise;
+  }
+
+  storiesCacheAt = now;
+  storiesCachePromise = fetchStoriesFresh().catch((err) => {
+    invalidateStoriesCache();
+    throw err;
+  });
+  return storiesCachePromise;
 }
 
 /**
@@ -259,6 +286,7 @@ export async function createStory(story) {
     created_at: serverTimestamp(),
     updated_at: serverTimestamp(),
   });
+  invalidateStoriesCache();
 
   /* 생성된 문서를 다시 읽어서 반환 */
   const docSnap = await getDoc(docRef);
@@ -276,6 +304,7 @@ export async function updateStory(id, updates) {
     ...updates,
     updated_at: serverTimestamp(),
   });
+  invalidateStoriesCache();
 
   /* 수정된 문서를 다시 읽어서 반환 */
   const docSnap = await getDoc(docRef);
@@ -300,6 +329,7 @@ export async function deleteStory(id) {
     console.warn('deleteStory image delete skip:', e);
   }
   await deleteDoc(doc(db, 'stories', id));
+  invalidateStoriesCache();
 }
 
 /**
@@ -345,40 +375,13 @@ export async function fetchStoriesWithLicense() {
   }
 }
 
-async function optimizeImageForUpload(file) {
-  try {
-    return await imageCompression(file, {
-      maxSizeMB: 0.45,
-      maxWidthOrHeight: 1400,
-      useWebWorker: true,
-      initialQuality: 0.82,
-    });
-  } catch (err) {
-    console.warn('Image compression skipped:', err);
-    return file;
-  }
-}
-
 /**
  * uploadImage — 이미지를 Firebase Storage에 업로드하고 URL을 반환합니다
  */
 export async function uploadImage(file) {
-  if (!storage) throw new Error('Firebase Storage 미설정');
+  if (!storage) throw new Error('Firebase Storage is not configured');
   
   const uid = auth?.currentUser?.uid || 'guest';
-  const optimizedFile = await optimizeImageForUpload(file);
-  
-  // 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
-  const fileName = `${Date.now()}_${optimizedFile?.name || file?.name || 'daystory-image.jpg'}`;
-  
-  // 'images/' 폴더에 대한 Firebase 권한(403) 오류를 해결하기 위해,
-  // 유저별 전용 폴더 구조로 업로드 경로를 변경합니다.
-  const storageRef = ref(storage, `users/${uid}/editor_images/${fileName}`);
-  
-  // 파일 업로드
-  await uploadBytes(storageRef, optimizedFile);
-  
-  // 다운로드 URL 가져오기
-  const downloadURL = await getDownloadURL(storageRef);
-  return downloadURL;
+  const { image_url } = await uploadCardImageVariants(file, { uid, folder: 'editor_images' });
+  return image_url;
 }

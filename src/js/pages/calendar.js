@@ -14,7 +14,8 @@ import { auth } from '../firebase.js';
 import { getState } from '../state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date.js';
-import { preloadStoryImages } from '../utils/imageLoading.js';
+import { getStoryImageUrl, preloadStoryImages } from '../utils/imageLoading.js';
+import { backfillStoryThumbnailsForMonth } from '../services/images.js';
 import { navigate } from '../router.js';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
@@ -29,7 +30,7 @@ export function renderCalendar() {
   page.innerHTML = `
     <div class="calendar-header">
       <h1 class="calendar-title">캘린더</h1>
-      <div class="calendar-toggle" data-mode="history">
+      <div class="calendar-toggle" data-mode="history" data-tour-target="calendar-toggle">
         <button type="button" class="calendar-toggle-btn active" data-mode="history">역사 일화</button>
         <button type="button" class="calendar-toggle-btn" data-mode="mine">나의 일화</button>
         <span class="calendar-toggle-thumb"></span>
@@ -155,11 +156,22 @@ function renderGrid(page, state, today) {
   stories.forEach(s => {
     if (s && s.publish_date) storyByDate.set(s.publish_date, s);
   });
-  preloadStoryImages(stories.filter((story) => {
+  const currentMonthStories = stories.filter((story) => {
     if (!story?.publish_date) return false;
     const [year, month] = story.publish_date.split('-');
     return Number(year) === state.year && Number(month) === state.month + 1;
-  }), 8);
+  });
+  preloadStoryImages(currentMonthStories, { variant: 'thumb', limit: 8, fallback: false });
+
+  const profile = getState('profile') || {};
+  if (profile.role === 'editor') {
+    void backfillStoryThumbnailsForMonth(currentMonthStories, {
+      collectionName: state.mode === 'history' ? 'stories' : 'userStories',
+      uid: auth?.currentUser?.uid || getState('user')?.id || 'guest',
+      year: state.year,
+      month: state.month + 1,
+    });
+  }
 
   const firstDay = toLocalDateFromIso(`${state.year}-${String(state.month + 1).padStart(2, '0')}-01`);
   const startWeekday = firstDay.getDay();
@@ -234,7 +246,7 @@ function renderGrid(page, state, today) {
 }
 
 function renderCellPeek(story, mode) {
-  const img = story.image_url || PLACEHOLDER_IMG;
+  const img = getStoryImageUrl(story, 'thumb') || PLACEHOLDER_IMG;
   const title = mode === 'history'
     ? (story.figure_name || story.title || '')
     : (story.title || '');

@@ -23,7 +23,7 @@ export function renderNotificationSettingsSection() {
   return `
     <div class="settings-section notification-settings-section">
       <div class="settings-section-title">알림</div>
-      <div class="list-item" id="setting-notifications" role="button" tabindex="0">
+      <div class="list-item" id="setting-notifications" data-tour-target="setting-notifications" role="button" tabindex="0">
         <div class="list-item-icon notification-settings-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path>

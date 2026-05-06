@@ -17,6 +17,7 @@
 import { navigate } from '../router.js';
 import { searchStoriesDB, fetchStories } from '../services/stories.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { getStoryImageUrl } from '../utils/imageLoading.js';
 
 
 /* ─────────────────────────────────────────────
@@ -141,11 +142,12 @@ function bindSearchItemClicks() {
 function renderSearchItem(story) {
   const pubDate = new Date(story.publish_date);
   const dateStr = `${pubDate.getFullYear()}.${pubDate.getMonth() + 1}.${pubDate.getDate()}`;
+  const imageUrl = getStoryImageUrl(story, 'thumb') || story.image_url;
 
   return `
     <div class="search-result-item" data-story-id="${escapeHtml(story.id)}">
       <div class="search-result-thumb">
-        <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" />
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" />
       </div>
       <div class="search-result-info">
         <div class="search-result-date">${dateStr} · ${escapeHtml(story.country)}</div>

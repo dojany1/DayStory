@@ -532,3 +532,42 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 - `src/js/utils/imageLoading.js`
 - `tests/editorstory.ui.spec.js`
 - `tests/regression.bugs.spec.js`
+
+---
+
+## 2026-05-06 12:49 Codex CLI
+
+**요구사항:**
+튜토리얼 포커싱을 `data-tour-target` 기반으로 고정하고, 캘린더/보관함/검색 등 작은 이미지 surface가 `image_thumb_url`을 우선 사용하도록 마무리. 기존 게시물 썸네일은 에디터 권한 사용자에게만 저강도 백필하고, 신규 업로드는 표시 이미지와 썸네일을 함께 저장.
+
+**구현방법:**
+- `tutorialTour.js`의 모든 단계 selector를 현재 route의 `.page` 안에서 찾는 `data-tour-target` 기반 selector로 정리하고, 캘린더 단계는 `[data-tour-target="calendar-toggle"]`로 토글 전체를 spotlight 하도록 변경.
+- 오늘 카드/편지, 날짜 휠 활성 일자, 캘린더 토글, 나의 일화 카드/작성 버튼, 보관함 검색, 설정 row에 `data-tour-target`을 부여.
+- 타깃을 찾은 뒤 `scrollIntoView` 후 2번의 `requestAnimationFrame`을 기다려 non-zero rect를 확인한 다음 spotlight와 bubble을 배치하도록 변경.
+- `getStoryImageUrl`, `preloadStoryImages`에 thumb/display variant를 추가하고, 캘린더 셀/보관함 미니카드/검색 결과는 `image_thumb_url || image_url` 순서로 표시.
+- `uploadCardImageVariants()`와 `backfillStoryThumbnailsForMonth()`를 추가해 신규 업로드는 표시 이미지와 4:5 썸네일을 함께 저장하고, 에디터 권한 캘린더 진입 시 현재 표시 월의 누락 썸네일만 concurrency 1로 백필.
+- 홈 진입 idle 시점 및 캘린더 nav `pointerenter`/`touchstart`/`focus`에서 캘린더 모듈, `fetchStories()` 캐시, 현재 달 썸네일만 미리 데우도록 연결. 썸네일이 없으면 원본 이미지는 선제 preload 하지 않도록 `fallback:false`를 사용.
+
+**검증:**
+- `npm test -- --run tests/regression.bugs.spec.js tests/editorstory.ui.spec.js tests/calendar.ui.spec.js`: 3 files / 31 tests 통과.
+- `npm test`: 8 files / 58 tests 통과.
+- `npm run build`: 성공.
+
+**변경파일:**
+- `docs/SESSION_LOG.md`
+- `src/main.js`
+- `src/js/components/notificationSettingsSheet.js`
+- `src/js/components/settingsSections.js`
+- `src/js/components/tutorialTour.js`
+- `src/js/pages/bookmarks.js`
+- `src/js/pages/calendar.js`
+- `src/js/pages/editor.js`
+- `src/js/pages/editorstory.js`
+- `src/js/pages/mystory.js`
+- `src/js/pages/search.js`
+- `src/js/services/images.js`
+- `src/js/services/stories.js`
+- `src/js/utils/imageLoading.js`
+- `tests/calendar.ui.spec.js`
+- `tests/editorstory.ui.spec.js`
+- `tests/regression.bugs.spec.js`

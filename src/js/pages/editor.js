@@ -602,6 +602,7 @@ export function renderEditorNew() {
         const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'editor_images' });
         
         imageVariantFields.applyUploadResult({ image_url, image_thumb_url });
+        updateImageEditBtn();
         STATUS_EL.textContent = '업로드 완료! ✅';
         STATUS_EL.style.color = 'var(--color-info)';
         unsavedChanges = true;

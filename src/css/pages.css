@@ -343,12 +343,12 @@
 .editorstory-card-area > .flip-container {
   grid-area: stack;
   width: 100%;                  /* 부모의 가용 넓이(패딩 안쪽)를 끝까지 100% 채움 */
-  max-width: none;              /* 넓이 강제 제한 해제 (원하는 대로 너비 꽉 채우기) */
+  max-width: 390px;             /* 화면이 넓어도 카드가 지나치게 커지지 않도록 제한 */
   min-width: 0;                 /* min-width: 280px 무시, 높이 초과시 안전하게 축소 허용 */
   height: auto;                 /* aspect-ratio에 의해 자동 계산된 높이 사용 */
   max-height: 100%;             /* 단, 컨테이너 높이를 넘어서지는 않게 방어. (높이가 넘치면 너비가 자동 비율 축소됨) */
   aspect-ratio: var(--card-aspect-ratio);
-  margin: 0;
+  margin: 0 auto;               /* max-width 적용 시 중앙 정렬 */
 }
 
 /* 홈 카드 내부 flipper — 비율 통제를 부모에게 일임 */
@@ -361,7 +361,9 @@
 .daily-letter-gate {
   grid-area: stack;
   width: 100%;
+  max-width: 390px;
   min-width: 0;
+  margin: 0 auto;
   aspect-ratio: var(--card-aspect-ratio);
   position: relative;
   display: flex;
@@ -540,7 +542,8 @@
 .card-stack-item {
   grid-area: stack;
   width: 100%;
-  max-width: none;
+  max-width: 390px;
+  margin: 0 auto;
   aspect-ratio: var(--card-aspect-ratio);
   transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
   will-change: transform, opacity;

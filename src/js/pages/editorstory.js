@@ -255,7 +255,10 @@ async function loadEditorStoryData(page) {
         if (item.classList.contains('disabled')) return;
         container.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
         item.classList.add('active');
-        
+
+        // scrollTo가 발생시키는 scroll 이벤트로 인해 onScrollEnd가 중복 실행되지 않도록 타이머 취소
+        clearTimeout(scrollTimeout);
+
         // 딜레이를 없애기 위해 클릭 시 즉시 카드 업데이트 (디바운스 우회)
         updateWheelSelection(true);
 

@@ -535,6 +535,23 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 
 ---
 
+## 2026-05-06 — Claude Code
+
+**요구사항:**
+(1) 업로드 이미지 편집(편집 버튼)이 일부 카드에서만 작동. (2) 카드가 2개씩 슬라이드되는 문제. (3) 화면 너비에 따른 반응형 카드 크기 조절 문제.
+
+**구현방법:**
+- #2 `editorstory.js` `onClickItem` 함수 내부에서 `clearTimeout(scrollTimeout)` 추가 — `scrollTo(smooth)` 가 발생시키는 `scroll` 이벤트로 `onScrollEnd` 가 150ms 후 재실행되어 카드가 2칸 이동하던 문제 해소.
+- #3 `pages.css` `.editorstory-card-area > .flip-container` / `.daily-letter-gate` / `.card-stack-item` 에 `max-width: 390px; margin: 0 auto` 추가 — 화면 너비가 넓어도 카드가 과도하게 커지지 않도록 제한.
+- #1 `editor.js` `processUploadBlob` 내 `applyUploadResult` 호출 직후 `updateImageEditBtn()` 명시적 호출 추가 — 업로드 완료 후 편집 버튼이 확실히 표시되도록 방어.
+
+**변경파일:**
+- `src/js/pages/editorstory.js`
+- `src/css/pages.css`
+- `src/js/pages/editor.js`
+
+---
+
 ## 2026-05-06 12:49 Codex CLI
 
 **요구사항:**

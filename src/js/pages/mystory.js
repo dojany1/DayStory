@@ -717,6 +717,13 @@ export function renderMyStoryNew() {
       if (btn) btn.style.display = url ? 'inline-block' : 'none';
     }
 
+    let suppressImageThumbClear = false;
+    document.getElementById('ms-image')?.addEventListener('input', () => {
+      if (suppressImageThumbClear) return;
+      const thumbField = document.getElementById('ms-image-thumb');
+      if (thumbField) thumbField.value = '';
+    });
+
     const formEl = document.getElementById('mystory-form');
     if (formEl) {
       formEl.addEventListener('input', () => {
@@ -842,11 +849,16 @@ export function renderMyStoryNew() {
         blob.name = fallbackName;
         const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'diary' });
 
-        IMAGE_FIELD.value = image_url;
-        document.getElementById('ms-image-thumb').value = image_thumb_url || '';
-        STATUS_EL.textContent = '업로드 완료! ✅';
-        STATUS_EL.style.color = 'var(--color-info)';
-        IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
+        suppressImageThumbClear = true;
+        try {
+          IMAGE_FIELD.value = image_url;
+          document.getElementById('ms-image-thumb').value = image_thumb_url || '';
+          STATUS_EL.textContent = '업로드 완료! ✅';
+          STATUS_EL.style.color = 'var(--color-info)';
+          IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
+        } finally {
+          suppressImageThumbClear = false;
+        }
       } catch (error) {
         console.error('이미지 업로드 오류:', error);
         STATUS_EL.style.color = 'var(--color-error)';

@@ -535,6 +535,30 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 
 ---
 
+## 2026-05-06 12:56 — Codex CLI
+
+**요구사항:**
+튜토리얼 포커싱/캘린더 썸네일 로딩 개선 계획 구현 상태를 재확인하고, 남은 작은 불일치를 정리.
+
+**구현방법:**
+- 홈에서 캘린더 nav 예열 시 `fetchStories()`를 직접 호출하지 않고 공유 캐시 API인 `warmStoriesCache()`를 사용하도록 정리.
+- 에디터/나의 일화 작성 화면에서 이미지 URL을 수동으로 바꾸면 기존 `image_thumb_url`이 잘못 재사용되지 않도록 숨김 썸네일 필드를 비움.
+- 업로드 완료로 코드가 `image_url`/`image_thumb_url`을 동시에 채울 때는 썸네일 필드가 지워지지 않도록 suppress 플래그로 입력 이벤트를 보호.
+
+**검증:**
+- `npm test -- --run tests/regression.bugs.spec.js tests/editorstory.ui.spec.js tests/calendar.ui.spec.js`: 3 files / 31 tests 통과.
+- `npm test`: 8 files / 58 tests 통과.
+- `npm run build`: 성공.
+- `http://localhost:5173/`: 200 응답 확인.
+
+**변경파일:**
+- `docs/SESSION_LOG.md`
+- `src/main.js`
+- `src/js/pages/editor.js`
+- `src/js/pages/mystory.js`
+
+---
+
 ## 2026-05-06 12:49 Codex CLI
 
 **요구사항:**

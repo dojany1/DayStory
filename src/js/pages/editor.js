@@ -454,6 +454,13 @@ export function renderEditorNew() {
       if (btn) btn.style.display = url ? 'inline-block' : 'none';
     }
 
+    let suppressImageThumbClear = false;
+    document.getElementById('sf-image')?.addEventListener('input', () => {
+      if (suppressImageThumbClear) return;
+      const thumbField = document.getElementById('sf-image-thumb');
+      if (thumbField) thumbField.value = '';
+    });
+
     const formEl = document.getElementById('story-form');
     if (formEl) {
       formEl.addEventListener('input', () => {
@@ -594,13 +601,18 @@ export function renderEditorNew() {
         const uploadUid = auth?.currentUser?.uid || getState('user')?.id || 'guest';
         const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'editor_images' });
         
-        IMAGE_FIELD.value = image_url;
-        document.getElementById('sf-image-thumb').value = image_thumb_url || '';
-        STATUS_EL.textContent = '업로드 완료! ✅';
-        STATUS_EL.style.color = 'var(--color-info)';
-        
-        unsavedChanges = true;
-        IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
+        suppressImageThumbClear = true;
+        try {
+          IMAGE_FIELD.value = image_url;
+          document.getElementById('sf-image-thumb').value = image_thumb_url || '';
+          STATUS_EL.textContent = '업로드 완료! ✅';
+          STATUS_EL.style.color = 'var(--color-info)';
+
+          unsavedChanges = true;
+          IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
+        } finally {
+          suppressImageThumbClear = false;
+        }
       } catch (err) {
         console.error('이미지 업로드 오류:', err);
         STATUS_EL.style.color = 'var(--color-error)';

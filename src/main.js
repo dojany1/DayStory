@@ -60,11 +60,11 @@ import { Capacitor } from '@capacitor/core';
 */
 import { renderEditorStory } from './js/pages/editorstory.js';
 import { getLocalToday } from './js/utils/date.js';
-import { fetchStories } from './js/services/stories.js';
+import { warmStoriesCache } from './js/services/stories.js';
 import { preloadStoryImages } from './js/utils/imageLoading.js';
 
 let calendarRoutePromise = null;
-let warmStoriesCache = null;
+let warmedStoriesPromise = null;
 
 function loadCalendarModule() {
   if (!calendarRoutePromise) {
@@ -84,11 +84,11 @@ function getCurrentMonthStories(stories) {
 
 function warmCalendarRoute() {
   loadCalendarModule();
-  if (!warmStoriesCache) {
-    warmStoriesCache = fetchStories().catch(() => []);
+  if (!warmedStoriesPromise) {
+    warmedStoriesPromise = warmStoriesCache().catch(() => []);
   }
 
-  warmStoriesCache.then((stories) => {
+  warmedStoriesPromise.then((stories) => {
     preloadStoryImages(getCurrentMonthStories(stories), {
       variant: 'thumb',
       limit: 8,

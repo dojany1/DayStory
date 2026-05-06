@@ -155,10 +155,16 @@ async function loadEditorStoryData(page) {
         if (!activeMonth) return;
         const selectedMonth = parseInt(activeMonth.dataset.month, 10);
 
+        /* 선택된 월의 실제 마지막 날 계산 (예: 4월 → 30, 2월 → 28/29) */
+        const daysInSelectedMonth = new Date(currentYear, selectedMonth, 0).getDate();
+
         calendarElement.querySelectorAll('.wheel-item').forEach(el => {
           const d = parseInt(el.dataset.day, 10);
 
           if (selectedMonth > currentMonth) {
+            el.classList.add('disabled');
+          } else if (d > daysInSelectedMonth) {
+            /* 해당 월에 존재하지 않는 날짜 (예: 4월 31일) */
             el.classList.add('disabled');
           } else if (selectedMonth === currentMonth && d > currentDate) {
             el.classList.add('disabled');

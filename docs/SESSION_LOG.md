@@ -552,6 +552,19 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 
 ---
 
+## 2026-05-06 — Claude Code (추가 수정)
+
+**요구사항:**
+5월 1일에서 뒤로 스와이프하면 4월 31일로 이동하는 버그. 4월은 30일까지밖에 없는데 31일이 선택된다.
+
+**구현방법:**
+- `editorstory.js` `applyDisabledState()`에 `daysInSelectedMonth` 계산 추가 (`new Date(year, month, 0).getDate()`). 선택된 월의 실제 마지막 날보다 큰 날짜(예: 4월 31일, 2월 29~31일)를 disabled 처리. 기존 코드는 미래 날짜/미래 월만 disabled 처리하고 존재하지 않는 날짜를 걸러내지 않아 4월 31일이 선택 가능한 상태로 남아있었고, 스와이프 시 마지막 활성 아이템으로 선택되던 문제 해소.
+
+**변경파일:**
+- `src/js/pages/editorstory.js`
+
+---
+
 ## 2026-05-06 12:49 Codex CLI
 
 **요구사항:**

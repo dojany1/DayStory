@@ -652,3 +652,38 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 - `src/js/pages/editorstory.js`
 - `tests/editorstory.ui.spec.js`
 - `tests/regression.bugs.spec.js`
+
+---
+
+## 2026-05-06 15:18 Codex CLI
+
+**요구사항:**
+햅틱을 제거하고, 에디터의 한마디가 나오지 않는 버그를 수정.
+
+**구현방법:**
+- `calendar.js`, `editorstory.js`, `mystory.js`에서 `@capacitor/haptics` import와 `Haptics.impact`, `Haptics.selectionChanged` 호출을 제거.
+- 더 이상 사용하지 않는 `hapticTriggered` 상태와 테스트용 Haptics mock을 제거.
+- `package.json`/`package-lock.json`에서 `@capacitor/haptics`를 제거하고, 기존 알림 서비스가 실제로 import하는 `@capacitor/local-notifications`를 dependency로 명시.
+- 에디터 한마디 말풍선이 바깥 클릭 처리에 의해 탭 대상에서 빠지지 않도록 `.editor-comment-bubble`의 `pointer-events`를 `auto`로 변경.
+- 햅틱 제거와 말풍선 pointer-events 회귀 테스트를 추가.
+
+**검증:**
+- `npm test -- --run tests/editorstory.ui.spec.js tests/regression.bugs.spec.js`: 2 files / 33 tests 통과.
+- `npm test`: 8 files / 63 tests 통과.
+- `npm run build`: 성공.
+- `git diff --check`: 통과.
+- `npx cap sync android`: 성공.
+- `android` 디렉터리에서 `.\gradlew.bat assembleDebug`: 성공.
+
+**변경파일:**
+- `android/app/capacitor.build.gradle`
+- `android/capacitor.settings.gradle`
+- `docs/SESSION_LOG.md`
+- `package.json`
+- `package-lock.json`
+- `src/css/components.css`
+- `src/js/pages/calendar.js`
+- `src/js/pages/editorstory.js`
+- `src/js/pages/mystory.js`
+- `tests/editorstory.ui.spec.js`
+- `tests/regression.bugs.spec.js`

@@ -506,7 +506,7 @@
   word-break: keep-all;
   animation: editorBubbleIn 0.25s ease;
   z-index: 10;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 /* 말풍선 아래 꼬리 */

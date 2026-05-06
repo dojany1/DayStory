@@ -10,7 +10,6 @@ import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { auth } from '../firebase.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -396,7 +395,6 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
   let isSwiping = false;
   let swipeAxis = null;
   let isAnimating = false;
-  let hapticTriggered = false;
   let isBackBodyScroll = false;
   let lastTouchInputAt = 0;
   const SWIPE_THRESHOLD = 80;
@@ -415,7 +413,6 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     touchStartY = y;
     isSwiping = false;
     swipeAxis = null;
-    hapticTriggered = false;
     isBackBodyScroll = isBody;
 
     tapStartTime = Date.now();
@@ -451,10 +448,6 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     if (swipeAxis === 'x') {
       const moveX = diffX * 0.4;
       flipper.style.transform = `translateX(${moveX}px) ${baseTransform}`;
-      if (Math.abs(diffX) > SWIPE_THRESHOLD && !hapticTriggered) {
-        hapticTriggered = true;
-        try { await Haptics.impact({ style: ImpactStyle.Light }); } catch (err) { }
-      }
     }
   };
 
@@ -475,7 +468,6 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
       /* 세션 1 #2: 짧은 시간 내 두 번째 commit 차단 */
       if (Date.now() - lastSwipeCommitAt >= SWIPE_COMMIT_GUARD_MS) {
         lastSwipeCommitAt = Date.now();
-        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
 
         const offset = diffX < 0 ? 1 : -1;
         const dayWrapper = document.getElementById('mystory-calendar');
@@ -542,7 +534,6 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
         if (flipper.classList.contains('is-flipping')) return;
 
         flipper.classList.add('is-flipping');
-        Haptics.selectionChanged().catch(() => {});
         flipper.classList.toggle('flipped');
         setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
         return; 
@@ -592,7 +583,6 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     if (flipper.classList.contains('is-flipping')) return;
     flipper.classList.add('is-flipping');
     
-    Haptics.selectionChanged().catch(() => {});
     flipper.classList.toggle('flipped');
     
     setTimeout(() => {

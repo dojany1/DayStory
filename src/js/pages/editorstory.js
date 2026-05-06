@@ -18,7 +18,6 @@ import { fetchStories, fetchTodayStory } from '../services/stories.js';
 import { toggleBookmark, getBookmarkedStoryIds } from '../services/bookmarks.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
 import { getState } from '../state.js';
 import { navigate } from '../router.js';
@@ -826,7 +825,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   if (detailBtn && story) {
     detailBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
       navigate(`/detail/${story.id}`);
     });
   }
@@ -840,7 +838,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         navigate('/login');
         return;
       }
-      try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
       try {
         const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
           ? `https://daystory.app/detail/${story.id}`
@@ -859,7 +856,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         navigate('/login');
         return;
       }
-      try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
       const res = await toggleBookmark(story.id);
       if (res.error) {
         showToast(res.error, 'error');
@@ -881,7 +877,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   let isSwiping = false;
   let swipeAxis = null;
   let isAnimating = false;
-  let hapticTriggered = false;
   let isBackBodyScroll = false;
   let lastTouchInputAt = 0;
   const SWIPE_THRESHOLD = 80;
@@ -901,7 +896,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     touchStartY = y;
     isSwiping = false;
     swipeAxis = null;
-    hapticTriggered = false;
     isBackBodyScroll = isBody;
 
     /* 탭 판별용 시작 시간·좌표 저장 */
@@ -939,10 +933,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     if (swipeAxis === 'x') {
       const moveX = diffX * 0.4;
       flipper.style.transform = `translateX(${moveX}px) ${baseTransform}`;
-      if (Math.abs(diffX) > SWIPE_THRESHOLD && !hapticTriggered) {
-        hapticTriggered = true;
-        try { await Haptics.impact({ style: ImpactStyle.Light }); } catch (err) { }
-      }
     }
   };
 
@@ -973,7 +963,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
       /* 세션 1 #2: 카드 재렌더 후 짧은 시간 내 두 번째 commit 차단 (한 번 swipe 로 두 칸 이동 방지) */
       if (Date.now() - lastSwipeCommitAt >= SWIPE_COMMIT_GUARD_MS) {
         lastSwipeCommitAt = Date.now();
-        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch (err) { }
 
         const offset = diffX < 0 ? 1 : -1;
         const dayWrapper = document.getElementById('editorstory-calendar');
@@ -1069,7 +1058,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         }
 
         flipper.classList.add('is-flipping');
-        Haptics.selectionChanged().catch(() => {});
         flipper.classList.toggle('flipped');
         document.dispatchEvent(new CustomEvent('ds:card-flipped'));
 
@@ -1127,7 +1115,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     }
 
     flipper.classList.add('is-flipping');
-    Haptics.selectionChanged().catch(() => {});
     flipper.classList.toggle('flipped');
     document.dispatchEvent(new CustomEvent('ds:card-flipped'));
 

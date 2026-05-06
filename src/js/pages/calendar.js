@@ -17,7 +17,6 @@ import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date
 import { CARD_PLACEHOLDER_IMAGE, getStoryImageUrl, preloadStoryImages } from '../utils/imageLoading.js';
 import { backfillStoryThumbnailsForMonth } from '../services/images.js';
 import { navigate } from '../router.js';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -96,7 +95,6 @@ async function loadCalendar(page) {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.mode;
       if (mode === state.mode) return;
-      Haptics.selectionChanged().catch(() => {});
       state.mode = mode;
       const toggle = page.querySelector('.calendar-toggle');
       toggle.dataset.mode = mode;
@@ -109,7 +107,6 @@ async function loadCalendar(page) {
 
   /* 월 이동 */
   page.querySelector('#cal-prev-month').addEventListener('click', () => {
-    Haptics.selectionChanged().catch(() => {});
     state.month -= 1;
     if (state.month < 0) {
       state.month = 11;
@@ -120,7 +117,6 @@ async function loadCalendar(page) {
 
   page.querySelector('#cal-next-month').addEventListener('click', () => {
     if (isAtCurrentMonth(state, today)) return;
-    Haptics.selectionChanged().catch(() => {});
     state.month += 1;
     if (state.month > 11) {
       state.month = 0;
@@ -228,7 +224,6 @@ function renderGrid(page, state, today) {
       const date = cell.dataset.date;
       const story = storyByDate.get(date);
       if (!story) return;
-      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
       openCardPopup(story, state.mode, state.bookmarkedIds);
     });
   });
@@ -237,7 +232,6 @@ function renderGrid(page, state, today) {
     cell.addEventListener('click', () => {
       const date = cell.dataset.date;
       if (!date) return;
-      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
       navigate(`/mystory/new?date=${date}`);
     });
   });
@@ -312,7 +306,6 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
       if (e.target.closest('.editor-comment-bubble')) return;
       if (flipper.classList.contains('is-flipping')) return;
       flipper.classList.add('is-flipping');
-      Haptics.selectionChanged().catch(() => {});
       flipper.classList.toggle('flipped');
       setTimeout(() => flipper.classList.remove('is-flipping'), 400);
     });
@@ -372,7 +365,6 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
           navigate('/login');
           return;
         }
-        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch {}
         try {
           const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
             ? `https://daystory.app/detail/${story.id}`
@@ -398,7 +390,6 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
           navigate('/login');
           return;
         }
-        try { await Haptics.impact({ style: ImpactStyle.Medium }); } catch {}
         const res = await toggleBookmark(story.id);
         if (res.error) {
           showToast(res.error, 'error');

@@ -75,17 +75,6 @@ vi.mock('../src/js/firebase.js', () => ({
   storage: {},
 }));
 
-vi.mock('@capacitor/haptics', () => ({
-  Haptics: {
-    impact: vi.fn().mockResolvedValue(undefined),
-    selectionChanged: vi.fn().mockResolvedValue(undefined),
-  },
-  ImpactStyle: {
-    Light: 'Light',
-    Medium: 'Medium',
-  },
-}));
-
 vi.mock('@capacitor/share', () => ({
   Share: {
     share: vi.fn().mockResolvedValue(undefined),
@@ -282,6 +271,19 @@ describe('Regression bugs', () => {
     expect(navButton).toMatch(/<path d="M1 3h22v5H1z"><\/path>/);
     expect(navButton).toMatch(/<path d="M10 12h4"><\/path>/);
     expect(navButton).not.toMatch(/M19 21l-7-5-7 5/);
+  });
+
+  it('Given haptics are removed, when app sources and dependencies are inspected, then no haptics plugin or calls should remain', () => {
+    const packageJson = readFileSync(resolve(process.cwd(), 'package.json'), 'utf8');
+    const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
+    const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
+    const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
+    const appSource = [editorStory, calendar, myStory].join('\n');
+
+    expect(packageJson).not.toMatch(/@capacitor\/haptics/);
+    expect(appSource).not.toMatch(/@capacitor\/haptics/);
+    expect(appSource).not.toMatch(/\bHaptics\b/);
+    expect(appSource).not.toMatch(/\bImpactStyle\b/);
   });
 
   it('Given the profile tab is now the settings page, when the page renders, then the bookmark search bar and bookmark grid should not appear (moved to /bookmarks)', () => {

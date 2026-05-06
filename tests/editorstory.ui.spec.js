@@ -42,17 +42,6 @@ vi.mock('../src/js/router.js', () => ({
   navigate: navigateMock,
 }));
 
-vi.mock('@capacitor/haptics', () => ({
-  Haptics: {
-    impact: vi.fn().mockResolvedValue(undefined),
-    selectionChanged: vi.fn().mockResolvedValue(undefined),
-  },
-  ImpactStyle: {
-    Light: 'Light',
-    Medium: 'Medium',
-  },
-}));
-
 vi.mock('@capacitor/share', () => ({
   Share: {
     share: vi.fn().mockResolvedValue(undefined),
@@ -123,6 +112,7 @@ describe('Editor Story comment styles', () => {
     expect(bubbleBlockMatch?.[0]).toMatch(/background:\s*var\(--color-bg-elevated,\s*var\(--color-bg-secondary\)\)/);
     expect(bubbleBlockMatch?.[0]).not.toMatch(/border:/);
     expect(bubbleBlockMatch?.[0]).not.toMatch(/background:\s*var\(--color-editor-comment,\s*#ffe16a\)/);
+    expect(bubbleBlockMatch?.[0]).toMatch(/pointer-events:\s*auto/);
   });
 
   it('Given an admin profile photo exists, when editor surfaces are inspected, then editor avatar should prefer the profile image over auth fallback', () => {

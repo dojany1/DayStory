@@ -20,7 +20,7 @@ const TARGET_PADDING   = 8;
 export const TUTORIAL_TOUR_STEPS = [
   {
     route: '/editorstory',
-    selector: '#editorstory-card-area .flip-container',
+    selector: '.daily-letter-gate, .flip-container',
     title: '오늘의 카드',
     body: '매일 한 장의 역사 카드가 도착합니다.\n카드를 탭하면 뒷면에서 자세한 이야기를 읽을 수 있어요.',
   },
@@ -32,19 +32,19 @@ export const TUTORIAL_TOUR_STEPS = [
   },
   {
     route: '/calendar',
-    selector: '.calendar-toggle-btn.active',
+    selector: '.calendar-toggle-btn.active, .calendar-toggle-btn',
     title: '캘린더 전환',
     body: '역사 일화와 나의 일화를 토글로 전환하고,\n날짜를 눌러 해당 날의 카드를 확인하세요.',
   },
   {
     route: '/mystory',
-    selector: '.mystory-write-btn, #mystory-card-area .flip-container',
+    selector: '.mystory-write-btn, .flip-container',
     title: '나의 일화',
     body: '비어있는 날에는 작성 버튼이 나타나고,\n쓴 날에는 내 카드가 보입니다.\n카드를 탭하면 뒷면을 볼 수 있어요.',
   },
   {
     route: '/bookmarks',
-    selector: '#collection-search-input',
+    selector: '#collection-search-input, .profile-collection-search',
     title: '보관함 & 검색',
     body: '카드 앞면의 보관함 버튼으로 저장한 카드를 모아봅니다.\n인물이나 사건 이름으로 검색할 수도 있어요.',
   },
@@ -59,12 +59,6 @@ export const TUTORIAL_TOUR_STEPS = [
     selector: '#setting-notifications',
     title: '알림 설정',
     body: '오늘의 역사 카드 알림과\n나의 일화 작성 알림 시간을 설정합니다.',
-  },
-  {
-    route: '/profile',
-    selector: '#setting-widget-theme',
-    title: '홈 화면 위젯',
-    body: '위젯은 오늘의 카드 확인과 나의 일화 바로가기를\n홈 화면에서 제공합니다.\n여기서 위젯 테마도 바꿀 수 있습니다.',
   },
   {
     route: '/profile',
@@ -137,7 +131,10 @@ function waitForTarget(step, idx, navigateFn, attempt) {
   }
   if (attempt >= MAX_TARGET_WAIT) {
     /* 타겟을 찾지 못하면 자동으로 다음 스텝으로 건너뜀 */
-    skipToNext(idx, navigateFn);
+    const fallbackTarget = document.querySelector('#page-container .page')
+      || document.querySelector('#page-container')
+      || document.body;
+    showStep(step, idx, fallbackTarget, navigateFn);
     return;
   }
   pollTimer = setTimeout(() => waitForTarget(step, idx, navigateFn, attempt + 1), TARGET_POLL_MS);
@@ -158,18 +155,6 @@ function findTarget(selector) {
 function isVisible(el) {
   const r = el.getBoundingClientRect();
   return r.width > 4 && r.height > 4;
-}
-
-function skipToNext(idx, navigateFn) {
-  const next = idx + 1;
-  if (next >= STEPS.length) { endTour(); return; }
-  setStep(next);
-  const nextStep = STEPS[next];
-  if (nextStep.route !== STEPS[idx].route) {
-    navigateFn(nextStep.route);
-  } else {
-    waitForTarget(nextStep, next, navigateFn, 0);
-  }
 }
 
 /* ─────────────────────────────────────────────

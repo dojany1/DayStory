@@ -16,6 +16,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
+import { syncDiaryStateFromList } from '../services/widget.js';
+import { preloadStoryImages } from '../utils/imageLoading.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
@@ -67,6 +69,8 @@ async function loadMyStoryData(page) {
     // Firebase Auth의 실제 UID를 우선 사용 (Firestore 보안 규칙의 request.auth.uid와 일치해야 함)
     const uid = auth?.currentUser?.uid || user.id;
     const allStories = await fetchMyStories(uid);
+    void syncDiaryStateFromList(allStories);
+    preloadStoryImages(allStories, 5);
     
     // 로컬 시간 기준 실제 오늘 날짜 (휠 피커의 미래 날짜 제한용)
     const params = getParams();
@@ -223,6 +227,7 @@ async function loadMyStoryData(page) {
 
 function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null, allStories) {
   if (!cardArea) return;
+  preloadStoryImages([story], 1);
 
   const allCards = Array.from(cardArea.querySelectorAll('.flip-container'));
   const oldCard = allCards.pop() || null;
@@ -292,7 +297,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.title)}" onerror="this.style.display='none'" draggable="false" />
+            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.title)}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" onerror="this.style.display='none'" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.title)}</div>
           </div>
         </div>
@@ -376,6 +381,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
         showToast('일화가 삭제되었습니다.', 'success');
         const uid = auth?.currentUser?.uid || getState('user')?.id || 'guest';
         const freshStories = await fetchMyStories(uid);
+        void syncDiaryStateFromList(freshStories);
         const isoDateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')}`;
         renderCardToArea(document.querySelector('#mystory-card-area'), null, dateObj, isoDateStr, null, freshStories);
       }
@@ -913,6 +919,10 @@ export function renderMyStoryNew() {
           await createMyStory(data);
           showToast('새 일화가 작성되었습니다', 'success');
         }
+        const nextStories = editingId
+          ? [...allStories.filter((story) => String(story.id) !== String(editingId)), { ...data, id: editingId }]
+          : [...allStories, data];
+        void syncDiaryStateFromList(nextStories);
         navigate('/mystory', { date: data.publish_date });
       } catch (err) {
         showToast('저장 중 오류 발생', 'error');

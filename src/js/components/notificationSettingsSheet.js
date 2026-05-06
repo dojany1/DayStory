@@ -2,9 +2,6 @@ import {
   getNotificationSettings,
   updateNotificationSetting,
 } from '../services/notifications.js';
-import { getState, setState } from '../state.js';
-import { showToast } from './toast.js';
-import { renderWidgetThemeOption } from './widgetThemePreview.js';
 
 const NOTIFICATION_LABELS = {
   diary: {
@@ -43,25 +40,6 @@ export function renderNotificationSettingsSection() {
           </svg>
         </div>
       </div>
-      <div class="list-item" id="setting-widget-theme" role="button" tabindex="0">
-        <div class="list-item-icon widget-theme-settings-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="4" y="4" width="16" height="16" rx="4"></rect>
-            <path d="M8 9h4"></path>
-            <path d="M8 13h8"></path>
-            <path d="M8 17h5"></path>
-          </svg>
-        </div>
-        <div class="list-item-content">
-          <div class="list-item-title">홈 화면 위젯</div>
-          <div class="list-item-subtitle widget-theme-settings-summary">${widgetThemeSummary()}</div>
-        </div>
-        <div class="list-item-action">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
     </div>
   `;
 }
@@ -79,17 +57,6 @@ export function bindNotificationSettingsSection(page) {
     });
   }
 
-  const widgetItem = page.querySelector('#setting-widget-theme');
-  if (widgetItem) {
-    const openWidgetSheet = () => openWidgetThemeSettingsSheet((theme) => updateWidgetThemeSummary(page, theme));
-    widgetItem.addEventListener('click', openWidgetSheet);
-    widgetItem.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        openWidgetSheet();
-      }
-    });
-  }
 }
 
 export function openNotificationSettingsSheet(onChange = () => {}) {
@@ -163,68 +130,6 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
       updateRow(overlay, type, nextSettings[type]);
       updateNotificationSummary(document);
       onChange();
-    });
-  });
-
-  return overlay;
-}
-
-export function openWidgetThemeSettingsSheet(onChange = () => {}) {
-  const existing = document.querySelector('.widget-theme-settings-overlay');
-  if (existing) existing.remove();
-
-  const currentTheme = getState('widgetTheme') || 'light';
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay widget-theme-settings-overlay';
-  overlay.innerHTML = `
-    <div class="modal-sheet widget-theme-settings-sheet" role="dialog" aria-modal="true" aria-labelledby="widget-theme-settings-title">
-      <div class="modal-handle"></div>
-      <div class="notification-settings-header">
-        <h2 id="widget-theme-settings-title">홈 화면 위젯</h2>
-        <button type="button" class="notification-settings-close" aria-label="닫기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6L6 18M6 6l12 12"></path>
-          </svg>
-        </button>
-      </div>
-      <div class="widget-theme-sheet-options">
-        ${renderWidgetThemeOption('light', currentTheme)}
-        ${renderWidgetThemeOption('dark', currentTheme)}
-      </div>
-      <button type="button" class="btn btn-primary btn-full widget-theme-settings-done">완료</button>
-    </div>
-  `;
-
-  const wrapper = document.querySelector('.mobile-wrapper') || document.body;
-  wrapper.appendChild(overlay);
-
-  /* DOM 삽입 후 다음 프레임에서 .open 추가 */
-  requestAnimationFrame(() => overlay.classList.add('open'));
-
-  let isClosing = false;
-  const close = () => {
-    if (isClosing) return;
-    isClosing = true;
-    overlay.classList.remove('open');
-    overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
-    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 400);
-  };
-  bindSheetDragDismiss(overlay, close);
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) close();
-  });
-  overlay.querySelector('.notification-settings-close')?.addEventListener('click', close);
-  overlay.querySelector('.widget-theme-settings-done')?.addEventListener('click', close);
-
-  overlay.querySelectorAll('.widget-theme-option').forEach((option) => {
-    option.addEventListener('click', () => {
-      const selected = option.dataset.widgetTheme || 'light';
-      setState('widgetTheme', selected);
-      overlay.querySelectorAll('.widget-theme-option').forEach((item) => item.classList.remove('active'));
-      option.classList.add('active');
-      updateWidgetThemeSummary(document, selected);
-      onChange(selected);
-      showToast(`위젯 테마: ${widgetThemeSummary(selected)}`, 'success');
     });
   });
 
@@ -358,21 +263,11 @@ function updateNotificationSummary(root) {
   });
 }
 
-function updateWidgetThemeSummary(root, theme) {
-  root.querySelectorAll('.widget-theme-settings-summary').forEach((summary) => {
-    summary.textContent = widgetThemeSummary(theme);
-  });
-}
-
 function notificationSummary() {
   const settings = getNotificationSettings();
   const diary = settings.diary.enabled ? `일기 ${formatTimeLabel(settings.diary.time)}` : '일기 꺼짐';
   const editor = settings.editor.enabled ? `에디터 ${formatTimeLabel(settings.editor.time)}` : '에디터 꺼짐';
   return `${diary} · ${editor}`;
-}
-
-function widgetThemeSummary(theme = getState('widgetTheme')) {
-  return theme === 'dark' ? '다크' : '화이트';
 }
 
 function getSelectedTime(root, type) {

@@ -453,3 +453,82 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 **변경파일:**
 - `src/js/components/settingsSections.js`
 - `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-06 12:00 — Codex CLI
+
+**요구사항:**
+설정 페이지가 계속 깨져 보이는 문제를 docs 기준으로 다시 확인해 복구하고, 설정 탭 아이콘 고정, 홈 화면 위젯 설정 행 제거, Android 위젯 동작 보강, 상세보기 이미지 출처/라이선스 표시, 튜토리얼 복구, 세션 로그 작성을 한 번에 정리.
+
+**구현방법:**
+- `docs/SESSION_LOG.md` 와 `docs/UI_GUIDE.md` 를 확인해 `/profile` 이 실제 설정 진입점이고, 헤더는 가운데 "설정", 보관함 UI는 `/bookmarks` 로 분리되어야 하는 기존 결정을 재확인.
+- 설정 탭 아이콘은 `main.js` 의 프로필/게스트 아바타 교체 구독 로직을 제거해 `index.html` 의 고정 톱니바퀴 SVG가 유지되도록 정리.
+- `notificationSettingsSheet.js` 에서 `#setting-widget-theme` 행과 위젯 테마 시트 진입 바인딩을 제거하고, `tutorialTour.js` 에서 제거된 위젯 설정 행을 대상에서 제외. `/settings` 는 공유 설정 섹션을 쓰는 호환 페이지로 축소.
+- 설정 페이지가 깨져 보이던 직접 원인인 누락 CSS를 복구: `.settings-user-info`, `.settings-user-row`, `.profile-avatar-wrap`, `.settings-user-*` 규칙을 추가하고, `.list-item-icon svg` 크기를 22px로 고정해 프로필 이미지와 설정 row 아이콘이 원본 크기로 터지지 않게 함. 테마 옵션 버튼도 기본 브라우저 border/background를 제거.
+- 튜토리얼은 기존 `startTutorialTour()` 만 호출되고 라우터 렌더 후 `renderTutorialTourForRoute()` 가 실행되지 않던 문제를 `router.js` 에서 연결. 오늘 편지 게이트/빈 내 일기/보관함 등 상태에 따라 대상 요소가 바뀌는 화면도 안정적으로 잡도록 selector fallback을 추가하고, 대상이 지연되어도 단계를 자동 스킵하지 않고 현재 페이지 영역을 fallback으로 사용하도록 변경.
+- `UI_GUIDE.md` 의 튜토리얼 범위를 현재 구현과 맞게 수정: 설정 화면에서 제거된 홈 화면 위젯 설정 행은 튜토리얼 대상에 넣지 않도록 명시.
+- Android 위젯은 `MainActivity.java` 에서 `DayStoryWidgetPlugin` 을 `super.onCreate()` 전에 등록. `main.js` 에 `daystory://letter`, `daystory://diary/new` 딥링크를 추가하고, `editorstory.js`/`mystory.js` 에서 오늘 편지 열림 여부와 오늘 내 일기 존재 여부를 위젯 서비스에 동기화.
+- 상세보기는 `detail.js` 에서 `image_source`, `image_license`, `story_sources`/`sources` 를 정규화해 `.detail-editor-note` 바로 아래에 표시. 에디터 한마디가 없으면 본문 날짜 아래에 표시되며, URL 참고 자료는 링크로, 텍스트 참고 자료는 일반 텍스트로 렌더링.
+- 회귀 테스트 보강: 설정 위젯 행 제거, 고정 설정 nav 아이콘, 상세보기 출처/라이선스 위치, 설정 사용자 카드/아이콘 CSS, 튜토리얼 라우터 연결, Android 위젯 정적 계약 검증을 추가.
+
+**검증:**
+- `npm test -- --run tests/regression.bugs.spec.js`: 11 tests 통과.
+- `npm test`: 7 files / 53 tests 통과.
+- `npm run build`: 성공.
+- `android\gradlew.bat -p android assembleDebug`: BUILD SUCCESSFUL.
+- `git diff --check`: 공백 오류 없음. Windows line-ending 경고만 표시.
+- dev server 확인: `http://127.0.0.1:5174` 응답 200. `5173` 은 포트는 점유 중이나 HTTP 응답 없음.
+
+**변경파일**
+- `android/app/src/main/java/com/daystory/app/MainActivity.java`
+- `docs/UI_GUIDE.md`
+- `docs/SESSION_LOG.md`
+- `src/css/components.css`
+- `src/css/pages.css`
+- `src/js/components/notificationSettingsSheet.js`
+- `src/js/components/tutorialTour.js`
+- `src/js/pages/detail.js`
+- `src/js/pages/editorstory.js`
+- `src/js/pages/mystory.js`
+- `src/js/pages/settings.js`
+- `src/js/router.js`
+- `src/main.js`
+- `tests/detail_nav.ui.spec.js`
+- `tests/regression.bugs.spec.js`
+- `tests/widget.static.spec.js`
+
+---
+
+## 2026-05-06 12:14 — Codex CLI
+
+**요구사항:**
+문서 기준을 다시 읽고, 망가진 튜토리얼 흐름을 고치며, 카드/상세 화면 사진 로딩이 느린 문제를 개선.
+
+**구현방법:**
+- `docs/UI_GUIDE.md`, `docs/PRD.md`, `docs/SESSION_LOG.md`, `AGENTS.md`를 기준으로 튜토리얼이 제거된 홈 화면 위젯 설정을 다시 타깃하지 않고, 큰 페이지 컨테이너 대신 실제 조작 지점에 붙도록 `tutorialTour.js` 셀렉터를 정리.
+- 튜토리얼 타깃을 찾지 못할 때 자동으로 다음 단계로 건너뛰어 흐름이 튀는 대신 현재 페이지 영역 fallback에 말풍선을 표시하도록 유지해, [다음] 버튼이 한 번에 한 단계만 진행되게 함.
+- 카드/상세/캘린더/에디터 미리보기 이미지에 `decoding="async"`, 주요 첫 화면 이미지에 `loading="eager"`와 `fetchpriority="high"`를 적용.
+- `imageLoading.js`를 추가해 오늘 카드/내 일화/상세 이미지가 렌더 직전에 미리 디코딩되도록 연결.
+- 에디터 이미지 업로드는 기존 `browser-image-compression` 의존성을 사용해 Firebase Storage 업로드 전에 최대 0.45MB, 1400px 기준으로 압축한 파일을 업로드하도록 변경.
+- 회귀 테스트에 튜토리얼 셀렉터/위젯 제거 기준과 이미지 로딩/업로드 압축 기준을 추가.
+
+**검증:**
+- `npm test -- --run tests/regression.bugs.spec.js tests/editorstory.ui.spec.js`: 27 tests 통과.
+- `npm test`: 7 files / 54 tests 통과.
+- `npm run build`: 성공.
+
+**변경파일:**
+- `docs/SESSION_LOG.md`
+- `src/js/components/tutorialTour.js`
+- `src/js/pages/bookmarks.js`
+- `src/js/pages/calendar.js`
+- `src/js/pages/detail.js`
+- `src/js/pages/editor.js`
+- `src/js/pages/editorstory.js`
+- `src/js/pages/mystory.js`
+- `src/js/pages/search.js`
+- `src/js/services/stories.js`
+- `src/js/utils/imageLoading.js`
+- `tests/editorstory.ui.spec.js`
+- `tests/regression.bugs.spec.js`

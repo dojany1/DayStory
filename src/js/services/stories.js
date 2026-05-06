@@ -37,6 +37,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 
+import imageCompression from 'browser-image-compression';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 
@@ -344,6 +345,20 @@ export async function fetchStoriesWithLicense() {
   }
 }
 
+async function optimizeImageForUpload(file) {
+  try {
+    return await imageCompression(file, {
+      maxSizeMB: 0.45,
+      maxWidthOrHeight: 1400,
+      useWebWorker: true,
+      initialQuality: 0.82,
+    });
+  } catch (err) {
+    console.warn('Image compression skipped:', err);
+    return file;
+  }
+}
+
 /**
  * uploadImage — 이미지를 Firebase Storage에 업로드하고 URL을 반환합니다
  */
@@ -351,16 +366,17 @@ export async function uploadImage(file) {
   if (!storage) throw new Error('Firebase Storage 미설정');
   
   const uid = auth?.currentUser?.uid || 'guest';
+  const optimizedFile = await optimizeImageForUpload(file);
   
   // 고유한 파일명 생성 (타임스탬프 + 원본 파일명)
-  const fileName = `${Date.now()}_${file.name}`;
+  const fileName = `${Date.now()}_${optimizedFile?.name || file?.name || 'daystory-image.jpg'}`;
   
   // 'images/' 폴더에 대한 Firebase 권한(403) 오류를 해결하기 위해,
   // 유저별 전용 폴더 구조로 업로드 경로를 변경합니다.
   const storageRef = ref(storage, `users/${uid}/editor_images/${fileName}`);
   
   // 파일 업로드
-  await uploadBytes(storageRef, file);
+  await uploadBytes(storageRef, optimizedFile);
   
   // 다운로드 URL 가져오기
   const downloadURL = await getDownloadURL(storageRef);

@@ -22,6 +22,8 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
 import { getState } from '../state.js';
 import { navigate } from '../router.js';
+import { markLetterRead, markLetterUnread } from '../services/widget.js';
+import { preloadStoryImages } from '../utils/imageLoading.js';
 
 const DETAIL_BUTTON_LABEL = '상세 보기';
 const EDITOR_COMMENT_SEEN_PREFIX = 'daystory:editor-comment-seen:';
@@ -156,6 +158,7 @@ async function loadEditorStoryData(page) {
     const todayStr = todayStory.publish_date;
     const today = new Date(todayStr + 'T00:00:00');
     let latestPathDate = today;
+    preloadStoryImages([todayStory, ...allStories], 5);
 
     /* ---- DOM 요소 참조 가져오기 ---- */
     const monthElement = page.querySelector('#editorstory-month-scroll');
@@ -265,6 +268,7 @@ async function loadEditorStoryData(page) {
           }
 
           let storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
+          preloadStoryImages([storyForDate], 1);
           const direction = newDate > latestPathDate ? 'next' : 'prev';
           latestPathDate = newDate;
 
@@ -323,8 +327,10 @@ async function loadEditorStoryData(page) {
 
     /* ---- 오늘의 카드 초기 렌더링 ---- */
     if (!hasOpenedDailyLetter(todayStory)) {
+      void markLetterUnread();
       renderDailyLetterGate(cardArea, todayStory, today, bookmarkedIds, startTutorial);
     } else {
+      void markLetterRead();
       renderCardToArea(cardArea, todayStory, today, null, bookmarkedIds);
       startTutorial();
     }
@@ -675,6 +681,7 @@ function renderDailyLetterGate(cardArea, story, dateObj, bookmarkedIds, onOpen) 
 
   letter.addEventListener('click', () => {
     markDailyLetterOpened(story);
+    void markLetterRead();
     renderCardToArea(cardArea, story, dateObj, null, bookmarkedIds);
     if (typeof onOpen === 'function') onOpen();
   });
@@ -698,6 +705,7 @@ function renderDailyLetterGate(cardArea, story, dateObj, bookmarkedIds, onOpen) 
  */
 function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarkedIds = []) {
   if (!cardArea) return;
+  preloadStoryImages([story], 1);
 
   /* 버그 수정: 카드 여러 장이 겹쳐서 남는 현상 방지 */
   /* 모든 카드를 찾은 뒤 가장 마지막(최신) 요소만 전환 대상으로 삼고 나머지는 삭제 */
@@ -762,7 +770,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" draggable="false" />
+            <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
           </div>
         </div>
@@ -775,7 +783,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
           <div class="back-footer">
             <button class="back-editor-btn" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${story.editor_comment && story.editor_comment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
               ${story.editor && story.editor.photoURL
-                ? `<img src="${escapeHtml(story.editor.photoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
+                ? `<img src="${escapeHtml(story.editor.photoURL)}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
                 : '<span class="back-editor-avatar-fallback">✍️</span>'}
             </button>
             <div class="back-date-actions">

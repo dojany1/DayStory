@@ -151,6 +151,54 @@ describe('Detail page editor remark', () => {
     expect(page.querySelector('#action-share')).toBeNull();
     expect(page.querySelector('#action-report')).toBeNull();
   });
+
+  it('Given image attribution metadata, when the detail page renders, then the attribution should sit directly below the editor note', async () => {
+    fetchStoryByIdMock.mockResolvedValue(buildStory({
+      image_source: 'Wikimedia Commons',
+      image_license: 'CC BY-SA 4.0',
+      story_sources: [
+        'Archive | https://example.com/archive',
+        { title: 'Book reference', url: '' },
+      ],
+    }));
+
+    const page = renderDetail({ id: 'story-1' });
+    document.body.appendChild(page);
+
+    await flushRender();
+
+    const editorNote = page.querySelector('.detail-editor-note');
+    const attribution = page.querySelector('.detail-attribution');
+
+    expect(attribution).not.toBeNull();
+    expect(editorNote?.nextElementSibling).toBe(attribution);
+    expect(attribution?.textContent).toContain('이미지 출처');
+    expect(attribution?.textContent).toContain('Wikimedia Commons');
+    expect(attribution?.textContent).toContain('CC BY-SA 4.0');
+    expect(attribution?.textContent).toContain('Archive');
+    expect(attribution?.textContent).toContain('Book reference');
+    expect(attribution?.querySelector('a.detail-source-item')?.getAttribute('href')).toBe('https://example.com/archive');
+  });
+
+  it('Given attribution metadata without an editor remark, when the detail page renders, then the attribution should sit below the historical date', async () => {
+    fetchStoryByIdMock.mockResolvedValue(buildStory({
+      editor_comment: '',
+      image_source: 'Museum collection',
+    }));
+
+    const page = renderDetail({ id: 'story-1' });
+    document.body.appendChild(page);
+
+    await flushRender();
+
+    const historicalDate = page.querySelector('.detail-historical-date');
+    const attribution = page.querySelector('.detail-attribution');
+
+    expect(page.querySelector('.detail-editor-note')).toBeNull();
+    expect(attribution).not.toBeNull();
+    expect(historicalDate?.nextElementSibling).toBe(attribution);
+    expect(attribution?.textContent).toContain('Museum collection');
+  });
 });
 
 describe('Bottom navigation visuals', () => {
@@ -192,8 +240,12 @@ describe('Bottom navigation visuals', () => {
 
   it('Given a user profile photo changes, when the bottom navigation code is inspected, then the profile tab should keep the static main icon instead of rendering the photo', () => {
     const main = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const profileNavMarkup = html.match(/<button class="nav-item" data-route="\/profile"[\s\S]*?<\/button>/)?.[0] || '';
 
     expect(main).not.toMatch(/navWrap\.innerHTML\s*=\s*`<img/);
-    expect(main).toMatch(/guest-avatar/);
+    expect(main).not.toMatch(/navWrap\.innerHTML/);
+    expect(profileNavMarkup).toMatch(/settings-nav-icon/);
+    expect(profileNavMarkup).toMatch(/<circle cx="12" cy="12" r="3"><\/circle>/);
   });
 });

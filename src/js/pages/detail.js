@@ -16,6 +16,88 @@ import { showToast } from '../components/toast.js';
 import { fetchStoryById } from '../services/stories.js';
 import { toggleBookmark, isBookmarked } from '../services/bookmarks.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
+import { preloadImage } from '../utils/imageLoading.js';
+
+function normalizeSourceItem(source) {
+  if (!source) return null;
+
+  if (typeof source === 'string') {
+    const [rawTitle, ...urlParts] = source.split('|');
+    const title = rawTitle.trim();
+    const url = urlParts.join('|').trim();
+    if (!title && !url) return null;
+    return {
+      title: title || url,
+      url,
+    };
+  }
+
+  if (typeof source === 'object') {
+    const title = String(source.title || source.name || source.label || source.text || '').trim();
+    const url = String(source.url || source.href || '').trim();
+    if (!title && !url) return null;
+    return {
+      title: title || url,
+      url,
+    };
+  }
+
+  return null;
+}
+
+function normalizeSources(rawSources) {
+  const sourceList = Array.isArray(rawSources)
+    ? rawSources
+    : String(rawSources || '').split('\n');
+
+  return sourceList
+    .map(normalizeSourceItem)
+    .filter(Boolean);
+}
+
+function renderAttribution(story, sources) {
+  const imageSource = String(story.image_source || '').trim();
+  const imageLicense = String(story.image_license || '').trim();
+  const hasImageAttribution = imageSource || imageLicense;
+
+  if (!hasImageAttribution && !sources.length) return '';
+
+  return `
+    <section class="detail-attribution" aria-label="이미지 출처 및 참고 자료">
+      ${hasImageAttribution ? `
+        <div class="detail-license">
+          <div class="detail-sources-title">이미지 출처</div>
+          <div class="detail-license-text">
+            ${imageSource ? `<div>출처: ${escapeHtml(imageSource)}</div>` : ''}
+            ${imageLicense ? `<div>라이선스: ${escapeHtml(imageLicense)}</div>` : ''}
+          </div>
+        </div>
+      ` : ''}
+      ${sources.length ? `
+        <div class="detail-sources">
+          <div class="detail-sources-title">참고 자료</div>
+          ${sources.map((source) => {
+            const safeTitle = escapeHtml(source.title);
+            const safeUrl = sanitizeUrl(source.url);
+            if (!safeUrl) {
+              return `<div class="detail-source-item detail-source-text">${safeTitle}</div>`;
+            }
+
+            return `
+              <a href="${safeUrl}" target="_blank" rel="noopener" class="detail-source-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                ${safeTitle}
+              </a>
+            `;
+          }).join('')}
+        </div>
+      ` : ''}
+    </section>
+  `;
+}
 
 
 /* ─────────────────────────────────────────────
@@ -82,6 +164,8 @@ async function loadDetail(page, storyId) {
   const editorComment = (story.editor_comment || (story.editor && story.editor.comment) || '').trim();
   const editorName = ((story.editor && story.editor.displayName) || 'DayStory').trim() || 'DayStory';
   const editorAvatar = (story.editor && story.editor.photoURL) || '';
+  preloadImage(story.image_url);
+  preloadImage(editorAvatar);
   const editorCommentHtml = escapeHtml(editorComment).replace(/\n/g, '<br />');
   const historicalMetaHtml = [story.historical_date, story.country]
     .map(value => String(value ?? '').trim())
@@ -89,8 +173,9 @@ async function loadDetail(page, storyId) {
     .map(value => escapeHtml(value))
     .join(' · ');
 
-  /* 참고 자료 목록 */
-  const sources = story.story_sources || story.sources || [];
+  /* 이미지 출처/라이선스 및 참고 자료 */
+  const sources = normalizeSources(story.story_sources || story.sources || []);
+  const attributionHtml = renderAttribution(story, sources);
 
   /* ---- 페이지 HTML 생성 ---- */
   page.innerHTML = `
@@ -105,7 +190,7 @@ async function loadDetail(page, storyId) {
 
     <!-- 히어로 이미지 영역 -->
     <div class="detail-hero">
-      <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" />
+      <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" />
       <div class="detail-hero-overlay">
         <div class="detail-hero-year">${escapeHtml(story.historical_year)}</div>
         <div class="detail-hero-monthday">${month}. ${day < 10 ? '0' + day : day}</div>
@@ -138,7 +223,7 @@ async function loadDetail(page, storyId) {
           <div class="detail-editor-note-header">
             <div class="detail-editor-avatar-wrap">
               ${editorAvatar
-                ? `<img class="detail-editor-avatar" src="${escapeHtml(editorAvatar)}" alt="${escapeHtml(editorName)}" />`
+                ? `<img class="detail-editor-avatar" src="${escapeHtml(editorAvatar)}" alt="${escapeHtml(editorName)}" loading="lazy" decoding="async" />`
                 : `<span class="detail-editor-avatar-fallback" aria-hidden="true">D</span>`}
             </div>
             <div class="detail-editor-name">${escapeHtml(editorName)}</div>
@@ -146,22 +231,7 @@ async function loadDetail(page, storyId) {
           <p class="detail-editor-note-text">${editorCommentHtml}</p>
         </section>
       ` : ''}
-
-      <!-- 참고 자료 (있을 때만 표시) -->
-      ${sources.length ? `
-        <div class="detail-sources">
-          <div class="detail-sources-title">참고 자료</div>
-          ${sources.map(s => `
-            <a href="${sanitizeUrl(s.url)}" target="_blank" rel="noopener" class="detail-source-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-              ${escapeHtml(s.title)}
-            </a>
-          `).join('')}
-        </div>
-      ` : ''}
+      ${attributionHtml}
     </div>
   `;
 

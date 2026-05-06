@@ -195,7 +195,7 @@ export function renderEditor() {
       <button type="button" class="editor-calendar-story" data-id="${escapeHtml(story.id)}">
         <span class="editor-calendar-thumb">
           ${imageUrl
-            ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />`
+            ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async" />`
             : '<span class="editor-calendar-thumb-placeholder">+</span>'}
         </span>
         <span class="editor-calendar-story-title">${title}</span>
@@ -495,7 +495,7 @@ export function renderEditorNew() {
       overlay.innerHTML = `
         <div class="crop-modal-header">자르기 및 회전</div>
         <div class="crop-modal-body">
-          <img id="cropper-image" src="${localSrc}" style="max-width: 100%; display: block;" />
+          <img id="cropper-image" src="${localSrc}" decoding="async" style="max-width: 100%; display: block;" />
         </div>
         <div class="crop-modal-footer">
           <button type="button" class="btn-rotate" id="btn-crop-rotate">
@@ -847,7 +847,7 @@ export function renderEditorNew() {
                 </div>
               </div>
               <div class="history-card-image-wrap">
-                <img src="${escapeHTML(imageUrl)}" alt="${figureName}" onerror="this.style.display='none'" draggable="false" />
+                <img src="${escapeHTML(imageUrl)}" alt="${figureName}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" onerror="this.style.display='none'" draggable="false" />
                 <div class="card-image-title">${figureName}</div>
               </div>
             </div>
@@ -859,7 +859,7 @@ export function renderEditorNew() {
               </div>
               <div class="back-footer">
                 <button class="back-editor-btn" type="button" title="에디터 한마디" style="${editorComment && editorComment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
-                  <img src="${escapeHTML(editorPhotoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                  <img src="${escapeHTML(editorPhotoURL)}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
                   <span class="back-editor-avatar-fallback" style="display:none">✍️</span>
                 </button>
                 <div class="back-date-actions">

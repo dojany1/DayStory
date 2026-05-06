@@ -143,7 +143,7 @@ function renderMiniCard(story) {
         </div>
       </div>
       <div class="mini-card-image-wrap">
-        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.figure_name || '')}" loading="lazy" onerror="this.src='${PLACEHOLDER_IMG}'" />
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.figure_name || '')}" loading="lazy" decoding="async" onerror="this.src='${PLACEHOLDER_IMG}'" />
         <div class="mini-card-overlay">
           ${escapeHtml(story.figure_name || '')}
         </div>

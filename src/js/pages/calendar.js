@@ -14,6 +14,7 @@ import { auth } from '../firebase.js';
 import { getState } from '../state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date.js';
+import { preloadStoryImages } from '../utils/imageLoading.js';
 import { navigate } from '../router.js';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
@@ -154,6 +155,11 @@ function renderGrid(page, state, today) {
   stories.forEach(s => {
     if (s && s.publish_date) storyByDate.set(s.publish_date, s);
   });
+  preloadStoryImages(stories.filter((story) => {
+    if (!story?.publish_date) return false;
+    const [year, month] = story.publish_date.split('-');
+    return Number(year) === state.year && Number(month) === state.month + 1;
+  }), 8);
 
   const firstDay = toLocalDateFromIso(`${state.year}-${String(state.month + 1).padStart(2, '0')}-01`);
   const startWeekday = firstDay.getDay();
@@ -234,7 +240,7 @@ function renderCellPeek(story, mode) {
     : (story.title || '');
   return `
     <span class="cal-cell-peek" aria-hidden="true">
-      <img class="cal-cell-peek-img" src="${escapeHtml(img)}" alt="" loading="lazy" draggable="false" onerror="this.style.visibility='hidden'" />
+      <img class="cal-cell-peek-img" src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.style.visibility='hidden'" />
       <span class="cal-cell-peek-title">${escapeHtml(title)}</span>
     </span>
   `;
@@ -442,7 +448,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(story.image_url || PLACEHOLDER_IMG)}" alt="${escapeHtml(story.figure_name || '')}" draggable="false" />
+            <img src="${escapeHtml(story.image_url || PLACEHOLDER_IMG)}" alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
           </div>
         </div>
@@ -453,7 +459,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
           <div class="back-footer">
             <button class="back-editor-btn" type="button" title="에디터 한마디" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
               ${editorPhotoURL
-                ? `<img src="${escapeHtml(editorPhotoURL)}" alt="editor" class="back-editor-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
+                ? `<img src="${escapeHtml(editorPhotoURL)}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
                 : '<span class="back-editor-avatar-fallback">✍️</span>'}
             </button>
             <div class="back-date-actions">
@@ -485,7 +491,7 @@ function buildMyCardHtml(story, year, month, day) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.title || '')}" onerror="this.style.display='none'" draggable="false" />
+            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.title || '')}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" onerror="this.style.display='none'" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.title || '')}</div>
           </div>
         </div>

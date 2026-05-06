@@ -145,7 +145,7 @@ function renderSearchItem(story) {
   return `
     <div class="search-result-item" data-story-id="${escapeHtml(story.id)}">
       <div class="search-result-thumb">
-        <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="lazy" />
+        <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" />
       </div>
       <div class="search-result-info">
         <div class="search-result-date">${dateStr} · ${escapeHtml(story.country)}</div>

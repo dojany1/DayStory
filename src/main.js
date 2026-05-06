@@ -31,7 +31,7 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
    - firebase.js: 백엔드(Firebase) 연결 설정
 */
 import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath } from './js/router.js';
-import { getState, setState, applyTheme, subscribe } from './js/state.js';
+import { getState, setState, applyTheme } from './js/state.js';
 import { auth, db } from './js/firebase.js';
 
 /*
@@ -59,6 +59,7 @@ import { Capacitor } from '@capacitor/core';
    빠른 초기 구동을 위해 홈페이지만 먼저 불러오고, 나머지는 클릭 시(지연 로딩) 가져옵니다.
 */
 import { renderEditorStory } from './js/pages/editorstory.js';
+import { getLocalToday } from './js/utils/date.js';
 
 /* ─────────────────────────────────────────────
    섹션 4: 라우트(경로) 등록 및 Lazy Loading 분할
@@ -114,21 +115,48 @@ setBeforeNavigate((path) => {
 
 
 /* ─────────────────────────────────────────────
-   섹션 6: 유저 프로필 탭 아이콘 업데이트 로직
+   섹션 6: Android 홈 화면 위젯 딥링크 처리
    ───────────────────────────────────────────── */
-function updateProfileNavIcon() {
-  const navWrap = document.querySelector('.nav-profile-img-wrap');
-  
-  if (!navWrap) return;
+let pendingWidgetDeepLinkUrl = null;
 
-  navWrap.innerHTML = `
-    <svg class="nav-icon guest-avatar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    </svg>
-  `;
+function routeWidgetDeepLink(url) {
+  if (!url) return false;
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== 'daystory:') return false;
+
+  const target = [parsed.hostname, parsed.pathname.replace(/^\/+/, '')]
+    .filter(Boolean)
+    .join('/');
+
+  if (url === 'daystory://letter' || target === 'letter') {
+    navigate('/editorstory');
+    return true;
+  }
+
+  if (url === 'daystory://diary/new' || target === 'diary/new') {
+    const today = getLocalToday();
+    navigate(`/mystory/new?date=${today}`);
+    return true;
+  }
+
+  return false;
 }
-subscribe('profile', updateProfileNavIcon);
+
+function queueOrRouteWidgetDeepLink(url) {
+  if (!url) return;
+  if (!isAppStarted) {
+    pendingWidgetDeepLinkUrl = url;
+    return;
+  }
+  routeWidgetDeepLink(url);
+}
 
 /* ─────────────────────────────────────────────
    섹션 7: 앱 로딩 및 인증 상태 변화 감지
@@ -158,6 +186,11 @@ function checkAndStartApp() {
 
   /* 라우터 시작 → 현재 URL에 맞는 페이지 표시 */
   initRouter();
+  if (pendingWidgetDeepLinkUrl) {
+    const url = pendingWidgetDeepLinkUrl;
+    pendingWidgetDeepLinkUrl = null;
+    routeWidgetDeepLink(url);
+  }
 }
 
 if (auth) {
@@ -274,6 +307,16 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initApp);
 } else {
   initApp();
+}
+
+if (Capacitor.isNativePlatform()) {
+  App.addListener('appUrlOpen', ({ url }) => {
+    queueOrRouteWidgetDeepLink(url);
+  });
+
+  App.getLaunchUrl()
+    .then((launch) => queueOrRouteWidgetDeepLink(launch?.url))
+    .catch((err) => console.warn('위젯 딥링크 확인 실패:', err));
 }
 
 /* ─────────────────────────────────────────────

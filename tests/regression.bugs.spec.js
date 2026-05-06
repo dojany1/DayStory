@@ -292,6 +292,39 @@ describe('Regression bugs', () => {
     expect(page.querySelector('#setting-logout')).not.toBeNull();
     expect(page.querySelector('#setting-tutorial')).not.toBeNull();
     expect(page.querySelector('#setting-license')).not.toBeNull();
+    expect(page.querySelector('#setting-widget-theme')).toBeNull();
+  });
+
+  it('Given the profile tab renders the settings page, when CSS is inspected, then the user card avatar and row icons should be bounded', () => {
+    const pagesCss = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
+    const componentsCss = readFileSync(resolve(process.cwd(), 'src/css/components.css'), 'utf8');
+    const avatarRule = pagesCss.match(/\.profile-avatar-wrap\s*\{[\s\S]*?\}/)?.[0];
+    const avatarMediaRule = pagesCss.match(/\.profile-avatar-wrap\s+img,\s*\.profile-avatar-wrap\s+svg\s*\{[\s\S]*?\}/)?.[0];
+    const listIconRule = componentsCss.match(/\.list-item-icon\s+svg\s*\{[\s\S]*?\}/)?.[0];
+    const themeOptionRule = pagesCss.match(/\.theme-option\s*\{[\s\S]*?\}/)?.[0];
+
+    expect(avatarRule).toMatch(/width:\s*56px/);
+    expect(avatarRule).toMatch(/height:\s*56px/);
+    expect(avatarRule).toMatch(/overflow:\s*hidden/);
+    expect(avatarMediaRule).toMatch(/object-fit:\s*cover/);
+    expect(listIconRule).toMatch(/width:\s*22px/);
+    expect(listIconRule).toMatch(/height:\s*22px/);
+    expect(themeOptionRule).toMatch(/border:\s*0/);
+    expect(themeOptionRule).toMatch(/background:\s*transparent/);
+  });
+
+  it('Given the tutorial replay starts from settings, when route code is inspected, then the tour should render after each route and not target the removed widget row', () => {
+    const router = readFileSync(resolve(process.cwd(), 'src/js/router.js'), 'utf8');
+    const tutorial = readFileSync(resolve(process.cwd(), 'src/js/components/tutorialTour.js'), 'utf8');
+
+    expect(router).toMatch(/renderTutorialTourForRoute/);
+    expect(router).toMatch(/renderTutorialTourForRoute\(path,\s*navigate\)/);
+    expect(tutorial).not.toMatch(/setting-widget-theme/);
+    expect(tutorial).not.toMatch(/skipToNext\(idx,\s*navigateFn\)/);
+    expect(tutorial).not.toMatch(/selector:\s*'[^']*#editorstory-card-area[^']*'/);
+    expect(tutorial).not.toMatch(/selector:\s*'[^']*#mystory-card-area[^']*'/);
+    expect(tutorial).not.toMatch(/selector:\s*'[^']*bookmarks-page[^']*'/);
+    expect(tutorial).toMatch(/fallbackTarget/);
   });
 
   it('Given an admin account on the settings page, when the editor tools section renders, then the content manager label should not include broken markup text', () => {

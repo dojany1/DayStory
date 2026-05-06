@@ -9,9 +9,7 @@ import { navigate } from '../router.js';
 import { getBookmarkedStories } from '../services/bookmarks.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { safeStoryDateParts } from '../utils/date.js';
-import { getStoryImageUrl } from '../utils/imageLoading.js';
-
-const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E";
+import { CARD_PLACEHOLDER_IMAGE, getStoryImageUrl } from '../utils/imageLoading.js';
 
 
 export function renderBookmarks() {
@@ -129,7 +127,7 @@ function renderMiniCard(story) {
   const dateMeta = valid
     ? `${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`
     : '';
-  const imageUrl = getStoryImageUrl(story, 'thumb') || PLACEHOLDER_IMG;
+  const imageUrl = getStoryImageUrl(story, 'thumb') || CARD_PLACEHOLDER_IMAGE;
 
   return `
     <div class="history-card-mini" data-story-id="${escapeHtml(story.id)}">
@@ -144,7 +142,7 @@ function renderMiniCard(story) {
         </div>
       </div>
       <div class="mini-card-image-wrap">
-        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.figure_name || '')}" loading="lazy" decoding="async" onerror="this.src='${PLACEHOLDER_IMG}'" />
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.figure_name || '')}" loading="lazy" decoding="async" onerror="this.src='${CARD_PLACEHOLDER_IMAGE}'" />
         <div class="mini-card-overlay">
           ${escapeHtml(story.figure_name || '')}
         </div>

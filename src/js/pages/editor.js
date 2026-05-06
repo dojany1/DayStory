@@ -17,6 +17,8 @@ import { navigate, setBeforeNavigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { getState } from '../state.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
+import { EDITOR_PREVIEW_PLACEHOLDER_IMAGE } from '../utils/imageLoading.js';
+import { bindImageVariantFields } from '../utils/imageFields.js';
 import {
   fetchAllStoriesEditor,
   createStory,
@@ -454,11 +456,9 @@ export function renderEditorNew() {
       if (btn) btn.style.display = url ? 'inline-block' : 'none';
     }
 
-    let suppressImageThumbClear = false;
-    document.getElementById('sf-image')?.addEventListener('input', () => {
-      if (suppressImageThumbClear) return;
-      const thumbField = document.getElementById('sf-image-thumb');
-      if (thumbField) thumbField.value = '';
+    const imageVariantFields = bindImageVariantFields({
+      imageInput: document.getElementById('sf-image'),
+      thumbInput: document.getElementById('sf-image-thumb'),
     });
 
     const formEl = document.getElementById('story-form');
@@ -601,18 +601,10 @@ export function renderEditorNew() {
         const uploadUid = auth?.currentUser?.uid || getState('user')?.id || 'guest';
         const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'editor_images' });
         
-        suppressImageThumbClear = true;
-        try {
-          IMAGE_FIELD.value = image_url;
-          document.getElementById('sf-image-thumb').value = image_thumb_url || '';
-          STATUS_EL.textContent = '업로드 완료! ✅';
-          STATUS_EL.style.color = 'var(--color-info)';
-
-          unsavedChanges = true;
-          IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
-        } finally {
-          suppressImageThumbClear = false;
-        }
+        imageVariantFields.applyUploadResult({ image_url, image_thumb_url });
+        STATUS_EL.textContent = '업로드 완료! ✅';
+        STATUS_EL.style.color = 'var(--color-info)';
+        unsavedChanges = true;
       } catch (err) {
         console.error('이미지 업로드 오류:', err);
         STATUS_EL.style.color = 'var(--color-error)';
@@ -704,7 +696,7 @@ export function renderEditorNew() {
         uid: u?.uid || stateUser?.id || 'dokhubooks_uid',
         email: u?.email || stateUser?.email || 'dokhubooks@gmail.com',
         displayName: u?.displayName || stateProfile.displayName || (stateUser?.email ? stateUser.email.split('@')[0] : 'DayStory'),
-        photoURL: u?.photoURL || stateProfile.photoURL || ''
+        photoURL: stateProfile.photoURL || u?.photoURL || ''
       };
 
       return {
@@ -823,13 +815,12 @@ export function renderEditorNew() {
     const month = pubDate.getMonth() + 1;
     const day = pubDate.getDate();
     const displayYear = new Date().getFullYear();
-    const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='14' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
-    const imageUrl = imgRaw || PLACEHOLDER_IMG;
+    const imageUrl = imgRaw || EDITOR_PREVIEW_PLACEHOLDER_IMAGE;
 
     /* 에디터 프로필 정보 (미리보기용) */
     const u = auth?.currentUser;
     const stateProfile = getState('profile') || {};
-    const editorPhotoURL = u?.photoURL || stateProfile.photoURL || '';
+    const editorPhotoURL = stateProfile.photoURL || u?.photoURL || '';
     const editorComment = escapeHTML(document.getElementById('sf-editor-comment')?.value.trim() || '');
 
     /* 에디터 일화 카드(editorstory.js)와 완전히 동일한 HTML 구조 */

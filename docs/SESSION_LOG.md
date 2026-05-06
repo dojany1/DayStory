@@ -535,30 +535,6 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 
 ---
 
-## 2026-05-06 12:56 — Codex CLI
-
-**요구사항:**
-튜토리얼 포커싱/캘린더 썸네일 로딩 개선 계획 구현 상태를 재확인하고, 남은 작은 불일치를 정리.
-
-**구현방법:**
-- 홈에서 캘린더 nav 예열 시 `fetchStories()`를 직접 호출하지 않고 공유 캐시 API인 `warmStoriesCache()`를 사용하도록 정리.
-- 에디터/나의 일화 작성 화면에서 이미지 URL을 수동으로 바꾸면 기존 `image_thumb_url`이 잘못 재사용되지 않도록 숨김 썸네일 필드를 비움.
-- 업로드 완료로 코드가 `image_url`/`image_thumb_url`을 동시에 채울 때는 썸네일 필드가 지워지지 않도록 suppress 플래그로 입력 이벤트를 보호.
-
-**검증:**
-- `npm test -- --run tests/regression.bugs.spec.js tests/editorstory.ui.spec.js tests/calendar.ui.spec.js`: 3 files / 31 tests 통과.
-- `npm test`: 8 files / 58 tests 통과.
-- `npm run build`: 성공.
-- `http://localhost:5173/`: 200 응답 확인.
-
-**변경파일:**
-- `docs/SESSION_LOG.md`
-- `src/main.js`
-- `src/js/pages/editor.js`
-- `src/js/pages/mystory.js`
-
----
-
 ## 2026-05-06 12:49 Codex CLI
 
 **요구사항:**
@@ -593,5 +569,86 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 - `src/js/services/stories.js`
 - `src/js/utils/imageLoading.js`
 - `tests/calendar.ui.spec.js`
+- `tests/editorstory.ui.spec.js`
+- `tests/regression.bugs.spec.js`
+
+---
+
+## 2026-05-06 12:56 — Codex CLI
+
+**요구사항:**
+튜토리얼 포커싱/캘린더 썸네일 로딩 개선 계획 구현 상태를 재확인하고, 남은 작은 불일치를 정리.
+
+**구현방법:**
+- 홈에서 캘린더 nav 예열 시 `fetchStories()`를 직접 호출하지 않고 공유 캐시 API인 `warmStoriesCache()`를 사용하도록 정리.
+- 에디터/나의 일화 작성 화면에서 이미지 URL을 수동으로 바꾸면 기존 `image_thumb_url`이 잘못 재사용되지 않도록 숨김 썸네일 필드를 비움.
+- 업로드 완료로 코드가 `image_url`/`image_thumb_url`을 동시에 채울 때는 썸네일 필드가 지워지지 않도록 suppress 플래그로 입력 이벤트를 보호.
+
+**검증:**
+- `npm test -- --run tests/regression.bugs.spec.js tests/editorstory.ui.spec.js tests/calendar.ui.spec.js`: 3 files / 31 tests 통과.
+- `npm test`: 8 files / 58 tests 통과.
+- `npm run build`: 성공.
+- `http://localhost:5173/`: 200 응답 확인.
+
+**변경파일:**
+- `docs/SESSION_LOG.md`
+- `src/main.js`
+- `src/js/pages/editor.js`
+- `src/js/pages/mystory.js`
+
+---
+
+## 2026-05-06 13:01 — Codex CLI
+
+**요구사항:**
+문서 기준으로 코드 중복과 하드코딩을 줄이고, 재사용 가능한 작은 단위로 리팩토링.
+
+**구현방법:**
+- 카드/캘린더/보관함/에디터 미리보기 placeholder data URI를 페이지별 `PLACEHOLDER_IMG` 상수에서 `imageLoading.js`의 `CARD_PLACEHOLDER_IMAGE`, `EDITOR_PREVIEW_PLACEHOLDER_IMAGE`로 통합.
+- 에디터와 나의 일화 작성 화면의 `image_url`/`image_thumb_url` 동기화 로직을 `utils/imageFields.js`의 `bindImageVariantFields()`로 추출. 수동 URL 입력 시 stale thumb을 지우고, 업로드 결과 적용 시에는 두 필드를 함께 갱신하도록 공통화.
+- `ARCHITECTURE.md`와 `CODE_MAP.md`에 `images.js`, `imageLoading.js`, `imageFields.js` 소유권과 사진 업로드 흐름을 현재 구현과 맞게 갱신.
+- 회귀 테스트에 placeholder 하드코딩 재발 방지와 이미지 필드 동기화 헬퍼 사용 검사를 추가.
+
+**검증:**
+- `npm test -- --run tests/editorstory.ui.spec.js tests/calendar.ui.spec.js tests/regression.bugs.spec.js`: 3 files / 33 tests 통과.
+- `npm test`: 8 files / 60 tests 통과.
+- `npm run build`: 성공.
+
+**변경파일:**
+- `docs/ARCHITECTURE.md`
+- `docs/CODE_MAP.md`
+- `docs/SESSION_LOG.md`
+- `src/js/pages/bookmarks.js`
+- `src/js/pages/calendar.js`
+- `src/js/pages/editor.js`
+- `src/js/pages/mystory.js`
+- `src/js/utils/imageFields.js`
+- `src/js/utils/imageLoading.js`
+- `tests/editorstory.ui.spec.js`
+
+---
+
+## 2026-05-06 13:31 Codex CLI
+
+**요구사항:**
+에디터 한마디의 느낌표 기능을 삭제하고, 에디터의 아이콘 이미지는 관리자 계정 이미지와 동일하게 맞추며, bottom nav의 북마크 아이콘을 보관함 아이콘으로 대체.
+
+**구현방법:**
+- 에디터 한마디가 있는 카드 뒷면에서 `editor-badge` 느낌표를 생성/기억하던 로컬스토리지 기반 배지 로직과 CSS 애니메이션을 제거.
+- 에디터 일화 저장 데이터와 미리보기에서 `stateProfile.photoURL || auth.currentUser.photoURL` 순서로 관리자 프로필 이미지를 우선 사용하도록 변경.
+- `index.html` bottom nav의 `/bookmarks` 항목 SVG를 리본 북마크가 아닌 보관함 박스 아이콘으로 교체.
+- `editorstory.ui.spec.js`와 `regression.bugs.spec.js`에 배지 제거, 관리자 프로필 이미지 우선순위, 보관함 nav 아이콘 회귀 검증을 추가/수정.
+
+**검증:**
+- `npm test -- --run tests/editorstory.ui.spec.js tests/regression.bugs.spec.js`: 2 files / 32 tests 통과.
+- `npm test`: 8 files / 62 tests 통과.
+- `npm run build`: 성공.
+
+**변경파일:**
+- `docs/SESSION_LOG.md`
+- `index.html`
+- `src/css/components.css`
+- `src/js/pages/editor.js`
+- `src/js/pages/editorstory.js`
 - `tests/editorstory.ui.spec.js`
 - `tests/regression.bugs.spec.js`

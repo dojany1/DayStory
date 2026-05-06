@@ -71,7 +71,7 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 
 ---
 
-### 2.3 [src/js/services/](../src/js/services/) — 5개 외부 시스템 래퍼
+### 2.3 [src/js/services/](../src/js/services/) — 6개 외부 시스템 래퍼
 
 페이지가 Firebase SDK·Capacitor 플러그인을 직접 호출하지 않도록 한 곳에 묶어둔 레이어. 게스트 폴백, 타임아웃, 캐싱 정책이 모두 여기 있다.
 
@@ -93,6 +93,8 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 |---|---|
 | `autoPublishScheduled()` | 모듈 로드 시 호출. `scheduled` 상태 + `publish_date <= 오늘` 카드를 `published`로 자동 전환 |
 | `fetchStories()` | published 카드 전체 (실패 시 demo 폴백) |
+| `warmStoriesCache()` | 홈/캘린더 예열용 공유 캐시 promise 반환 |
+| `invalidateStoriesCache()` | 관리자 생성/수정/삭제 뒤 읽기 캐시 무효화 |
 | `fetchTodayStory()` | 오늘 날짜의 카드 1개 |
 | `fetchStoryById(id)` | ID로 단건 |
 | `searchStoriesDB(queryStr)` | 키워드 검색 (JS 측 필터링) |
@@ -103,6 +105,14 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 | `publishStory(id)` | 즉시 발행 |
 | `fetchStoriesWithLicense()` | 라이선스 정보 있는 카드만 |
 | `uploadImage(file)` | Storage 업로드 후 download URL 반환 |
+
+#### images.js — 카드 이미지 업로드/썸네일
+외부: Firebase Storage, Firestore `stories`/`userStories` 문서 병합 업데이트. 표시 이미지는 원본 카드용, 썸네일은 캘린더/보관함/검색 같은 작은 surface용.
+
+| 함수 | 역할 |
+|---|---|
+| `uploadCardImageVariants(file, {uid, folder})` | 표시 이미지와 4:5 썸네일을 동시에 업로드하고 `{image_url, image_thumb_url}` 반환 |
+| `backfillStoryThumbnailsForMonth(stories, options)` | 에디터 권한 캘린더 진입 시 현재 표시 월의 누락 썸네일만 저강도 큐로 생성 |
 
 #### mystories.js — 사용자 일기
 외부: Firestore `userStories` 컬렉션. DB 미설정 시 `console.warn('[DB Mock] ...')`로 mock 동작.
@@ -165,6 +175,22 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 | `sanitizeUrl(url)` | `javascript:` / `data:` 프로토콜 차단 |
 
 > 사용자 입력을 `innerHTML`에 넣기 전 반드시 `escapeHtml()`. 새 페이지를 만들 때 `import { escapeHtml } from '../utils/sanitize.js'`를 잊지 말 것.
+
+#### imageLoading.js — 이미지 선택/예열
+
+| 함수/상수 | 역할 |
+|---|---|
+| `CARD_PLACEHOLDER_IMAGE` | 카드/캘린더/보관함 공통 placeholder data URI |
+| `EDITOR_PREVIEW_PLACEHOLDER_IMAGE` | 콘텐츠 관리 미리보기 전용 placeholder data URI |
+| `getStoryImageUrl(story, variant, fallback)` | `thumb`/`display` 목적에 맞는 이미지 URL 선택 |
+| `preloadImage(url)` | 이미지 decode 예열 |
+| `preloadStoryImages(stories, options)` | story 배열의 이미지 variant를 제한 개수만큼 예열 |
+
+#### imageFields.js — 이미지 URL/썸네일 폼 필드 동기화
+
+| 함수 | 역할 |
+|---|---|
+| `bindImageVariantFields({imageInput, thumbInput})` | 수동 URL 입력 시 stale `image_thumb_url`을 지우고, 업로드 결과 적용 시에는 두 필드를 함께 갱신 |
 
 ---
 

@@ -15,7 +15,8 @@ import { auth } from '../firebase.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { syncDiaryStateFromList } from '../services/widget.js';
-import { preloadStoryImages } from '../utils/imageLoading.js';
+import { CARD_PLACEHOLDER_IMAGE, preloadStoryImages } from '../utils/imageLoading.js';
+import { bindImageVariantFields } from '../utils/imageFields.js';
 import { uploadCardImageVariants } from '../services/images.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
@@ -263,8 +264,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
     const storyYear = parseInt(storyYearRaw, 10) || displayYear;
     const storyMonth = parseInt(storyMonthRaw, 10) || month;
     const storyDay = parseInt(storyDayRaw, 10) || day;
-    const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E";
-    const imageUrl = story.image_url || PLACEHOLDER_IMG;
+    const imageUrl = story.image_url || CARD_PLACEHOLDER_IMAGE;
     const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
 
     newCard.innerHTML = `
@@ -717,11 +717,9 @@ export function renderMyStoryNew() {
       if (btn) btn.style.display = url ? 'inline-block' : 'none';
     }
 
-    let suppressImageThumbClear = false;
-    document.getElementById('ms-image')?.addEventListener('input', () => {
-      if (suppressImageThumbClear) return;
-      const thumbField = document.getElementById('ms-image-thumb');
-      if (thumbField) thumbField.value = '';
+    const imageVariantFields = bindImageVariantFields({
+      imageInput: document.getElementById('ms-image'),
+      thumbInput: document.getElementById('ms-image-thumb'),
     });
 
     const formEl = document.getElementById('mystory-form');
@@ -840,6 +838,8 @@ export function renderMyStoryNew() {
     async function processUploadBlob(blob, fallbackName) {
       const STATUS_EL = document.getElementById('ms-image-status');
       const IMAGE_FIELD = document.getElementById('ms-image');
+      if (!STATUS_EL || !IMAGE_FIELD) return;
+
       try {
         STATUS_EL.style.display = 'block';
         STATUS_EL.style.color = 'var(--color-primary)';
@@ -849,16 +849,9 @@ export function renderMyStoryNew() {
         blob.name = fallbackName;
         const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'diary' });
 
-        suppressImageThumbClear = true;
-        try {
-          IMAGE_FIELD.value = image_url;
-          document.getElementById('ms-image-thumb').value = image_thumb_url || '';
-          STATUS_EL.textContent = '업로드 완료! ✅';
-          STATUS_EL.style.color = 'var(--color-info)';
-          IMAGE_FIELD.dispatchEvent(new Event('input', { bubbles: true }));
-        } finally {
-          suppressImageThumbClear = false;
-        }
+        imageVariantFields.applyUploadResult({ image_url, image_thumb_url });
+        STATUS_EL.textContent = '업로드 완료! ✅';
+        STATUS_EL.style.color = 'var(--color-info)';
       } catch (error) {
         console.error('이미지 업로드 오류:', error);
         STATUS_EL.style.color = 'var(--color-error)';

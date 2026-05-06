@@ -14,15 +14,13 @@ import { auth } from '../firebase.js';
 import { getState } from '../state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date.js';
-import { getStoryImageUrl, preloadStoryImages } from '../utils/imageLoading.js';
+import { CARD_PLACEHOLDER_IMAGE, getStoryImageUrl, preloadStoryImages } from '../utils/imageLoading.js';
 import { backfillStoryThumbnailsForMonth } from '../services/images.js';
 import { navigate } from '../router.js';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='400' viewBox='0 0 300 400'%3E%3Crect fill='%23e0e0e0' width='300' height='400'/%3E%3Ctext x='50%25' y='45%25' dominant-baseline='middle' text-anchor='middle' fill='%23999' font-size='40'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E";
-
 export function renderCalendar() {
   const page = document.createElement('div');
   page.className = 'calendar-page page';
@@ -246,7 +244,7 @@ function renderGrid(page, state, today) {
 }
 
 function renderCellPeek(story, mode) {
-  const img = getStoryImageUrl(story, 'thumb') || PLACEHOLDER_IMG;
+  const img = getStoryImageUrl(story, 'thumb') || CARD_PLACEHOLDER_IMAGE;
   const title = mode === 'history'
     ? (story.figure_name || story.title || '')
     : (story.title || '');
@@ -460,7 +458,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(story.image_url || PLACEHOLDER_IMG)}" alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" draggable="false" />
+            <img src="${escapeHtml(story.image_url || CARD_PLACEHOLDER_IMAGE)}" alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
           </div>
         </div>
@@ -488,7 +486,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
 function buildMyCardHtml(story, year, month, day) {
   const bodyHtml = (story.body || '').split(/\n|\\n/)
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
-  const imageUrl = story.image_url || PLACEHOLDER_IMG;
+  const imageUrl = story.image_url || CARD_PLACEHOLDER_IMAGE;
   return `
     <div class="flip-container">
       <div class="flipper mystory-flipper">

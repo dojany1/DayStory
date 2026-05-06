@@ -471,29 +471,6 @@
   transform: scale(0.9);
 }
 
-/* 에디터 한마디 말풍선 뱃지 — 버튼 우측 상단에 ! 표시 */
-.editor-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--color-editor-comment, #ffe16a);
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 14px;
-  text-align: center;
-  pointer-events: none;
-  animation: badgePop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes badgePop {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
 /* 에디터 프로필 사진 */
 .back-editor-avatar {
   width: 100%;

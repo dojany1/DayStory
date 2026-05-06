@@ -273,6 +273,17 @@ describe('Regression bugs', () => {
     vi.useRealTimers();
   });
 
+  it('Given the bottom nav archive item, when index markup is inspected, then the bookmarks route should use an archive box icon instead of the bookmark ribbon', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const navButton = html.match(/<button[\s\S]*?id="nav-bookmarks"[\s\S]*?<\/button>/)?.[0] || '';
+
+    expect(navButton).toMatch(/data-route="\/bookmarks"/);
+    expect(navButton).toMatch(/<path d="M21 8v13H3V8"><\/path>/);
+    expect(navButton).toMatch(/<path d="M1 3h22v5H1z"><\/path>/);
+    expect(navButton).toMatch(/<path d="M10 12h4"><\/path>/);
+    expect(navButton).not.toMatch(/M19 21l-7-5-7 5/);
+  });
+
   it('Given the profile tab is now the settings page, when the page renders, then the bookmark search bar and bookmark grid should not appear (moved to /bookmarks)', () => {
     const page = renderProfile();
     document.body.appendChild(page);

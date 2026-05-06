@@ -26,53 +26,12 @@ import { markLetterRead, markLetterUnread } from '../services/widget.js';
 import { preloadStoryImages } from '../utils/imageLoading.js';
 
 const DETAIL_BUTTON_LABEL = '상세 보기';
-const EDITOR_COMMENT_SEEN_PREFIX = 'daystory:editor-comment-seen:';
 const DAILY_LETTER_OPENED_PREFIX = 'daystory:daily-letter-opened:';
 
 /* 스와이프 commit 가드 — bindCardEvents가 카드 재렌더로 다시 호출돼도
    직전 swipe 후 짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다 (세션 1 #2). */
 let lastSwipeCommitAt = 0;
 const SWIPE_COMMIT_GUARD_MS = 1500;
-
-function getEditorCommentSeenKey(editorBtn) {
-  const storyId = editorBtn?.dataset?.storyId;
-  return storyId ? `${EDITOR_COMMENT_SEEN_PREFIX}${storyId}` : '';
-}
-
-function hasSeenEditorComment(editorBtn) {
-  const key = getEditorCommentSeenKey(editorBtn);
-  if (!key) return editorBtn?.dataset.commentSeen === 'true';
-
-  return localStorage.getItem(key) === 'true';
-}
-
-function markEditorCommentSeen(editorBtn) {
-  const key = getEditorCommentSeenKey(editorBtn);
-  editorBtn.dataset.commentSeen = 'true';
-  if (key) localStorage.setItem(key, 'true');
-}
-
-function dismissEditorBadge(editorBtn) {
-  if (!editorBtn) return;
-  markEditorCommentSeen(editorBtn);
-  editorBtn.querySelector('.editor-badge')?.remove();
-}
-
-function showEditorBadge(flipContainer) {
-  const editorBtn = flipContainer.querySelector('.back-editor-btn');
-  if (!editorBtn) return;
-  if (editorBtn.style.visibility === 'hidden') return;
-  if (hasSeenEditorComment(editorBtn)) {
-    editorBtn.querySelector('.editor-badge')?.remove();
-    return;
-  }
-  if (editorBtn.querySelector('.editor-badge')) return;
-
-  const badge = document.createElement('span');
-  badge.className = 'editor-badge';
-  badge.textContent = '!';
-  editorBtn.appendChild(badge);
-}
 
 function getDailyLetterOpenedKey(story) {
   return story?.id ? `${DAILY_LETTER_OPENED_PREFIX}${story.id}` : '';
@@ -1114,11 +1073,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         flipper.classList.toggle('flipped');
         document.dispatchEvent(new CustomEvent('ds:card-flipped'));
 
-        /* 뒤집기 후 에디터 한마디 넛지 */
-        if (flipper.classList.contains('flipped')) {
-          showEditorBadge(flipContainer);
-        }
-
         /* CSS transition 0.4s와 동기화 */
         setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
 
@@ -1177,11 +1131,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     flipper.classList.toggle('flipped');
     document.dispatchEvent(new CustomEvent('ds:card-flipped'));
 
-    /* 뒤집기 후 에디터 한마디 넛지: 뒷면이 보일 때 버튼 강조 */
-    if (flipper.classList.contains('flipped')) {
-      showEditorBadge(flipContainer);
-    }
-
     setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
   });
 
@@ -1237,7 +1186,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         if (e.type === 'click' && Date.now() - lastEditorTouchAt < 650) return;
       }
       
-      dismissEditorBadge(editorBtn);
       const comment = editorBtn.dataset.comment;
       const editorName = editorBtn.dataset.editorName || 'DayStory';
 

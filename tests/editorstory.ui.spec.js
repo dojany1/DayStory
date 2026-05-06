@@ -113,17 +113,23 @@ function dispatchTouch(target, type, x, y) {
   target.dispatchEvent(event);
 }
 
-describe('Editor Story badge styles', () => {
-  it('Given editor comment styling, when inspected, then the badge text stays white and the bubble uses the original neutral card color', () => {
+describe('Editor Story comment styles', () => {
+  it('Given editor comment styling, when inspected, then the exclamation badge is removed and the bubble uses the original neutral card color', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/components.css'), 'utf8');
-    const badgeBlockMatch = css.match(/\.editor-badge\s*\{[\s\S]*?\}/);
     const bubbleBlockMatch = css.match(/\.editor-comment-bubble\s*\{[\s\S]*?\}/);
 
-    expect(badgeBlockMatch?.[0]).toMatch(/color:\s*#fff/);
-    expect(badgeBlockMatch?.[0]).not.toMatch(/border:/);
+    expect(css).not.toMatch(/\.editor-badge\s*\{/);
+    expect(css).not.toMatch(/badgePop/);
     expect(bubbleBlockMatch?.[0]).toMatch(/background:\s*var\(--color-bg-elevated,\s*var\(--color-bg-secondary\)\)/);
     expect(bubbleBlockMatch?.[0]).not.toMatch(/border:/);
     expect(bubbleBlockMatch?.[0]).not.toMatch(/background:\s*var\(--color-editor-comment,\s*#ffe16a\)/);
+  });
+
+  it('Given an admin profile photo exists, when editor surfaces are inspected, then editor avatar should prefer the profile image over auth fallback', () => {
+    const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
+
+    expect(editor).toMatch(/photoURL:\s*stateProfile\.photoURL\s*\|\|\s*u\?\.photoURL\s*\|\|\s*''/);
+    expect(editor).toMatch(/const\s+editorPhotoURL\s*=\s*stateProfile\.photoURL\s*\|\|\s*u\?\.photoURL\s*\|\|\s*''/);
   });
 
   it('Given card image upload cropping, when crop styles and editor cropper configs are inspected, then the crop ratio should match the displayed card image area', () => {
@@ -188,6 +194,33 @@ describe('Editor Story badge styles', () => {
     expect(search).toMatch(/getStoryImageUrl\(story,\s*'thumb'\)/);
   });
 
+  it('Given shared image fallbacks, when source is inspected, then card placeholder data URIs should not be redeclared in pages', () => {
+    const imageLoading = readFileSync(resolve(process.cwd(), 'src/js/utils/imageLoading.js'), 'utf8');
+    const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
+    const bookmarks = readFileSync(resolve(process.cwd(), 'src/js/pages/bookmarks.js'), 'utf8');
+    const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
+    const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
+
+    expect(imageLoading).toMatch(/export const CARD_PLACEHOLDER_IMAGE/);
+    expect(imageLoading).toMatch(/export const EDITOR_PREVIEW_PLACEHOLDER_IMAGE/);
+    expect(calendar).not.toMatch(/const PLACEHOLDER_IMG/);
+    expect(bookmarks).not.toMatch(/const PLACEHOLDER_IMG/);
+    expect(myStory).not.toMatch(/const PLACEHOLDER_IMG/);
+    expect(editor).not.toMatch(/const PLACEHOLDER_IMG/);
+  });
+
+  it('Given editor image forms, when source is inspected, then thumb reset behavior should be shared', () => {
+    const imageFields = readFileSync(resolve(process.cwd(), 'src/js/utils/imageFields.js'), 'utf8');
+    const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
+    const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
+
+    expect(imageFields).toMatch(/export function bindImageVariantFields/);
+    expect(editor).toMatch(/bindImageVariantFields/);
+    expect(myStory).toMatch(/bindImageVariantFields/);
+    expect(editor).not.toMatch(/suppressImageThumbClear/);
+    expect(myStory).not.toMatch(/suppressImageThumbClear/);
+  });
+
   it('Given the daily letter gate, when styles and code are inspected, then opening the letter should not use postcard or card reveal animations', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
@@ -241,7 +274,7 @@ describe('Editor Story interactions', () => {
     localStorage.clear();
   });
 
-  it('Given a flipped card with an editor badge, when the editor remark button is clicked, then the badge disappears immediately', async () => {
+  it('Given a flipped card with an editor comment, when the card flips and the remark button is clicked, then no exclamation badge appears and the comment opens', async () => {
     const page = renderEditorStory();
     document.body.appendChild(page);
     await flushRender();
@@ -254,12 +287,12 @@ describe('Editor Story interactions', () => {
 
     flipper.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-    const badgeBeforeClick = page.querySelector('.editor-badge');
-    expect(badgeBeforeClick).not.toBeNull();
+    expect(page.querySelector('.editor-badge')).toBeNull();
 
     editorButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(page.querySelector('.editor-badge')).toBeNull();
+    expect(page.querySelector('.editor-comment-bubble')?.textContent).toContain('Editor note');
   });
 
   it('Given today editor story has not been opened, when the editor story page renders, then the daily letter gate should show before the card', async () => {
@@ -374,7 +407,7 @@ describe('Editor Story interactions', () => {
     const editorButton = page.querySelector('.back-editor-btn');
 
     flipper?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(page.querySelector('.editor-badge')).not.toBeNull();
+    expect(page.querySelector('.editor-badge')).toBeNull();
 
     editorButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(page.querySelector('.editor-badge')).toBeNull();
@@ -386,7 +419,7 @@ describe('Editor Story interactions', () => {
     expect(page.querySelector('.editor-comment-bubble')).toBeNull();
   });
 
-  it('Given an editor comment was checked before, when the user returns to the same story, then the exclamation should stay hidden but the editor comment should still open', async () => {
+  it('Given an editor comment was opened before, when the user returns to the same story, then no exclamation badge appears and the editor comment still opens', async () => {
     const firstPage = renderEditorStory();
     document.body.appendChild(firstPage);
     await flushRender();
@@ -395,10 +428,11 @@ describe('Editor Story interactions', () => {
     const firstEditorButton = firstPage.querySelector('.back-editor-btn');
 
     firstFlipper?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(firstPage.querySelector('.editor-badge')).not.toBeNull();
+    expect(firstPage.querySelector('.editor-badge')).toBeNull();
 
     firstEditorButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(firstPage.querySelector('.editor-badge')).toBeNull();
+    expect(firstPage.querySelector('.editor-comment-bubble')?.textContent).toContain('Editor note');
 
     cleanupEditorStoryWindowListeners();
     firstPage.remove();

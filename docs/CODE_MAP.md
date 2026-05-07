@@ -42,7 +42,7 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 | `/bookmarks` | bookmarks.js | 북마크 격자 + 검색 필터 | services/bookmarks |
 | `/search` | search.js | 키워드 검색 (300ms 디바운스) | services/stories |
 | `/profile` | profile.js | 프로필 + 설정 진입점 (닉네임 1:1 크롭) | components/settingsSections |
-| `/settings` | settings.js | 설정 페이지 (테마 · 글꼴 · 알림 · 위젯 테마 · 튜토리얼 다시 보기) | components/settingsSections, notifications |
+| `/settings` | settings.js | 설정 페이지 (테마 · 글꼴 · 알림 · 위젯 테마) | components/settingsSections, notifications |
 | `/editor` | editor.js | **관리자 전용** 콘텐츠 목록 (필터/편집/삭제) | services/stories |
 | `/editor/new` | editor.js | **관리자 전용** 카드 작성/수정 폼 (실시간 미리보기) | services/stories, cropperjs |
 | `/license` | license.js | 이미지 라이선스 출처 페이지 | services/stories |
@@ -56,7 +56,7 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 
 ---
 
-### 2.2 [src/js/components/](../src/js/components/) — 6개 재사용 UI
+### 2.2 [src/js/components/](../src/js/components/) — 5개 재사용 UI
 
 | 파일 | 역할 | Export |
 |---|---|---|
@@ -65,9 +65,8 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 | settingsSections.js | 프로필/설정 페이지에서 공유하는 섹션 마크업 + 바인딩 | `renderSettingsSections()` (HTML 문자열), `bindSettingsSections(page)` |
 | notificationSettingsSheet.js | 알림 시간 설정 시트 + 위젯 테마 설정 시트 | `renderNotificationSettingsSection()`, `bindNotificationSettingsSection(page)`, `openNotificationSettingsSheet(onChange)`, `openWidgetThemeSettingsSheet(onChange)` |
 | widgetThemePreview.js | 위젯 테마 옵션 한 칸의 HTML 생성 | `renderWidgetThemeOption(theme, currentTheme) → string` |
-| tutorialTour.js | 첫 진입 가이드 + "튜토리얼 다시 보기" 투어 (각 화면의 주요 영역 포커싱 → 다음 버튼) | `TUTORIAL_TOUR_STEPS`, `startTutorialTour(navigate)`, `renderTutorialTourForRoute(path, navigate)`, `endTutorialTour()` |
 
-> **참고**: 빈 파일이었던 `editorComment.js`는 2026-05 청소 작업에서 삭제됨 (어떤 페이지도 import하지 않았음).
+> **참고**: 튜토리얼 투어는 2026-05-07 작업에서 제거됨. 설정 화면에도 "튜토리얼 다시 보기" 행이 없다.
 
 ---
 
@@ -111,7 +110,7 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 
 | 함수 | 역할 |
 |---|---|
-| `uploadCardImageVariants(file, {uid, folder})` | 표시 이미지와 4:5 썸네일을 동시에 업로드하고 `{image_url, image_thumb_url}` 반환 |
+| `uploadCardImageVariants(file, {uid, folder})` | 표시 WebP 이미지와 4:5 WebP 썸네일을 동시에 업로드하고 `{image_url, image_thumb_url}` 반환 |
 | `backfillStoryThumbnailsForMonth(stories, options)` | 에디터 권한 캘린더 진입 시 현재 표시 월의 누락 썸네일만 저강도 큐로 생성 |
 
 #### mystories.js — 사용자 일기
@@ -293,13 +292,13 @@ mystory/new 폼 입력
   ↓ (이미지 선택 시)
 cropperjs로 4:5 크롭 + 회전
   ↓
-browser-image-compression로 압축
+browser-image-compression로 WebP 표시 이미지 + WebP 썸네일 압축
   ↓
 firebase storage uploadBytes → Storage `users/{uid}/diary/<filename>`
   ↓
-getDownloadURL() → image_url
+getDownloadURL() → image_url / image_thumb_url
   ↓
-services/mystories.createMyStory({title, body, image_url, publish_date, ...})
+services/mystories.createMyStory({title, body, image_url, image_thumb_url, publish_date, ...})
   ↓
 Firestore userStories 컬렉션 (created_at/updated_at serverTimestamp)
   ↓

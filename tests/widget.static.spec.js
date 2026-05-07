@@ -14,6 +14,22 @@ describe('Android widget integration contracts', () => {
     expect(mainActivity).toMatch(/registerPlugin\(DayStoryWidgetPlugin\.class\)/);
   });
 
+  it('keeps the widget visible in Android launchers with a label and preview fallback', () => {
+    const manifest = read('android/app/src/main/AndroidManifest.xml');
+    const widgetInfo = read('android/app/src/main/res/xml/daystory_widget_info.xml');
+    const provider = read('android/app/src/main/java/com/daystory/app/widget/DayStoryWidgetProvider.java');
+
+    expect(manifest).toMatch(/android:name="com\.daystory\.app\.widget\.DayStoryWidgetProvider"/);
+    expect(manifest).toMatch(/android:enabled="true"/);
+    expect(manifest).toMatch(/android:label="@string\/widget_label"/);
+    expect(widgetInfo).toMatch(/android:label="@string\/widget_label"/);
+    expect(widgetInfo).toMatch(/android:previewImage="@drawable\/widget_preview"/);
+    expect(widgetInfo).toMatch(/android:previewLayout="@layout\/widget_daystory"/);
+    expect(widgetInfo).not.toContain('android:configure=""');
+    expect(provider).toMatch(/public void onEnabled\(Context context\)/);
+    expect(provider).toMatch(/updateAll\(context\)/);
+  });
+
   it('routes widget deep links from cold and warm app launches', () => {
     const main = read('src/main.js');
 
@@ -30,7 +46,7 @@ describe('Android widget integration contracts', () => {
     const myStory = read('src/js/pages/mystory.js');
 
     expect(editorStory).toMatch(/markLetterRead/);
-    expect(editorStory).toMatch(/markLetterUnread/);
+    expect(editorStory).not.toMatch(/markLetterUnread/);
     expect(myStory).toMatch(/syncDiaryStateFromList/);
   });
 });

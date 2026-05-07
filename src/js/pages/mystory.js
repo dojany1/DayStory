@@ -238,7 +238,6 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
 
   const newCard = document.createElement('div');
   newCard.className = 'flip-container';
-  newCard.dataset.tourTarget = 'mystory-card';
   newCard.id = `card-${Date.now()}`;
 
   if (!story) {
@@ -252,7 +251,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
           <div class="empty-story-title">이 날의 기록이 없습니다.</div>
           <div class="empty-story-date">${formattedDate}</div>
           
-          <button class="btn btn-primary mystory-write-btn" data-tour-target="mystory-write" data-date="${isoDateStr}">
+          <button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
             + 나의 일화 쓰기
           </button>
         </div>

@@ -47,7 +47,6 @@
   --color-warning: #ff9f0a;              /* 경고 (Orange) */
   --color-error: #ff3b30;                /* 오류 (Red) */
   --color-info: #14ade5;                 /* 정보 (Blue) */
-  --color-tutorial: #3b9dff;             /* 튜토리얼 하이라이트 (Blue) */
   
   /* ── 라이트 테마 데스크톱 래퍼 ── */
   --color-bg-desktop: #e8e8ed;   /* 데스크톱 본문 배경 (모바일 래퍼 바깥) */
@@ -159,7 +158,6 @@
   --color-border: #3a3a3c;                  /* 카드 테두리를 더 선명하게 */
   --color-border-light: #2c2c2e;
   --color-divider: #2a2a2b;                 /* 구분선 */
-  --color-tutorial: #5ab4ff;                 /* 튜토리얼 하이라이트 (밝은 블루) */
 
   /* ── 다크 테마 그림자 ── */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);

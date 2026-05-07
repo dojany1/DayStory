@@ -3,7 +3,6 @@ import { getState, setState } from '../state.js';
 import { showToast } from './toast.js';
 import { showConfirm } from './confirmDialog.js';
 import { bindNotificationSettingsSection, renderNotificationSettingsSection } from './notificationSettingsSheet.js';
-import { startTutorialTour } from './tutorialTour.js';
 import { auth, db } from '../firebase.js';
 import { signOut, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -21,7 +20,7 @@ export function renderSettingsSections() {
 
     <div class="settings-section">
       <div class="settings-section-title">디스플레이</div>
-      <div class="theme-option-group" data-tour-target="theme-options" role="group" aria-label="테마 선택">
+      <div class="theme-option-group" role="group" aria-label="테마 선택">
         ${renderThemeOption('light', '라이트', currentTheme, sunIcon())}
         ${renderThemeOption('dark', '다크', currentTheme, moonIcon())}
         ${renderThemeOption('system', '시스템', currentTheme, systemIcon())}
@@ -63,12 +62,6 @@ export function renderSettingsSections() {
     <div class="settings-section">
       <div class="settings-section-title">앱 정보</div>
       ${renderSettingsRow({
-        id: 'setting-tutorial',
-        title: '튜토리얼 다시 보기',
-        icon: helpIcon(),
-        tourTarget: 'setting-tutorial',
-      })}
-      ${renderSettingsRow({
         id: 'setting-license',
         title: '이미지 출처 및 라이선스',
         icon: imageIcon(),
@@ -91,10 +84,6 @@ export function bindSettingsSections(page) {
   bindNotificationSettingsSection(page);
   bindThemeOptions(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
-  bindRow(page, '#setting-tutorial', () => {
-    startTutorialTour(navigate);
-    showToast('페이지별 안내가 다시 표시됩니다', 'success');
-  });
   bindRow(page, '#setting-license', () => navigate('/license'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
@@ -109,9 +98,9 @@ function renderThemeOption(theme, label, currentTheme, icon) {
   `;
 }
 
-function renderSettingsRow({ id, title, subtitle = '', icon, titleClass = '', showChevron = true, tourTarget = '' }) {
+function renderSettingsRow({ id, title, subtitle = '', icon, titleClass = '', showChevron = true }) {
   return `
-    <div class="list-item" id="${id}" ${tourTarget ? `data-tour-target="${tourTarget}"` : ''} role="button" tabindex="0">
+    <div class="list-item" id="${id}" role="button" tabindex="0">
       <div class="list-item-icon">${icon}</div>
       <div class="list-item-content">
         <div class="list-item-title ${titleClass}">${title}</div>
@@ -255,10 +244,6 @@ function logoutIcon() {
 
 function userXIcon() {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>';
-}
-
-function helpIcon() {
-  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 }
 
 function imageIcon() {

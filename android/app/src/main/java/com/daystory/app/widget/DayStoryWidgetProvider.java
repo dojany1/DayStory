@@ -44,6 +44,11 @@ public class DayStoryWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    @Override
+    public void onEnabled(Context context) {
+        updateAll(context);
+    }
+
     public static void updateAll(Context context) {
         AppWidgetManager mgr = AppWidgetManager.getInstance(context);
         ComponentName cn = new ComponentName(context, DayStoryWidgetProvider.class);

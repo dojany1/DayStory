@@ -79,7 +79,7 @@ export function renderProfile() {
     ${renderSettingsSections()}
   `;
 
-  /* 공유 설정 섹션 바인딩(알림/위젯/테마/에디터/계정/튜토리얼/라이선스) */
+  /* 공유 설정 섹션 바인딩(알림/위젯/테마/에디터/계정/라이선스) */
   bindSettingsSections(page);
 
   /* 페이지 고유 동작: 프로필 편집, 로그인 이동 */

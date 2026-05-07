@@ -303,7 +303,7 @@ describe('Regression bugs', () => {
     expect(page.querySelector('.page-header-title')?.textContent?.trim()).toBe('설정');
     expect(page.querySelector('.theme-option-group')).not.toBeNull();
     expect(page.querySelector('#setting-logout')).not.toBeNull();
-    expect(page.querySelector('#setting-tutorial')).not.toBeNull();
+    expect(page.querySelector('#setting-tutorial')).toBeNull();
     expect(page.querySelector('#setting-license')).not.toBeNull();
     expect(page.querySelector('#setting-widget-theme')).toBeNull();
   });
@@ -326,23 +326,20 @@ describe('Regression bugs', () => {
     expect(themeOptionRule).toMatch(/background:\s*transparent/);
   });
 
-  it('Given the tutorial replay starts from settings, when route code is inspected, then the tour should render after each route and not target the removed widget row', () => {
+  it('Given tutorials are removed, when app sources are inspected, then no tutorial runner or replay setting should remain', () => {
     const router = readFileSync(resolve(process.cwd(), 'src/js/router.js'), 'utf8');
-    const tutorial = readFileSync(resolve(process.cwd(), 'src/js/components/tutorialTour.js'), 'utf8');
+    const settingsSections = readFileSync(resolve(process.cwd(), 'src/js/components/settingsSections.js'), 'utf8');
+    const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
+    const pagesCss = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
 
-    expect(router).toMatch(/renderTutorialTourForRoute/);
-    expect(router).toMatch(/renderTutorialTourForRoute\(path,\s*navigate\)/);
-    expect(tutorial).not.toMatch(/setting-widget-theme/);
-    expect(tutorial).not.toMatch(/skipToNext\(idx,\s*navigateFn\)/);
-    expect(tutorial).not.toMatch(/selector:\s*'[^']*#editorstory-card-area[^']*'/);
-    expect(tutorial).not.toMatch(/selector:\s*'[^']*#mystory-card-area[^']*'/);
-    expect(tutorial).not.toMatch(/selector:\s*'[^']*bookmarks-page[^']*'/);
-    expect(tutorial).not.toMatch(/selector:\s*'[^']*\.flip-container[^']*'/);
-    expect(tutorial).not.toMatch(/calendar-toggle-btn\.active/);
-    expect(tutorial).toMatch(/\[data-tour-target="calendar-toggle"\]/);
-    expect(tutorial).toMatch(/getRouteScope/);
-    expect(tutorial).toMatch(/waitForStableTargetFrame/);
-    expect(tutorial).toMatch(/fallbackTarget/);
+    expect(router).not.toMatch(/tutorialTour/);
+    expect(router).not.toMatch(/renderTutorialTourForRoute/);
+    expect(settingsSections).not.toMatch(/startTutorialTour/);
+    expect(settingsSections).not.toMatch(/setting-tutorial/);
+    expect(editorStory).not.toMatch(/showTutorial/);
+    expect(editorStory).not.toMatch(/tutorial_done/);
+    expect(pagesCss).not.toMatch(/tutorial-panel/);
+    expect(pagesCss).not.toMatch(/tour-overlay/);
   });
 
   it('Given an admin account on the settings page, when the editor tools section renders, then the content manager label should not include broken markup text', () => {

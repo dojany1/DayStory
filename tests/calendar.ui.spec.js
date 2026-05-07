@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('Calendar image loading and tutorial targets', () => {
+describe('Calendar image loading', () => {
   it('Given calendar thumbnails, when source is inspected, then cells should prefer image_thumb_url without preloading original images', () => {
     const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
     const imageLoading = readFileSync(resolve(process.cwd(), 'src/js/utils/imageLoading.js'), 'utf8');

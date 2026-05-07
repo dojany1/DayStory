@@ -149,7 +149,7 @@ describe('Editor Story comment styles', () => {
     expect(imageOverlayRule).toMatch(/pointer-events:\s*none/);
   });
 
-  it('Given image-heavy card surfaces, when source is inspected, then visible images should decode async and uploads should create display and thumbnail variants', () => {
+  it('Given image-heavy card surfaces, when source is inspected, then visible images should decode async and uploads should create WebP display and thumbnail variants', () => {
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
     const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
     const detail = readFileSync(resolve(process.cwd(), 'src/js/pages/detail.js'), 'utf8');
@@ -168,8 +168,11 @@ describe('Editor Story comment styles', () => {
     expect(storiesService).toMatch(/uploadCardImageVariants/);
     expect(imageService).toMatch(/export async function uploadCardImageVariants/);
     expect(imageService).toMatch(/image_thumb_url/);
+    expect(imageService).toMatch(/IMAGE_OUTPUT_TYPE\s*=\s*'image\/webp'/);
+    expect(imageService).toMatch(/fileType:\s*IMAGE_OUTPUT_TYPE/);
+    expect(imageService).toMatch(/\.webp/);
     expect(imageService).toMatch(/maxSizeMB:\s*0\.[0-9]+/);
-    expect(imageService).toMatch(/uploadBytes\(storageRef,\s*optimizedFile\)/);
+    expect(imageService).toMatch(/uploadBytes\(storageRef,\s*optimizedFile,\s*\{\s*contentType:/);
     expect(editor).toMatch(/id="sf-image-thumb"/);
     expect(editor).toMatch(/image_thumb_url/);
   });
@@ -211,13 +214,19 @@ describe('Editor Story comment styles', () => {
     expect(myStory).not.toMatch(/suppressImageThumbClear/);
   });
 
-  it('Given the daily letter gate, when styles and code are inspected, then opening the letter should not use postcard or card reveal animations', () => {
+  it('Given the removed letter gate, when styles and code are inspected, then the home card should enter with a simple downward motion', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
 
+    expect(css).not.toMatch(/\.daily-letter-gate/);
+    expect(css).not.toMatch(/\.daily-letter-postcard/);
     expect(css).not.toMatch(/dailyLetterArrive/);
     expect(css).not.toMatch(/dailyLetterCardReveal/);
     expect(css).not.toMatch(/daily-letter-reveal-card/);
+    expect(css).toMatch(/\.card-drop-enter/);
+    expect(css).toMatch(/translateY\(-32px\)/);
+    expect(editorStory).not.toMatch(/renderDailyLetterGate/);
+    expect(editorStory).toMatch(/card-drop-enter/);
     expect(editorStory).not.toMatch(/\.animate\(/);
     expect(editorStory).not.toMatch(/animateDailyLetterCard/);
   });
@@ -228,7 +237,6 @@ describe('Editor Story interactions', () => {
     document.body.innerHTML = '';
     cleanupEditorStoryWindowListeners();
     localStorage.clear();
-    localStorage.setItem('tutorial_done', 'true');
     localStorage.setItem('daystory:daily-letter-opened:story-1', 'true');
 
     if (!HTMLElement.prototype.scrollTo) {
@@ -285,35 +293,15 @@ describe('Editor Story interactions', () => {
     expect(page.querySelector('.editor-comment-bubble')?.textContent).toContain('Editor note');
   });
 
-  it('Given today editor story has not been opened, when the editor story page renders, then the daily letter gate should show before the card', async () => {
+  it('Given today editor story has not been opened, when the editor story page renders, then the card should appear directly with a downward entry state', async () => {
     localStorage.removeItem('daystory:daily-letter-opened:story-1');
 
     const page = renderEditorStory();
     document.body.appendChild(page);
     await flushRender();
-
-    const letterGate = page.querySelector('.daily-letter-gate');
-
-    expect(letterGate).not.toBeNull();
-    expect(letterGate?.querySelector('.daily-letter-postmark')?.textContent).toContain('4. 24');
-    expect(letterGate?.querySelector('.daily-letter-title')?.textContent).toContain('오늘의 편지');
-    expect(page.querySelector('.editorstory-card-area > .flip-container')).toBeNull();
-  });
-
-  it('Given today editor story has not been opened, when the daily letter is clicked, then the story card should reveal and remember the opened state', async () => {
-    localStorage.removeItem('daystory:daily-letter-opened:story-1');
-
-    const page = renderEditorStory();
-    document.body.appendChild(page);
-    await flushRender();
-
-    const letterGate = page.querySelector('.daily-letter-gate');
-    expect(letterGate).not.toBeNull();
-
-    letterGate?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(page.querySelector('.daily-letter-gate')).toBeNull();
-    expect(page.querySelector('.editorstory-card-area > .flip-container')).not.toBeNull();
+    expect(page.querySelector('.editorstory-card-area > .flip-container.card-drop-enter')).not.toBeNull();
     expect(page.querySelector('.card-image-title')?.textContent).toContain('Test Figure');
     expect(localStorage.getItem('daystory:daily-letter-opened:story-1')).toBe('true');
   });

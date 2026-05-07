@@ -17,7 +17,7 @@ DayStory-test/
 │   │   │   license.js
 │   │   ├── components/     # 재사용 UI 조각
 │   │   │   confirmDialog.js · notificationSettingsSheet.js
-│   │   │   settingsSections.js · toast.js · widgetThemePreview.js · tutorialTour.js
+│   │   │   settingsSections.js · toast.js · widgetThemePreview.js
 │   │   ├── services/       # 외부 데이터/SDK 래퍼 (페이지가 직접 SDK를 부르지 않도록 차단)
 │   │   │   stories.js · mystories.js · bookmarks.js · images.js · notifications.js · widget.js
 │   │   ├── utils/
@@ -60,7 +60,7 @@ DayStory-test/
 특수 흐름:
 - **인증 시작**: `firebase.js` 가 `onAuthStateChanged` 등록 + 5초 setTimeout. 5초 안에 응답이 없으면 강제 게스트 모드로 전환해서 무한 로딩 방지.
 - **게스트 → 로그인 유도**: 북마크/공유/일기쓰기 버튼 클릭 시 `state.user` 가 null 이면 토스트 안내 후 `navigate('/login')`.
-- **사진 업로드**: 파일 선택 → MIME/크기 사전 검사(이미지 + 10MB 이하) → CropperJS 모달 → browser-image-compression 으로 표시 이미지 압축 + 4:5 썸네일 생성 → Storage 업로드 → `image_url`/`image_thumb_url` 을 폼에 주입. 사용자가 URL을 직접 수정하면 기존 썸네일 URL은 재사용하지 않는다.
+- **사진 업로드**: 파일 선택 → MIME/크기 사전 검사(이미지 + 10MB 이하) → CropperJS 모달 → browser-image-compression 으로 WebP 표시 이미지 압축 + 4:5 WebP 썸네일 생성 → Storage 업로드 → `image_url`/`image_thumb_url` 을 폼에 주입. 사용자가 URL을 직접 수정하면 기존 썸네일 URL은 재사용하지 않는다.
 
 ## 상태 관리
 - 단일 `state` 객체 (`src/js/state.js`) + Pub/Sub. 키 단위로 `subscribe(key, fn)` 한다.

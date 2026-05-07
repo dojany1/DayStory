@@ -3,18 +3,23 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase.js';
 
+const IMAGE_OUTPUT_TYPE = 'image/webp';
+const IMAGE_OUTPUT_EXT = 'webp';
+
 const DISPLAY_IMAGE_OPTIONS = {
-  maxSizeMB: 0.45,
-  maxWidthOrHeight: 1400,
+  maxSizeMB: 0.32,
+  maxWidthOrHeight: 1200,
   useWebWorker: true,
-  initialQuality: 0.82,
+  initialQuality: 0.72,
+  fileType: IMAGE_OUTPUT_TYPE,
 };
 
 const THUMB_IMAGE_OPTIONS = {
-  maxSizeMB: 0.08,
-  maxWidthOrHeight: 420,
+  maxSizeMB: 0.04,
+  maxWidthOrHeight: 360,
   useWebWorker: true,
-  initialQuality: 0.76,
+  initialQuality: 0.68,
+  fileType: IMAGE_OUTPUT_TYPE,
 };
 
 const THUMB_WIDTH = 320;
@@ -34,14 +39,41 @@ function makeStorageSafeName(name = 'daystory-image.jpg') {
   return String(name).replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'daystory-image.jpg';
 }
 
+function extensionFromType(type) {
+  if (type === IMAGE_OUTPUT_TYPE) return IMAGE_OUTPUT_EXT;
+  if (type === 'image/jpeg') return 'jpg';
+  if (type === 'image/png') return 'png';
+  return IMAGE_OUTPUT_EXT;
+}
+
+function replaceImageExtension(name, extension = IMAGE_OUTPUT_EXT) {
+  const safeName = makeStorageSafeName(name || 'daystory-image');
+  return safeName.replace(/\.[a-z0-9]+$/i, '') + `.${extension}`;
+}
+
+function toUploadBlob(blob, sourceName, prefix) {
+  const type = blob?.type || IMAGE_OUTPUT_TYPE;
+  const fileName = `${prefix || 'image'}_${replaceImageExtension(sourceName, extensionFromType(type))}`;
+
+  if (typeof File === 'function') {
+    return new File([blob], fileName, {
+      type,
+      lastModified: blob?.lastModified || Date.now(),
+    });
+  }
+
+  blob.name = fileName;
+  return blob;
+}
+
 async function uploadOptimizedFile(optimizedFile, { uid, folder, prefix }) {
   if (!storage) throw new Error('Firebase Storage missing');
 
   const safeUid = uid || 'guest';
-  const safeName = makeStorageSafeName(optimizedFile?.name || `${prefix || 'image'}.jpg`);
+  const safeName = makeStorageSafeName(optimizedFile?.name || `${prefix || 'image'}.webp`);
   const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${prefix || 'image'}_${safeName}`;
   const storageRef = ref(storage, `users/${safeUid}/${folder}/${fileName}`);
-  await uploadBytes(storageRef, optimizedFile);
+  await uploadBytes(storageRef, optimizedFile, { contentType: optimizedFile.type || IMAGE_OUTPUT_TYPE });
   return getDownloadURL(storageRef);
 }
 
@@ -66,7 +98,7 @@ function canvasToBlob(canvas) {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
       else reject(new Error('Thumbnail encoding failed'));
-    }, 'image/jpeg', 0.76);
+    }, IMAGE_OUTPUT_TYPE, 0.68);
   });
 }
 
@@ -103,12 +135,18 @@ async function createThumbnailBlob(blob) {
 }
 
 export async function uploadCardImageVariants(file, { uid = 'guest', folder = 'editor_images' } = {}) {
-  const sourceName = file?.name || 'daystory-image.jpg';
-  const optimizedFile = await optimizeImage(file, DISPLAY_IMAGE_OPTIONS);
-  if (!optimizedFile.name) optimizedFile.name = sourceName;
+  const sourceName = file?.name || 'daystory-image.webp';
+  const optimizedFile = toUploadBlob(
+    await optimizeImage(file, DISPLAY_IMAGE_OPTIONS),
+    sourceName,
+    'display',
+  );
 
-  const thumbBlob = await createThumbnailBlob(optimizedFile);
-  if (!thumbBlob.name) thumbBlob.name = `thumb_${sourceName}`;
+  const thumbBlob = toUploadBlob(
+    await createThumbnailBlob(optimizedFile),
+    sourceName,
+    'thumb',
+  );
 
   const [image_url, image_thumb_url] = await Promise.all([
     uploadOptimizedFile(optimizedFile, { uid, folder, prefix: 'display' }),
@@ -150,8 +188,11 @@ export async function backfillStoryThumbnailsForMonth(stories, {
       const response = await fetch(story.image_url);
       if (!response.ok) throw new Error('Image fetch failed');
       const sourceBlob = await response.blob();
-      const thumbBlob = await createThumbnailBlob(sourceBlob);
-      if (!thumbBlob.name) thumbBlob.name = `thumb_${story.id}.jpg`;
+      const thumbBlob = toUploadBlob(
+        await createThumbnailBlob(sourceBlob),
+        `thumb_${story.id}.webp`,
+        'thumb',
+      );
 
       const image_thumb_url = await uploadOptimizedFile(thumbBlob, {
         uid,

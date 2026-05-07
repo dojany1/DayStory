@@ -717,3 +717,55 @@ SESSION_LOG 의 2026-05-04 11:44 (Codex CLI, 실루엣 제거 + 일반 캘린더
 - `src/js/pages/mystory.js`
 - `tests/editorstory.ui.spec.js`
 - `tests/regression.bugs.spec.js`
+
+---
+
+## 2026-05-07 12:28 Codex CLI
+
+**요구사항:**
+Docs를 먼저 읽고, 문제가 많은 튜토리얼을 삭제하며, 관리자/사용자 사진 업로드와 화면 전환 로딩을 줄이고, 편지 애니메이션 대신 카드가 위에서 아래로 내려오는 모션을 적용하고, Android 위젯이 적용되지 않는 문제를 파악/수정. 완료 후 세션 로그 작성.
+
+**구현방법:**
+- `tutorialTour.js`, 라우터 실행 연결, 설정의 튜토리얼 다시 보기 행, `data-tour-target` 표식, 튜토리얼 전용 CSS/토큰을 제거하고 관련 문서를 현재 동작에 맞게 갱신.
+- 홈 오늘 카드의 편지 게이트/봉투 애니메이션을 제거하고 첫 렌더 시 `.card-drop-enter` 하강 모션만 적용.
+- 공통 이미지 업로드 서비스가 표시 이미지와 4:5 썸네일을 WebP로 압축해 Storage에 content type과 함께 저장하도록 변경. 관리자 편집기와 사용자 글쓰기 모두 같은 업로드 경로를 사용.
+- Android 위젯 receiver에 enabled/label을 명시하고, widget provider label/previewImage, preview drawable, `onEnabled()` 갱신을 추가해 런처 위젯 목록 노출 계약을 보강.
+- 관련 Vitest 계약과 문서를 튜토리얼 제거/WebP 업로드/위젯 메타데이터 기준으로 갱신.
+
+**검증:**
+- `npm test -- --run tests/editorstory.ui.spec.js tests/regression.bugs.spec.js tests/widget.static.spec.js`: 3 files / 36 tests 통과.
+- `npm test -- --run tests/editorstory.ui.spec.js tests/regression.bugs.spec.js tests/widget.static.spec.js tests/calendar.ui.spec.js`: 4 files / 39 tests 통과.
+- `npm test`: 8 files / 63 tests 통과.
+- `npm run build`: 성공.
+- `npx cap sync android`: 성공.
+- `android` 디렉터리에서 `.\\gradlew.bat assembleDebug`: 성공.
+- `git diff --check`: 공백 오류 없음.
+- Android 원본 manifest/widget info에서 `DayStoryWidgetProvider`, `@xml/daystory_widget_info`, `@string/widget_label`, `@drawable/widget_preview` 확인.
+
+**변경파일:**
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/java/com/daystory/app/widget/DayStoryWidgetProvider.java`
+- `android/app/src/main/res/drawable/widget_preview.xml`
+- `android/app/src/main/res/xml/daystory_widget_info.xml`
+- `docs/ARCHITECTURE.md`
+- `docs/CODE_MAP.md`
+- `docs/PRD.md`
+- `docs/UI_GUIDE.md`
+- `docs/SESSION_LOG.md`
+- `src/css/pages.css`
+- `src/css/variables.css`
+- `src/js/components/notificationSettingsSheet.js`
+- `src/js/components/settingsSections.js`
+- `src/js/components/tutorialTour.js`
+- `src/js/pages/bookmarks.js`
+- `src/js/pages/calendar.js`
+- `src/js/pages/editorstory.js`
+- `src/js/pages/mystory.js`
+- `src/js/pages/profile.js`
+- `src/js/router.js`
+- `src/js/services/images.js`
+- `src/main.js`
+- `tests/calendar.ui.spec.js`
+- `tests/editorstory.ui.spec.js`
+- `tests/regression.bugs.spec.js`
+- `tests/widget.static.spec.js`

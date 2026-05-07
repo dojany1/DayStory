@@ -27,7 +27,7 @@ export function renderCalendar() {
   page.innerHTML = `
     <div class="calendar-header">
       <h1 class="calendar-title">캘린더</h1>
-      <div class="calendar-toggle" data-mode="history" data-tour-target="calendar-toggle">
+      <div class="calendar-toggle" data-mode="history">
         <button type="button" class="calendar-toggle-btn active" data-mode="history">역사 일화</button>
         <button type="button" class="calendar-toggle-btn" data-mode="mine">나의 일화</button>
         <span class="calendar-toggle-thumb"></span>

@@ -14,9 +14,6 @@
      http://localhost:5173/#/editor/edit/:id → 기존 일화 수정 화면
    ===================================================================== */
 
-
-import { renderTutorialTourForRoute } from './components/tutorialTour.js';
-
 /* ─────────────────────────────────────────────
    섹션 1: 변수 선언
    ───────────────────────────────────────────── */
@@ -228,7 +225,6 @@ async function handleRoute() {
   /* 6) 하단 내비게이션 바의 활성 항목 업데이트 및 스크롤 최상단 */
   updateNav(path);
   container.scrollTo(0, 0);
-  renderTutorialTourForRoute(path, navigate);
 }
 
 

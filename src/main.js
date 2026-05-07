@@ -389,7 +389,6 @@ if (Capacitor.isNativePlatform()) {
      Depth 3 : (에디터 내 새 일화 작성 등은 에디터 내부에서 처리)
 
    특수 케이스:
-     - 튜토리얼 오버레이 활성화 중 → 뒤로가기 무시
      - Depth 0(홈) → 2초 내 연속 2회 터치 시 앱 종료
 */
 if (Capacitor.isNativePlatform()) {
@@ -437,14 +436,6 @@ if (Capacitor.isNativePlatform()) {
     return { depth: 1, parent: '/editorstory' };
   }
 
-  /**
-   * isTutorialActive — 새 튜토리얼은 패널 방식으로 앱 기능을 막지 않습니다.
-   * 끊버튼도 사용 가능하므로 항상 false를 반환합니다.
-   */
-  function isTutorialActive() {
-    return false;
-  }
-
   /* 마지막으로 뒤로가기를 누른 시각 (앱 종료용 더블 탭 판별) */
   let lastBackPressTime = 0;
 
@@ -479,11 +470,6 @@ if (Capacitor.isNativePlatform()) {
 
   /* ── 메인 리스너: 안드로이드 하드웨어 뒤로가기 버튼 ── */
   App.addListener('backButton', () => {
-    /* ① 튜토리얼 활성 상태 → 뒤로가기 완전 무시 */
-    if (isTutorialActive()) {
-      return;  /* 아무 동작도 하지 않음 */
-    }
-
     const currentPath = getCurrentPath();
     const routeInfo = getRouteInfo(currentPath);
 

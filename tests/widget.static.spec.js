@@ -14,6 +14,14 @@ describe('Android widget integration contracts', () => {
     expect(mainActivity).toMatch(/registerPlugin\(DayStoryWidgetPlugin\.class\)/);
   });
 
+  it('makes the launcher activity use the app icon explicitly', () => {
+    const manifest = read('android/app/src/main/AndroidManifest.xml');
+    const launcherActivity = manifest.match(/<activity[\s\S]*?android:name="\.MainActivity"[\s\S]*?>/)?.[0] ?? '';
+
+    expect(launcherActivity).toContain('android:icon="@mipmap/ic_launcher"');
+    expect(launcherActivity).toContain('android:roundIcon="@mipmap/ic_launcher_round"');
+  });
+
   it('keeps the widget visible in Android launchers with a label and preview fallback', () => {
     const manifest = read('android/app/src/main/AndroidManifest.xml');
     const widgetInfo = read('android/app/src/main/res/xml/daystory_widget_info.xml');

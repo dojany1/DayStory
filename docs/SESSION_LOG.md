@@ -769,3 +769,26 @@ Docs를 먼저 읽고, 문제가 많은 튜토리얼을 삭제하며, 관리자/
 - `tests/editorstory.ui.spec.js`
 - `tests/regression.bugs.spec.js`
 - `tests/widget.static.spec.js`
+
+---
+
+## 2026-05-07 13:13 Codex CLI
+
+**요구사항:**
+Android 앱 아이콘이 적용되지 않는 문제를 확인하고, Elixir 마이그레이션 장단점을 검토.
+
+**구현방법:**
+- `aapt dump badging`으로 debug APK를 확인했을 때 application icon은 설정되어 있었지만 `launchable-activity`의 icon 값이 비어 있는 것을 확인.
+- launcher가 직접 여는 `MainActivity`에도 `android:icon="@mipmap/ic_launcher"`와 `android:roundIcon="@mipmap/ic_launcher_round"`를 명시.
+- 같은 문제가 다시 생기지 않도록 `tests/widget.static.spec.js`에 launcher activity icon 계약을 추가.
+
+**검증:**
+- `npm test -- --run tests/widget.static.spec.js`: 1 file / 5 tests 통과.
+- `npm test`: 8 files / 64 tests 통과.
+- `android` 디렉터리에서 `.\\gradlew.bat :app:assembleDebug --console=plain`: 성공.
+- `aapt dump badging C:\\AndroidBuildTemp\\DayStory\\app\\outputs\\apk\\debug\\app-debug.apk`: `launchable-activity` icon이 `res/mipmap-anydpi-v26/ic_launcher.xml`로 채워진 것 확인.
+
+**변경파일:**
+- `android/app/src/main/AndroidManifest.xml`
+- `docs/SESSION_LOG.md`
+- `tests/widget.static.spec.js`

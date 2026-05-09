@@ -100,17 +100,18 @@ function runPhase(phaseName) {
   }
 
   const stepContent = readFileSync(stepFile, 'utf8');
-  const agent = chooseAgent(meta.agent ?? 'auto');
-  if (!agent) { process.exit(1); }
-
-  console.log(`[harness] phases/${phaseName}/step${stepN}.md → ${agent}`);
-  saveIndex(idxPath, { ...meta, status: 'in_progress', updated_at: now() });
-
-  const promptFile = join(phaseDir, '_harness_prompt.tmp.md');
   const resultFile = join(phaseDir, `step${stepN}.result.json`);
+
+  saveIndex(idxPath, { ...meta, status: 'in_progress', updated_at: now() });
 
   // result.json이 이미 존재하면 에이전트 재호출 없이 바로 merge (재시작 내성)
   if (!existsSync(resultFile)) {
+    const agent = chooseAgent(meta.agent ?? 'auto');
+    if (!agent) { process.exit(1); }
+
+    console.log(`[harness] phases/${phaseName}/step${stepN}.md → ${agent}`);
+
+    const promptFile = join(phaseDir, '_harness_prompt.tmp.md');
     writeFileSync(promptFile, buildPrompt(phaseName, stepN, stepContent), 'utf8');
     const ok = invokeAgent(agent, promptFile, phaseDir);
     try { unlinkSync(promptFile); } catch { /* ignore */ }

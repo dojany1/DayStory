@@ -270,8 +270,9 @@ function createCodeCommit(phaseName, stepN, meta) {
   git('add -A');
   // phases/ 디렉터리는 meta commit으로 분리
   try { git(`restore --staged "${PHASES_DIR}"`); } catch { /* phases/ 없으면 무시 */ }
-  const codeChanges = git('status --porcelain').trim();
-  if (!codeChanges) return;
+  // 스테이징된 변경이 있는지 확인
+  const staged = git('diff --cached --name-only').trim();
+  if (!staged) return;
   const title = meta.title ?? phaseName;
   git(`commit -m "feat: ${phaseName} step${stepN} — ${title}"`);
   console.log(`[harness] code commit 완료`);

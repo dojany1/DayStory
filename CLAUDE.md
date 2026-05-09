@@ -34,13 +34,16 @@
 
 - Claude는 이 `CLAUDE.md`를, Codex는 `AGENTS.md`를 읽는다. Harness 규칙은 두 파일에서 동일하게 유지한다.
 - 활성 harness step 밖에서 사용자가 자동 적용이나 harness 실행을 요청하면, 사용자에게 명령어 입력을 요구하지 말고 에이전트가 `npm run harness:auto`를 직접 실행한다.
-- `scripts/codex-harness.mjs`가 시작한 harness step 세션 안에서는 `npm run harness:auto`를 다시 실행하지 않는다. 이유: 재귀 실행을 막기 위해서다.
-- `npm run harness:auto`는 다음 pending phase를 찾고, dirty worktree를 snapshot commit으로 보존한 뒤 정리하며, Codex CLI와 Claude CLI 중 사용 가능한 쪽을 자동 선택한다.
+- `npm run harness:auto`는 다음 pending phase를 찾고, dirty worktree를 snapshot commit으로 보존하며, step 지시사항을 stdout으로 출력한다. Claude는 이 출력을 읽고 직접 step을 처리한다.
+- **harness step 실행 흐름:**
+  1. `npm run harness:auto` 실행 → stdout으로 step 지시사항 출력
+  2. Claude가 출력을 읽고 step을 직접 구현 (Explore/Plan/구현/검증)
+  3. `phases/{phase}/step{N}.result.json` 작성
+  4. `npm run harness:commit -- <phase> <stepN>` 실행 → index.json 업데이트 + 커밋
+  5. docs/SESSION_LOG.md append
+- `npm run harness:auto` 실행 후 재귀 호출 금지. 환경변수 `DAYSTORY_HARNESS_ACTIVE=1`이 설정되면 harness를 다시 실행하지 않는다.
 - 수동 실행이 필요하면 `npm run harness -- <phase-dir>`를 사용한다.
-- step 완료 시 `phases/{phase}/index.json`의 현재 step을 반드시 갱신한다:
-  - 성공: `"status": "completed"`와 한 줄 `summary`
-  - 실패: `"status": "error"`와 `error_message`
-  - 사용자 개입 필요: `"status": "blocked"`와 `blocked_reason`
+- `npm run harness:status` — 현재 phase 목록과 상태만 출력 (dry-run).
 
 ## Conversation Autopilot
 
@@ -80,8 +83,10 @@
 
 - `npm run dev` — Vite 개발 서버
 - `npm run build` — 프로덕션 빌드 (`dist/`)
-- `npm run harness:auto` — pending harness phase 자동 실행 (Codex/Claude 자동 선택, worktree snapshot 정리)
-- `npm run harness -- <phase-dir>` — 특정 harness phase 실행
+- `npm run harness:auto` — pending phase 자동 실행 (step 지시사항 stdout 출력 → Claude 직접 처리)
+- `npm run harness:status` — phase 목록과 상태 출력 (dry-run)
+- `npm run harness:commit -- <phase> <stepN>` — step 완료 후 index.json 업데이트 + 커밋
+- `npm run harness -- <phase-dir>` — 특정 phase 수동 실행
 - `npm run preview` — 빌드 결과 미리보기
 - `npm test` — Vitest 1회 실행 (jsdom 환경)
 - `npx cap sync android` — Capacitor 안드로이드 동기화

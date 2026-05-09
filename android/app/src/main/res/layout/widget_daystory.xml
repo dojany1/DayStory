@@ -61,13 +61,13 @@
             android:src="@drawable/ic_widget_envelope"
             android:contentDescription="@string/widget_letter_desc" />
 
-        <View
+        <TextView
             android:id="@+id/widget_letter_dot"
             android:layout_width="9dp"
             android:layout_height="9dp"
             android:layout_gravity="end|top"
-            android:layout_marginTop="-2dp"
-            android:layout_marginEnd="-2dp"
+            android:layout_marginTop="0dp"
+            android:layout_marginEnd="0dp"
             android:background="@drawable/widget_red_dot"
             android:visibility="visible" />
     </FrameLayout>

@@ -59,6 +59,7 @@ function buildStory(overrides = {}) {
     card_count: '1/365',
     country: 'Korea',
     image_url: 'https://example.com/story.png',
+    image_thumb_url: 'https://example.com/story-thumb.webp',
     figure_name: 'Test Figure',
     summary: 'Summary',
     body: 'Line one',
@@ -157,10 +158,15 @@ describe('Editor Story comment styles', () => {
     const imageService = readFileSync(resolve(process.cwd(), 'src/js/services/images.js'), 'utf8');
     const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
 
-    expect(editorStory).toMatch(/loading="eager"/);
+    expect(editorStory).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
+    expect(editorStory).toMatch(/src="\$\{escapeHtml\(imageUrl\)\}"/);
+    expect(editorStory).not.toMatch(/data-src="\$\{escapeHtml\(imageUrl\)\}"/);
+    expect(editorStory).not.toMatch(/fetchpriority="high"/);
     expect(editorStory).toMatch(/decoding="async"/);
-    expect(editorStory).toMatch(/fetchpriority="high"/);
     expect(editorStory).toMatch(/preloadStoryImages/);
+    expect(myStory).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
+    expect(myStory).toMatch(/src="\$\{escapeHtml\(imageUrl\)\}"/);
+    expect(myStory).not.toMatch(/data-src="\$\{escapeHtml\(imageUrl\)\}"/);
     expect(myStory).toMatch(/decoding="async"/);
     expect(myStory).toMatch(/preloadStoryImages/);
     expect(detail).toMatch(/fetchpriority="high"/);
@@ -182,9 +188,25 @@ describe('Editor Story comment styles', () => {
     const bookmarks = readFileSync(resolve(process.cwd(), 'src/js/pages/bookmarks.js'), 'utf8');
     const search = readFileSync(resolve(process.cwd(), 'src/js/pages/search.js'), 'utf8');
 
-    expect(calendar).toMatch(/getStoryImageUrl\(story,\s*'thumb'\)/);
-    expect(bookmarks).toMatch(/getStoryImageUrl\(story,\s*'thumb'\)/);
-    expect(search).toMatch(/getStoryImageUrl\(story,\s*'thumb'\)/);
+    expect(calendar).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
+    expect(bookmarks).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
+    expect(search).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
+    expect(calendar).toMatch(/prepareLazyImages\(grid\)/);
+    expect(bookmarks).toMatch(/prepareLazyImages\(contentEl\)/);
+    expect(search).toMatch(/prepareLazyImages\(resultsEl\)/);
+  });
+
+  it('Given card stack motion, when source is inspected, then transitions should use the shared settle timing and GPU-friendly transforms', () => {
+    const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
+    const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
+    const pagesCss = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
+
+    expect(editorStory).toMatch(/CARD_STACK_SETTLE_MS\s*=\s*560/);
+    expect(myStory).toMatch(/CARD_STACK_SETTLE_MS\s*=\s*560/);
+    expect(editorStory).toMatch(/SWIPE_DRAG_RESPONSE\s*=\s*0\.62/);
+    expect(myStory).toMatch(/SWIPE_DRAG_RESPONSE\s*=\s*0\.62/);
+    expect(pagesCss).toMatch(/transform\s+520ms/);
+    expect(pagesCss).toMatch(/translate3d/);
   });
 
   it('Given shared image fallbacks, when source is inspected, then card placeholder data URIs should not be redeclared in pages', () => {
@@ -214,7 +236,7 @@ describe('Editor Story comment styles', () => {
     expect(myStory).not.toMatch(/suppressImageThumbClear/);
   });
 
-  it('Given the removed letter gate, when styles and code are inspected, then the home card should enter with a simple downward motion', () => {
+  it('Given the removed letter animation, when styles and code are inspected, then the home card should render without an entry motion', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
 
@@ -223,12 +245,32 @@ describe('Editor Story comment styles', () => {
     expect(css).not.toMatch(/dailyLetterArrive/);
     expect(css).not.toMatch(/dailyLetterCardReveal/);
     expect(css).not.toMatch(/daily-letter-reveal-card/);
-    expect(css).toMatch(/\.card-drop-enter/);
-    expect(css).toMatch(/translateY\(-32px\)/);
+    expect(css).not.toMatch(/\.card-drop-enter/);
+    expect(css).not.toMatch(/translateY\(-32px\)/);
     expect(editorStory).not.toMatch(/renderDailyLetterGate/);
-    expect(editorStory).toMatch(/card-drop-enter/);
+    expect(editorStory).not.toMatch(/card-drop-enter/);
     expect(editorStory).not.toMatch(/\.animate\(/);
     expect(editorStory).not.toMatch(/animateDailyLetterCard/);
+  });
+
+  it('Given dark mode is active, when home and card chrome styles are inspected, then wheel borders and card controls should use the white accent token', () => {
+    const pagesCss = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
+    const componentsCss = readFileSync(resolve(process.cwd(), 'src/css/components.css'), 'utf8');
+    const baseCss = readFileSync(resolve(process.cwd(), 'src/css/base.css'), 'utf8');
+
+    const darkWheelRule = pagesCss.match(/\[data-theme="dark"\]\s+\.wheel-selection-box\s*\{[\s\S]*?\}/)?.[0];
+    const darkCardActionsRule = componentsCss.match(/\[data-theme="dark"\]\s+\.card-actions\s*\{[\s\S]*?\}/)?.[0];
+    const darkCardShortcutRule = componentsCss.match(/\[data-theme="dark"\]\s+\.card-detail-shortcut-btn\s*\{[\s\S]*?\}/)?.[0];
+    const darkEditorButtonRule = componentsCss.match(/\[data-theme="dark"\]\s+\.back-editor-btn\s*\{[\s\S]*?\}/)?.[0];
+    const darkSettingsTabRule = baseCss.match(/\[data-theme="dark"\]\s+#nav-profile\s*\{[\s\S]*?\}/)?.[0];
+
+    expect(darkWheelRule).toMatch(/border:\s*1px\s+solid\s+var\(--color-accent\)/);
+    expect(darkCardActionsRule).toMatch(/color:\s*var\(--color-accent\)/);
+    expect(darkCardShortcutRule).toMatch(/color:\s*var\(--color-accent\)/);
+    expect(darkCardShortcutRule).toMatch(/border-color:\s*var\(--color-accent\)/);
+    expect(darkEditorButtonRule).toMatch(/color:\s*var\(--color-accent\)/);
+    expect(darkEditorButtonRule).toMatch(/border-color:\s*var\(--color-accent\)/);
+    expect(darkSettingsTabRule).toMatch(/color:\s*var\(--color-accent\)/);
   });
 });
 
@@ -293,7 +335,7 @@ describe('Editor Story interactions', () => {
     expect(page.querySelector('.editor-comment-bubble')?.textContent).toContain('Editor note');
   });
 
-  it('Given today editor story has not been opened, when the editor story page renders, then the card should appear directly with a downward entry state', async () => {
+  it('Given today editor story has not been opened, when the editor story page renders, then the card should appear directly without the letter animation', async () => {
     localStorage.removeItem('daystory:daily-letter-opened:story-1');
 
     const page = renderEditorStory();
@@ -301,9 +343,26 @@ describe('Editor Story interactions', () => {
     await flushRender();
 
     expect(page.querySelector('.daily-letter-gate')).toBeNull();
-    expect(page.querySelector('.editorstory-card-area > .flip-container.card-drop-enter')).not.toBeNull();
+    expect(page.querySelector('.editorstory-card-area > .flip-container')).not.toBeNull();
+    expect(page.querySelector('.editorstory-card-area > .flip-container.card-drop-enter')).toBeNull();
+    expect(page.querySelector('.history-card-image-wrap img')?.getAttribute('src')).toContain('story-thumb.webp');
+    expect(page.querySelector('.history-card-image-wrap img')?.getAttribute('data-fallback-src')).toContain('story.png');
     expect(page.querySelector('.card-image-title')?.textContent).toContain('Test Figure');
-    expect(localStorage.getItem('daystory:daily-letter-opened:story-1')).toBe('true');
+    expect(localStorage.getItem('daystory:daily-letter-opened:story-1')).toBeNull();
+  });
+
+  it('Given a legacy story has only image_url, when the editor story page renders, then the card image should not stay on the placeholder', async () => {
+    const legacyStory = buildStory({ image_thumb_url: '' });
+    fetchStoriesMock.mockResolvedValue([legacyStory]);
+    fetchTodayStoryMock.mockResolvedValue(legacyStory);
+
+    const page = renderEditorStory();
+    document.body.appendChild(page);
+    await flushRender();
+
+    const image = page.querySelector('.history-card-image-wrap img');
+    expect(image?.getAttribute('src')).toBe('https://example.com/story.png');
+    expect(image?.getAttribute('src') || '').not.toContain('data:image/svg+xml');
   });
 
   it('Given today editor story was already opened, when the editor story page renders, then the card should render directly without the daily letter gate', async () => {

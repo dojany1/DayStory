@@ -538,3 +538,6 @@ ul, ol {
   background:var(--color-accent);
   color:var(--color-text-inverse);
   border-color:#0000}
+
+[data-theme="dark"] #nav-profile {
+  color:var(--color-accent)}

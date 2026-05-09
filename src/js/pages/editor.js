@@ -17,7 +17,7 @@ import { navigate, setBeforeNavigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { getState } from '../state.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
-import { EDITOR_PREVIEW_PLACEHOLDER_IMAGE } from '../utils/imageLoading.js';
+import { CARD_PLACEHOLDER_IMAGE, EDITOR_PREVIEW_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages, prepareLazyImages } from '../utils/imageLoading.js';
 import { bindImageVariantFields } from '../utils/imageFields.js';
 import {
   fetchAllStoriesEditor,
@@ -25,7 +25,7 @@ import {
   updateStory,
   fetchStoryById
 } from '../services/stories.js';
-import { uploadCardImageVariants } from '../services/images.js';
+import { backfillStoryThumbnailsForMonth, uploadCardImageVariants } from '../services/images.js';
 import { auth } from '../firebase.js';
 
 import Cropper from 'cropperjs';
@@ -62,7 +62,6 @@ export function renderEditor() {
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <h1 class="calendar-title">콘텐츠 관리</h1>
-        <button class="editor-new-btn" id="editor-new" type="button">새 일화</button>
       </div>
     </div>
 
@@ -103,6 +102,7 @@ export function renderEditor() {
   const now = new Date();
   let visibleYear = now.getFullYear();
   let visibleMonth = now.getMonth();
+  const requestedThumbBackfills = new Set();
 
   async function loadStories() {
     allStories = await fetchAllStoriesEditor();
@@ -134,6 +134,25 @@ export function renderEditor() {
     const firstDay = new Date(visibleYear, visibleMonth, 1).getDay();
     const lastDate = new Date(visibleYear, visibleMonth + 1, 0).getDate();
     const cells = [];
+    const visibleMonthStories = allStories.filter((story) => {
+      const [storyYear, storyMonth] = String(story?.publish_date || '').split('-').map(Number);
+      return storyYear === visibleYear && storyMonth === visibleMonth + 1;
+    });
+    preloadStoryImages(visibleMonthStories, { limit: 8, variant: 'thumb', fallback: false });
+
+    const backfillKey = `${visibleYear}-${visibleMonth + 1}`;
+    const shouldBackfillThumbs = visibleMonthStories.some((story) => story?.image_url && !story.image_thumb_url);
+    if (shouldBackfillThumbs && !requestedThumbBackfills.has(backfillKey)) {
+      requestedThumbBackfills.add(backfillKey);
+      void backfillStoryThumbnailsForMonth(visibleMonthStories, {
+        collectionName: 'stories',
+        uid: auth?.currentUser?.uid || getState('user')?.id || 'guest',
+        year: visibleYear,
+        month: visibleMonth + 1,
+      }).then(() => {
+        renderCalendar();
+      });
+    }
 
     for (let i = 0; i < firstDay; i += 1) {
       cells.push('<div class="editor-calendar-cell editor-calendar-cell-blank cal-cell cal-cell-blank" aria-hidden="true"></div>');
@@ -152,12 +171,12 @@ export function renderEditor() {
           <div class="editor-calendar-stories">
             ${stories.map(renderCalendarStory).join('')}
           </div>
-          ${stories.length ? '' : '<div class="editor-calendar-empty-mark">+</div>'}
         </div>
       `);
     }
 
     gridEl.innerHTML = cells.join('');
+    prepareLazyImages(gridEl);
 
     gridEl.querySelectorAll('.editor-calendar-cell[data-date]').forEach((cell) => {
       const openNewStory = () => navigate(`/editor/new?date=${cell.dataset.date}`);
@@ -190,15 +209,21 @@ export function renderEditor() {
   function renderCalendarStory(story) {
     const title = escapeHtml(story.title || story.figure_name || '제목 없음');
     const country = escapeHtml(story.country || '');
-    const imageUrl = sanitizeUrl(story.image_url || '');
+    const imageSources = getStoryImageSources(story, 'thumb');
+    const imageUrl = sanitizeUrl(imageSources.primary);
+    const imageFallbackUrl = sanitizeUrl(imageSources.fallback);
+    const fallbackAttr = imageFallbackUrl
+      ? ` data-fallback-src="${escapeHtml(imageFallbackUrl)}"`
+      : '';
     const badge = getStatusBadge(story.status);
+    const imageAttrs = imageUrl
+      ? `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}" data-src="${escapeHtml(imageUrl)}"${fallbackAttr}`
+      : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
 
     return `
       <button type="button" class="editor-calendar-story" data-id="${escapeHtml(story.id)}">
         <span class="editor-calendar-thumb">
-          ${imageUrl
-            ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" decoding="async" />`
-            : '<span class="editor-calendar-thumb-placeholder">+</span>'}
+          <img ${imageAttrs} alt="" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.style.visibility='hidden'}" />
         </span>
         <span class="editor-calendar-story-title">${title}</span>
         <span class="editor-calendar-story-meta">${country}</span>
@@ -239,10 +264,6 @@ export function renderEditor() {
   setTimeout(() => {
     document.getElementById('editor-back')?.addEventListener('click', () => {
       history.back();
-    });
-
-    document.getElementById('editor-new')?.addEventListener('click', () => {
-      navigate('/editor/new');
     });
 
     /* ---- 통계 카드 클릭 시 필터 적용 ---- */

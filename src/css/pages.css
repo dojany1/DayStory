@@ -220,6 +220,10 @@
   z-index: 1;
 }
 
+[data-theme="dark"] .wheel-selection-box {
+  border: 1px solid var(--color-accent);
+}
+
 .modern-wheel-scroll {
   display: flex;
   overflow-x: auto;
@@ -358,19 +362,6 @@
   aspect-ratio: unset;
 }
 
-.card-drop-enter {
-  opacity: 0;
-  transform: translateY(-32px);
-  transition: opacity 420ms ease, transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
-}
-
-.card-drop-enter.active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-
 .empty-story-card {
   width: 100%;
   height: 100%;
@@ -428,9 +419,11 @@
   max-width: 390px;
   margin: 0 auto;
   aspect-ratio: var(--card-aspect-ratio);
-  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1), opacity 420ms ease;
   will-change: transform, opacity;
   pointer-events: none;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
 }
 
 /* 2) 다음 카드로 이동 시 (Next / Forward)
@@ -438,17 +431,17 @@
    - 들어오는 카드(New): 뒤에서 앞으로 살짝 확대되며 등장
 */
 .stack-exit-next {
-  transform: translateX(-120%) scale(0.9) rotate(-5deg);
+  transform: translate3d(-104%, 0, 0) scale(0.96) rotate(-2deg);
   opacity: 0;
   z-index: 2;
 }
 .stack-enter-next {
-  transform: scale(0.85);
+  transform: translate3d(18%, 0, 0) scale(0.96);
   opacity: 0;
   z-index: 1;
 }
 .stack-enter-next.active {
-  transform: scale(1);
+  transform: translate3d(0, 0, 0) scale(1);
   opacity: 1;
 }
 
@@ -457,17 +450,17 @@
    - 들어오는 카드(New): 왼쪽 밖에서 중앙으로 덮으면서 등장
 */
 .stack-exit-prev {
-  transform: scale(0.85);
+  transform: translate3d(18%, 0, 0) scale(0.96);
   opacity: 0;
   z-index: 1;
 }
 .stack-enter-prev {
-  transform: translateX(-120%) rotate(-5deg);
+  transform: translate3d(-104%, 0, 0) scale(0.96) rotate(-2deg);
   opacity: 0;
   z-index: 2;
 }
 .stack-enter-prev.active {
-  transform: translateX(0) rotate(0deg);
+  transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
   opacity: 1;
 }
 
@@ -1347,23 +1340,10 @@
 
 .editor-calendar-title-row {
   display: grid;
-  grid-template-columns: 36px 1fr auto;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-}
-
-.editor-new-btn {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-accent);
-  color: var(--color-bg-primary);
-  padding: var(--space-2) var(--space-4);
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
 }
 
 /* 에디터 필터 — 일반 캘린더 토글과 같은 작은 세그먼트 컨트롤 */
@@ -1495,12 +1475,6 @@
   display: block;
 }
 
-.editor-calendar-thumb-placeholder {
-  color: var(--color-text-tertiary);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
 .editor-calendar-story-title {
   font-size: .68rem;
   font-weight: 700;
@@ -1528,14 +1502,6 @@
 
 .editor-calendar-actions {
   display: none;
-}
-
-.editor-calendar-empty-mark {
-  margin: auto;
-  color: var(--color-text-tertiary);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  opacity: .45;
 }
 
 /* 에디터 일화 목록 — 세로 나열 */
@@ -1843,14 +1809,14 @@
   /* 5. Misc */
 }
 
-/* 나의 일화 카드 삭제 버튼 (에러 컬러) */
-.delete-my-story-btn {
-  /* 1. Positioning */
-  /* 2. Box Model */
-  /* 3. Typography */
+/* 나의 일화 수정 화면 삭제 버튼 */
+.mystory-form-delete-btn {
   color: var(--color-error);
-  /* 4. Visuals */
-  /* 5. Misc */
+  border-color: rgba(220, 53, 69, 0.32);
+}
+
+.mystory-form-delete-btn:active {
+  background: rgba(220, 53, 69, 0.1);
 }
 
 

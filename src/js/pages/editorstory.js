@@ -22,26 +22,15 @@ import { Share } from '@capacitor/share';
 import { getState } from '../state.js';
 import { navigate } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
-import { preloadStoryImages } from '../utils/imageLoading.js';
+import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages } from '../utils/imageLoading.js';
 
 const DETAIL_BUTTON_LABEL = '상세 보기';
-const DAILY_LETTER_OPENED_PREFIX = 'daystory:daily-letter-opened:';
+const CARD_STACK_SETTLE_MS = 560;
 
 /* 스와이프 commit 가드 — bindCardEvents가 카드 재렌더로 다시 호출돼도
    직전 swipe 후 짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다 (세션 1 #2). */
 let lastSwipeCommitAt = 0;
 const SWIPE_COMMIT_GUARD_MS = 1500;
-
-function getDailyLetterOpenedKey(story) {
-  return story?.id ? `${DAILY_LETTER_OPENED_PREFIX}${story.id}` : '';
-}
-
-function markDailyLetterOpened(story) {
-  const key = getDailyLetterOpenedKey(story);
-  if (key) localStorage.setItem(key, 'true');
-}
-
-
 
 /* ─────────────────────────────────────────────
    섹션 1: 에디터 일화 페이지 렌더링 함수
@@ -65,7 +54,6 @@ export function renderEditorStory() {
       <h1 class="editorstory-title"></h1>
     </div>
 
-    <!-- 휠 피커 스타일 날짜 선택기 -->
     <div class="wheel-pickers-container" style="margin-top: 10px;">
       <!-- 월 피커 -->
       <div class="wheel-picker-wrapper">
@@ -111,7 +99,8 @@ async function loadEditorStoryData(page) {
     const todayStr = todayStory.publish_date;
     const today = new Date(todayStr + 'T00:00:00');
     let latestPathDate = today;
-    preloadStoryImages([todayStory, ...allStories], 5);
+    const historyStories = allStories || [];
+    preloadStoryImages([todayStory, ...historyStories], { limit: 8, variant: 'thumb', fallback: false });
 
     /* ---- DOM 요소 참조 가져오기 ---- */
     const monthElement = page.querySelector('#editorstory-month-scroll');
@@ -226,11 +215,11 @@ async function loadEditorStoryData(page) {
             return; // 할당시키지 않고 무시
           }
 
-          let storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
-          preloadStoryImages([storyForDate], 1);
           const direction = newDate > latestPathDate ? 'next' : 'prev';
           latestPathDate = newDate;
-
+          const storyForDate = historyStories.find(s => s.publish_date === selectedIsoDate)
+            || (todayStory.publish_date === selectedIsoDate ? todayStory : null);
+          preloadStoryImages([storyForDate], { limit: 1, variant: 'thumb', fallback: false });
           renderCardToArea(cardArea, storyForDate || null, newDate, direction, bookmarkedIds);
         }
       }
@@ -265,7 +254,6 @@ async function loadEditorStoryData(page) {
         item.addEventListener('click', () => onClickItem(calendarElement, item));
       });
 
-      /* 초기 진입 시 오늘 날짜로 포커싱 맞추기 */
       setTimeout(() => {
         const targetMonthItem = monthElement.querySelector(`.wheel-item[data-month="${today.getMonth() + 1}"]`);
         const targetDayItem = calendarElement.querySelector(`.wheel-item[data-day="${today.getDate()}"]`);
@@ -281,7 +269,6 @@ async function loadEditorStoryData(page) {
     }
 
     /* ---- 오늘의 카드 초기 렌더링 ---- */
-    markDailyLetterOpened(todayStory);
     void markLetterRead();
     renderCardToArea(cardArea, todayStory, today, null, bookmarkedIds);
 
@@ -321,7 +308,7 @@ async function loadEditorStoryData(page) {
  */
 function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarkedIds = []) {
   if (!cardArea) return;
-  preloadStoryImages([story], 1);
+  preloadStoryImages([story], { limit: 1, variant: 'thumb', fallback: false });
 
   /* 버그 수정: 카드 여러 장이 겹쳐서 남는 현상 방지 */
   /* 모든 카드를 찾은 뒤 가장 마지막(최신) 요소만 전환 대상으로 삼고 나머지는 삭제 */
@@ -354,6 +341,15 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
       </div>
     `;
   } else {
+    const imageSources = getStoryImageSources(story, 'thumb');
+    const imageUrl = imageSources.primary;
+    const fallbackAttr = imageSources.fallback
+      ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
+      : '';
+    const imageAttrs = imageUrl
+      ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
+      : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
+
     /* 기존 카드 HTML 구조 */
     newCard.innerHTML = `
       <div class="flipper">
@@ -386,7 +382,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
             <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
           </div>
         </div>
@@ -412,16 +408,9 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
     `;
   }
 
-  /* 3) 초기 로드: 편지 게이트 없이 카드가 위에서 아래로 가볍게 내려온다. */
+  /* 3) 초기 로드: 편지 게이트/진입 애니메이션 없이 카드를 바로 표시한다. */
   if (!direction || !oldCard) {
     cardArea.innerHTML = '';
-    if (!direction) {
-      newCard.classList.add('card-drop-enter');
-      requestAnimationFrame(() => newCard.classList.add('active'));
-      const clearDropState = () => newCard.classList.remove('card-drop-enter', 'active');
-      newCard.addEventListener('transitionend', clearDropState, { once: true });
-      setTimeout(clearDropState, 520);
-    }
     cardArea.appendChild(newCard);
     bindCardEvents(newCard, story, bookmarkedIds);
     return;
@@ -458,7 +447,7 @@ function renderCardToArea(cardArea, story, dateObj, direction = null, bookmarked
   /* 혹시 transitionend가 발생하지 않는 네트워크/성능 문제를 대비해 타임아웃 백업 */
   setTimeout(() => {
     if (newCard.classList.contains('card-stack-item')) onAnimationEnd();
-  }, 400);
+  }, CARD_STACK_SETTLE_MS);
 }
 
 
@@ -532,7 +521,9 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   let isAnimating = false;
   let isBackBodyScroll = false;
   let lastTouchInputAt = 0;
-  const SWIPE_THRESHOLD = 80;
+  const SWIPE_THRESHOLD = 64;
+  const SWIPE_DRAG_RESPONSE = 0.62;
+  const SWIPE_RETURN_MS = 220;
   const SYNTHETIC_MOUSE_IGNORE_MS = 650;
 
   /* ── back-body 탭 vs 스크롤 구분용 변수 ── */
@@ -574,7 +565,9 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     }
 
     const isFlipped = flipper.classList.contains('flipped');
-    if (swipeAxis === 'y') return; // 위아래 스와이프 폐기
+    if (swipeAxis === 'y') {
+      return;
+    }
 
     if (!isSwiping) {
       flipper.style.transition = 'none';
@@ -584,7 +577,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     const baseTransform = isFlipped ? 'rotateY(180deg)' : '';
 
     if (swipeAxis === 'x') {
-      const moveX = diffX * 0.4;
+      const moveX = diffX * SWIPE_DRAG_RESPONSE;
       flipper.style.transform = `translateX(${moveX}px) ${baseTransform}`;
     }
   };
@@ -597,20 +590,19 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     const diffX = x - touchStartX;
     const diffY = y - touchStartY;
 
-    flipper.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; // 빠른 튕김 복귀 애니메이션
+    flipper.style.transition = `transform ${SWIPE_RETURN_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
     flipper.classList.add('is-flipping'); // 스와이프 복귀 중 터치 차단
 
     if (swipeAxis === 'y') {
-      // 위아래 스와이프 폐기: 카드 복귀 처리
       flipper.style.transform = '';
-      setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
+      setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, SWIPE_RETURN_MS);
       return;
     }
     
     if (swipeAxis === 'x' && Math.abs(diffX) > SWIPE_THRESHOLD) {
       if (isBackBodyScroll) {
         flipper.style.transform = '';
-        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
+        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, SWIPE_RETURN_MS);
         return;
       }
       /* 세션 1 #2: 카드 재렌더 후 짧은 시간 내 두 번째 commit 차단 (한 번 swipe 로 두 칸 이동 방지) */
@@ -656,7 +648,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
       flipper.classList.remove('is-flipping');
       isSwiping = false;
       isAnimating = false;
-    }, 250);
+    }, SWIPE_RETURN_MS);
   };
 
   // 터치 이벤트

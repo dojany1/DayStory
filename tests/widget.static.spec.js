@@ -34,6 +34,8 @@ describe('Android widget integration contracts', () => {
     expect(widgetInfo).toMatch(/android:previewImage="@drawable\/widget_preview"/);
     expect(widgetInfo).toMatch(/android:previewLayout="@layout\/widget_daystory"/);
     expect(widgetInfo).not.toContain('android:configure=""');
+    expect(read('android/app/src/main/res/layout/widget_daystory.xml')).not.toMatch(/<View\b/);
+    expect(read('android/app/src/main/res/layout/widget_daystory.xml')).not.toMatch(/android:layout_margin(?:Top|End)="-/);
     expect(provider).toMatch(/public void onEnabled\(Context context\)/);
     expect(provider).toMatch(/updateAll\(context\)/);
   });

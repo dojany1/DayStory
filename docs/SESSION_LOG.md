@@ -792,3 +792,53 @@ Android 앱 아이콘이 적용되지 않는 문제를 확인하고, Elixir 마�
 - `android/app/src/main/AndroidManifest.xml`
 - `docs/SESSION_LOG.md`
 - `tests/widget.static.spec.js`
+
+---
+
+## 2026-05-07 22:06 Codex CLI
+
+**요구사항:**
+사진이 가끔 placeholder로 보이거나 오래 걸리는 문제, 카드 스와이프가 뻑뻑하고 한 번에 두 장 넘어가던 문제, 편지 애니메이션/위젯 로딩 문구/알림 바텀시트 중복 애니메이션/다크모드 버튼 색상 문제를 수정. 이어서 나의 일기 카드 액션을 콘텐츠 카드와 맞추되 북마크 대신 편집 버튼을 넣고 삭제는 편집 화면으로 이동. 마지막 요청에 따라 홈 화면에 임시로 추가했던 내 일화 탭 버튼식 전환과 스와이프 내 일화 열 기능은 삭제하고, 그동안의 대화 흐름을 세션 로그에 기록.
+
+**구현방법:**
+- 카드/캘린더/보관함/검색 이미지가 `image_thumb_url`을 우선 사용하고 실패 시 원본/placeholder로 안전하게 떨어지도록 정리. 업로드는 표시용 WebP와 4:5 썸네일 WebP를 함께 생성하도록 공통 이미지 서비스로 통합.
+- `public/daystory-image-cache-sw.js`와 `main.js` 등록 경로를 추가해 최초 로드 후 같은 이미지 요청은 로컬 캐시를 우선 사용하고, 캐시 업데이트는 새 요청만 따라가도록 구성.
+- 홈/내 일기 카드 스택 전환 시간을 공유 상수로 맞추고, 터치 이후 합성 mouse 이벤트와 빠른 중복 commit을 막아 한 번 스와이프에 카드 한 장만 넘어가도록 방어.
+- 편지 게이트/편지 애니메이션은 제거하고 홈 카드는 바로 렌더링되도록 유지. Android 위젯은 데이터가 없어도 빈 문구 대신 기본 카드/액션이 뜨도록 레이아웃과 정적 검증을 보강.
+- 알림 설정 바텀시트가 한 번의 조작에 두 번 튀어나오는 흐름을 막고, 다크모드에서 홈 월/일 선택 테두리와 카드 액션 버튼이 흰색으로 보이도록 CSS를 보정.
+- `/mystory` 카드의 상단 버튼을 콘텐츠 카드와 같은 공유/편집 액션으로 맞추고, 삭제는 `/mystory/new?edit=...` 편집 화면의 삭제 버튼에서만 가능하게 변경.
+- 최신 요청에 따라 `/editorstory`에서 `fetchMyStories` 의존성, `.home-story-toggle`, 홈 전용 내 일화 카드/쓰기 버튼, 세로 스와이프 모드 전환, 관련 Vitest 테스트를 제거. 내 일화 작성/전환 진입점은 문서 기준대로 캘린더와 내 일기 화면에만 남김.
+
+**검증:**
+- `npm test -- --run tests/editorstory.ui.spec.js tests/regression.bugs.spec.js`: 2 files / 39 tests 통과.
+- `npm test -- --run`: 8 files / 74 tests 통과.
+- `npm run build`: 성공.
+- `git diff --check`: 공백 오류 없음. Git의 LF→CRLF 경고만 출력.
+- `npx cap sync android`: 성공.
+- `android` 디렉터리에서 `.\gradlew.bat assembleDebug`: 성공.
+- `rg`로 `home-story-toggle`, `home-my-story`, `fetchMyStories`, 홈 내 일화 전환 테스트 문자열이 `editorstory.js`/`pages.css`/`editorstory.ui.spec.js`에 남지 않았음을 확인.
+
+**변경파일:**
+- `android/app/src/main/res/layout/widget_daystory.xml`
+- `docs/SESSION_LOG.md`
+- `public/daystory-image-cache-sw.js`
+- `src/css/base.css`
+- `src/css/components.css`
+- `src/css/pages.css`
+- `src/js/components/notificationSettingsSheet.js`
+- `src/js/pages/bookmarks.js`
+- `src/js/pages/calendar.js`
+- `src/js/pages/editor.js`
+- `src/js/pages/editorstory.js`
+- `src/js/pages/mystory.js`
+- `src/js/pages/search.js`
+- `src/js/services/images.js`
+- `src/js/services/notifications.js`
+- `src/js/utils/imageLoading.js`
+- `src/main.js`
+- `tests/bookmarks.ui.spec.js`
+- `tests/calendar.ui.spec.js`
+- `tests/editor_management_calendar.spec.js`
+- `tests/editorstory.ui.spec.js`
+- `tests/regression.bugs.spec.js`
+- `tests/widget.static.spec.js`

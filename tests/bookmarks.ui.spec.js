@@ -83,6 +83,24 @@ describe('Bookmarks page', () => {
     expect(navigateMock).toHaveBeenCalledWith('/detail/story-42');
   });
 
+  it('falls back to the original image when a bookmark thumbnail is missing', async () => {
+    getBookmarkedStoriesMock.mockResolvedValue([
+      makeStory('legacy-story', {
+        image_url: 'https://example.com/legacy.png',
+        image_thumb_url: '',
+      }),
+    ]);
+
+    const page = renderBookmarks();
+    document.body.appendChild(page);
+
+    await flush();
+
+    const image = page.querySelector('.history-card-mini img');
+    expect(image?.getAttribute('src') || '').toContain('legacy.png');
+    expect(image?.getAttribute('data-src')).toBeNull();
+  });
+
   it('shows empty state when there are no bookmarks', async () => {
     getBookmarkedStoriesMock.mockResolvedValue([]);
 

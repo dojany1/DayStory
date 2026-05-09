@@ -17,6 +17,7 @@ const {
   createMyStoryMock,
   updateMyStoryMock,
   deleteMyStoryMock,
+  showConfirmMock,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   getParamsMock: vi.fn(),
@@ -32,6 +33,7 @@ const {
   createMyStoryMock: vi.fn(),
   updateMyStoryMock: vi.fn(),
   deleteMyStoryMock: vi.fn(),
+  showConfirmMock: vi.fn(),
 }));
 
 vi.mock('../src/js/router.js', () => ({
@@ -65,6 +67,10 @@ vi.mock('../src/js/services/mystories.js', () => ({
 
 vi.mock('../src/js/components/toast.js', () => ({
   showToast: vi.fn(),
+}));
+
+vi.mock('../src/js/components/confirmDialog.js', () => ({
+  showConfirm: showConfirmMock,
 }));
 
 vi.mock('../src/js/firebase.js', () => ({
@@ -104,7 +110,7 @@ vi.mock('cropperjs/dist/cropper.css', () => ({}));
 const { renderProfile } = await import('../src/js/pages/profile.js');
 const { renderSettings } = await import('../src/js/pages/settings.js');
 const { renderEditorStory } = await import('../src/js/pages/editorstory.js');
-const { renderMyStory } = await import('../src/js/pages/mystory.js');
+const { renderMyStory, renderMyStoryNew } = await import('../src/js/pages/mystory.js');
 
 function makeEditorStory(day) {
   const paddedDay = String(day).padStart(2, '0');
@@ -248,6 +254,7 @@ describe('Regression bugs', () => {
     createMyStoryMock.mockReset();
     updateMyStoryMock.mockReset();
     deleteMyStoryMock.mockReset();
+    showConfirmMock.mockReset();
 
     setDefaultState();
     getParamsMock.mockReturnValue({});
@@ -395,6 +402,41 @@ describe('Regression bugs', () => {
     });
   });
 
+  it('Given the notification settings sheet is already open, when the settings row fires again, then the existing sheet should be reused', () => {
+    getStateMock.mockImplementation((key) => {
+      if (key === 'theme') return 'light';
+      return null;
+    });
+
+    const page = renderSettings();
+    document.body.appendChild(page);
+
+    const notificationRow = page.querySelector('#setting-notifications');
+    notificationRow.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const firstOverlay = document.querySelector('.notification-settings-overlay');
+    expect(firstOverlay).not.toBeNull();
+
+    notificationRow.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const overlays = document.querySelectorAll('.notification-settings-overlay');
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]).toBe(firstOverlay);
+  });
+
+  it('Given the notification settings sheet opens, when source is inspected, then it should not replay bottom-sheet entrance animation', () => {
+    const sheetSource = readFileSync(resolve(process.cwd(), 'src/js/components/notificationSettingsSheet.js'), 'utf8');
+    const componentsCss = readFileSync(resolve(process.cwd(), 'src/css/components.css'), 'utf8');
+
+    const notificationOverlayRule = componentsCss.match(/\.notification-settings-overlay\s*\{[\s\S]*?\}/)?.[0];
+    const notificationSheetRule = componentsCss.match(/\.notification-settings-overlay\s+\.notification-settings-sheet\s*\{[\s\S]*?\}/)?.[0];
+
+    expect(notificationOverlayRule).toMatch(/animation:\s*none/);
+    expect(notificationSheetRule).toMatch(/animation:\s*none/);
+    expect(sheetSource).not.toMatch(/existing\.classList\.add\('open'\)/);
+    expect(sheetSource).not.toMatch(/requestAnimationFrame\(\(\)\s*=>\s*overlay\.classList\.add\('open'\)\)/);
+  });
+
   it('Given an editor story swipe on mobile, when a compatibility mouse gesture follows the touch swipe, then the date should advance only once', async () => {
     const stories = [makeEditorStory(24), makeEditorStory(25), makeEditorStory(26)];
     fetchStoriesMock.mockResolvedValue(stories);
@@ -464,6 +506,51 @@ describe('Regression bugs', () => {
 
     expect(page.querySelector('.card-year')?.textContent?.trim()).toBe('2026');
     expect(page.querySelector('.card-date')?.textContent?.trim()).toBe('4. 24');
+  });
+
+  it('Given a saved my-story card, when it renders, then actions should match content cards with share and edit only', async () => {
+    getParamsMock.mockReturnValue({ date: '2026-04-24' });
+    fetchMyStoriesMock.mockResolvedValue([makeMyStory(24)]);
+
+    const page = renderMyStory();
+    document.body.appendChild(page);
+
+    await flushTimers(0);
+
+    expect(page.querySelector('.share-my-story-btn[aria-label="공유"]')).not.toBeNull();
+    expect(page.querySelector('.edit-my-story-btn[aria-label="수정"]')).not.toBeNull();
+    expect(page.querySelector('.delete-my-story-btn')).toBeNull();
+
+    page.querySelector('.edit-my-story-btn').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(navigateMock).toHaveBeenCalledWith('/mystory/new?edit=my-24');
+  });
+
+  it('Given a my-story is opened for editing, when delete is confirmed there, then the story should be deleted from the edit screen', async () => {
+    getParamsMock.mockReturnValue({ edit: 'my-24' });
+    fetchMyStoriesMock.mockResolvedValue([makeMyStory(24)]);
+    fetchMyStoryByIdMock.mockResolvedValue(makeMyStory(24));
+    showConfirmMock.mockResolvedValue(true);
+
+    const page = renderMyStoryNew();
+    document.body.appendChild(page);
+
+    await flushTimers(0);
+    await flushTimers(0);
+
+    const deleteButton = page.querySelector('#delete-my-story-edit');
+
+    expect(deleteButton).not.toBeNull();
+
+    deleteButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushTimers(0);
+
+    expect(showConfirmMock).toHaveBeenCalledWith(expect.objectContaining({
+      confirmText: '삭제',
+      danger: true,
+    }));
+    expect(deleteMyStoryMock).toHaveBeenCalledWith('my-24');
+    expect(navigateMock).toHaveBeenCalledWith('/mystory', { date: '2026-04-24' });
   });
 
   it('Given an empty my-story card, when the user swipes to the previous day, then the page should navigate to the adjacent date card instead of blocking the swipe', async () => {

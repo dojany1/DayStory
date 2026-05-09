@@ -63,6 +63,16 @@ import { getLocalToday } from './js/utils/date.js';
 import { warmStoriesCache } from './js/services/stories.js';
 import { preloadStoryImages } from './js/utils/imageLoading.js';
 
+function registerImageCacheWorker() {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+
+  navigator.serviceWorker.register('/daystory-image-cache-sw.js').catch((err) => {
+    console.warn('Image cache worker registration skipped:', err);
+  });
+}
+
+registerImageCacheWorker();
+
 let calendarRoutePromise = null;
 let warmedStoriesPromise = null;
 

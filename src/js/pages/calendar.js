@@ -14,7 +14,7 @@ import { auth } from '../firebase.js';
 import { getState } from '../state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date.js';
-import { CARD_PLACEHOLDER_IMAGE, getStoryImageUrl, preloadStoryImages } from '../utils/imageLoading.js';
+import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages, prepareLazyImages } from '../utils/imageLoading.js';
 import { backfillStoryThumbnailsForMonth } from '../services/images.js';
 import { navigate } from '../router.js';
 import { Share } from '@capacitor/share';
@@ -218,6 +218,7 @@ function renderGrid(page, state, today) {
   }
 
   grid.innerHTML = html;
+  prepareLazyImages(grid);
 
   grid.querySelectorAll('.cal-cell-has-story').forEach(cell => {
     cell.addEventListener('click', () => {
@@ -238,13 +239,20 @@ function renderGrid(page, state, today) {
 }
 
 function renderCellPeek(story, mode) {
-  const img = getStoryImageUrl(story, 'thumb') || CARD_PLACEHOLDER_IMAGE;
+  const imageSources = getStoryImageSources(story, 'thumb');
+  const img = imageSources.primary;
+  const fallbackAttr = imageSources.fallback
+    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
+    : '';
+  const imageAttrs = img
+    ? `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}" data-src="${escapeHtml(img)}"${fallbackAttr}`
+    : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
   const title = mode === 'history'
     ? (story.figure_name || story.title || '')
     : (story.title || '');
   return `
     <span class="cal-cell-peek" aria-hidden="true">
-      <img class="cal-cell-peek-img" src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" draggable="false" onerror="this.style.visibility='hidden'" />
+      <img class="cal-cell-peek-img" ${imageAttrs} alt="" loading="lazy" decoding="async" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.style.visibility='hidden'}" />
       <span class="cal-cell-peek-title">${escapeHtml(title)}</span>
     </span>
   `;
@@ -281,6 +289,7 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
   `;
 
   document.body.appendChild(overlay);
+  prepareLazyImages(overlay);
   requestAnimationFrame(() => overlay.classList.add('open'));
 
   const close = () => {
@@ -418,6 +427,14 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
   const editorPhotoURL = (story.editor && story.editor.photoURL) || '';
   const editorName = (story.editor && story.editor.displayName) || 'DayStory';
   const editorBtnHidden = !editorComment.trim();
+  const imageSources = getStoryImageSources(story, 'thumb');
+  const imageUrl = imageSources.primary;
+  const fallbackAttr = imageSources.fallback
+    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
+    : '';
+  const imageAttrs = imageUrl
+    ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
+    : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
 
   return `
     <div class="flip-container">
@@ -449,7 +466,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(story.image_url || CARD_PLACEHOLDER_IMAGE)}" alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
           </div>
         </div>
@@ -477,7 +494,14 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
 function buildMyCardHtml(story, year, month, day) {
   const bodyHtml = (story.body || '').split(/\n|\\n/)
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
-  const imageUrl = story.image_url || CARD_PLACEHOLDER_IMAGE;
+  const imageSources = getStoryImageSources(story, 'thumb');
+  const imageUrl = imageSources.primary;
+  const fallbackAttr = imageSources.fallback
+    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
+    : '';
+  const imageAttrs = imageUrl
+    ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
+    : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
   return `
     <div class="flip-container">
       <div class="flipper mystory-flipper">
@@ -492,7 +516,7 @@ function buildMyCardHtml(story, year, month, day) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.title || '')}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" onerror="this.style.display='none'" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.title || '')}" loading="eager" decoding="async" width="320" height="400" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.title || '')}</div>
           </div>
         </div>

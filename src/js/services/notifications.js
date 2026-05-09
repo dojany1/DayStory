@@ -27,6 +27,7 @@ const NOTIFICATION_META = {
 let actionListenerHandle = null;
 let webNotificationNavigate = null;
 let webPermissionGrantedForSession = false;
+let notificationPermissionRequest = null;
 const webNotificationTimers = new Map();
 
 export function getNotificationSettings() {
@@ -47,9 +48,7 @@ export async function updateNotificationSetting(type, patch) {
   const isEnabling = patch?.enabled === true;
 
   if (isEnabling) {
-    const granted = isNativeNotificationsAvailable()
-      ? await ensureNativeNotificationPermission()
-      : await ensureWebNotificationPermission();
+    const granted = await requestNotificationPermissionOnce();
 
     if (!granted) {
       next.enabled = false;
@@ -62,6 +61,19 @@ export async function updateNotificationSetting(type, patch) {
 
   await syncNotificationSchedules(type);
   return getNotificationSettings();
+}
+
+async function requestNotificationPermissionOnce() {
+  if (!notificationPermissionRequest) {
+    notificationPermissionRequest = (isNativeNotificationsAvailable()
+      ? ensureNativeNotificationPermission()
+      : ensureWebNotificationPermission()
+    ).finally(() => {
+      notificationPermissionRequest = null;
+    });
+  }
+
+  return notificationPermissionRequest;
 }
 
 export async function syncNotificationSchedules(type = null) {

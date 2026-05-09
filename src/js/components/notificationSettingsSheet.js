@@ -47,6 +47,8 @@ export function renderNotificationSettingsSection() {
 export function bindNotificationSettingsSection(page) {
   const item = page.querySelector('#setting-notifications');
   if (item) {
+    if (item.dataset.notificationSettingsBound === 'true') return;
+    item.dataset.notificationSettingsBound = 'true';
     const openSheet = () => openNotificationSettingsSheet(() => updateNotificationSummary(page));
     item.addEventListener('click', openSheet);
     item.addEventListener('keydown', (event) => {
@@ -61,7 +63,9 @@ export function bindNotificationSettingsSection(page) {
 
 export function openNotificationSettingsSheet(onChange = () => {}) {
   const existing = document.querySelector('.notification-settings-overlay');
-  if (existing) existing.remove();
+  if (existing) {
+    return existing;
+  }
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay notification-settings-overlay';
@@ -86,9 +90,6 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
 
   const wrapper = document.querySelector('.mobile-wrapper') || document.body;
   wrapper.appendChild(overlay);
-
-  /* DOM 삽입 후 다음 프레임에서 .open 추가 */
-  requestAnimationFrame(() => overlay.classList.add('open'));
 
   let isClosing = false;
   const close = () => {

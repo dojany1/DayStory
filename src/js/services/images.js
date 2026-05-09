@@ -5,6 +5,7 @@ import { db, storage } from '../firebase.js';
 
 const IMAGE_OUTPUT_TYPE = 'image/webp';
 const IMAGE_OUTPUT_EXT = 'webp';
+const IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 const DISPLAY_IMAGE_OPTIONS = {
   maxSizeMB: 0.32,
@@ -25,6 +26,10 @@ const THUMB_IMAGE_OPTIONS = {
 const THUMB_WIDTH = 320;
 const THUMB_HEIGHT = 400;
 const backfilledStories = new Set();
+
+function isInlineImageUrl(value) {
+  return typeof value === 'string' && /^data:image\//i.test(value.trim());
+}
 
 async function optimizeImage(file, options) {
   try {
@@ -73,7 +78,10 @@ async function uploadOptimizedFile(optimizedFile, { uid, folder, prefix }) {
   const safeName = makeStorageSafeName(optimizedFile?.name || `${prefix || 'image'}.webp`);
   const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${prefix || 'image'}_${safeName}`;
   const storageRef = ref(storage, `users/${safeUid}/${folder}/${fileName}`);
-  await uploadBytes(storageRef, optimizedFile, { contentType: optimizedFile.type || IMAGE_OUTPUT_TYPE });
+  await uploadBytes(storageRef, optimizedFile, {
+    contentType: optimizedFile.type || IMAGE_OUTPUT_TYPE,
+    cacheControl: IMAGE_CACHE_CONTROL,
+  });
   return getDownloadURL(storageRef);
 }
 
@@ -177,6 +185,7 @@ export async function backfillStoryThumbnailsForMonth(stories, {
 
   const candidates = stories
     .filter((story) => story?.id && story.image_url && !story.image_thumb_url && isStoryInMonth(story, year, month))
+    .filter((story) => !isInlineImageUrl(story.image_url))
     .filter((story) => !backfilledStories.has(`${collectionName}:${story.id}`))
     .slice(0, limit);
 

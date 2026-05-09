@@ -50,6 +50,8 @@ vi.mock('../src/js/services/stories.js', () => ({
 }));
 
 vi.mock('../src/js/firebase.js', () => ({
+  db: null,
+  storage: null,
   auth: {
     currentUser: {
       uid: 'editor-1',
@@ -157,6 +159,9 @@ describe('May 4 editor management recovery', () => {
     expect(page.querySelector('.editor-calendar-grid')).not.toBeNull();
     expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-04"] .editor-calendar-story-title')?.textContent).toContain('May Story');
     expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-12"] .badge-draft')?.textContent).toContain('초안');
+    expect(page.querySelector('#editor-new')).toBeNull();
+    expect(page.querySelector('.editor-new-btn')).toBeNull();
+    expect(page.querySelector('.editor-calendar-empty-mark')).toBeNull();
     expect(page.querySelector('.editor-item')).toBeNull();
     expect(page.querySelector('.card-side-peek')).toBeNull();
   });
@@ -212,12 +217,16 @@ describe('May 4 editor management recovery', () => {
     const editorPageRule = css.match(/\.editor-page\s*\{[\s\S]*?\}/)?.[0] || '';
     const statsRule = css.match(/\.editor-stats\s*\{[\s\S]*?\}/)?.[0] || '';
     const cellRule = css.match(/\.editor-calendar-cell\s*\{[\s\S]*?\}/)?.[0] || '';
+    const titleRowRule = css.match(/\.editor-calendar-title-row\s*\{[\s\S]*?\}/)?.[0] || '';
     const actionsRule = css.match(/\.editor-calendar-actions\s*\{[\s\S]*?\}/)?.[0] || '';
 
     expect(editorPageRule).toMatch(/padding:\s*var\(--space-3\) var\(--space-4\) var\(--space-6\)/);
     expect(statsRule).toMatch(/border-radius:\s*var\(--radius-full\)/);
+    expect(titleRowRule).toMatch(/grid-template-columns:\s*36px\s+minmax\(0,\s*1fr\)\s+36px/);
     expect(cellRule).toMatch(/aspect-ratio:\s*3\s*\/\s*4/);
     expect(cellRule).toMatch(/border-radius:\s*0/);
     expect(actionsRule).toMatch(/display:\s*none/);
+    expect(css).not.toMatch(/\.editor-new-btn/);
+    expect(css).not.toMatch(/\.editor-calendar-empty-mark/);
   });
 });

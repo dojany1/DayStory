@@ -9,7 +9,7 @@ import { navigate } from '../router.js';
 import { getBookmarkedStories } from '../services/bookmarks.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { safeStoryDateParts } from '../utils/date.js';
-import { CARD_PLACEHOLDER_IMAGE, getStoryImageUrl } from '../utils/imageLoading.js';
+import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, prepareLazyImages } from '../utils/imageLoading.js';
 
 
 export function renderBookmarks() {
@@ -78,6 +78,7 @@ async function loadCollection(page) {
           navigate('/detail/' + card.dataset.storyId);
         });
       });
+      prepareLazyImages(contentEl);
     };
 
     renderStories(allBookmarks);
@@ -127,7 +128,14 @@ function renderMiniCard(story) {
   const dateMeta = valid
     ? `${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`
     : '';
-  const imageUrl = getStoryImageUrl(story, 'thumb') || CARD_PLACEHOLDER_IMAGE;
+  const imageSources = getStoryImageSources(story, 'thumb');
+  const imageUrl = imageSources.primary;
+  const fallbackAttr = imageSources.fallback
+    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
+    : '';
+  const imageAttrs = imageUrl
+    ? `src="${CARD_PLACEHOLDER_IMAGE}" data-src="${escapeHtml(imageUrl)}"${fallbackAttr}`
+    : `src="${CARD_PLACEHOLDER_IMAGE}"`;
 
   return `
     <div class="history-card-mini" data-story-id="${escapeHtml(story.id)}">
@@ -142,7 +150,7 @@ function renderMiniCard(story) {
         </div>
       </div>
       <div class="mini-card-image-wrap">
-        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.figure_name || '')}" loading="lazy" decoding="async" onerror="this.src='${CARD_PLACEHOLDER_IMAGE}'" />
+        <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
         <div class="mini-card-overlay">
           ${escapeHtml(story.figure_name || '')}
         </div>

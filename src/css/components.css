@@ -248,6 +248,11 @@
   cursor: default;
 }
 
+[data-theme="dark"] .card-detail-shortcut-btn {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
 /* 카드 연도 텍스트 (예: "1879") */
 .card-year {
   font-family: var(--font-body);
@@ -284,6 +289,10 @@
   gap: var(--space-4);
   margin-bottom: 2rem;
   color: var(--color-text-tertiary);
+}
+
+[data-theme="dark"] .card-actions {
+  color: var(--color-accent);
 }
 
 /* 개별 액션 버튼 — 터치 영역 확보를 위해 패딩 추가 + 마이너스 마진 */
@@ -453,6 +462,11 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
   position: relative;
+}
+
+[data-theme="dark"] .back-editor-btn {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 /* 모바일 터치 접근성을 위한 광범위 투명 터치 영역 */
@@ -928,6 +942,14 @@
   padding: var(--space-6);
   overflow-y: auto;
   animation: slideUp 0.3s var(--transition-spring);
+}
+
+.notification-settings-overlay {
+  animation: none;
+}
+
+.notification-settings-overlay .notification-settings-sheet {
+  animation: none;
 }
 
 /* 모달 핸들 바 — 시트 상단의 드래그 핸들 (장식용) */

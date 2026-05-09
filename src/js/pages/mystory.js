@@ -8,13 +8,15 @@
 import { navigate, getParams } from '../router.js';
 import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
+import { showConfirm } from '../components/confirmDialog.js';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { auth } from '../firebase.js';
+import { Share } from '@capacitor/share';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { syncDiaryStateFromList } from '../services/widget.js';
-import { CARD_PLACEHOLDER_IMAGE, preloadStoryImages } from '../utils/imageLoading.js';
+import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages } from '../utils/imageLoading.js';
 import { bindImageVariantFields } from '../utils/imageFields.js';
 import { uploadCardImageVariants } from '../services/images.js';
 
@@ -24,6 +26,7 @@ const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
    짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다 (세션 1 #2). */
 let lastSwipeCommitAt = 0;
 const SWIPE_COMMIT_GUARD_MS = 1500;
+const CARD_STACK_SETTLE_MS = 560;
 
 /* ─────────────────────────────────────────────
    섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커)
@@ -69,7 +72,7 @@ async function loadMyStoryData(page) {
     const uid = auth?.currentUser?.uid || user.id;
     const allStories = await fetchMyStories(uid);
     void syncDiaryStateFromList(allStories);
-    preloadStoryImages(allStories, 5);
+    preloadStoryImages(allStories, { limit: 5, variant: 'thumb', fallback: false });
     
     // 로컬 시간 기준 실제 오늘 날짜 (휠 피커의 미래 날짜 제한용)
     const params = getParams();
@@ -226,7 +229,7 @@ async function loadMyStoryData(page) {
 
 function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null, allStories) {
   if (!cardArea) return;
-  preloadStoryImages([story], 1);
+  preloadStoryImages([story], { limit: 1, variant: 'thumb', fallback: false });
 
   const allCards = Array.from(cardArea.querySelectorAll('.flip-container'));
   const oldCard = allCards.pop() || null;
@@ -262,7 +265,14 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
     const storyYear = parseInt(storyYearRaw, 10) || displayYear;
     const storyMonth = parseInt(storyMonthRaw, 10) || month;
     const storyDay = parseInt(storyDayRaw, 10) || day;
-    const imageUrl = story.image_url || CARD_PLACEHOLDER_IMAGE;
+    const imageSources = getStoryImageSources(story, 'thumb');
+    const imageUrl = imageSources.primary;
+    const fallbackAttr = imageSources.fallback
+      ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
+      : '';
+    const imageAttrs = imageUrl
+      ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
+      : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
     const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
 
     newCard.innerHTML = `
@@ -276,18 +286,16 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
             </div>
             <div class="card-top-right">
               <div class="card-actions">
+                <button class="card-action-btn share-my-story-btn" data-id="${escapeHtml(story.id)}" aria-label="공유">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                </button>
                 <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id)}" aria-label="수정">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                </button>
-                <button class="card-action-btn delete-my-story-btn" data-id="${escapeHtml(story.id)}" aria-label="삭제">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
                   </svg>
                 </button>
               </div>
@@ -295,7 +303,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(story.title)}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" onerror="this.style.display='none'" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.title)}" loading="eager" decoding="async" width="320" height="400" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.title)}</div>
           </div>
         </div>
@@ -331,7 +339,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
     bindCardEvents(newCard, story, dateObj, allStories);
   };
   newCard.addEventListener('transitionend', onAnimationEnd, { once: true });
-  setTimeout(() => { if (newCard.classList.contains('card-stack-item')) onAnimationEnd(); }, 400);
+  setTimeout(() => { if (newCard.classList.contains('card-stack-item')) onAnimationEnd(); }, CARD_STACK_SETTLE_MS);
 }
 
 function bindCardEvents(flipContainer, story, dateObj, allStories) {
@@ -340,8 +348,8 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
 
   /* 상단 액션 버튼 이벤트 (mystory 전용) */
   const writeBtn = flipContainer.querySelector('.mystory-write-btn');
+  const shareBtn = flipContainer.querySelector('.share-my-story-btn');
   const editBtn = flipContainer.querySelector('.edit-my-story-btn');
-  const delBtn = flipContainer.querySelector('.delete-my-story-btn');
 
   const checkAuth = () => {
     const userObj = getState('user') || {};
@@ -362,27 +370,24 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     });
   }
 
+  if (shareBtn && story) {
+    shareBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!checkAuth()) return;
+      try {
+        await Share.share({
+          title: story.title || 'DayStory',
+          text: `[DayStory] ${story.title || ''}\n\n${story.body || ''}`.trim(),
+        });
+      } catch (err) {}
+    });
+  }
+
   if (editBtn) {
     editBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!checkAuth()) return;
       navigate('/mystory/new?edit=' + editBtn.dataset.id);
-    });
-  }
-
-  if (delBtn) {
-    delBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      if (!checkAuth()) return;
-      if(confirm('정말 이 일화를 삭제하시겠습니까?')) {
-        await deleteMyStory(delBtn.dataset.id);
-        showToast('일화가 삭제되었습니다.', 'success');
-        const uid = auth?.currentUser?.uid || getState('user')?.id || 'guest';
-        const freshStories = await fetchMyStories(uid);
-        void syncDiaryStateFromList(freshStories);
-        const isoDateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')}`;
-        renderCardToArea(document.querySelector('#mystory-card-area'), null, dateObj, isoDateStr, null, freshStories);
-      }
     });
   }
 
@@ -396,7 +401,9 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
   let isAnimating = false;
   let isBackBodyScroll = false;
   let lastTouchInputAt = 0;
-  const SWIPE_THRESHOLD = 80;
+  const SWIPE_THRESHOLD = 64;
+  const SWIPE_DRAG_RESPONSE = 0.62;
+  const SWIPE_RETURN_MS = 220;
   const SYNTHETIC_MOUSE_IGNORE_MS = 650;
 
   /* ── back-body 탭 vs 스크롤 구분용 변수 ── */
@@ -445,7 +452,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     const baseTransform = isFlipped ? 'rotateY(180deg)' : '';
 
     if (swipeAxis === 'x') {
-      const moveX = diffX * 0.4;
+      const moveX = diffX * SWIPE_DRAG_RESPONSE;
       flipper.style.transform = `translateX(${moveX}px) ${baseTransform}`;
     }
   };
@@ -455,13 +462,13 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     isAnimating = true;
 
     const diffX = x - touchStartX;
-    flipper.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    flipper.style.transition = `transform ${SWIPE_RETURN_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
     flipper.classList.add('is-flipping');
 
     if (swipeAxis === 'x' && Math.abs(diffX) > SWIPE_THRESHOLD) {
       if (isBackBodyScroll) {
         flipper.style.transform = '';
-        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, 250);
+        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, SWIPE_RETURN_MS);
         return;
       }
       /* 세션 1 #2: 짧은 시간 내 두 번째 commit 차단 */
@@ -503,7 +510,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
       flipper.classList.remove('is-flipping');
       isSwiping = false;
       isAnimating = false;
-    }, 250);
+    }, SWIPE_RETURN_MS);
   };
 
   flipper.addEventListener('touchstart', (e) => {
@@ -664,6 +671,11 @@ export function renderMyStoryNew() {
         <div style="margin-top:var(--space-6);">
           <button type="submit" class="btn btn-primary btn-full" style="font-size:var(--text-md); padding:var(--space-4);">저장하기</button>
         </div>
+        ${editingId ? `
+        <div style="margin-top:var(--space-3);">
+          <button type="button" class="btn btn-secondary btn-full mystory-form-delete-btn" id="delete-my-story-edit">삭제</button>
+        </div>
+        ` : ''}
       </form>
     </div>
   `;
@@ -699,6 +711,28 @@ export function renderMyStoryNew() {
         document.getElementById('ms-image-thumb').value = story.image_thumb_url || '';
       }
     }
+
+    document.getElementById('delete-my-story-edit')?.addEventListener('click', async () => {
+      if (!editingId) return;
+      const confirmed = await showConfirm({
+        title: '일화 삭제',
+        message: '이 일화를 삭제하시겠습니까?\n삭제한 일화는 복구할 수 없습니다.',
+        confirmText: '삭제',
+        cancelText: '취소',
+        danger: true,
+      });
+      if (!confirmed) return;
+
+      try {
+        await deleteMyStory(editingId);
+        const deletedDate = document.getElementById('ms-date')?.value || defaultDate;
+        void syncDiaryStateFromList(allStories.filter((story) => String(story.id) !== String(editingId)));
+        showToast('일화가 삭제되었습니다.', 'success');
+        navigate('/mystory', { date: deletedDate });
+      } catch (err) {
+        showToast('삭제 중 오류가 발생했습니다.', 'error');
+      }
+    });
 
     function updateImageEditBtn() {
       const url = document.getElementById('ms-image')?.value.trim();

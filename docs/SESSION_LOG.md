@@ -842,3 +842,49 @@ Android 앱 아이콘이 적용되지 않는 문제를 확인하고, Elixir 마�
 - `tests/editorstory.ui.spec.js`
 - `tests/regression.bugs.spec.js`
 - `tests/widget.static.spec.js`
+
+---
+
+## 2026-05-09 22:00 — Claude Code
+
+**요구사항:**
+Claude Code가 오케스트레이터 역할을 하여 `npm run harness:auto` 실행 시 외부 CLI 없이 Claude가 직접 step을 처리하는 harness 자동화 시스템 구축. 바이브코딩 세션 중 "알아서 해줘" 한 마디로 pending 작업이 자동 실행되게 하고 토큰도 절약.
+
+**구현방법:**
+- `scripts/check-pending-phases.mjs` 생성 — Notification hook에서 pending phase 감지 후 exit(2)로 Claude context에 주입
+- `scripts/codex-harness.mjs` 재설계 — pending phase 탐색, dirty worktree snapshot commit, step 지시사항을 stdout으로 출력해 Claude가 직접 읽고 처리하는 방식 (외부 CLI 불필요)
+- `scripts/harness-commit.mjs` 생성 — Claude가 step 완료 후 result.json 작성 뒤 호출해 index.json 업데이트 + code/meta 커밋 분리 생성
+- `.claude/settings.json` Notification hook 추가 — 세션 중 pending phase 자동 감지
+- `package.json` 스크립트 추가 — `harness:auto`, `harness`, `harness:status`, `harness:commit`
+- `CLAUDE.md` Agent Harness/명령어 섹션 업데이트 — 새 흐름 반영
+- `phases/` 폴더 생성, bootstrap(001) + 흐름 검증(002) phase 완료 확인
+
+**변경파일:**
+- `scripts/check-pending-phases.mjs`
+- `scripts/codex-harness.mjs`
+- `scripts/harness-commit.mjs`
+- `.claude/settings.json`
+- `package.json`
+- `CLAUDE.md`
+- `phases/.gitkeep`
+- `phases/001-harness-bootstrap/index.json`
+- `phases/001-harness-bootstrap/step1.md`
+- `phases/001-harness-bootstrap/step1.result.json`
+- `phases/002-test-flow/index.json`
+- `phases/002-test-flow/step1.md`
+- `phases/002-test-flow/step1.result.json`
+- `docs/SESSION_LOG.md`
+
+---
+
+## 2026-05-09 22:10 — Claude Code
+
+**요구사항:**
+harness step 시작 시 docs 문서들과 SESSION_LOG를 제일 먼저 읽도록 지시사항에 추가.
+
+**구현방법:**
+- `scripts/codex-harness.mjs` `buildInstructions()` 상단에 "작업 시작 전 필독" 섹션 추가 — CLAUDE.md → SESSION_LOG.md → ARCHITECTURE.md → CODE_MAP.md → index.json 순서로 명시.
+
+**변경파일:**
+- `scripts/codex-harness.mjs`
+- `docs/SESSION_LOG.md`

@@ -35,12 +35,10 @@ function escapeHtml(s) {
 
 function pickImage(story) {
   if (!story) return DEFAULT_OG_IMAGE;
-  return (
-    story.image_url_full ||
-    story.image_url ||
-    (story.images && (story.images.full || story.images.thumb)) ||
-    DEFAULT_OG_IMAGE
-  );
+  // Firestore stories 스키마: image_url(풀사이즈), image_thumb_url(썸네일).
+  // SNS 미리보기는 큰 이미지가 좋으므로 image_url 우선.
+  const url = story.image_url || story.image_thumb_url;
+  return (typeof url === 'string' && url.startsWith('http')) ? url : DEFAULT_OG_IMAGE;
 }
 
 function renderOgHtml({ title, description, image, url }) {

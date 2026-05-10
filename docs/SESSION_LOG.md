@@ -988,3 +988,21 @@ harness step 시작 시 docs 문서들과 SESSION_LOG를 제일 먼저 읽도록
 - `src/js/services/collection.js` (신규)
 - `src/js/pages/calendar.js`
 - `src/css/pages.css`
+
+---
+
+## 2026-05-10 22:15 — Claude Code
+
+**요구사항:**
+"기간이 지났어요" 텍스트와 잠금 아이콘 제거. 관리자(role === 'editor')는 모든 카드가 해금된 상태로 보이게 할 것.
+
+**구현방법:**
+
+- `src/js/pages/calendar.js` 수정 — `renderCellPeek`와 `openCardPopup`에서 `isAdmin = profile.role === 'editor'` 체크 후 locked 계산식에 `&& !isAdmin` 추가. 관리자는 모든 카드가 collectible/collected와 동일하게 동작.
+- `src/js/pages/calendar.js` — 카드 잠금 오버레이에서 🔒 아이콘과 "기간이 지났어요" 텍스트 제거(빈 오버레이만 남김), 팝업 하단 "기간이 지나 수집할 수 없습니다" 힌트도 제거.
+- `src/css/pages.css` — `.card-locked-icon`, `.card-locked-text`, `.calendar-card-popup-hint--locked` 규칙 삭제. `.card-locked-overlay`는 흑백 톤만 남기는 단순 어두운 레이어로 단순화.
+
+**변경파일:**
+
+- `src/js/pages/calendar.js`
+- `src/css/pages.css`

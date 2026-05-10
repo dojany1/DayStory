@@ -252,8 +252,11 @@ function renderCellPeek(story, mode) {
     ? (story.figure_name || story.title || '')
     : (story.title || '');
 
+  const isAdmin = (getState('profile') || {}).role === 'editor';
   const collected = mode === 'history' && story.id ? isCollected(story.id) : false;
-  const locked = mode === 'history' && story.publish_date ? !canCollect(story.publish_date) && !collected : false;
+  const locked = mode === 'history' && story.publish_date && !isAdmin
+    ? !canCollect(story.publish_date) && !collected
+    : false;
 
   const collectedBadge = collected
     ? `<span class="cal-cell-collected-badge" aria-label="수집됨">✦</span>`
@@ -284,9 +287,10 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
   const day = validDate ? dateObj.getDate() : '';
   const year = validDate ? dateObj.getFullYear() : '';
 
+  const isAdmin = (getState('profile') || {}).role === 'editor';
   const collected = mode === 'history' && story.id ? isCollected(story.id) : false;
   const collectible = mode === 'history' && story.publish_date ? canCollect(story.publish_date) : false;
-  const locked = mode === 'history' && !collected && !collectible;
+  const locked = mode === 'history' && !collected && !collectible && !isAdmin;
 
   const overlay = document.createElement('div');
   overlay.className = 'calendar-card-popup';
@@ -303,7 +307,7 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
           : buildMyCardHtml(story, year, month, day)}
       </div>
       ${locked
-        ? `<div class="calendar-card-popup-hint calendar-card-popup-hint--locked">기간이 지나 수집할 수 없습니다</div>`
+        ? ''
         : `<div class="calendar-card-popup-hint">${collected ? '수집된 카드입니다 — 탭하면 뒤집힙니다' : '카드를 탭하면 뒤집힙니다'}</div>`}
     </div>
   `;
@@ -514,7 +518,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
           <div class="history-card-image-wrap">
             <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
-            ${locked ? `<div class="card-locked-overlay"><div class="card-locked-icon">🔒</div><div class="card-locked-text">기간이 지났어요</div></div>` : ''}
+            ${locked ? `<div class="card-locked-overlay"></div>` : ''}
           </div>
           ${!locked ? `
           <div class="card-collect-bar">

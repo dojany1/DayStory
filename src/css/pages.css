@@ -2416,9 +2416,6 @@
   color:#ffffffbf;
   letter-spacing:.02em}
 
-.calendar-card-popup-hint--locked {
-  color:#ff9f0abf}
-
 /* ── 캘린더 셀 수집 뱃지 / 잠금 ── */
 .cal-cell-collected-badge {
   position:absolute;
@@ -2445,23 +2442,10 @@
 .card-locked-overlay {
   position:absolute;
   inset:0;
-  background:rgba(0,0,0,.55);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:var(--space-2);
+  background:rgba(0,0,0,.35);
   z-index:5;
-  border-radius:inherit}
-
-.card-locked-icon {
-  font-size:2rem;
-  line-height:1}
-
-.card-locked-text {
-  font-size:var(--text-sm);
-  color:#ffffffcc;
-  font-weight:600}
+  border-radius:inherit;
+  pointer-events:none}
 
 /* ── 수집 버튼 바 ── */
 .card-collect-bar {

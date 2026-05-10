@@ -27,6 +27,16 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="daystory" />
             </intent-filter>
+
+            <!-- App Links: https://daystory.app/share/:id 를 누르면 앱이 열림.
+                 autoVerify="true" 는 /.well-known/assetlinks.json 으로 도메인 소유 검증. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="daystory.app" android:pathPrefix="/share/" />
+                <data android:scheme="https" android:host="daystory.app" android:pathPrefix="/detail/" />
+            </intent-filter>
         </activity>
 
         <receiver

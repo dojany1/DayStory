@@ -22,7 +22,7 @@
   <!-- 기본 메타 태그 -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-  <meta name="description" content="매일의 역사 일화 큐레이션 서비스" />
+  <meta name="description" content="매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스" />
 
   <!-- 모바일 앱 관련 메타 태그 -->
   <meta name="theme-color" content="#0a0a0a" />
@@ -32,6 +32,29 @@
   <!-- 파비콘 (브라우저 탭 아이콘) -->
   <link rel="icon" type="image/png" href="/daystory_icon_light.png" />
   <link rel="apple-touch-icon" href="/daystory_icon_light.png" />
+
+  <!-- ============================================
+       Open Graph / Twitter Card — SNS 공유 미리보기
+       ============================================
+       기본 메타 태그입니다. 카드별 동적 OG는 Cloud Functions
+       (/share/:id) 가 봇 User-Agent를 감지하면 덮어씁니다.
+  -->
+  <meta property="og:site_name" content="DayStory" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="DayStory — 오늘, 역사 속에서" />
+  <meta property="og:description" content="매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스" />
+  <meta property="og:image" content="https://daystory.app/og-default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:url" content="https://daystory.app/" />
+  <meta property="og:locale" content="ko_KR" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="DayStory — 오늘, 역사 속에서" />
+  <meta name="twitter:description" content="매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스" />
+  <meta name="twitter:image" content="https://daystory.app/og-default.png" />
+
+  <!-- 카카오톡 메시지 미리보기는 og:image 사용 (별도 태그 불필요) -->
 
   <!--
     ===== 웹 폰트 로딩 =====

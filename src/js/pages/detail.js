@@ -15,6 +15,7 @@
 import { showToast } from '../components/toast.js';
 import { fetchStoryById } from '../services/stories.js';
 import { toggleBookmark, isBookmarked } from '../services/bookmarks.js';
+import { shareStory, buildShareUrl } from '../services/sharing.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { preloadImage } from '../utils/imageLoading.js';
 
@@ -270,23 +271,16 @@ async function loadDetail(page, storyId) {
    * PC: 클립보드에 복사
    */
   const shareAction = async () => {
+    /* 모바일: 카드 이미지 첨부 + 공유 시트 → 카톡/SMS에서 미리보기 ★ */
+    if (navigator.share) {
+      await shareStory(story, { kind: 'history' });
+      return;
+    }
+    /* PC 폴백: 클립보드에 복사 */
     try {
-      const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? `https://daystory.app/detail/${story.id}`
-        : window.location.href;
-        
-      if (navigator.share) {
-        /* 모바일 기기의 공유 기능 사용 */
-        await navigator.share({
-          title: story.figure_name,
-          text: `[DayStory] ${story.figure_name}\n\n${story.summary || ''}`,
-          url: shareUrl
-        });
-      } else {
-        /* PC: 클립보드에 복사 */
-        await navigator.clipboard.writeText(`[DayStory] ${story.figure_name}\n\n${story.summary || ''}\n${shareUrl}`);
-        showToast('클립보드에 복사했습니다', 'success');
-      }
+      const url = buildShareUrl(story.id);
+      await navigator.clipboard.writeText(`[DayStory] ${story.figure_name}\n\n${story.summary || ''}\n${url}`);
+      showToast('클립보드에 복사했습니다', 'success');
     } catch { /* 사용자가 공유를 취소한 경우 무시 */ }
   };
   document.getElementById('detail-share')?.addEventListener('click', shareAction);

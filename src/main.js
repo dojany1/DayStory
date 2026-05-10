@@ -133,6 +133,8 @@ registerRoute('/login', () => import('./js/pages/login.js').then(m => m.renderLo
 registerRoute('/signup', () => import('./js/pages/login.js').then(m => m.renderSignup()));
 registerRoute('/editorstory', () => renderEditorStory()); /* 에디터 일화는 최우선 렌더링을 위해 정적 유지 */
 registerRoute('/detail/:id', (params) => import('./js/pages/detail.js').then(m => m.renderDetail(params)));
+/* SNS 공유 링크(/share/:id)도 detail 페이지로 매핑 — 봇 외 사용자 흐름 */
+registerRoute('/share/:id', (params) => import('./js/pages/detail.js').then(m => m.renderDetail(params)));
 registerRoute('/profile', () => import('./js/pages/profile.js').then(m => m.renderProfile()));
 registerRoute('/search', () => import('./js/pages/search.js').then(m => m.renderSearch()));
 registerRoute('/settings', () => import('./js/pages/settings.js').then(m => m.renderSettings()));

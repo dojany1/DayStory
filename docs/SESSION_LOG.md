@@ -1006,3 +1006,38 @@ harness step 시작 시 docs 문서들과 SESSION_LOG를 제일 먼저 읽도록
 
 - `src/js/pages/calendar.js`
 - `src/css/pages.css`
+
+---
+
+## 2026-05-10 22:35 — Claude Code
+
+**요구사항:**
+딥링크를 이용해 SNS에 카드를 공유했을 때 미리보기가 이쁘게 나오게 할 것 (정적 OG + 카드 이미지 첨드 + 카드별 동적 OG + App Links 풀 셋업).
+
+**구현방법:**
+
+- `index.html` — Open Graph(og:title/description/image/url 등) 및 Twitter Card 메타 태그 추가. 기본 OG 이미지는 `/og-default.png` 경로 사용.
+- `src/js/services/sharing.js` (신규) — 통합 공유 헬퍼. `shareStory()`는 1) `navigator.share` + `files`로 카드 이미지를 직접 첨부(카톡/SMS에서 미리보기 보장), 2) 폴백으로 Capacitor Share. `buildShareUrl()`는 `https://daystory.app/share/{id}` 형식 생성.
+- `src/js/pages/{calendar,editorstory,detail,mystory}.js` — 기존 분산된 `Share.share`/`navigator.share` 호출을 모두 `shareStory()`로 통일. URL은 `buildShareUrl()` 기반.
+- `src/main.js` — `/share/:id` SPA 라우트 등록(detail 페이지 재사용).
+- `android/app/src/main/AndroidManifest.xml` — `https://daystory.app/share/`, `/detail/` 경로용 App Links intent-filter (`autoVerify="true"`) 추가. 기존 `daystory://` 커스텀 스키마는 유지.
+- `public/.well-known/assetlinks.json` (신규) — App Links 도메인 검증용 템플릿. 실제 배포 시 release/debug SHA256 fingerprint 기입 필요.
+- `functions/index.js` (신규) — Cloud Functions(`shareOg`, asia-northeast3 region). 봇 User-Agent(facebookexternalhit/Twitterbot/kakaotalk-scrap 등) 감지 시 Firestore에서 story를 조회해 카드별 OG HTML 응답, 일반 사용자는 SPA 해시 URL로 redirect.
+- `functions/package.json`, `functions/.gitignore` (신규) — firebase-admin / firebase-functions 의존성.
+- `firebase.json` — rewrites에 `/share/**` → `shareOg` 함수 매핑 추가. `/.well-known/assetlinks.json` 캐시/Content-Type 헤더, functions 섹션 추가.
+
+**변경파일:**
+
+- `index.html`
+- `src/js/services/sharing.js` (신규)
+- `src/js/pages/calendar.js`
+- `src/js/pages/editorstory.js`
+- `src/js/pages/detail.js`
+- `src/js/pages/mystory.js`
+- `src/main.js`
+- `android/app/src/main/AndroidManifest.xml`
+- `public/.well-known/assetlinks.json` (신규)
+- `functions/index.js` (신규)
+- `functions/package.json` (신규)
+- `functions/.gitignore` (신규)
+- `firebase.json`

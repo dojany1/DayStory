@@ -12,7 +12,7 @@ import { showConfirm } from '../components/confirmDialog.js';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { auth } from '../firebase.js';
-import { Share } from '@capacitor/share';
+import { shareStory } from '../services/sharing.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { syncDiaryStateFromList } from '../services/widget.js';
@@ -374,12 +374,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     shareBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (!checkAuth()) return;
-      try {
-        await Share.share({
-          title: story.title || 'DayStory',
-          text: `[DayStory] ${story.title || ''}\n\n${story.body || ''}`.trim(),
-        });
-      } catch (err) {}
+      await shareStory(story, { kind: 'mystory', includeImage: false });
     });
   }
 

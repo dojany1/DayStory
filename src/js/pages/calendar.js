@@ -18,7 +18,7 @@ import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date
 import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages, prepareLazyImages } from '../utils/imageLoading.js';
 import { backfillStoryThumbnailsForMonth } from '../services/images.js';
 import { navigate } from '../router.js';
-import { Share } from '@capacitor/share';
+import { shareStory } from '../services/sharing.js';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 export function renderCalendar() {
@@ -424,18 +424,7 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
           navigate('/login');
           return;
         }
-        try {
-          const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? `https://daystory.app/detail/${story.id}`
-            : window.location.href;
-          await Share.share({
-            title: story.figure_name || '',
-            text: `[DayStory] ${story.figure_name || ''}\n\n${story.summary || ''}`,
-            url: shareUrl,
-          });
-        } catch {
-          /* 사용자가 공유 시트를 닫은 경우는 무시 */
-        }
+        await shareStory(story, { kind: 'history' });
       });
     }
 

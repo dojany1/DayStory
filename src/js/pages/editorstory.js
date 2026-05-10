@@ -18,7 +18,7 @@ import { fetchStories, fetchTodayStory } from '../services/stories.js';
 import { toggleBookmark, getBookmarkedStoryIds } from '../services/bookmarks.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { Share } from '@capacitor/share';
+import { shareStory } from '../services/sharing.js';
 import { getState } from '../state.js';
 import { navigate } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
@@ -480,12 +480,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         navigate('/login');
         return;
       }
-      try {
-        const shareUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? `https://daystory.app/detail/${story.id}`
-          : window.location.href;
-        await Share.share({ title: story.figure_name, text: `[DayStory] ${story.figure_name}\n\n${story.summary || ''}`, url: shareUrl });
-      } catch (err) { }
+      await shareStory(story, { kind: 'history' });
     });
   }
 

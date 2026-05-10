@@ -20,7 +20,7 @@ admin.initializeApp();
 const APP_URL = 'https://daystory.app';
 const SITE_NAME = 'DayStory';
 const DEFAULT_DESCRIPTION = '매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스';
-const DEFAULT_OG_IMAGE = `${APP_URL}/og-default.png`;
+const DEFAULT_OG_IMAGE = `${APP_URL}/images/og-default.png`;
 
 const BOT_PATTERN = /facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|TelegramBot|WhatsApp|Discordbot|kakaotalk-scrap|KAKAOTALK|Daum|Naver|Yeti|Googlebot|Pinterest|Embedly|redditbot|vkShare|Applebot/i;
 

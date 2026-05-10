@@ -1041,3 +1041,30 @@ harness step 시작 시 docs 문서들과 SESSION_LOG를 제일 먼저 읽도록
 - `functions/package.json` (신규)
 - `functions/.gitignore` (신규)
 - `firebase.json`
+
+---
+
+## 2026-05-10 23:05 — Claude Code
+
+**요구사항:**
+SNS 공유 미리보기 풀셋업 1~6번 자동 실행. SHA256: `94:22:68:7B:0E:25:3B:69:68:58:49:40:CB:71:31:C6:7E:88:26:2F:C3:A2:3B:4B:27:63:BE:6E:24:BD:B9:4D`. OG 기본 이미지 위치는 `images/`.
+
+**구현방법:**
+
+- `public/.well-known/assetlinks.json` — 사용자 제공 SHA256 fingerprint 입력. release 키 1개 등록.
+- `index.html`, `functions/index.js` — OG 기본 이미지 경로를 `/images/og-default.png`로 통일.
+- `firebase.json` — hosting.ignore에서 `**/.*` 제거(.well-known 차단 방지).
+- `functions/package.json` — Node.js 20 deprecated → **22**, firebase-functions 5 → **6**, firebase-admin 12 → **13** 업그레이드. `npm install` 재실행.
+- `npm run build` 성공 → dist에 OG 메타 + assetlinks.json 포함 확인.
+- `npx cap sync android` 성공 → AndroidManifest.xml의 App Links 동기화 완료.
+- `firebase deploy --only functions,hosting`:
+  - Hosting: 24개 파일 배포 성공. `https://dokhu-daystory.web.app/.well-known/assetlinks.json` 응답 검증 완료.
+  - Functions(`shareOg`): Cloud Build 빌드 서비스 계정 권한 부족으로 실패. 사용자가 GCP IAM에서 권한 부여 후 재배포 필요.
+
+**변경파일:**
+
+- `public/.well-known/assetlinks.json`
+- `index.html`
+- `functions/index.js`
+- `functions/package.json`
+- `firebase.json`

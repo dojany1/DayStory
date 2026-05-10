@@ -9,6 +9,7 @@
 import { fetchStories } from '../services/stories.js';
 import { fetchMyStories } from '../services/mystories.js';
 import { toggleBookmark, getBookmarkedStoryIds } from '../services/bookmarks.js';
+import { collect, isCollected, canCollect } from '../services/collection.js';
 import { showToast } from '../components/toast.js';
 import { auth } from '../firebase.js';
 import { getState } from '../state.js';
@@ -250,10 +251,23 @@ function renderCellPeek(story, mode) {
   const title = mode === 'history'
     ? (story.figure_name || story.title || '')
     : (story.title || '');
+
+  const collected = mode === 'history' && story.id ? isCollected(story.id) : false;
+  const locked = mode === 'history' && story.publish_date ? !canCollect(story.publish_date) && !collected : false;
+
+  const collectedBadge = collected
+    ? `<span class="cal-cell-collected-badge" aria-label="수집됨">✦</span>`
+    : '';
+  const lockedOverlay = locked
+    ? `<span class="cal-cell-locked-overlay" aria-hidden="true"></span>`
+    : '';
+
   return `
-    <span class="cal-cell-peek" aria-hidden="true">
+    <span class="cal-cell-peek ${locked ? 'cal-cell-peek--locked' : ''}" aria-hidden="true">
       <img class="cal-cell-peek-img" ${imageAttrs} alt="" loading="lazy" decoding="async" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.style.visibility='hidden'}" />
       <span class="cal-cell-peek-title">${escapeHtml(title)}</span>
+      ${lockedOverlay}
+      ${collectedBadge}
     </span>
   `;
 }
@@ -270,6 +284,10 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
   const day = validDate ? dateObj.getDate() : '';
   const year = validDate ? dateObj.getFullYear() : '';
 
+  const collected = mode === 'history' && story.id ? isCollected(story.id) : false;
+  const collectible = mode === 'history' && story.publish_date ? canCollect(story.publish_date) : false;
+  const locked = mode === 'history' && !collected && !collectible;
+
   const overlay = document.createElement('div');
   overlay.className = 'calendar-card-popup';
   overlay.innerHTML = `
@@ -281,10 +299,12 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
       </button>
       <div class="calendar-card-popup-stage">
         ${mode === 'history'
-          ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds)
+          ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected, locked)
           : buildMyCardHtml(story, year, month, day)}
       </div>
-      <div class="calendar-card-popup-hint">카드를 탭하면 뒤집힙니다</div>
+      ${locked
+        ? `<div class="calendar-card-popup-hint calendar-card-popup-hint--locked">기간이 지나 수집할 수 없습니다</div>`
+        : `<div class="calendar-card-popup-hint">${collected ? '수집된 카드입니다 — 탭하면 뒤집힙니다' : '카드를 탭하면 뒤집힙니다'}</div>`}
     </div>
   `;
 
@@ -305,7 +325,7 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
     if (e.target === overlay || e.target.classList.contains('calendar-card-popup-inner')) close();
   });
 
-  /* 카드 플립 — 클릭 시 앞/뒷면 전환 */
+  /* 카드 플립 — 수집된 카드 또는 오늘 카드만 뒤집을 수 있음 */
   const flipper = overlay.querySelector('.flipper');
   if (flipper) {
     flipper.addEventListener('click', (e) => {
@@ -313,10 +333,36 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
       if (e.target.closest('.card-detail-shortcut-btn')) return;
       if (e.target.closest('.back-editor-btn')) return;
       if (e.target.closest('.editor-comment-bubble')) return;
+      if (e.target.closest('.collect-btn')) return;
+      if (locked && !overlay._collected) return;
       if (flipper.classList.contains('is-flipping')) return;
       flipper.classList.add('is-flipping');
       flipper.classList.toggle('flipped');
       setTimeout(() => flipper.classList.remove('is-flipping'), 400);
+    });
+  }
+
+  /* 수집 버튼 */
+  const collectBtn = overlay.querySelector('.collect-btn');
+  if (collectBtn && mode === 'history' && story.id) {
+    collectBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isCollected(story.id)) return;
+      const result = collect(story.id, story.publish_date || '');
+      if (!result.ok) {
+        showToast('기간이 지나 수집할 수 없어요', 'info');
+        return;
+      }
+      /* 수집 성공 애니메이션 */
+      collectBtn.classList.add('collect-btn--done');
+      collectBtn.disabled = true;
+      collectBtn.textContent = '수집됨';
+      showCollectAnimation(overlay);
+      /* 팝업 힌트 업데이트 */
+      const hint = overlay.querySelector('.calendar-card-popup-hint');
+      if (hint) hint.textContent = '수집된 카드입니다 — 탭하면 뒤집힙니다';
+      /* 플립 허용 */
+      overlay._collected = true;
     });
   }
 
@@ -419,7 +465,7 @@ function openCardPopup(story, mode, bookmarkedIds = []) {
   }
 }
 
-function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
+function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], collected = false, locked = false) {
   const bodyHtml = (story.body || '').split(/\n|\\n/)
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
   const isBookmarked = !!(story.id && bookmarkedIds.includes(story.id));
@@ -468,7 +514,14 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = []) {
           <div class="history-card-image-wrap">
             <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
+            ${locked ? `<div class="card-locked-overlay"><div class="card-locked-icon">🔒</div><div class="card-locked-text">기간이 지났어요</div></div>` : ''}
           </div>
+          ${!locked ? `
+          <div class="card-collect-bar">
+            <button class="collect-btn${collected ? ' collect-btn--done' : ''}" type="button" ${collected ? 'disabled' : ''}>
+              ${collected ? '수집됨 ✦' : '수집하기'}
+            </button>
+          </div>` : ''}
         </div>
         <div class="back history-card-back">
           <div class="back-title">${escapeHtml(story.figure_name || '')}</div>
@@ -531,4 +584,26 @@ function buildMyCardHtml(story, year, month, day) {
       </div>
     </div>
   `;
+}
+
+/* ─────────────────────────────────────────────
+   수집 성공 파티클 애니메이션
+   ───────────────────────────────────────────── */
+function showCollectAnimation(container) {
+  const anim = document.createElement('div');
+  anim.className = 'collect-anim';
+  anim.innerHTML = `
+    <div class="collect-anim-text">수집되었어요!</div>
+    <div class="collect-anim-particles">
+      ${Array.from({ length: 8 }, (_, i) =>
+        `<span class="collect-particle collect-particle--${i + 1}">✦</span>`
+      ).join('')}
+    </div>
+  `;
+  container.appendChild(anim);
+  requestAnimationFrame(() => anim.classList.add('collect-anim--in'));
+  setTimeout(() => {
+    anim.classList.add('collect-anim--out');
+    setTimeout(() => anim.remove(), 400);
+  }, 1400);
 }

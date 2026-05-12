@@ -80,11 +80,6 @@ export function renderSettingsSections() {
         subtitle: t('settings.row_about_subtitle'),
         icon: bookIcon(),
       })}
-      ${renderSettingsRow({
-        id: 'setting-license',
-        title: t('settings.row_license'),
-        icon: imageIcon(),
-      })}
     </div>
 
     <div class="settings-privacy-link">
@@ -105,7 +100,6 @@ export function bindSettingsSections(page) {
   bindLangOptions(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => navigate('/about'));
-  bindRow(page, '#setting-license', () => navigate('/license'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
 }

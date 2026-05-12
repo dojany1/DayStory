@@ -2280,7 +2280,7 @@
   align-items: stretch;
   gap: 2px;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .cal-cell:not(:disabled):active {
@@ -2330,8 +2330,9 @@
 
 /* 미니 이미지 — 정사각형으로 셀 안에 카드처럼 박힘 */
 .cal-cell-peek {
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  aspect-ratio: 1;
   background: var(--color-bg-card);
   border-radius: var(--radius-sm);
   overflow: hidden;

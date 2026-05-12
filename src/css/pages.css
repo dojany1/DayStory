@@ -196,11 +196,21 @@
 .wheel-pickers-container {
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
   border-bottom: 2px solid var(--color-divider);
   box-shadow: var(--shadow-card);
   margin: var(--space-4) 0 var(--space-4) 0;
   gap: var(--space-1);
+}
+
+.wheel-year-label {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+  padding: var(--space-1) 0 0;
+  letter-spacing: 0.08em;
+  pointer-events: none;
 }
 
 .wheel-picker-wrapper {
@@ -216,14 +226,13 @@
   transform: translate(-50%, -50%);
   width: 40px;  /* 50px -> 40px */
   height: 32px; /* 40px -> 32px */
-  background: var(--color-divider); /* 배경과 구분되는 컬러를 반투명처럼 사용하거나 직접 rgba 설정 가능 (현재는 테마 변수 활용) */
+  background: var(--color-border); /* 배경과 구분되는 컬러를 반투명처럼 사용하거나 직접 rgba 설정 가능 (현재는 테마 변수 활용) */
   border-radius: var(--radius-sm);
   pointer-events: none; /* 클릭 방해 금지 */
   z-index: 1;
 }
-
 [data-theme="dark"] .wheel-selection-box {
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-border);
 }
 
 .modern-wheel-scroll {
@@ -235,6 +244,7 @@
   align-items: center;
   padding: 0 calc(50% - 20px); /* 아이템 넓이 절반(20px) 여백 */
   scroll-behavior: smooth;
+  background-color: var(--color-bg-secondary);
 }
 
 .modern-wheel-scroll::-webkit-scrollbar {
@@ -262,7 +272,7 @@
 .wheel-item.active {
   color: var(--color-text-primary);
   font-weight: 700;
-  transform: scale(1.15);
+  transform: scale(1);
 }
 
 .wheel-item:active {
@@ -2558,7 +2568,7 @@
   opacity: .8;
   text-decoration: underline;
 }
-
+/* 버전 정보 텍스트 */
 .settings-version {
   padding:var(--space-6);
   color:var(--color-text-tertiary);

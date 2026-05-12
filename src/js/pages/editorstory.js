@@ -45,6 +45,7 @@ export function renderEditorStory() {
     </div>
 
     <div class="wheel-pickers-container">
+      <div class="wheel-year-label" id="editorstory-year-label"></div>
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
         <div class="modern-wheel-scroll" id="editorstory-month-scroll"></div>
@@ -89,42 +90,37 @@ async function loadEditorStoryData(page) {
     const dayEl = page.querySelector('#editorstory-calendar');
     const cardArea = page.querySelector('#editorstory-card-area');
 
-    /* 월(1~12) / 일(1~31) 휠 렌더링 */
-    if (monthEl) {
-      monthEl.innerHTML = Array.from({ length: 12 }, (_, i) =>
-        `<div class="wheel-item" data-month="${i + 1}">${i + 1}</div>`
-      ).join('');
-    }
-    if (dayEl) {
-      dayEl.innerHTML = Array.from({ length: 31 }, (_, i) =>
-        `<div class="wheel-item" data-day="${i + 1}">${i + 1}</div>`
-      ).join('');
-    }
-
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth() + 1;
     const currentDay = today.getDate();
     let latestDate = today;
-    let isInitial = true;  /* 첫 렌더 — 슬라이드다운 애니메이션 적용 */
+    let isInitial = true;
 
-    function applyDisabledState() {
-      monthEl.querySelectorAll('.wheel-item').forEach((el) => {
-        const m = parseInt(el.dataset.month, 10);
-        el.classList.toggle('disabled', m > currentMonth);
-      });
-      const activeMonthEl = monthEl.querySelector('.wheel-item.active') || getCenterItem(monthEl);
-      if (!activeMonthEl) return;
-      const selectedMonth = parseInt(activeMonthEl.dataset.month, 10);
-      const daysInMonth = new Date(currentYear, selectedMonth, 0).getDate();
+    /* 연도 라벨 */
+    const yearLabel = page.querySelector('#editorstory-year-label');
+    if (yearLabel) yearLabel.textContent = currentYear;
 
-      dayEl.querySelectorAll('.wheel-item').forEach((el) => {
-        const d = parseInt(el.dataset.day, 10);
-        let disabled = false;
-        if (selectedMonth > currentMonth) disabled = true;
-        else if (d > daysInMonth) disabled = true;
-        else if (selectedMonth === currentMonth && d > currentDay) disabled = true;
-        el.classList.toggle('disabled', disabled);
-      });
+    /* 월 휠: 1~12, currentMonth 초과는 disabled */
+    if (monthEl) {
+      monthEl.innerHTML = Array.from({ length: 12 }, (_, i) => {
+        const m = i + 1;
+        const cls = m > currentMonth ? ' disabled' : '';
+        return `<div class="wheel-item${cls}" data-month="${m}">${m}</div>`;
+      }).join('');
+    }
+
+    /* 일 휠: 1월 1일 ~ 오늘까지 평면 리스트 */
+    if (dayEl) {
+      const items = [];
+      for (let m = 1; m <= currentMonth; m++) {
+        const lastDay = m === currentMonth ? currentDay : new Date(currentYear, m, 0).getDate();
+        for (let d = 1; d <= lastDay; d++) {
+          const mm = String(m).padStart(2, '0');
+          const dd = String(d).padStart(2, '0');
+          items.push(`<div class="wheel-item" data-date="${currentYear}-${mm}-${dd}" data-month="${m}" data-day="${d}">${d}</div>`);
+        }
+      }
+      dayEl.innerHTML = items.join('');
     }
 
     function getCenterItem(scrollArea) {
@@ -139,47 +135,35 @@ async function loadEditorStoryData(page) {
       return closest;
     }
 
+    function syncMonthWheel(dayMonth) {
+      const activeMonthEl = monthEl.querySelector('.wheel-item.active');
+      if (activeMonthEl && parseInt(activeMonthEl.dataset.month, 10) === dayMonth) return;
+      const targetMonthEl = monthEl.querySelector(`.wheel-item[data-month="${dayMonth}"]`);
+      if (!targetMonthEl) return;
+      monthEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+      targetMonthEl.classList.add('active');
+      const t = targetMonthEl.offsetLeft - monthEl.offsetWidth / 2 + targetMonthEl.offsetWidth / 2;
+      monthEl.scrollTo({ left: t, behavior: 'smooth' });
+    }
+
     function updateSelection(forceInstant = false) {
-      applyDisabledState();
-      let activeMonth, activeDay;
+      let centerDay;
       if (forceInstant) {
-        activeMonth = monthEl.querySelector('.wheel-item.active');
-        activeDay = dayEl.querySelector('.wheel-item.active');
-        /* 월 변경으로 선택된 일이 disabled가 됐으면 마지막 유효 일로 정정 */
-        if (activeDay && activeDay.classList.contains('disabled')) {
-          const validDays = Array.from(dayEl.querySelectorAll('.wheel-item:not(.disabled)'));
-          activeDay = validDays[validDays.length - 1] || null;
-          if (activeDay) {
-            dayEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-            activeDay.classList.add('active');
-            const scrollTarget = activeDay.offsetLeft - dayEl.offsetWidth / 2 + activeDay.offsetWidth / 2;
-            dayEl.scrollTo({ left: scrollTarget, behavior: 'smooth' });
-          }
-        }
+        centerDay = dayEl.querySelector('.wheel-item.active');
       } else {
-        activeMonth = getCenterItem(monthEl);
-        activeDay = getCenterItem(dayEl);
-        if (activeMonth) {
-          monthEl.querySelectorAll('.wheel-item').forEach((el) => el.classList.remove('active'));
-          activeMonth.classList.add('active');
-        }
-        if (activeDay) {
-          dayEl.querySelectorAll('.wheel-item').forEach((el) => el.classList.remove('active'));
-          activeDay.classList.add('active');
+        centerDay = getCenterItem(dayEl);
+        if (centerDay) {
+          dayEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+          centerDay.classList.add('active');
         }
       }
-      if (!activeMonth || !activeDay) return;
+      if (!centerDay) return;
 
-      const mNum = String(activeMonth.dataset.month).padStart(2, '0');
-      const dNum = String(activeDay.dataset.day).padStart(2, '0');
-      const isoDate = `${currentYear}-${mNum}-${dNum}`;
+      syncMonthWheel(parseInt(centerDay.dataset.month, 10));
+
+      const isoDate = centerDay.dataset.date;
       const newDate = new Date(isoDate + 'T00:00:00');
-
-      /* 같은 날짜면 재렌더 안 함 */
       if (latestDate && latestDate.getTime() === newDate.getTime() && !isInitial) return;
-
-      /* 존재하지 않는 날짜(예: 2월 30일) 무시 */
-      if (String(newDate.getMonth() + 1).padStart(2, '0') !== mNum) return;
 
       const direction = isInitial ? null : (newDate > latestDate ? 'next' : 'prev');
       latestDate = newDate;
@@ -199,34 +183,55 @@ async function loadEditorStoryData(page) {
     monthEl.addEventListener('scroll', onScrollEnd, { passive: true });
     dayEl.addEventListener('scroll', onScrollEnd, { passive: true });
 
-    /* 휠 아이템 클릭 */
-    const onItemClick = (container, item) => {
+    /* 월 휠 클릭: 해당 월의 첫날(또는 오늘)로 일 휠 점프 */
+    const onMonthClick = (item) => {
       if (item.classList.contains('disabled')) return;
-      container.querySelectorAll('.wheel-item').forEach((el) => el.classList.remove('active'));
+      const m = parseInt(item.dataset.month, 10);
+      const dd = m === currentMonth ? String(currentDay).padStart(2, '0') : '01';
+      const targetDate = `${currentYear}-${String(m).padStart(2, '0')}-${dd}`;
+      const targetDayEl = dayEl.querySelector(`.wheel-item[data-date="${targetDate}"]`);
+      if (!targetDayEl) return;
+      dayEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+      targetDayEl.classList.add('active');
+      monthEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      clearTimeout(scrollTimeout);
+      const dayScroll = targetDayEl.offsetLeft - dayEl.offsetWidth / 2 + targetDayEl.offsetWidth / 2;
+      dayEl.scrollTo({ left: dayScroll, behavior: 'smooth' });
+      const monthScroll = item.offsetLeft - monthEl.offsetWidth / 2 + item.offsetWidth / 2;
+      monthEl.scrollTo({ left: monthScroll, behavior: 'smooth' });
+      updateSelection(true);
+    };
+
+    /* 일 휠 클릭 */
+    const onDayClick = (item) => {
+      dayEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
       clearTimeout(scrollTimeout);
       updateSelection(true);
-      const target = item.offsetLeft - container.offsetWidth / 2 + item.offsetWidth / 2;
-      container.scrollTo({ left: target, behavior: 'smooth' });
+      const t = item.offsetLeft - dayEl.offsetWidth / 2 + item.offsetWidth / 2;
+      dayEl.scrollTo({ left: t, behavior: 'smooth' });
     };
-    monthEl.querySelectorAll('.wheel-item').forEach((item) =>
-      item.addEventListener('click', () => onItemClick(monthEl, item))
+
+    monthEl.querySelectorAll('.wheel-item').forEach(item =>
+      item.addEventListener('click', () => onMonthClick(item))
     );
-    dayEl.querySelectorAll('.wheel-item').forEach((item) =>
-      item.addEventListener('click', () => onItemClick(dayEl, item))
+    dayEl.querySelectorAll('.wheel-item').forEach(item =>
+      item.addEventListener('click', () => onDayClick(item))
     );
 
     /* 초기 위치: 오늘 날짜 */
     setTimeout(() => {
-      const targetMonth = monthEl.querySelector(`.wheel-item[data-month="${currentMonth}"]`);
-      const targetDay = dayEl.querySelector(`.wheel-item[data-day="${currentDay}"]`);
-      if (targetMonth) {
-        monthEl.scrollLeft = targetMonth.offsetLeft - monthEl.offsetWidth / 2 + targetMonth.offsetWidth / 2;
-        targetMonth.classList.add('active');
+      const todayStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+      const todayItem = dayEl.querySelector(`.wheel-item[data-date="${todayStr}"]`);
+      const todayMonthItem = monthEl.querySelector(`.wheel-item[data-month="${currentMonth}"]`);
+      if (todayItem) {
+        dayEl.scrollLeft = todayItem.offsetLeft - dayEl.offsetWidth / 2 + todayItem.offsetWidth / 2;
+        todayItem.classList.add('active');
       }
-      if (targetDay) {
-        dayEl.scrollLeft = targetDay.offsetLeft - dayEl.offsetWidth / 2 + targetDay.offsetWidth / 2;
-        targetDay.classList.add('active');
+      if (todayMonthItem) {
+        monthEl.scrollLeft = todayMonthItem.offsetLeft - monthEl.offsetWidth / 2 + todayMonthItem.offsetWidth / 2;
+        todayMonthItem.classList.add('active');
       }
       void markLetterRead();
       updateSelection(true);
@@ -435,27 +440,11 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         lastSwipeCommitAt = Date.now();
         const offset = diffX < 0 ? 1 : -1;
         const dayWrapper = document.getElementById('editorstory-calendar');
-        const monthWrapper = document.getElementById('editorstory-month-scroll');
         if (dayWrapper) {
           const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
           const activeIdx = items.findIndex(el => el.classList.contains('active'));
           const candidate = items[activeIdx + offset];
-          if (candidate && !candidate.classList.contains('disabled')) {
-            candidate.click();
-          } else if (monthWrapper) {
-            const monthItems = Array.from(monthWrapper.querySelectorAll('.wheel-item'));
-            const activeMonthIdx = monthItems.findIndex(el => el.classList.contains('active'));
-            const targetMonthItem = monthItems[activeMonthIdx + offset];
-            if (targetMonthItem && !targetMonthItem.classList.contains('disabled')) {
-              targetMonthItem.click();
-              setTimeout(() => {
-                const refreshed = Array.from(dayWrapper.querySelectorAll('.wheel-item:not(.disabled)'));
-                if (!refreshed.length) return;
-                const target = offset > 0 ? refreshed[0] : refreshed[refreshed.length - 1];
-                if (target && !target.classList.contains('active')) target.click();
-              }, 30);
-            }
-          }
+          if (candidate) candidate.click();
         }
       }
     }

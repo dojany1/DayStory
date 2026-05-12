@@ -38,6 +38,7 @@ export function renderMyStory() {
   page.innerHTML = `
     <!-- 휠 피커 스타일 날짜 선택기 -->
     <div class="wheel-pickers-container">
+      <div class="wheel-year-label" id="mystory-year-label"></div>
       <!-- 월 피커 -->
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
@@ -93,141 +94,145 @@ async function loadMyStoryData(page) {
     const calendarElement = page.querySelector('#mystory-calendar');
     const cardArea = page.querySelector('#mystory-card-area');
 
+    const currentYear = realToday.getFullYear();
+    const currentMonth = realToday.getMonth() + 1;
+    const currentDate = realToday.getDate();
+
+    /* 연도 라벨 */
+    const yearLabel = page.querySelector('#mystory-year-label');
+    if (yearLabel) yearLabel.textContent = currentYear;
+
+    /* 월 휠: 1~12, currentMonth 초과는 disabled */
     if (monthElement) {
-      let monthHtml = '';
-      for (let m = 1; m <= 12; m++) monthHtml += `<div class="wheel-item" data-month="${m}">${m}</div>`;
-      monthElement.innerHTML = monthHtml;
+      monthElement.innerHTML = Array.from({ length: 12 }, (_, i) => {
+        const m = i + 1;
+        const cls = m > currentMonth ? ' disabled' : '';
+        return `<div class="wheel-item${cls}" data-month="${m}">${m}</div>`;
+      }).join('');
     }
 
+    /* 일 휠: 1월 1일 ~ 오늘까지 평면 리스트 */
     if (calendarElement) {
-      let dayHtml = '';
-      for (let d = 1; d <= 31; d++) dayHtml += `<div class="wheel-item" data-day="${d}">${d}</div>`;
-      calendarElement.innerHTML = dayHtml;
-
-      const currentYear = realToday.getFullYear();
-      const currentMonth = realToday.getMonth() + 1;
-      const currentDate = realToday.getDate();
-
-      function applyDisabledState() {
-        monthElement.querySelectorAll('.wheel-item').forEach(el => {
-          const m = parseInt(el.dataset.month, 10);
-          if (m > currentMonth) el.classList.add('disabled');
-          else el.classList.remove('disabled');
-        });
-
-        const activeMonth = monthElement.querySelector('.wheel-item.active') || getActiveItem(monthElement);
-        if (!activeMonth) return;
-        const selectedMonth = parseInt(activeMonth.dataset.month, 10);
-
-        calendarElement.querySelectorAll('.wheel-item').forEach(el => {
-          const d = parseInt(el.dataset.day, 10);
-          if (selectedMonth > currentMonth) {
-            el.classList.add('disabled');
-          } else if (selectedMonth === currentMonth && d > currentDate) {
-            el.classList.add('disabled');
-          } else {
-            el.classList.remove('disabled');
-          }
-        });
-      }
-
-      function getActiveItem(scrollArea) {
-        const boxCenter = scrollArea.getBoundingClientRect().left + scrollArea.offsetWidth / 2;
-        let closest = null;
-        let minDistance = Infinity;
-        scrollArea.querySelectorAll('.wheel-item:not(.disabled)').forEach(el => {
-          const elCenter = el.getBoundingClientRect().left + el.offsetWidth / 2;
-          const distance = Math.abs(boxCenter - elCenter);
-          if (distance < minDistance) { minDistance = distance; closest = el; }
-        });
-        return closest;
-      }
-
-      function updateWheelSelection(forceInstant = false) {
-        applyDisabledState();
-        let activeMonth, activeDay;
-        if (forceInstant) {
-          activeMonth = monthElement.querySelector('.wheel-item.active');
-          activeDay = calendarElement.querySelector('.wheel-item.active');
-          /* 월 변경으로 선택된 일이 disabled가 됐으면 마지막 유효 일로 정정 */
-          if (activeDay && activeDay.classList.contains('disabled')) {
-            const validDays = Array.from(calendarElement.querySelectorAll('.wheel-item:not(.disabled)'));
-            activeDay = validDays[validDays.length - 1] || null;
-            if (activeDay) {
-              calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-              activeDay.classList.add('active');
-              const scrollTarget = activeDay.offsetLeft - calendarElement.offsetWidth / 2 + activeDay.offsetWidth / 2;
-              calendarElement.scrollTo({ left: scrollTarget, behavior: 'smooth' });
-            }
-          }
-        } else {
-          activeMonth = getActiveItem(monthElement);
-          activeDay = getActiveItem(calendarElement);
-
-          if (activeMonth) {
-            monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-            activeMonth.classList.add('active');
-          }
-          if (activeDay) {
-            calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-            activeDay.classList.add('active');
-          }
-        }
-
-        if (activeMonth && activeDay) {
-          const mNum = String(activeMonth.dataset.month).padStart(2, '0');
-          const dNum = String(activeDay.dataset.day).padStart(2, '0');
-          const year = realToday.getFullYear();
-          const selectedIsoDate = `${year}-${mNum}-${dNum}`;
-          
-          // 로컬 기준 날짜 파싱 방어 (UTC 이슈 회피)
-          const newDate = new Date(year, parseInt(mNum)-1, parseInt(dNum));
-
-          if (latestPathDate && latestPathDate.getTime() === newDate.getTime()) return;
-          if (newDate.getMonth() + 1 !== parseInt(mNum)) return; // 유효하지 않은 날짜(예: 2월 30일)
-
-          const storyForDate = allStories.find(s => s.publish_date === selectedIsoDate);
-          const direction = newDate > latestPathDate ? 'next' : 'prev';
-          latestPathDate = newDate;
-
-          renderCardToArea(cardArea, storyForDate || null, newDate, selectedIsoDate, direction, allStories);
+      const items = [];
+      for (let m = 1; m <= currentMonth; m++) {
+        const lastDay = m === currentMonth ? currentDate : new Date(currentYear, m, 0).getDate();
+        for (let d = 1; d <= lastDay; d++) {
+          const mm = String(m).padStart(2, '0');
+          const dd = String(d).padStart(2, '0');
+          items.push(`<div class="wheel-item" data-date="${currentYear}-${mm}-${dd}" data-month="${m}" data-day="${d}">${d}</div>`);
         }
       }
-
-      let scrollTimeout;
-      const onScrollEnd = () => {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => updateWheelSelection(false), 150);
-      };
-
-      monthElement.addEventListener('scroll', onScrollEnd, { passive: true });
-      calendarElement.addEventListener('scroll', onScrollEnd, { passive: true });
-
-      const onClickItem = (container, item) => {
-        if (item.classList.contains('disabled')) return;
-        container.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-        item.classList.add('active');
-        updateWheelSelection(true);
-        const scrollTarget = item.offsetLeft - container.offsetWidth / 2 + item.offsetWidth / 2;
-        container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
-      };
-
-      monthElement.querySelectorAll('.wheel-item').forEach(item => item.addEventListener('click', () => onClickItem(monthElement, item)));
-      calendarElement.querySelectorAll('.wheel-item').forEach(item => item.addEventListener('click', () => onClickItem(calendarElement, item)));
-
-      setTimeout(() => {
-        const targetMonthItem = monthElement.querySelector(`.wheel-item[data-month="${targetDate.getMonth() + 1}"]`);
-        const targetDayItem = calendarElement.querySelector(`.wheel-item[data-day="${targetDate.getDate()}"]`);
-        if (targetMonthItem) {
-          monthElement.scrollLeft = targetMonthItem.offsetLeft - monthElement.offsetWidth / 2 + targetMonthItem.offsetWidth / 2;
-          targetMonthItem.classList.add('active');
-        }
-        if (targetDayItem) {
-          calendarElement.scrollLeft = targetDayItem.offsetLeft - calendarElement.offsetWidth / 2 + targetDayItem.offsetWidth / 2;
-          targetDayItem.classList.add('active');
-        }
-      }, 0);
+      calendarElement.innerHTML = items.join('');
     }
+
+    function getActiveItem(scrollArea) {
+      const boxCenter = scrollArea.getBoundingClientRect().left + scrollArea.offsetWidth / 2;
+      let closest = null;
+      let minDistance = Infinity;
+      scrollArea.querySelectorAll('.wheel-item:not(.disabled)').forEach(el => {
+        const elCenter = el.getBoundingClientRect().left + el.offsetWidth / 2;
+        const distance = Math.abs(boxCenter - elCenter);
+        if (distance < minDistance) { minDistance = distance; closest = el; }
+      });
+      return closest;
+    }
+
+    function syncMonthWheel(dayMonth) {
+      const activeMonthEl = monthElement.querySelector('.wheel-item.active');
+      if (activeMonthEl && parseInt(activeMonthEl.dataset.month, 10) === dayMonth) return;
+      const targetMonthEl = monthElement.querySelector(`.wheel-item[data-month="${dayMonth}"]`);
+      if (!targetMonthEl) return;
+      monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+      targetMonthEl.classList.add('active');
+      const t = targetMonthEl.offsetLeft - monthElement.offsetWidth / 2 + targetMonthEl.offsetWidth / 2;
+      monthElement.scrollTo({ left: t, behavior: 'smooth' });
+    }
+
+    function updateWheelSelection(forceInstant = false) {
+      let centerDay;
+      if (forceInstant) {
+        centerDay = calendarElement.querySelector('.wheel-item.active');
+      } else {
+        centerDay = getActiveItem(calendarElement);
+        if (centerDay) {
+          calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+          centerDay.classList.add('active');
+        }
+      }
+      if (!centerDay) return;
+
+      syncMonthWheel(parseInt(centerDay.dataset.month, 10));
+
+      const isoDate = centerDay.dataset.date;
+      const newDate = new Date(currentYear, parseInt(centerDay.dataset.month, 10) - 1, parseInt(centerDay.dataset.day, 10));
+      if (latestPathDate && latestPathDate.getTime() === newDate.getTime()) return;
+
+      const storyForDate = allStories.find(s => s.publish_date === isoDate);
+      const direction = newDate > latestPathDate ? 'next' : 'prev';
+      latestPathDate = newDate;
+      renderCardToArea(cardArea, storyForDate || null, newDate, isoDate, direction, allStories);
+    }
+
+    let scrollTimeout;
+    const onScrollEnd = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => updateWheelSelection(false), 150);
+    };
+    monthElement.addEventListener('scroll', onScrollEnd, { passive: true });
+    calendarElement.addEventListener('scroll', onScrollEnd, { passive: true });
+
+    /* 월 휠 클릭: 해당 월의 첫날(또는 오늘)로 일 휠 점프 */
+    const onMonthClick = (item) => {
+      if (item.classList.contains('disabled')) return;
+      const m = parseInt(item.dataset.month, 10);
+      const dd = m === currentMonth ? String(currentDate).padStart(2, '0') : '01';
+      const targetDateStr2 = `${currentYear}-${String(m).padStart(2, '0')}-${dd}`;
+      const targetDayEl = calendarElement.querySelector(`.wheel-item[data-date="${targetDateStr2}"]`);
+      if (!targetDayEl) return;
+      calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+      targetDayEl.classList.add('active');
+      monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      clearTimeout(scrollTimeout);
+      const dayScroll = targetDayEl.offsetLeft - calendarElement.offsetWidth / 2 + targetDayEl.offsetWidth / 2;
+      calendarElement.scrollTo({ left: dayScroll, behavior: 'smooth' });
+      const monthScroll = item.offsetLeft - monthElement.offsetWidth / 2 + item.offsetWidth / 2;
+      monthElement.scrollTo({ left: monthScroll, behavior: 'smooth' });
+      updateWheelSelection(true);
+    };
+
+    /* 일 휠 클릭 */
+    const onDayClick = (item) => {
+      calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      clearTimeout(scrollTimeout);
+      updateWheelSelection(true);
+      const t = item.offsetLeft - calendarElement.offsetWidth / 2 + item.offsetWidth / 2;
+      calendarElement.scrollTo({ left: t, behavior: 'smooth' });
+    };
+
+    monthElement.querySelectorAll('.wheel-item').forEach(item =>
+      item.addEventListener('click', () => onMonthClick(item))
+    );
+    calendarElement.querySelectorAll('.wheel-item').forEach(item =>
+      item.addEventListener('click', () => onDayClick(item))
+    );
+
+    /* 초기 위치: targetDate (URL 파라미터 또는 오늘) */
+    setTimeout(() => {
+      const initStr = targetDateStr;
+      const initDayEl = calendarElement.querySelector(`.wheel-item[data-date="${initStr}"]`);
+      const initMonth = targetDate.getMonth() + 1;
+      const initMonthEl = monthElement.querySelector(`.wheel-item[data-month="${initMonth}"]`);
+      if (initDayEl) {
+        calendarElement.scrollLeft = initDayEl.offsetLeft - calendarElement.offsetWidth / 2 + initDayEl.offsetWidth / 2;
+        initDayEl.classList.add('active');
+      }
+      if (initMonthEl) {
+        monthElement.scrollLeft = initMonthEl.offsetLeft - monthElement.offsetWidth / 2 + initMonthEl.offsetWidth / 2;
+        initMonthEl.classList.add('active');
+      }
+    }, 0);
 
     const initialStory = allStories.find(s => s.publish_date === targetDateStr);
     renderCardToArea(cardArea, initialStory || null, targetDate, targetDateStr, null, allStories);
@@ -483,29 +488,11 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
 
         const offset = diffX < 0 ? 1 : -1;
         const dayWrapper = document.getElementById('mystory-calendar');
-        const monthWrapper = document.getElementById('mystory-month-scroll');
         if (dayWrapper) {
           const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
           const activeIdx = items.findIndex(el => el.classList.contains('active'));
           const candidate = items[activeIdx + offset];
-
-          if (candidate && !candidate.classList.contains('disabled')) {
-            candidate.click();
-          } else if (monthWrapper) {
-            /* Task #2: 월 경계 자동 전환 — 마지막 일/첫 일에서 swipe 시 다음·이전 월로. */
-            const monthItems = Array.from(monthWrapper.querySelectorAll('.wheel-item'));
-            const activeMonthIdx = monthItems.findIndex(el => el.classList.contains('active'));
-            const targetMonthItem = monthItems[activeMonthIdx + offset];
-            if (targetMonthItem && !targetMonthItem.classList.contains('disabled')) {
-              targetMonthItem.click();
-              setTimeout(() => {
-                const refreshedItems = Array.from(dayWrapper.querySelectorAll('.wheel-item:not(.disabled)'));
-                if (!refreshedItems.length) return;
-                const target = offset > 0 ? refreshedItems[0] : refreshedItems[refreshedItems.length - 1];
-                if (target && !target.classList.contains('active')) target.click();
-              }, 30);
-            }
-          }
+          if (candidate) candidate.click();
         }
       }
     }

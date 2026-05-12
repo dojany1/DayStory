@@ -173,13 +173,32 @@ async function loadMyStoryData(page) {
       renderCardToArea(cardArea, storyForDate || null, newDate, isoDate, direction, allStories);
     }
 
+    /* 일 휠 스크롤 디바운스 */
     let scrollTimeout;
-    const onScrollEnd = () => {
+    const onDayScrollEnd = () => {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => updateWheelSelection(false), 150);
     };
-    monthElement.addEventListener('scroll', onScrollEnd, { passive: true });
-    calendarElement.addEventListener('scroll', onScrollEnd, { passive: true });
+    calendarElement.addEventListener('scroll', onDayScrollEnd, { passive: true });
+
+    /* 월 휠 스크롤 디바운스 — 중앙 월로 일 휠을 점프 */
+    let monthScrollTimeout;
+    const onMonthScrollEnd = () => {
+      clearTimeout(monthScrollTimeout);
+      monthScrollTimeout = setTimeout(() => {
+        const centerMonth = getActiveItem(monthElement);
+        if (!centerMonth || centerMonth.classList.contains('disabled')) return;
+        const activeDay = calendarElement.querySelector('.wheel-item.active');
+        const activeDayMonth = activeDay ? parseInt(activeDay.dataset.month, 10) : -1;
+        if (parseInt(centerMonth.dataset.month, 10) !== activeDayMonth) {
+          onMonthClick(centerMonth);
+        } else {
+          monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+          centerMonth.classList.add('active');
+        }
+      }, 150);
+    };
+    monthElement.addEventListener('scroll', onMonthScrollEnd, { passive: true });
 
     /* 월 휠 클릭: 해당 월의 첫날(또는 오늘)로 일 휠 점프 */
     const onMonthClick = (item) => {

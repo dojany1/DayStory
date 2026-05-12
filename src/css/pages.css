@@ -1084,7 +1084,7 @@
 .theme-option-group {
   display: flex;
   margin: var(--space-2) var(--space-5) var(--space-4);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-card-dark);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 4px;
@@ -1115,15 +1115,14 @@
 }
 
 .theme-option-label {
-  font-size: var(--text-xs);
-  font-weight: 600;
+  display: none;
 }
 
-/* 활성화된 테마 옵션 — 배경색과 글자색 변경 */
+/* 활성화된 테마 옵션 — 흰 카드 (iOS 세그먼트 컨트롤) */
 .theme-option.active {
-  background: var(--color-accent);
-  color: var(--color-text-inverse);
-  box-shadow: var(--shadow-sm);
+  background: #ffffff;
+  color: #1c1c1e;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
 }
 
 .theme-option:not(.active):active {

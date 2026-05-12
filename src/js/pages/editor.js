@@ -589,7 +589,7 @@ export function renderEditorNew() {
         </div>
         <div class="crop-modal-footer">
           <button type="button" class="btn-rotate" id="btn-crop-rotate">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.53-11.23l5.67 5.66" />
             </svg>
             회전

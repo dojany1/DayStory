@@ -70,8 +70,8 @@ body {
   min-height: 100dvh;
   margin: 0 auto;                      /* 수평 중앙 정렬 */
   background-color: var(--color-bg-primary); /* 앱 내부 배경색 */
-  box-shadow: var(--shadow-wrapper);   /* 다크모드에서 래퍼 그림자 */
   overflow: hidden;                    /* 앱 외부로 요소가 나가는 것만 방지 */
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); /* 데스크톱에서 약간의 그림자 효과 */
 }
 
 

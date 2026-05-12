@@ -31,6 +31,16 @@ vi.mock('../src/js/services/bookmarks.js', () => ({
   toggleBookmark: toggleBookmarkMock,
 }));
 
+vi.stubGlobal('matchMedia', vi.fn().mockImplementation((query) => ({
+  matches: false,
+  media: query,
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  addListener: vi.fn(),
+  removeListener: vi.fn(),
+  dispatchEvent: vi.fn(),
+})));
+
 const { renderDetail } = await import('../src/js/pages/detail.js');
 
 function buildStory(overrides = {}) {
@@ -215,6 +225,18 @@ describe('Bottom navigation visuals', () => {
     expect(guestAvatarRule).not.toMatch(/width:\s*16px/);
     expect(guestAvatarRule).not.toMatch(/height:\s*16px/);
     expect(css).not.toMatch(/\.nav-item\.active\s+\.nav-profile-img-wrap\s*\{[\s\S]*?border-color:/);
+  });
+
+  it('Given the my story bottom navigation icon, when its markup and styles are inspected, then it should use the same nav item treatment as neighboring tabs', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/css/base.css'), 'utf8');
+    const myStoryNavMarkup = html.match(/<button[^>]+id="nav-mystory"[\s\S]*?<\/button>/)?.[0] || '';
+
+    expect(myStoryNavMarkup).toMatch(/class="nav-item"/);
+    expect(myStoryNavMarkup).not.toContain('nav-item-center');
+    expect(myStoryNavMarkup).not.toContain('nav-center-circle');
+    expect(css).not.toMatch(/\.bottom-nav\.redesigned-nav \.nav-item-center/);
+    expect(css).not.toMatch(/\.nav-center-circle\s*\{[\s\S]*?background:\s*var\(--color-accent\)/);
   });
 
   it('Given the home navigation icon, when the nav markup is inspected, then the first icon should use a letter-style envelope SVG instead of the current target icon', () => {

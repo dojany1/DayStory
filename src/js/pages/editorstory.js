@@ -44,7 +44,7 @@ export function renderEditorStory() {
       <h1 class="editorstory-title"></h1>
     </div>
 
-    <div class="wheel-pickers-container" style="margin-top: 10px;">
+    <div class="wheel-pickers-container">
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
         <div class="modern-wheel-scroll" id="editorstory-month-scroll"></div>

@@ -93,7 +93,7 @@ Danger   : color: var(--color-error); (텍스트 버튼). 배경 빨강은 confi
 ## 레이아웃
 - **전체 폭**: `max-width: var(--mobile-max-width)` = 430px. 데스크톱에서는 중앙에 카드처럼 배치 (`box-shadow: var(--shadow-wrapper)`).
 - **세로 구조**: `status-bar-spacer` → `page-container` (스크롤) → `bottom-nav` (fixed, 5탭).
-- **하단 탭**: 5개 (편지·캘린더·내 일기[중앙 원형 ➕]·북마크·설정). 일부 화면(상세, 신고, 로그인, 라이선스, 설정)에서는 자동 숨김.
+- **하단 탭**: 5개 (편지·내 일기·캘린더·보관함·설정). 모든 탭은 같은 아이콘 버튼 스타일을 사용한다. 일부 화면(상세, 신고, 로그인, 라이선스, 설정)에서는 자동 숨김.
 - **간격**: `--space-3` (12px), `--space-4` (16px) 가 기본. 섹션 간 `--space-8` (32px). 그 밖의 임의 px 사용 금지.
 - **정렬**: 좌측 정렬 기본. 카드 본문 중앙 정렬은 인용/타이틀에서만.
 - **페이지 헤더**: 제목만 있는 화면은 `.page-header-centered`, 뒤로가기 화면은 `.page-header-with-back` + `.page-header-spacer` 로 제목을 물리적 중앙에 둔다. 헤더/제목 정렬용 인라인 스타일을 쓰지 않는다.

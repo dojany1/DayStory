@@ -60,12 +60,12 @@ export function renderDonate() {
     </div>
 
     <!-- 후원 제출 버튼 -->
-    <button class="btn btn-primary btn-full btn-large" id="donate-submit" style="margin-top:var(--space-6);">
+    <button class="btn btn-primary btn-full btn-large" id="donate-submit";">
       후원하기
     </button>
 
     <!-- 안내 문구 -->
-    <p style="text-align:center;font-size:var(--text-xs);color:var(--color-text-tertiary);margin-top:var(--space-4);line-height:1.6;">
+    <p style="text-align:center;font-size:var(--text-xs);color:var(--color-text-tertiary);">
       인앱 결제(Apple/Google)로 안전하게 처리됩니다.<br/>
       후원금은 콘텐츠 제작에 사용됩니다.
     </p>

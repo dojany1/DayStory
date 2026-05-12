@@ -490,54 +490,5 @@ ul, ol {
 }
 
 
-/* ============================================================
-   ===== 5월 1일 AAB 복원 — 하단 nav 가운데 FAB =====
-   ============================================================
-   bottom-nav 의 가운데 "내 일기" 버튼을 동그란 강조 FAB 형태로
-   표시. release AAB 에서 복원.
-*/
-.bottom-nav.redesigned-nav .nav-item-center {
-  border-radius:50%;
-  width:48px;
-  height:48px;
-  padding:0;
-  transform:none}
-
-.bottom-nav.redesigned-nav .nav-item-center.active {
-  transform:scale(1.05)}
-
-.bottom-nav.redesigned-nav .nav-item-center:active {
-  transform:scale(.85)}
-
-.bottom-nav.redesigned-nav .nav-item-center.active:active {
-  transform:scale(.92)}
-
-.nav-center-circle {
-  background:var(--color-accent);
-  width:44px;
-  height:44px;
-  color:var(--color-text-inverse);
-  box-shadow:none;
-  transition:transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
-  border:0;
-  border-radius:50%;
-  justify-content:center;
-  align-items:center;
-  display:flex}
-
-.nav-item-center:active .nav-center-circle {
-  box-shadow:none;
-  transform:scale(.94)}
-
-.bottom-nav.redesigned-nav .nav-item-center .nav-icon {
-  stroke:currentColor;
-  width:28px;
-  height:28px}
-
-[data-theme=dark] .nav-center-circle {
-  background:var(--color-accent);
-  color:var(--color-text-inverse);
-  border-color:#0000}
-
 [data-theme="dark"] #nav-profile {
   color:var(--color-accent)}

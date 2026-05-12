@@ -4,7 +4,7 @@
    상단 월/일 휠로 날짜를 선택해 해당 날짜의 카드를 표시합니다.
    - 첫 진입 시 카드가 위에서 슬라이딩하며 등장
    - 오늘 카드를 처음 클릭(=뒤집기) 하면 자동으로 "수집"되며 축하 애니메이션 재생
-   - 좌우 스와이프로 날짜 이동은 비활성 (휠로만 변경)
+   - 좌우 스와이프로 날짜 이동 (휠 피커와 연동)
 
      마지막 수정 날짜 : 2026-05-11 01:30
    ===================================================================== */
@@ -23,6 +23,11 @@ import { t } from '../i18n/index.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
 
 const FLIP_DURATION_MS = 400;
+
+/* 스와이프 commit 가드 — bindCardEvents 가 카드 재렌더로 다시 호출돼도
+   짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다. */
+let lastSwipeCommitAt = 0;
+const SWIPE_COMMIT_GUARD_MS = 1500;
 
 
 /* ─────────────────────────────────────────────
@@ -342,6 +347,142 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   const flipper = flipContainer.querySelector('.flipper');
   if (!flipper) return;
 
+  /* ── 스와이프 상태 변수 ── */
+  let touchStartX = 0, touchStartY = 0;
+  let isSwiping = false, swipeAxis = null;
+  let isAnimating = false, isBackBodyScroll = false, lastTouchInputAt = 0;
+  const SWIPE_THRESHOLD = 64;
+  const SWIPE_DRAG_RESPONSE = 0.62;
+  const SWIPE_RETURN_MS = 220;
+  const SYNTHETIC_MOUSE_IGNORE_MS = 650;
+  let tapStartTime = 0, tapStartX = 0, tapStartY = 0, touchStartTarget = null;
+
+  const handleStart = (x, y, isBody = false) => {
+    if (isAnimating || flipper.classList.contains('is-flipping')) return;
+    touchStartX = x;
+    touchStartY = y;
+    isSwiping = false;
+    swipeAxis = null;
+    isBackBodyScroll = isBody;
+    tapStartTime = Date.now();
+    tapStartX = x;
+    tapStartY = y;
+  };
+
+  const handleMove = (x, y) => {
+    if (isAnimating) return;
+    const diffX = x - touchStartX;
+    const diffY = y - touchStartY;
+    if (Math.abs(diffX) > 15 || Math.abs(diffY) > 15) touchStartTarget = null;
+    if (!swipeAxis) {
+      if (Math.abs(diffX) < 15 && Math.abs(diffY) < 15) return;
+      swipeAxis = Math.abs(diffX) > Math.abs(diffY) ? 'x' : 'y';
+    }
+    if (swipeAxis === 'y') return;
+    if (!isSwiping) { flipper.style.transition = 'none'; isSwiping = true; }
+    const baseTransform = flipper.classList.contains('flipped') ? 'rotateY(180deg)' : '';
+    flipper.style.transform = `translateX(${diffX * SWIPE_DRAG_RESPONSE}px) ${baseTransform}`;
+  };
+
+  const handleEnd = (x, y) => {
+    if (!isSwiping || isAnimating) return;
+    isAnimating = true;
+    const diffX = x - touchStartX;
+    flipper.style.transition = `transform ${SWIPE_RETURN_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+    flipper.classList.add('is-flipping');
+
+    if (swipeAxis === 'x' && Math.abs(diffX) > SWIPE_THRESHOLD) {
+      if (isBackBodyScroll) {
+        flipper.style.transform = '';
+        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, SWIPE_RETURN_MS);
+        return;
+      }
+      if (Date.now() - lastSwipeCommitAt >= SWIPE_COMMIT_GUARD_MS) {
+        lastSwipeCommitAt = Date.now();
+        const offset = diffX < 0 ? 1 : -1;
+        const dayWrapper = document.getElementById('editorstory-calendar');
+        const monthWrapper = document.getElementById('editorstory-month-scroll');
+        if (dayWrapper) {
+          const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
+          const activeIdx = items.findIndex(el => el.classList.contains('active'));
+          const candidate = items[activeIdx + offset];
+          if (candidate && !candidate.classList.contains('disabled')) {
+            candidate.click();
+          } else if (monthWrapper) {
+            const monthItems = Array.from(monthWrapper.querySelectorAll('.wheel-item'));
+            const activeMonthIdx = monthItems.findIndex(el => el.classList.contains('active'));
+            const targetMonthItem = monthItems[activeMonthIdx + offset];
+            if (targetMonthItem && !targetMonthItem.classList.contains('disabled')) {
+              targetMonthItem.click();
+              setTimeout(() => {
+                const refreshed = Array.from(dayWrapper.querySelectorAll('.wheel-item:not(.disabled)'));
+                if (!refreshed.length) return;
+                const target = offset > 0 ? refreshed[0] : refreshed[refreshed.length - 1];
+                if (target && !target.classList.contains('active')) target.click();
+              }, 30);
+            }
+          }
+        }
+      }
+    }
+    flipper.style.transform = '';
+    setTimeout(() => {
+      flipper.style.transition = '';
+      flipper.classList.remove('is-flipping');
+      isSwiping = false;
+      isAnimating = false;
+    }, SWIPE_RETURN_MS);
+  };
+
+  /* ── 터치 이벤트 ── */
+  flipper.addEventListener('touchstart', (e) => {
+    lastTouchInputAt = Date.now();
+    const isBody = !!e.target.closest('.back-body');
+    touchStartTarget = e.target;
+    handleStart(e.touches[0].clientX, e.touches[0].clientY, isBody);
+  }, { passive: true });
+
+  flipper.addEventListener('touchmove', (e) => {
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    if (isSwiping) e.preventDefault();
+  }, { passive: false });
+
+  flipper.addEventListener('touchend', (e) => {
+    lastTouchInputAt = Date.now();
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    if (touchStartTarget && touchStartTarget.closest('.back-body') && !isSwiping) {
+      const tapDuration = Date.now() - tapStartTime;
+      if (tapDuration <= 400 && Math.abs(endX - tapStartX) <= 20 && Math.abs(endY - tapStartY) <= 20) {
+        if (!story || flipper.classList.contains('is-flipping')) return;
+        flipper.classList.add('is-flipping');
+        flipper.classList.toggle('flipped');
+        setTimeout(() => flipper.classList.remove('is-flipping'), 400);
+        return;
+      }
+    }
+    handleEnd(endX, endY);
+  });
+
+  /* ── 마우스 이벤트 (데스크톱) ── */
+  let isMouseDown = false;
+  flipper.addEventListener('mousedown', (e) => {
+    if (Date.now() - lastTouchInputAt < SYNTHETIC_MOUSE_IGNORE_MS) return;
+    if (e.target.closest('button')) return;
+    if (e.target.closest('.back-body')) return;
+    isMouseDown = true;
+    handleStart(e.clientX, e.clientY, false);
+  });
+
+  if (window._editorStoryMouseMove) window.removeEventListener('mousemove', window._editorStoryMouseMove);
+  if (window._editorStoryMouseUp)   window.removeEventListener('mouseup',   window._editorStoryMouseUp);
+
+  window._editorStoryMouseMove = (e) => { if (!isMouseDown) return; handleMove(e.clientX, e.clientY); };
+  window._editorStoryMouseUp   = (e) => { if (!isMouseDown) return; isMouseDown = false; handleEnd(e.clientX, e.clientY); };
+
+  window.addEventListener('mousemove', window._editorStoryMouseMove);
+  window.addEventListener('mouseup',   window._editorStoryMouseUp);
+
   const detailBtn = flipContainer.querySelector('.card-detail-shortcut-btn');
   const shareBtn = flipContainer.querySelector('.card-action-btn[aria-label="공유"]');
   const bookmarkBtn = flipContainer.querySelector('.card-action-btn[aria-label="보관함"]');
@@ -397,7 +538,10 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     if (e.target.closest('.card-action-btn')) return;
     if (e.target.closest('.back-editor-btn')) return;
     if (e.target.closest('.card-detail-shortcut-btn')) return;
+    if (isSwiping) return;
     if (flipper.classList.contains('is-flipping')) return;
+    /* 터치 기반 back-body 탭은 touchend에서 이미 처리 */
+    if (e.pointerType === 'touch' && e.target.closest('.back-body')) return;
 
     /* 말풍선이 떠 있으면 그것만 닫음 */
     const openBubble = flipContainer.querySelector('.editor-comment-bubble');

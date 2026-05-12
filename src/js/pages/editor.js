@@ -19,6 +19,7 @@ import { getState } from '../state.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { CARD_PLACEHOLDER_IMAGE, EDITOR_PREVIEW_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages, prepareLazyImages } from '../utils/imageLoading.js';
 import { bindImageVariantFields } from '../utils/imageFields.js';
+import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import {
   fetchAllStoriesEditor,
   createStory,
@@ -598,6 +599,7 @@ export function renderEditorNew() {
       `;
       const wrapper = document.querySelector('.mobile-wrapper') || document.body;
       wrapper.appendChild(overlay);
+      lockScroll();
 
       // 페이드인 효과
       setTimeout(() => overlay.style.opacity = '1', 10);
@@ -624,6 +626,7 @@ export function renderEditorNew() {
       image.onerror = () => {
         showToast('이미지를 불러올 수 없어 편집이 제한됩니다.', 'error');
         if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
+        unlockScroll();
         overlay.remove();
       };
 
@@ -652,9 +655,10 @@ export function renderEditorNew() {
             btn.disabled = false;
             return;
           }
-          
+
           // 모달 닫기
           overlay.style.opacity = '0';
+          unlockScroll();
           setTimeout(() => {
             cropper.destroy();
             if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);

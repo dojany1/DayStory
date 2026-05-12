@@ -2,6 +2,7 @@ import {
   getNotificationSettings,
   updateNotificationSetting,
 } from '../services/notifications.js';
+import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 
 const NOTIFICATION_LABELS = {
   diary: {
@@ -96,11 +97,13 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
 
   const wrapper = document.querySelector('.mobile-wrapper') || document.body;
   wrapper.appendChild(overlay);
+  lockScroll();
 
   let isClosing = false;
   const close = () => {
     if (isClosing) return;
     isClosing = true;
+    unlockScroll();
     overlay.classList.remove('open');
     overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
     /* 안전망: transition 미발생 시 400ms 후 제거 */

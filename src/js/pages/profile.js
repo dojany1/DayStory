@@ -14,6 +14,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { showToast } from '../components/toast.js';
 import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
+import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -30,7 +31,7 @@ export function renderProfile() {
   const profile = getState('profile');
 
   page.innerHTML = `
-    <div class="page-header" style="height:60px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div class="page-header">
       <h1 class="page-header-title">프로필</h1>
       <button id="goto-settings-btn" aria-label="설정">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -147,12 +148,14 @@ function openProfileEditModal() {
 
   const wrapper = document.querySelector('.mobile-wrapper') || document.body;
   wrapper.appendChild(overlay);
+  lockScroll();
   requestAnimationFrame(() => overlay.classList.add('visible'));
 
   let croppedBlob = null;
 
   const closeModal = () => {
     overlay.classList.remove('visible');
+    unlockScroll();
     setTimeout(() => overlay.remove(), 200);
   };
   overlay.querySelector('#profile-edit-close').addEventListener('click', closeModal);

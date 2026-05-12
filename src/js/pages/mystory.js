@@ -19,6 +19,7 @@ import { syncDiaryStateFromList } from '../services/widget.js';
 import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages } from '../utils/imageLoading.js';
 import { bindImageVariantFields } from '../utils/imageFields.js';
 import { uploadCardImageVariants } from '../services/images.js';
+import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
@@ -806,6 +807,7 @@ export function renderMyStoryNew() {
       `;
       const wrapper = document.querySelector('.mobile-wrapper') || document.body;
       wrapper.appendChild(overlay);
+      lockScroll();
 
       setTimeout(() => overlay.style.opacity = '1', 10);
 
@@ -831,6 +833,7 @@ export function renderMyStoryNew() {
       image.onerror = () => {
         showToast('이미지를 불러올 수 없어 편집이 제한됩니다.', 'error');
         if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
+        unlockScroll();
         overlay.remove();
       };
 
@@ -859,6 +862,7 @@ export function renderMyStoryNew() {
           }
           
           overlay.style.opacity = '0';
+          unlockScroll();
           setTimeout(() => {
             cropper.destroy();
             if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);

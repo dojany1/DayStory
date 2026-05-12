@@ -5,6 +5,8 @@
    앱 테마와도 일치하는 확인창을 띄웁니다.
    ===================================================================== */
 
+import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
+
 /**
  * showConfirm — 확인/취소 다이얼로그를 띄우고 사용자의 선택을 Promise로 반환합니다
  * @param {Object} opts
@@ -49,9 +51,11 @@ export function showConfirm({
 
     const wrapper = document.querySelector('.mobile-wrapper') || document.body;
     wrapper.appendChild(overlay);
+    lockScroll();
     requestAnimationFrame(() => overlay.classList.add('visible'));
 
     const close = (result) => {
+      unlockScroll();
       overlay.classList.remove('visible');
       setTimeout(() => {
         overlay.remove();

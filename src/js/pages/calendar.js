@@ -21,6 +21,7 @@ import { navigate } from '../router.js';
 import { shareStory } from '../services/sharing.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
+import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { showConfirm } from '../components/confirmDialog.js';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -318,10 +319,12 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   `;
 
   document.body.appendChild(overlay);
+  lockScroll();
   prepareLazyImages(overlay);
   requestAnimationFrame(() => overlay.classList.add('open'));
 
   const close = () => {
+    unlockScroll();
     overlay.classList.remove('open');
     setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 240);
   };

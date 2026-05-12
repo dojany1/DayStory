@@ -1165,7 +1165,7 @@
   /* 3. Typography */
   font-size: var(--text-base);
   font-weight: 600;
-  color: white;
+  color: var(--color-text-inverse);
   /* 4. Visuals */
   background: var(--color-accent);
   border: none;
@@ -1176,6 +1176,12 @@
 
 .btn-crop-confirm:disabled {
   opacity: 0.5;
+}
+
+/* cropperjs 라이브러리 .cropper-bg 체크무늬 이미지 재정의 */
+.cropper-bg {
+  background-image: none;
+  background-color: var(--color-bg-primary);
 }
 
 

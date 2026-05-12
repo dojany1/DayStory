@@ -11,7 +11,8 @@ import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { auth } from '../firebase.js';
+import { auth, storage } from '../firebase.js';
+import { ref as fsRef, getBlob } from 'firebase/storage';
 import { shareStory } from '../services/sharing.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -776,9 +777,11 @@ export function renderMyStoryNew() {
           return;
         }
         try {
-          const res = await fetch(imageSrc);
-          if (!res.ok) throw new Error('이미지 다운로드 실패');
-          const blob = await res.blob();
+          /* fetch() 대신 Firebase Storage SDK 사용 — CORS 없이 SDK가 직접 다운로드 */
+          const url = new URL(imageSrc);
+          const encodedPath = url.pathname.split('/o/')[1] || '';
+          const storagePath = decodeURIComponent(encodedPath.split('?')[0]);
+          const blob = await getBlob(fsRef(storage, storagePath));
           localSrc = URL.createObjectURL(blob);
         } catch (err) {
           console.error('이미지 fetch 실패:', err);

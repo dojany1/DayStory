@@ -125,7 +125,7 @@ async function loadCollection(page) {
   }
 
   function onCardClick(stateRef, story) {
-    openCardPopup(story, 'history', [], {
+    openCardPopup(story, 'history', stateRef.bookmarks.map(s => s.id), {
       onRemove: async (target) => {
         await removeCard(stateRef, target);
         showToast(t('bookmarks.removed'), 'success');

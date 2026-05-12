@@ -164,6 +164,7 @@
 .flipper {
   position: relative;
   width: 100%;
+  min-width: 280px;
   max-height: 100%;                  /* 부모 높이를 초과하지 않도록 제한 */
   aspect-ratio: var(--card-aspect-ratio); /* 변수 사용 (3.1 / 4.8) */
   transition: transform 0.4s ease-in-out 0.05s, scale 0.2s; /* 길어진 스프링 회전 및 0.05초 딜레이 추가 */

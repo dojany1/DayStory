@@ -11,6 +11,7 @@ import { forceRoute } from '../router.js';
 import pkg from '../../../package.json';
 
 const AUTH_SESSION_KEY = 'daystory:auth-session-active';
+const PRIVACY_URL = 'https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link';
 
 export function renderSettingsSections() {
   const user = getState('user');
@@ -84,11 +85,12 @@ export function renderSettingsSections() {
         title: t('settings.row_license'),
         icon: imageIcon(),
       })}
-      ${renderSettingsRow({
-        id: 'setting-privacy',
-        title: t('settings.privacy_link'),
-        icon: shieldIcon(),
-      })}
+    </div>
+
+    <div class="settings-privacy-link">
+      <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">
+        ${t('settings.privacy_link')}
+      </a>
     </div>
 
     <div class="settings-version">
@@ -97,8 +99,6 @@ export function renderSettingsSections() {
   `;
 }
 
-const PRIVACY_URL = 'https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link';
-
 export function bindSettingsSections(page) {
   bindNotificationSettingsSection(page);
   bindThemeOptions(page);
@@ -106,7 +106,6 @@ export function bindSettingsSections(page) {
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => navigate('/about'));
   bindRow(page, '#setting-license', () => navigate('/license'));
-  bindRow(page, '#setting-privacy', () => window.open(PRIVACY_URL, '_blank', 'noopener'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
 }

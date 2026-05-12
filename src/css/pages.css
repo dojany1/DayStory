@@ -964,6 +964,7 @@
 
 /* 설정 페이지 전체 — 하단 여백 */
 .settings-page {
+  padding-top: var(--space-5);
   padding-bottom: var(--space-8);
 }
 
@@ -2543,6 +2544,19 @@
 
 .settings-row-muted {
   color:var(--color-text-tertiary)}
+
+.settings-privacy-link {
+  margin-top: var(--space-8);
+  text-align: center;
+  margin-bottom: -12px;
+}
+
+.settings-privacy-link a {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  opacity: .8;
+  text-decoration: underline;
+}
 
 .settings-version {
   padding:var(--space-6);

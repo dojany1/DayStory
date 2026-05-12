@@ -11,6 +11,13 @@ self.addEventListener('activate', (event) => {
 
 function shouldCacheImage(request) {
   if (!request || request.method !== 'GET') return false;
+
+  try {
+    const { hostname } = new URL(request.url);
+    if (hostname.includes('firebasestorage.googleapis.com') ||
+        hostname.includes('firebasestorage.app')) return false;
+  } catch { /* invalid URL — fall through */ }
+
   if (request.destination === 'image') return true;
 
   try {

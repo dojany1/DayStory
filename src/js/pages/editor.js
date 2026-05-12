@@ -583,7 +583,14 @@ export function renderEditorNew() {
       overlay.className = 'crop-modal-overlay';
       
       overlay.innerHTML = `
-        <div class="crop-modal-header">자르기 및 회전</div>
+        <div class="crop-modal-header">
+          <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="닫기">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          카드 이미지 편집
+        </div>
         <div class="crop-modal-body">
           <img id="cropper-image" src="${localSrc}" decoding="async" style="max-width: 100%; display: block;" />
         </div>
@@ -600,6 +607,17 @@ export function renderEditorNew() {
       const wrapper = document.querySelector('.mobile-wrapper') || document.body;
       wrapper.appendChild(overlay);
       lockScroll();
+
+      const cancelCrop = () => {
+        overlay.style.opacity = '0';
+        unlockScroll();
+        setTimeout(() => {
+          if (cropper) cropper.destroy();
+          if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
+          overlay.remove();
+        }, 300);
+      };
+      overlay.querySelector('#btn-crop-back').addEventListener('click', cancelCrop);
 
       // 페이드인 효과
       setTimeout(() => overlay.style.opacity = '1', 10);

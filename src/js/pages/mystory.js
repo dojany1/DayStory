@@ -794,7 +794,14 @@ export function renderMyStoryNew() {
       overlay.className = 'crop-modal-overlay';
       
       overlay.innerHTML = `
-        <div class="crop-modal-header">자르기 및 회전</div>
+        <div class="crop-modal-header">
+          <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="닫기">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          카드 이미지 편집
+        </div>
         <div class="crop-modal-body">
           <img id="cropper-image" src="${localSrc}" style="max-width: 100%; display: block;" />
         </div>
@@ -812,6 +819,17 @@ export function renderMyStoryNew() {
       wrapper.appendChild(overlay);
       lockScroll();
 
+      const cancelCrop = () => {
+        overlay.style.opacity = '0';
+        unlockScroll();
+        setTimeout(() => {
+          if (cropper) cropper.destroy();
+          if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
+          overlay.remove();
+        }, 300);
+      };
+      overlay.querySelector('#btn-crop-back').addEventListener('click', cancelCrop);
+
       setTimeout(() => overlay.style.opacity = '1', 10);
 
       const image = overlay.querySelector('#cropper-image');
@@ -819,7 +837,7 @@ export function renderMyStoryNew() {
 
       image.onload = () => {
         cropper = new Cropper(image, {
-          aspectRatio: CARD_IMAGE_CROP_ASPECT_RATIO, 
+          aspectRatio: CARD_IMAGE_CROP_ASPECT_RATIO,
           viewMode: 1,
           dragMode: 'move',
           autoCropArea: 0.9,

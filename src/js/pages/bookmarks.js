@@ -20,6 +20,31 @@ import { localizedStory } from '../utils/storyI18n.js';
 import { showToast } from '../components/toast.js';
 
 
+export function renderArchiveSection() {
+  return `
+    <div class="archive-page">
+      <div class="calendar-toggle archive-toggle" data-mode="bookmarks" role="tablist">
+        <button type="button" class="calendar-toggle-btn active" data-tab="bookmarks" role="tab" aria-selected="true">${t('bookmarks.tab_mine')}</button>
+        <button type="button" class="calendar-toggle-btn" data-tab="received" role="tab" aria-selected="false">${t('bookmarks.tab_received')}</button>
+        <span class="calendar-toggle-thumb"></span>
+      </div>
+      <div class="search-bar archive-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
+      </div>
+      <div id="archive-content" class="archive-content-loading">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  `;
+}
+
+export function initArchiveSection(page) {
+  loadCollection(page);
+}
+
 export function renderBookmarks() {
   const page = document.createElement('div');
   page.className = 'archive-page page';
@@ -28,26 +53,10 @@ export function renderBookmarks() {
     <div class="page-header page-header-centered">
       <h1 class="page-header-title">${t('bookmarks.title')}</h1>
     </div>
-
-    <div class="calendar-toggle archive-toggle" data-mode="bookmarks" role="tablist">
-      <button type="button" class="calendar-toggle-btn active" data-tab="bookmarks" role="tab" aria-selected="true">${t('bookmarks.tab_mine')}</button>
-      <button type="button" class="calendar-toggle-btn" data-tab="received" role="tab" aria-selected="false">${t('bookmarks.tab_received')}</button>
-      <span class="calendar-toggle-thumb"></span>
-    </div>
-
-    <div class="search-bar archive-search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
-    </div>
-
-    <div id="archive-content" class="archive-content-loading">
-      <div class="loading-spinner"></div>
-    </div>
+    ${renderArchiveSection()}
   `;
 
-  loadCollection(page);
+  initArchiveSection(page);
   return page;
 }
 

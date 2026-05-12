@@ -13,6 +13,7 @@ import { auth, db, storage } from '../firebase.js';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { showToast } from '../components/toast.js';
+import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -78,6 +79,8 @@ export function renderProfile() {
         </button>
       `}
     </div>
+
+    ${renderArchiveSection()}
   `;
 
   /* 페이지 고유 동작: 프로필 편집, 로그인 이동, 설정 이동 */
@@ -86,6 +89,8 @@ export function renderProfile() {
     page.querySelector('#profile-edit-btn')?.addEventListener('click', () => openProfileEditModal());
     page.querySelector('#goto-settings-btn')?.addEventListener('click', () => navigate('/settings'));
   }, 0);
+
+  initArchiveSection(page);
 
   return page;
 }

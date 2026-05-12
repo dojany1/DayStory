@@ -345,6 +345,14 @@ export function renderEditorNew() {
 
     <!-- 입력 폼 -->
     <div class="editor-form-section section">
+      <!-- 언어 탭: 한국어(필수) / English / 日本語 -->
+      <div class="editor-lang-tabs" role="tablist" aria-label="언어">
+        <button type="button" class="editor-lang-tab active" data-lang="ko" role="tab" aria-selected="true">한국어</button>
+        <button type="button" class="editor-lang-tab" data-lang="en" role="tab" aria-selected="false">English</button>
+        <button type="button" class="editor-lang-tab" data-lang="ja" role="tab" aria-selected="false">日本語</button>
+      </div>
+      <div class="editor-lang-hint">한국어는 필수, 영어/일본어는 비우면 카드에서 한국어로 자동 표시됩니다.</div>
+
       <form id="story-form" class="story-form">
         <!-- 1. 제목 (가로 단독) -->
         <div class="input-group">
@@ -438,31 +446,82 @@ export function renderEditorNew() {
     return true;
   });
 
+  /* ── 언어별 텍스트 필드 보관소 (탭 전환 시 swap) ────────────────
+     title/body/country/editor_comment 는 언어별로 보관, 나머지는 공통 */
+  const LOCALIZABLE_INPUT_IDS = ['sf-title', 'sf-body', 'sf-country', 'sf-editor-comment'];
+  const formState = {
+    ko: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
+    en: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
+    ja: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
+  };
+  let activeLang = 'ko';
+  function captureCurrentLangValues() {
+    LOCALIZABLE_INPUT_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) formState[activeLang][id] = el.value;
+    });
+  }
+  function applyLangValues(lang) {
+    LOCALIZABLE_INPUT_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = formState[lang][id] || '';
+    });
+  }
+  function bindLangTabs() {
+    document.querySelectorAll('.editor-lang-tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.lang;
+        if (next === activeLang) return;
+        captureCurrentLangValues();
+        activeLang = next;
+        applyLangValues(activeLang);
+        document.querySelectorAll('.editor-lang-tab').forEach((b) => {
+          const on = b.dataset.lang === activeLang;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        updatePreview(true);
+      });
+    });
+  }
+
   setTimeout(async () => {
     let hasLoadedData = false;
     let allStories = [];
     try {
       allStories = await fetchAllStoriesEditor();
     } catch(e) { }
-    
+
     // 데이터 로드
     if (editingId) {
       const story = await fetchStoryById(editingId);
       if (story) {
         document.getElementById('sf-hist-year').value = story.historical_year || '';
         document.getElementById('sf-publish-date').value = story.publish_date || '';
-        document.getElementById('sf-title').value = story.title || story.figure_name || '';
-        document.getElementById('sf-country').value = story.country || '';
-        document.getElementById('sf-body').value = story.body || '';
         document.getElementById('sf-image').value = story.image_url || '';
         document.getElementById('sf-image-thumb').value = story.image_thumb_url || '';
         document.getElementById('sf-image-source').value = story.image_source || '';
-        document.getElementById('sf-editor-comment').value = story.editor_comment || (story.editor && story.editor.comment) || '';
+
+        /* 한국어는 최상위, 영/일은 i18n 객체에서 추출 */
+        formState.ko['sf-title'] = story.title || story.figure_name || '';
+        formState.ko['sf-body'] = story.body || '';
+        formState.ko['sf-country'] = story.country || '';
+        formState.ko['sf-editor-comment'] = story.editor_comment || (story.editor && story.editor.comment) || '';
+        ['en', 'ja'].forEach((lang) => {
+          const tr = (story.i18n && story.i18n[lang]) || {};
+          formState[lang]['sf-title'] = tr.title || tr.figure_name || '';
+          formState[lang]['sf-body'] = tr.body || '';
+          formState[lang]['sf-country'] = tr.country || '';
+          formState[lang]['sf-editor-comment'] = tr.editor_comment || '';
+        });
+        applyLangValues('ko');
         hasLoadedData = true;
       }
     } else if (/^\d{4}-\d{2}-\d{2}$/.test(prefillDate || '')) {
       document.getElementById('sf-publish-date').value = prefillDate;
     }
+
+    bindLangTabs();
     
     // 뒤로가기
     document.getElementById('editor-new-back')?.addEventListener('click', () => {
@@ -706,37 +765,64 @@ export function renderEditorNew() {
 
     /* 저장 로직 */
     function getFormData() {
-      const titleStr = document.getElementById('sf-title').value.trim();
+      /* 현재 활성 탭 값을 formState에 흡수 */
+      captureCurrentLangValues();
+
       const histYear = parseInt(document.getElementById('sf-hist-year').value) || null;
-      
-      /* 현재 사용자의 계정 정보 가져오기 (Firebase Auth 중심, 없으면 State 폴백) */
       const u = auth?.currentUser;
       const stateUser = getState('user');
       const stateProfile = getState('profile') || {};
-      
-      let editorInfo = {
+
+      const editorInfo = {
         uid: u?.uid || stateUser?.id || 'dokhubooks_uid',
         email: u?.email || stateUser?.email || 'dokhubooks@gmail.com',
         displayName: u?.displayName || stateProfile.displayName || (stateUser?.email ? stateUser.email.split('@')[0] : 'DayStory'),
         photoURL: stateProfile.photoURL || u?.photoURL || ''
       };
 
-      return {
-        figure_name: titleStr,
-        title: titleStr,
+      const ko = formState.ko;
+      const titleKo = (ko['sf-title'] || '').trim();
+
+      /* 영/일 번역: 비어있지 않은 필드만 i18n.* 에 포함 */
+      const buildTranslation = (lang) => {
+        const src = formState[lang];
+        const out = {};
+        const keymap = {
+          'sf-title': ['title', 'figure_name'],
+          'sf-body': ['body'],
+          'sf-country': ['country'],
+          'sf-editor-comment': ['editor_comment'],
+        };
+        Object.entries(keymap).forEach(([inputId, fields]) => {
+          const v = (src[inputId] || '').trim();
+          if (v) fields.forEach((f) => { out[f] = v; });
+        });
+        return out;
+      };
+      const enTr = buildTranslation('en');
+      const jaTr = buildTranslation('ja');
+      const i18n = {};
+      if (Object.keys(enTr).length) i18n.en = enTr;
+      if (Object.keys(jaTr).length) i18n.ja = jaTr;
+
+      const data = {
+        figure_name: titleKo,
+        title: titleKo,
         summary: '',
-        body: document.getElementById('sf-body').value.trim(),
+        body: (ko['sf-body'] || '').trim(),
         historical_date: histYear ? `${histYear}년` : '',
         historical_year: histYear,
-        country: document.getElementById('sf-country').value.trim(),
+        country: (ko['sf-country'] || '').trim(),
         publish_date: document.getElementById('sf-publish-date').value,
         image_url: document.getElementById('sf-image').value.trim(),
         image_thumb_url: document.getElementById('sf-image-thumb')?.value.trim() || '',
         image_source: document.getElementById('sf-image-source').value.trim(),
         card_count: '',
-        editor: editorInfo,      /* 에디터 자동 할당 */
-        editor_comment: document.getElementById('sf-editor-comment').value.trim(),
+        editor: editorInfo,
+        editor_comment: (ko['sf-editor-comment'] || '').trim(),
       };
+      if (Object.keys(i18n).length) data.i18n = i18n;
+      return data;
     }
 
     document.getElementById('sf-save-draft')?.addEventListener('click', async () => {

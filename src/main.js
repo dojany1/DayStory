@@ -32,7 +32,15 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
 */
 import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
+import { initI18n } from './js/i18n/index.js';
+import { configureBilling, loginBilling, syncSubscriptionState } from './js/services/billing.js';
 import { auth, db } from './js/firebase.js';
+
+/* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
+initI18n();
+
+/* RevenueCat 부팅 (네이티브 환경에서만 실제 동작, 웹은 noop) */
+configureBilling().catch(() => {});
 
 /*
  * Firebase Auth 함수 임포트
@@ -133,8 +141,15 @@ registerRoute('/login', () => import('./js/pages/login.js').then(m => m.renderLo
 registerRoute('/signup', () => import('./js/pages/login.js').then(m => m.renderSignup()));
 registerRoute('/editorstory', () => renderEditorStory()); /* 에디터 일화는 최우선 렌더링을 위해 정적 유지 */
 registerRoute('/detail/:id', (params) => import('./js/pages/detail.js').then(m => m.renderDetail(params)));
-/* SNS 공유 링크(/share/:id)도 detail 페이지로 매핑 — 봇 외 사용자 흐름 */
-registerRoute('/share/:id', (params) => import('./js/pages/detail.js').then(m => m.renderDetail(params)));
+/* SNS 공유 링크(/share/:id) — detail 페이지로 매핑하면서 "받은 카드" 목록에 자동 추가 */
+registerRoute('/share/:id', async (params) => {
+  const [{ recordReceived }, m] = await Promise.all([
+    import('./js/services/receivedCards.js'),
+    import('./js/pages/detail.js'),
+  ]);
+  recordReceived(params.id);
+  return m.renderDetail(params);
+});
 registerRoute('/profile', () => import('./js/pages/profile.js').then(m => m.renderProfile()));
 registerRoute('/search', () => import('./js/pages/search.js').then(m => m.renderSearch()));
 registerRoute('/settings', () => import('./js/pages/settings.js').then(m => m.renderSettings()));
@@ -146,6 +161,7 @@ registerRoute('/mystory/new', () => import('./js/pages/mystory.js').then(m => m.
 registerRoute('/calendar', () => loadCalendarModule().then(m => m.renderCalendar()));
 registerRoute('/bookmarks', () => import('./js/pages/bookmarks.js').then(m => m.renderBookmarks()));
 registerRoute('/license', () => import('./js/pages/license.js').then(m => m.renderLicense()));
+registerRoute('/about', () => import('./js/pages/about.js').then(m => m.renderAbout()));
 
 
 /* ─────────────────────────────────────────────
@@ -166,7 +182,7 @@ setBeforeNavigate((path) => {
   /* 하단 내비게이션 바 표시/숨김 제어 */
   const nav = document.getElementById('bottom-nav');
   if (nav) {
-    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings';
+    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings' || path === '/about';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
   }
 
@@ -298,6 +314,14 @@ if (auth) {
               if (profileData.theme) setState('theme', profileData.theme);
               if (profileData.font_size) setState('fontSize', profileData.font_size);
             }
+
+            /* RevenueCat 사용자 식별 + 구독 상태 동기화 */
+            try {
+              await loginBilling(firebaseUser.uid);
+              await syncSubscriptionState();
+            } catch (err) {
+              console.warn('구독 상태 동기화 실패:', err);
+            }
           } catch (err) {
             console.warn('프로필 로드 (또는 생성) 실패:', err);
           }
@@ -384,6 +408,13 @@ if (Capacitor.isNativePlatform()) {
   App.getLaunchUrl()
     .then((launch) => queueOrRouteWidgetDeepLink(launch?.url))
     .catch((err) => console.warn('위젯 딥링크 확인 실패:', err));
+
+  /* foreground 복귀 시 구독 상태 재동기화 (다른 기기에서 취소했을 가능성 등) */
+  App.addListener('appStateChange', ({ isActive }) => {
+    if (isActive) {
+      syncSubscriptionState().catch(() => {});
+    }
+  });
 }
 
 /* ─────────────────────────────────────────────

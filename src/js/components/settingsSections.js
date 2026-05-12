@@ -6,7 +6,13 @@ import { bindNotificationSettingsSection, renderNotificationSettingsSection } fr
 import { auth, db } from '../firebase.js';
 import { signOut, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { t, getCurrentLang, setLang } from '../i18n/index.js';
+import { purchaseMonthly, restorePurchases, syncSubscriptionState, cancelMockSubscription, isMockBilling } from '../services/billing.js';
+import { forceRoute } from '../router.js';
+import { isPaidSubscriber } from '../utils/access.js';
 import pkg from '../../../package.json';
+
+const PLAY_SUBSCRIPTION_URL = 'https://play.google.com/store/account/subscriptions?package=com.daystory.app&sku=daystory_monthly';
 
 const AUTH_SESSION_KEY = 'daystory:auth-session-active';
 
@@ -14,26 +20,39 @@ export function renderSettingsSections() {
   const user = getState('user');
   const profile = getState('profile');
   const currentTheme = getState('theme');
+  const currentLang = getCurrentLang();
 
+  /* 섹션 순서: 멤버십(가치 어필) → 환경설정(테마/언어/알림) → 권한 영역(에디터/계정) → 정보 */
   return `
-    ${renderNotificationSettingsSection()}
+    ${renderSubscriptionSection(profile)}
 
     <div class="settings-section">
-      <div class="settings-section-title">디스플레이</div>
-      <div class="theme-option-group" role="group" aria-label="테마 선택">
-        ${renderThemeOption('light', '라이트', currentTheme, sunIcon())}
-        ${renderThemeOption('dark', '다크', currentTheme, moonIcon())}
-        ${renderThemeOption('system', '시스템', currentTheme, systemIcon())}
+      <div class="settings-section-title">${t('settings.section_display')}</div>
+      <div class="theme-option-group" role="group" aria-label="${t('settings.section_display')}">
+        ${renderThemeOption('light', t('settings.theme_light'), currentTheme, sunIcon())}
+        ${renderThemeOption('dark', t('settings.theme_dark'), currentTheme, moonIcon())}
+        ${renderThemeOption('system', t('settings.theme_system'), currentTheme, systemIcon())}
       </div>
     </div>
 
+    <div class="settings-section">
+      <div class="settings-section-title">${t('settings.section_language')}</div>
+      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}">
+        ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
+        ${renderLangOption('en', t('settings.lang_en'), currentLang)}
+        ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
+      </div>
+    </div>
+
+    ${renderNotificationSettingsSection()}
+
     ${profile && profile.role === 'editor' ? `
     <div class="settings-section">
-      <div class="settings-section-title">에디터 도구</div>
+      <div class="settings-section-title">${t('settings.section_editor_tools')}</div>
       ${renderSettingsRow({
         id: 'setting-editor',
-        title: '콘텐츠 관리',
-        subtitle: '일화 작성/편집/발행',
+        title: t('settings.row_editor'),
+        subtitle: t('settings.row_editor_subtitle'),
         icon: editIcon(),
       })}
     </div>
@@ -41,17 +60,17 @@ export function renderSettingsSections() {
 
     ${user && user.id !== 'guest' ? `
     <div class="settings-section">
-      <div class="settings-section-title">계정</div>
+      <div class="settings-section-title">${t('settings.section_account')}</div>
       ${renderSettingsRow({
         id: 'setting-logout',
-        title: '로그아웃',
+        title: t('settings.row_logout'),
         icon: logoutIcon(),
         titleClass: 'settings-row-danger',
         showChevron: false,
       })}
       ${renderSettingsRow({
         id: 'setting-withdraw',
-        title: '회원 탈퇴',
+        title: t('settings.row_withdraw'),
         icon: userXIcon(),
         titleClass: 'settings-row-muted',
         showChevron: false,
@@ -60,18 +79,23 @@ export function renderSettingsSections() {
     ` : ''}
 
     <div class="settings-section">
-      <div class="settings-section-title">앱 정보</div>
+      <div class="settings-section-title">${t('settings.section_app_info')}</div>
+      ${renderSettingsRow({
+        id: 'setting-about',
+        title: t('settings.row_about'),
+        subtitle: t('settings.row_about_subtitle'),
+        icon: bookIcon(),
+      })}
       ${renderSettingsRow({
         id: 'setting-license',
-        title: '이미지 출처 및 라이선스',
+        title: t('settings.row_license'),
         icon: imageIcon(),
       })}
-    </div>
-
-    <div class="settings-privacy-link">
-      <a href="https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link" target="_blank" rel="noopener noreferrer">
-        개인정보처리방침
-      </a>
+      ${renderSettingsRow({
+        id: 'setting-privacy',
+        title: t('settings.privacy_link'),
+        icon: shieldIcon(),
+      })}
     </div>
 
     <div class="settings-version">
@@ -80,19 +104,128 @@ export function renderSettingsSections() {
   `;
 }
 
+const PRIVACY_URL = 'https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link';
+
 export function bindSettingsSections(page) {
   bindNotificationSettingsSection(page);
   bindThemeOptions(page);
+  bindLangOptions(page);
+  bindSubscriptionSection(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
+  bindRow(page, '#setting-about', () => navigate('/about'));
   bindRow(page, '#setting-license', () => navigate('/license'));
+  bindRow(page, '#setting-privacy', () => window.open(PRIVACY_URL, '_blank', 'noopener'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
+}
+
+function renderSubscriptionSection(profile) {
+  const isPaid = isPaidSubscriber(profile);
+  const subEnd = profile?.subscription_end || '';
+  const datePart = subEnd ? new Date(subEnd).toISOString().slice(0, 10) : '';
+  const status = isPaid
+    ? `<div class="subscription-row-status active">✦ ${escapeText(t('subscription.active_status', { date: datePart || '—' }))}</div>`
+    : `<div class="subscription-row-status">${escapeText(t('subscription.inactive_status'))}</div>`;
+
+  const buttons = isPaid
+    ? `
+      <button type="button" class="btn btn-secondary" id="sub-manage">${escapeText(t('subscription.manage_btn'))}</button>
+      <button type="button" class="btn btn-ghost" id="sub-restore">${escapeText(t('subscription.restore_btn'))}</button>
+    `
+    : `
+      <button type="button" class="btn btn-primary" id="sub-purchase">${escapeText(t('subscription.subscribe_btn'))}</button>
+      <button type="button" class="btn btn-ghost" id="sub-restore">${escapeText(t('subscription.restore_btn'))}</button>
+    `;
+
+  return `
+    <div class="settings-section">
+      <div class="settings-section-title">${escapeText(t('subscription.section_title'))}</div>
+      <div class="subscription-row">
+        <div class="subscription-row-tagline">${escapeText(t('subscription.tagline'))} · ${escapeText(t('subscription.price_monthly'))}</div>
+        ${status}
+        <div class="subscription-row-actions">${buttons}</div>
+      </div>
+    </div>
+  `;
+}
+
+function bindSubscriptionSection(page) {
+  const purchaseBtn = page.querySelector('#sub-purchase');
+  const restoreBtn = page.querySelector('#sub-restore');
+  const manageBtn = page.querySelector('#sub-manage');
+
+  if (purchaseBtn) {
+    purchaseBtn.addEventListener('click', async () => {
+      purchaseBtn.disabled = true;
+      const res = await purchaseMonthly();
+      if (res.ok) {
+        showToast(t('subscription.purchase_success'), 'success');
+        navigate('/profile');
+      } else if (res.error === 'cancelled') {
+        purchaseBtn.disabled = false;
+      } else if (res.error === 'native_only') {
+        showToast(t('subscription.native_only'), 'info');
+        purchaseBtn.disabled = false;
+      } else {
+        showToast(t('subscription.purchase_failed'), 'error');
+        purchaseBtn.disabled = false;
+      }
+    });
+  }
+
+  if (restoreBtn) {
+    restoreBtn.addEventListener('click', async () => {
+      restoreBtn.disabled = true;
+      const res = await restorePurchases();
+      restoreBtn.disabled = false;
+      if (!res.ok) {
+        if (res.error === 'native_only') showToast(t('subscription.native_only'), 'info');
+        else showToast(t('subscription.restore_failed'), 'error');
+        return;
+      }
+      await syncSubscriptionState();
+      const stillPaid = isPaidSubscriber();
+      showToast(stillPaid ? t('subscription.restore_success') : t('subscription.restore_none'), stillPaid ? 'success' : 'info');
+      if (stillPaid) navigate('/profile');
+    });
+  }
+
+  if (manageBtn) {
+    manageBtn.addEventListener('click', async () => {
+      if (isMockBilling()) {
+        /* 테스트 모드 — 가상 해지 후 페이지 재렌더 */
+        await cancelMockSubscription();
+        showToast(t('subscription.cancelled_mock'), 'info');
+        forceRoute();
+        return;
+      }
+      window.open(PLAY_SUBSCRIPTION_URL, '_blank', 'noopener');
+    });
+  }
+}
+
+function escapeText(text) {
+  if (text == null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
 
 function renderThemeOption(theme, label, currentTheme, icon) {
   return `
     <button type="button" class="theme-option ${currentTheme === theme ? 'active' : ''}" data-theme="${theme}" aria-pressed="${currentTheme === theme ? 'true' : 'false'}">
       ${icon}
+      <span class="theme-option-label">${label}</span>
+    </button>
+  `;
+}
+
+function renderLangOption(lang, label, currentLang) {
+  return `
+    <button type="button" class="theme-option lang-option ${currentLang === lang ? 'active' : ''}" data-lang="${lang}" aria-pressed="${currentLang === lang ? 'true' : 'false'}">
       <span class="theme-option-label">${label}</span>
     </button>
   `;
@@ -114,17 +247,29 @@ function renderSettingsRow({ id, title, subtitle = '', icon, titleClass = '', sh
 }
 
 function bindThemeOptions(page) {
-  page.querySelectorAll('.theme-option').forEach((btn) => {
+  page.querySelectorAll('.theme-option[data-theme]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const selectedTheme = btn.dataset.theme;
       setState('theme', selectedTheme);
-      page.querySelectorAll('.theme-option').forEach((option) => {
+      page.querySelectorAll('.theme-option[data-theme]').forEach((option) => {
         option.classList.remove('active');
         option.setAttribute('aria-pressed', 'false');
       });
       btn.classList.add('active');
       btn.setAttribute('aria-pressed', 'true');
-      showToast(`테마: ${themeLabel(selectedTheme)}`, 'success');
+      showToast(t('settings.theme_changed', { label: themeLabel(selectedTheme) }), 'success');
+    });
+  });
+}
+
+function bindLangOptions(page) {
+  page.querySelectorAll('.lang-option[data-lang]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const selectedLang = btn.dataset.lang;
+      if (getCurrentLang() === selectedLang) return;
+      setLang(selectedLang);
+      /* setLang → state 발행 → i18n init이 등록한 forceRoute() 자동 호출됨 → 페이지 재렌더 */
+      showToast(t('settings.lang_changed'), 'success');
     });
   });
 }
@@ -160,7 +305,7 @@ async function handleLogout() {
   const nav = document.getElementById('bottom-nav');
   if (nav) nav.style.display = 'none';
   window.location.hash = '#/login';
-  showToast('로그아웃 되었습니다', 'success');
+  showToast(t('toast.logged_out'), 'success');
 }
 
 async function handleWithdraw() {
@@ -192,7 +337,7 @@ async function handleWithdraw() {
 
     await deleteUser(user);
     localStorage.removeItem(AUTH_SESSION_KEY);
-    showToast('회원 탈퇴가 완료되었습니다.', 'success');
+    showToast(t('toast.withdraw_done'), 'success');
     setState('user', null);
     setState('profile', null);
     const nav = document.getElementById('bottom-nav');
@@ -215,7 +360,11 @@ async function handleWithdraw() {
 }
 
 function themeLabel(theme) {
-  return { system: '시스템 설정', light: '라이트', dark: '다크' }[theme];
+  return {
+    system: t('settings.theme_system'),
+    light: t('settings.theme_light'),
+    dark: t('settings.theme_dark'),
+  }[theme];
 }
 
 function chevronIcon() {
@@ -248,4 +397,12 @@ function userXIcon() {
 
 function imageIcon() {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+}
+
+function shieldIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+}
+
+function bookIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
 }

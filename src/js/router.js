@@ -267,27 +267,26 @@ export function initRouter() {
       const route = item.dataset.route;
       const currentPath = getCurrentPath();
 
-      /* 만약 에디터 일화 탭인데 이미 에디터 일화에 있다면 -> 오늘 날짜로 이동 */
+      /* 에디터 일화 탭 재클릭 → 휠을 오늘 날짜로 되돌리기 */
       if (route === '/editorstory' && currentPath === '/editorstory') {
         const today = new Date();
         const mNum = today.getMonth() + 1;
         const dNum = today.getDate();
-        
+
         const monthItem = document.querySelector(`#editorstory-month-scroll .wheel-item[data-month="${mNum}"]`);
         const dayItem = document.querySelector(`#editorstory-calendar .wheel-item[data-day="${dNum}"]`);
-        
+
         if (monthItem && !monthItem.classList.contains('active')) {
           monthItem.click();
         } else if (monthItem) {
           monthItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
-
         if (dayItem && !dayItem.classList.contains('active')) {
           dayItem.click();
         } else if (dayItem) {
           dayItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
-        return; // 라우팅 중단
+        return;
       }
 
       /* 만약 나의 일화 탭인데 이미 나의 일화에 있다면 -> 오늘 날짜로 이동 */

@@ -45,18 +45,46 @@ export function canCollect(publishDate) {
 }
 
 /**
- * collect — 카드 수집. 오늘 날짜가 아니면 실패.
+ * collect — 카드 수집. 기본: 오늘 날짜 카드만. options.bypass=true 면 날짜 제한 무시.
+ *
+ * bypass 사용처: 어드민·구독자가 지난 카드를 열람했을 때 자동 수집 (구독 해지 후에도
+ * 한 번 본 카드는 영구 보관되도록).
+ *
+ * @param {string} storyId
+ * @param {string} publishDate
+ * @param {{ bypass?: boolean }} [options]
  * @returns {{ ok: boolean, alreadyCollected: boolean }}
  */
-export function collect(storyId, publishDate) {
+export function collect(storyId, publishDate, options = {}) {
   if (isCollected(storyId)) {
     return { ok: true, alreadyCollected: true };
   }
-  if (!canCollect(publishDate)) {
+  if (!options.bypass && !canCollect(publishDate)) {
     return { ok: false, alreadyCollected: false };
   }
   const data = load();
   data[storyId] = getLocalToday();
   save(data);
   return { ok: true, alreadyCollected: false };
+}
+
+/**
+ * bulkCollect — 구독자/어드민용 일괄 수집. localStorage 1회 쓰기로 효율적.
+ * 이미 수집된 카드는 skip. 날짜 제한 무시(bypass 효과).
+ *
+ * @param {string[]} storyIds
+ * @returns {number} 새로 추가된 카드 수
+ */
+export function bulkCollect(storyIds) {
+  if (!Array.isArray(storyIds) || storyIds.length === 0) return 0;
+  const data = load();
+  const today = getLocalToday();
+  let added = 0;
+  for (const id of storyIds) {
+    if (!id || data[id]) continue;
+    data[id] = today;
+    added += 1;
+  }
+  if (added > 0) save(data);
+  return added;
 }

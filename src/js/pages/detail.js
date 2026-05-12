@@ -16,8 +16,11 @@ import { showToast } from '../components/toast.js';
 import { fetchStoryById } from '../services/stories.js';
 import { toggleBookmark, isBookmarked } from '../services/bookmarks.js';
 import { shareStory, buildShareUrl } from '../services/sharing.js';
+import { isMembershipCardId, getMembershipCardById } from '../services/membershipCards.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { preloadImage } from '../utils/imageLoading.js';
+import { localizedStory } from '../utils/storyI18n.js';
+import { t } from '../i18n/index.js';
 
 function normalizeSourceItem(source) {
   if (!source) return null;
@@ -136,17 +139,22 @@ export function renderDetail(params) {
  * @param {string}      storyId - 표시할 스토리의 ID
  */
 async function loadDetail(page, storyId) {
-  /* 서버에서 스토리 데이터 가져오기 */
-  const story = await fetchStoryById(storyId);
+  /* 멤버십 카드는 Firestore에 없으므로 localStorage에서 직접 조회 */
+  const rawStory = isMembershipCardId(storyId)
+    ? getMembershipCardById(storyId)
+    : await fetchStoryById(storyId);
 
-  if (!story) {
+  if (!rawStory) {
     page.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-title">일화를 찾을 수 없습니다</div>
+        <div class="empty-state-title">${t('common.load_failed_title')}</div>
       </div>
     `;
     return;
   }
+
+  /* 현재 언어로 변환 (ko/en/ja) */
+  const story = localizedStory(rawStory);
 
   /* 북마크 여부 확인 */
   let bookmarked = await isBookmarked(storyId);

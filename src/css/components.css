@@ -1293,6 +1293,91 @@
   color:var(--color-text-on-image)}
 
 
+/* ===== 구독 안내 모달 ===== */
+
+.subscription-modal-overlay {
+  z-index:10000;
+  opacity:0;
+  padding:var(--space-4);
+  background:#00000080;
+  justify-content:center;
+  align-items:center;
+  transition:opacity .18s;
+  display:flex;
+  position:fixed;
+  inset:0}
+
+.subscription-modal-overlay.visible {
+  opacity:1}
+
+.subscription-modal {
+  background:var(--color-bg-card);
+  color:var(--color-text-primary);
+  border-radius:var(--radius-lg);
+  width:min(340px,100%);
+  padding:var(--space-6) var(--space-5);
+  transition:transform .18s;
+  transform:scale(.94);
+  box-shadow:0 16px 40px #0000003a;
+  text-align:center}
+
+.subscription-modal-overlay.visible .subscription-modal {
+  transform:scale(1)}
+
+.subscription-modal-icon {
+  font-size:2rem;
+  color:#ffd700;
+  text-shadow:0 0 12px #ffd70066;
+  line-height:1;
+  margin-bottom:var(--space-3)}
+
+.subscription-modal-title {
+  font-size:var(--text-lg);
+  font-weight:700;
+  margin-bottom:var(--space-2)}
+
+.subscription-modal-message {
+  font-size:var(--text-sm);
+  color:var(--color-text-secondary);
+  line-height:1.55;
+  margin-bottom:var(--space-4)}
+
+.subscription-modal-price {
+  font-size:var(--text-xl);
+  font-weight:800;
+  letter-spacing:.02em;
+  margin-bottom:var(--space-5);
+  color:var(--color-text-primary)}
+
+.subscription-modal-actions {
+  gap:var(--space-2);
+  display:flex}
+
+.subscription-modal-btn {
+  flex:1;
+  padding:var(--space-3) var(--space-4);
+  font-size:var(--text-sm);
+  font-weight:700;
+  border-radius:var(--radius-md);
+  border:1px solid var(--color-border);
+  background:var(--color-bg-secondary);
+  color:var(--color-text-primary);
+  cursor:pointer;
+  transition:transform .15s, background .15s}
+
+.subscription-modal-btn:active:not(:disabled) {
+  transform:scale(.97)}
+
+.subscription-modal-cta {
+  background:var(--color-accent);
+  color:var(--color-text-inverse);
+  border-color:transparent}
+
+.subscription-modal-btn:disabled {
+  opacity:.7;
+  cursor:default}
+
+
 /* ===== 알림 설정 시트 (5월 1일 AAB) ===== */
 
 .notification-settings-sheet {

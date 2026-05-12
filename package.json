@@ -1,6 +1,6 @@
 {
   "name": "daystory",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -30,6 +30,7 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@revenuecat/purchases-capacitor": "^13.1.0",
     "browser-image-compression": "^2.0.2",
     "cropperjs": "^1.6.2",
     "firebase": "^10.14.1"

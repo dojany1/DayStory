@@ -34,6 +34,7 @@ const state = {
   isLoading: false,     /* 로딩 중인지 여부 */
   theme: localStorage.getItem('ds_theme') || 'system',      /* 테마: 'light', 'dark', 'system' */
   fontSize: localStorage.getItem('ds_fontSize') || 'medium', /* 글꼴 크기: 'small', 'medium', 'large' */
+  lang: localStorage.getItem('ds_lang') || null,            /* 언어: 'ko' | 'en' | 'ja' (null이면 i18n init이 navigator.language로 추정) */
 };
 
 /**
@@ -76,9 +77,10 @@ export function setState(key, value) {
     listeners.get(key).forEach(callbackFn => callbackFn(value, oldValue));
   }
 
-  /* 테마와 폰트 크기는 브라우저에 영구 저장 */
+  /* 테마, 폰트 크기, 언어는 브라우저에 영구 저장 */
   if (key === 'theme') localStorage.setItem('ds_theme', value);
   if (key === 'fontSize') localStorage.setItem('ds_fontSize', value);
+  if (key === 'lang' && value) localStorage.setItem('ds_lang', value);
 }
 
 /**

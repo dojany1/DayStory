@@ -1,0 +1,97 @@
+/* =====================================================================
+   membershipLetter.js — DOKHU 정기 후원 결제 시 보내지는 편지 (3개 언어)
+   =====================================================================
+   사용자가 구독을 시작하면 보관함 "받은 카드" 탭에 자동으로 1장 추가됨.
+   원문은 docs/dokhu.md.
+   ===================================================================== */
+
+export const MEMBERSHIP_LETTER = {
+  ko: {
+    title: 'DOKHU 정기 후원',
+    figure_name: 'DOKHU 정기 후원',
+    summary: '결제해주신 분들께 보내는 편지',
+    country: 'DOKHU',
+    body: [
+      '저희는 큰 서비스를 하지 않습니다.',
+      '다음 세대의 반도체칩을 만들거나',
+      '신약을 개발하거나 달로 이주는',
+      '하지 않습니다. 그건 저희의 과제가 아닙니다.',
+      '',
+      '대신 작더라도 의미 있는 문제들에',
+      '집중하고자 합니다. 예를 들면 현대인이 하루하루에',
+      '의미를 부여할 수 있게 돕는다던지 말이죠.',
+      '',
+      '저희가 지금 드릴수 있는 건 광고를 넣지 않고',
+      '후원해주신 분들께',
+      '저의 추가 콘텐츠를 제공하는 정도입니다.',
+      '',
+      '하지만 언젠가 후원해주신 분들에게',
+      '더 많은걸 돌려주고 싶다는 생각이 듭니다.',
+      '그러기 위해서는 계속해서 응원하고 싶어지게',
+      '나아가는 수밖에 없겠지요',
+      '',
+      '저는 DOKHU의 이현준이라고 합니다.',
+      '역사와 책을 좋아하고',
+      '자기만의 철학이 있는 사람을 좋아합니다.',
+      'DayStory는 DOKHU의 첫 프로젝트입니다.',
+      '다시 한번 감사드립니다.',
+      '기대에 부응하겠습니다.',
+      '',
+      'DOKHU',
+    ].join('\n'),
+  },
+  en: {
+    title: 'DOKHU Membership',
+    figure_name: 'DOKHU Membership',
+    summary: 'A letter to our supporters',
+    country: 'DOKHU',
+    body: [
+      'We aren\'t making anything huge. We don\'t build next-gen chips, create new medicines, or plan trips to the moon. That\'s just not our job.',
+      '',
+      'Instead, we want to tackle smaller but meaningful things—like helping you bring meaning to your everyday life.',
+      '',
+      'Right now, what we can give you is an ad-free space and some extra content for those who support us. But I dream of giving back so much more to our backers one day. For that to happen, we just have to keep growing and make you want to keep cheering us on.',
+      '',
+      'I\'m Hyun-jun Lee from DOKHU. I love history, books, and people who stand by their own philosophy. DayStory is our very first project at DOKHU.',
+      '',
+      'Thanks again for being here. We won\'t let you down.',
+      '',
+      'DOKHU',
+    ].join('\n'),
+  },
+  ja: {
+    title: 'DOKHU 定期サポート',
+    figure_name: 'DOKHU 定期サポート',
+    summary: 'サポートしてくださる皆様へのお手紙',
+    country: 'DOKHU',
+    body: [
+      '私たちは大規模なサービスを作っているわけではありません。',
+      '次世代の半導体チップを作ったり、',
+      '新薬を開発したり、月に移住したりすることはありません。',
+      'それは私たちの課題ではないからです。',
+      '',
+      'その代わり、小さくても意味のある問題に集中したいと考えています。',
+      '例えば、現代人が一日一日に意味を見出せるようにお手伝いすることなどです。',
+      '',
+      '現在私たちが提供できるのは、広告を入れず、',
+      '支援してくださる方々に追加のコンテンツをお届けすることくらいです。',
+      'しかし、いつか支援者の皆様に',
+      'より多くのものをお返ししたいと思っています。',
+      'そのためには、これからも応援したくなるように',
+      '前に進み続けるしかありません。',
+      '',
+      '私は DOKHU（ドク）のイ・ヒョンジュンと申します。',
+      '歴史と本が好きで、',
+      '自分なりの哲学を持っている人が好きです。',
+      'DayStory は DOKHU の最初のプロジェクトです。',
+      '',
+      '改めて感謝申し上げます。',
+      'ご期待に応えられるよう努めてまいります。',
+      '',
+      'DOKHU',
+    ].join('\n'),
+  },
+};
+
+/** DOKHU 멤버십 카드에 들어갈 이미지. public/daystory_icon_light.png 사용. */
+export const MEMBERSHIP_CARD_IMAGE = '/daystory_icon_light.png';

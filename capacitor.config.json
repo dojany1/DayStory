@@ -2,6 +2,17 @@
   "appId": "com.daystory.app",
   "appName": "DayStory",
   "webDir": "dist",
+  "android": {
+    "includePlugins": [
+      "@capacitor-firebase/authentication",
+      "@capacitor/app",
+      "@capacitor/device",
+      "@capacitor/local-notifications",
+      "@capacitor/share",
+      "@capacitor/splash-screen",
+      "@capacitor/status-bar"
+    ]
+  },
   "plugins": {
     "FirebaseAuthentication": {
       "skipNativeAuth": false,

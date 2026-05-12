@@ -7,14 +7,14 @@
    - 언어 변경 시 <html lang> 동기화 + 현재 페이지 강제 재렌더
    ===================================================================== */
 
-import koMessages from '../../i18n/ko.json';
-import enMessages from '../../i18n/en.json';
-import jaMessages from '../../i18n/ja.json';
-import { getState, setState, subscribe } from '../state.js';
-import { forceRoute } from '../router.js';
+import koMessages from "../../i18n/ko.json";
+import enMessages from "../../i18n/en.json";
+import jaMessages from "../../i18n/ja.json";
+import { getState, setState, subscribe } from "../state.js";
+import { forceRoute } from "../router.js";
 
-const SUPPORTED_LANGS = ['ko', 'en', 'ja'];
-const DEFAULT_LANG = 'ko';
+const SUPPORTED_LANGS = ["ko", "en", "ja"];
+const DEFAULT_LANG = "ko";
 
 const messages = {
   ko: koMessages,
@@ -28,23 +28,27 @@ const messages = {
  * 2) 없으면 navigator.language 보고 ko/ja → 해당, 그 외 → en
  */
 export function detectInitialLang() {
-  const stored = localStorage.getItem('ds_lang');
+  const stored = localStorage.getItem("ds_lang");
   if (stored && SUPPORTED_LANGS.includes(stored)) return stored;
 
-  const navLang = (typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage) || '').toLowerCase();
-  if (navLang.startsWith('ko')) return 'ko';
-  if (navLang.startsWith('ja')) return 'ja';
-  return 'en';
+  const navLang = (
+    (typeof navigator !== "undefined" &&
+      (navigator.language || navigator.userLanguage)) ||
+    ""
+  ).toLowerCase();
+  if (navLang.startsWith("ko")) return "ko";
+  if (navLang.startsWith("ja")) return "ja";
+  return "en";
 }
 
 export function getCurrentLang() {
-  return getState('lang') || DEFAULT_LANG;
+  return getState("lang") || DEFAULT_LANG;
 }
 
 export function setLang(lang) {
   if (!SUPPORTED_LANGS.includes(lang)) return;
   if (getCurrentLang() === lang) return;
-  setState('lang', lang);
+  setState("lang", lang);
 }
 
 /**
@@ -53,17 +57,17 @@ export function setLang(lang) {
  * vars 객체로 {name} 같은 자리 표시자 치환.
  */
 export function t(key, vars) {
-  if (!key) return '';
+  if (!key) return "";
   const lang = getCurrentLang();
   const lookup = (langCode) => {
     const dict = messages[langCode];
     if (!dict) return null;
     let cur = dict;
-    for (const part of key.split('.')) {
-      if (cur == null || typeof cur !== 'object') return null;
+    for (const part of key.split(".")) {
+      if (cur == null || typeof cur !== "object") return null;
       cur = cur[part];
     }
-    return typeof cur === 'string' ? cur : null;
+    return typeof cur === "string" ? cur : null;
   };
 
   let val = lookup(lang);
@@ -71,16 +75,16 @@ export function t(key, vars) {
   if (!val) val = lookup(DEFAULT_LANG);
   if (!val) return key;
 
-  if (vars && typeof vars === 'object') {
+  if (vars && typeof vars === "object") {
     Object.entries(vars).forEach(([k, v]) => {
-      val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+      val = val.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
     });
   }
   return val;
 }
 
 function applyHtmlLang(lang) {
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     document.documentElement.lang = lang || DEFAULT_LANG;
   }
 }
@@ -91,10 +95,10 @@ function applyHtmlLang(lang) {
  */
 export function initI18n() {
   const lang = detectInitialLang();
-  setState('lang', lang);
+  setState("lang", lang);
   applyHtmlLang(lang);
 
-  subscribe('lang', (newLang) => {
+  subscribe("lang", (newLang) => {
     applyHtmlLang(newLang);
     /* 현재 페이지 강제 재렌더 — 모든 t() 호출 재평가 */
     try {

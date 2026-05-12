@@ -1463,6 +1463,14 @@
   background: var(--color-bg-card);
 }
 
+.editor-calendar-cell.sun .cal-cell-day {
+  color: var(--color-sunday);
+}
+
+.editor-calendar-cell.sat .cal-cell-day {
+  color: var(--color-saturday);
+}
+
 .editor-calendar-stories {
   display: flex;
   flex-direction: column;

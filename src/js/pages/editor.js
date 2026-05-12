@@ -155,7 +155,7 @@ export function renderEditor() {
     }
 
     for (let i = 0; i < firstDay; i += 1) {
-      cells.push('<div class="editor-calendar-cell editor-calendar-cell-blank cal-cell cal-cell-blank" aria-hidden="true"></div>');
+      cells.push('<div class="editor-calendar-cell editor-calendar-cell-blank" aria-hidden="true"></div>');
     }
 
     for (let day = 1; day <= lastDate; day += 1) {
@@ -166,7 +166,7 @@ export function renderEditor() {
       const storyClass = stories.length ? ' editor-calendar-cell-has-story' : ' editor-calendar-cell-empty';
 
       cells.push(`
-        <div class="editor-calendar-cell cal-cell${weekdayClass}${storyClass}" data-date="${isoDate}" role="button" tabindex="0">
+        <div class="editor-calendar-cell${weekdayClass}${storyClass}" data-date="${isoDate}" role="button" tabindex="0">
           <div class="cal-cell-day">${day}</div>
           <div class="editor-calendar-stories">
             ${stories.map(renderCalendarStory).join('')}

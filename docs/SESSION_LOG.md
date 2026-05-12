@@ -71,3 +71,8 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 캘린더와 소개 페이지 스타일을 단순화했습니다. 캘린더는 카드가 있는 날만 미니카드처럼 보이고, 빈 날짜는 숫자만 남도록 정리했습니다.
 - Android 테스트 배포용으로 RevenueCat 네이티브 플러그인을 `capacitor.config.json`의 Android `includePlugins` allowlist에서 제외했습니다. `:app:bundleRelease` 성공.
 - 이 파일을 날짜별 패치노트 형식으로 압축 정리했습니다.
+
+## 2026-05-12
+
+- 관리자 콘텐츠 관리(에디터) 캘린더가 5월 12일 커밋 이후 깨져 보이던 문제를 수정했습니다. 셀이 투명·다른 aspect-ratio로 렌더되어 금/토 컬럼이 사라진 듯 보이고 콘텐츠가 으스러지는 증상이었습니다.
+- 원인은 일반 캘린더용으로 새로 디자인된 `.cal-cell` 규칙이 pages.css에서 더 늦게 정의되어 `.editor-calendar-cell` 스타일을 덮어쓰던 것이었습니다. `src/js/pages/editor.js`의 셀 마크업에서 더 이상 필요 없는 `cal-cell`/`cal-cell-blank` 클래스를 제거하고, 일요일·토요일 날짜 숫자 색상은 `.editor-calendar-cell.sun/.sat .cal-cell-day` 규칙을 `src/css/pages.css`에 추가해 보존했습니다.

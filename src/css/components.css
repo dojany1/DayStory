@@ -926,13 +926,12 @@
   align-items: flex-end;               /* 시트를 화면 하단에 배치 */
   justify-content: center;
   animation: fadeIn 0.2s ease;
-  width: var(--mobile-max-width);
 }
 
 /* 모달 시트 — 하단에서 올라오는 둥근 패널 */
 .modal-sheet {
   width: 100%;
-  max-width: 500px;
+  max-width: var(--mobile-max-width);
   max-height: 85vh;                    /* 화면 85%까지만 차지 */
   background: var(--color-bg-elevated);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0; /* 상단만 둥글게 */

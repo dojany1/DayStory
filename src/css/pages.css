@@ -1114,7 +1114,7 @@
   stroke-width: 2;
 }
 
-.theme-option-label {
+.theme-option:not(.lang-option) .theme-option-label {
   display: none;
 }
 

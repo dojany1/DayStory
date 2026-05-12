@@ -23,6 +23,7 @@ import { t } from '../i18n/index.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
 
 const FLIP_DURATION_MS = 400;
+const CARD_STACK_SETTLE_MS = 560;
 
 /* 스와이프 commit 가드 — bindCardEvents 가 카드 재렌더로 다시 호출돼도
    짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다. */
@@ -169,11 +170,12 @@ async function loadEditorStoryData(page) {
       /* 존재하지 않는 날짜(예: 2월 30일) 무시 */
       if (String(newDate.getMonth() + 1).padStart(2, '0') !== mNum) return;
 
+      const direction = isInitial ? null : (newDate > latestDate ? 'next' : 'prev');
       latestDate = newDate;
       const story = historyStories.find((s) => s.publish_date === isoDate)
         || (todayStory.publish_date === isoDate ? todayStory : null);
       preloadStoryImages([story], { limit: 1, variant: 'thumb', fallback: false });
-      renderCard(cardArea, story, newDate, bookmarkedIds, isInitial);
+      renderCard(cardArea, story, newDate, bookmarkedIds, direction);
       isInitial = false;
     }
 
@@ -242,11 +244,15 @@ async function loadEditorStoryData(page) {
    섹션 3: 카드 렌더링
    ───────────────────────────────────────────── */
 
-function renderCard(cardArea, story, dateObj, bookmarkedIds, useSlideIn) {
+function renderCard(cardArea, story, dateObj, bookmarkedIds, direction) {
   if (!cardArea) return;
 
   /* 현재 언어로 변환 */
   story = story ? localizedStory(story) : null;
+
+  const allCards = Array.from(cardArea.querySelectorAll('.flip-container'));
+  const oldCard = allCards.pop() || null;
+  allCards.forEach(c => c.remove());
 
   const pubDate = story ? new Date(story.publish_date + 'T00:00:00') : dateObj;
   const month = pubDate.getMonth() + 1;
@@ -254,7 +260,7 @@ function renderCard(cardArea, story, dateObj, bookmarkedIds, useSlideIn) {
   const displayYear = dateObj.getFullYear();
 
   const newCard = document.createElement('div');
-  newCard.className = 'flip-container' + (useSlideIn ? ' card-slide-in' : '');
+  newCard.className = 'flip-container';
 
   if (!story) {
     const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -333,9 +339,26 @@ function renderCard(cardArea, story, dateObj, bookmarkedIds, useSlideIn) {
     `;
   }
 
-  cardArea.innerHTML = '';
+  if (!direction || !oldCard) {
+    cardArea.innerHTML = '';
+    cardArea.appendChild(newCard);
+    bindCardEvents(newCard, story, bookmarkedIds);
+    return;
+  }
+
+  oldCard.classList.add('card-stack-item', `stack-exit-${direction}`);
+  newCard.classList.add('card-stack-item', `stack-enter-${direction}`);
   cardArea.appendChild(newCard);
-  bindCardEvents(newCard, story, bookmarkedIds);
+  void newCard.offsetWidth;
+  newCard.classList.add('active');
+
+  const onAnimationEnd = () => {
+    if (oldCard.parentNode) oldCard.remove();
+    newCard.classList.remove('card-stack-item', `stack-enter-${direction}`, 'active');
+    bindCardEvents(newCard, story, bookmarkedIds);
+  };
+  newCard.addEventListener('transitionend', onAnimationEnd, { once: true });
+  setTimeout(() => { if (newCard.classList.contains('card-stack-item')) onAnimationEnd(); }, CARD_STACK_SETTLE_MS);
 }
 
 

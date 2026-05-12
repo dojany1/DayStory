@@ -200,6 +200,7 @@
   border-bottom: 2px solid var(--color-divider);
   box-shadow: var(--shadow-card);
   margin: var(--space-4) 0 var(--space-4) 0;
+  gap: var(--space-1);
 }
 
 .wheel-picker-wrapper {

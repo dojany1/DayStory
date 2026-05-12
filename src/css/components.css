@@ -1058,6 +1058,7 @@
 .wheel-item.disabled {
   opacity: 0.25;
   pointer-events: none;
+  scroll-snap-align: none;
 }
 
 /* ============================================

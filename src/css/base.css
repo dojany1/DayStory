@@ -362,7 +362,7 @@ ul, ol {
 /* 활성화된 내비게이션 아이템 — 라이트 모드에서 진한 검정 */
 .nav-item.active {
   color: var(--color-text-primary);
-  border-radius: var(--radius-full);
+  border-radius: 8px;
 }
 
 /* 다크 테마에서 활성화된 아이템 — 흰색 */
@@ -379,7 +379,7 @@ ul, ol {
 /* 리디자인된 내비게이션의 아이템 — 더 넓은 터치 영역 및 사이즈 확보 */
 .bottom-nav.redesigned-nav .nav-item {
   padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -390,10 +390,11 @@ ul, ol {
 /* 활성화된 아이템 뒷 배경 포인트 추가 */
 .bottom-nav.redesigned-nav .nav-item.active {
   background-color: rgba(0, 0, 0, 0.04);
-  transform: scale(1.05); /* 조금 커지게 */
+  transform: scale(1.05);
 }
 [data-theme="dark"] .bottom-nav.redesigned-nav .nav-item.active {
   background-color: rgba(255, 255, 255, 0.08);
+  transform: scale(1.05);
 }
 
 /* 리디자인된 내비게이션의 아이콘 — 28px 크기 */

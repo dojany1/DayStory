@@ -2,7 +2,7 @@ import { navigate } from '../router.js';
 import { getState, setState } from '../state.js';
 import { showToast } from './toast.js';
 import { showConfirm } from './confirmDialog.js';
-import { bindNotificationSettingsSection, renderNotificationSettingsSection } from './notificationSettingsSheet.js';
+import { bindNotificationSettingsSection, renderNotificationListItem } from './notificationSettingsSheet.js';
 import { auth, db } from '../firebase.js';
 import { signOut, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -12,6 +12,7 @@ import pkg from '../../../package.json';
 
 const AUTH_SESSION_KEY = 'daystory:auth-session-active';
 const PRIVACY_URL = 'https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link';
+const CONTACT_URL = 'mailto:contact@daystory.app';
 
 export function renderSettingsSections() {
   const user = getState('user');
@@ -20,29 +21,9 @@ export function renderSettingsSections() {
   const currentLang = getCurrentLang();
 
   return `
-    <div class="settings-section">
-      <div class="settings-section-title">${t('settings.section_display')}</div>
-      <div class="theme-option-group" role="group" aria-label="${t('settings.section_display')}">
-        ${renderThemeOption('light', t('settings.theme_light'), currentTheme, sunIcon())}
-        ${renderThemeOption('dark', t('settings.theme_dark'), currentTheme, moonIcon())}
-        ${renderThemeOption('system', t('settings.theme_system'), currentTheme, systemIcon())}
-      </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">${t('settings.section_language')}</div>
-      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}">
-        ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
-        ${renderLangOption('en', t('settings.lang_en'), currentLang)}
-        ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
-      </div>
-    </div>
-
-    ${renderNotificationSettingsSection()}
-
     ${profile && profile.role === 'editor' ? `
     <div class="settings-section">
-      <div class="settings-section-title">${t('settings.section_editor_tools')}</div>
+      <div class="settings-section-title">관리자 도구</div>
       ${renderSettingsRow({
         id: 'setting-editor',
         title: t('settings.row_editor'),
@@ -52,9 +33,38 @@ export function renderSettingsSections() {
     </div>
     ` : ''}
 
+    <div class="settings-section">
+      <div class="settings-section-title">앱 설정</div>
+      <div class="theme-option-group" role="group" aria-label="${t('settings.section_display')}">
+        ${renderThemeOption('light', t('settings.theme_light'), currentTheme, sunIcon())}
+        ${renderThemeOption('dark', t('settings.theme_dark'), currentTheme, moonIcon())}
+        ${renderThemeOption('system', t('settings.theme_system'), currentTheme, systemIcon())}
+      </div>
+      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}">
+        ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
+        ${renderLangOption('en', t('settings.lang_en'), currentLang)}
+        ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
+      </div>
+      ${renderNotificationListItem()}
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">지원</div>
+      ${renderSettingsRow({
+        id: 'setting-about',
+        title: t('settings.row_about'),
+        subtitle: t('settings.row_about_subtitle'),
+        icon: bookIcon(),
+      })}
+      ${renderSettingsRow({
+        id: 'setting-contact',
+        title: '문의',
+        icon: mailIcon(),
+      })}
+    </div>
+
     ${user && user.id !== 'guest' ? `
     <div class="settings-section">
-      <div class="settings-section-title">${t('settings.section_account')}</div>
       ${renderSettingsRow({
         id: 'setting-logout',
         title: t('settings.row_logout'),
@@ -62,26 +72,8 @@ export function renderSettingsSections() {
         titleClass: 'settings-row-danger',
         showChevron: false,
       })}
-      ${ /* 회원 탈퇴 — 임시 비활성화
-      renderSettingsRow({
-        id: 'setting-withdraw',
-        title: t('settings.row_withdraw'),
-        icon: userXIcon(),
-        titleClass: 'settings-row-muted',
-        showChevron: false,
-      }) */ ''}
     </div>
     ` : ''}
-
-    <div class="settings-section">
-      <div class="settings-section-title">${t('settings.section_app_info')}</div>
-      ${renderSettingsRow({
-        id: 'setting-about',
-        title: t('settings.row_about'),
-        subtitle: t('settings.row_about_subtitle'),
-        icon: bookIcon(),
-      })}
-    </div>
 
     <div class="settings-privacy-link">
       <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">
@@ -101,8 +93,8 @@ export function bindSettingsSections(page) {
   bindLangOptions(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => navigate('/about'));
+  bindRow(page, '#setting-contact', () => window.open(CONTACT_URL, '_blank', 'noopener'));
   bindRow(page, '#setting-logout', handleLogout);
-  // bindRow(page, '#setting-withdraw', handleWithdraw); /* 회원 탈퇴 — 임시 비활성화 */
 }
 
 function escapeText(text) {
@@ -306,4 +298,8 @@ function shieldIcon() {
 
 function bookIcon() {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+}
+
+function mailIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>';
 }

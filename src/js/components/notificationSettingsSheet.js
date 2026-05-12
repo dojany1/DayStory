@@ -19,27 +19,33 @@ const PERIODS = [
   { value: 'PM', label: '오후' },
 ];
 
+export function renderNotificationListItem() {
+  return `
+    <div class="list-item" id="setting-notifications" role="button" tabindex="0">
+      <div class="list-item-icon notification-settings-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+      </div>
+      <div class="list-item-content">
+        <div class="list-item-title">알림</div>
+        <div class="list-item-subtitle notification-settings-summary">${notificationSummary()}</div>
+      </div>
+      <div class="list-item-action">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+    </div>
+  `;
+}
+
 export function renderNotificationSettingsSection() {
   return `
     <div class="settings-section notification-settings-section">
       <div class="settings-section-title">알림</div>
-      <div class="list-item" id="setting-notifications" role="button" tabindex="0">
-        <div class="list-item-icon notification-settings-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-        </div>
-        <div class="list-item-content">
-          <div class="list-item-title">알림</div>
-          <div class="list-item-subtitle notification-settings-summary">${notificationSummary()}</div>
-        </div>
-        <div class="list-item-action">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
+      ${renderNotificationListItem()}
     </div>
   `;
 }

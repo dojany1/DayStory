@@ -1896,6 +1896,7 @@
   /* 5. Misc */
   opacity: 0;
   transition: opacity 0.2s ease;
+  touch-action: none;
 }
 
 .profile-edit-overlay.visible {
@@ -2375,7 +2376,8 @@
   transition:opacity .22s;
   display:flex;
   position:fixed;
-  inset:0}
+  inset:0;
+  touch-action:none}
 
 .calendar-card-popup.open {
   opacity:1;

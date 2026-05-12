@@ -1,7 +1,7 @@
 let _lockCount = 0;
 
 const getScrollEl = () =>
-  document.querySelector('.mobile-wrapper') || document.body;
+  document.querySelector('.page-container') || document.body;
 
 export function lockScroll() {
   _lockCount++;

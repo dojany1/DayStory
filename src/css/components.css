@@ -927,6 +927,7 @@
   align-items: flex-end;               /* 시트를 화면 하단에 배치 */
   justify-content: center;
   animation: fadeIn 0.2s ease;
+  touch-action: none;
 }
 
 /* 모달 시트 — 하단에서 올라오는 둥근 패널 */
@@ -1086,6 +1087,7 @@
   /* 5. Misc */
   opacity: 0;
   transition: opacity 0.2s ease;
+  touch-action: none;
 }
 
 .crop-modal-header {
@@ -1227,7 +1229,8 @@
   transition:opacity .18s;
   display:flex;
   position:fixed;
-  inset:0}
+  inset:0;
+  touch-action:none}
 
 .confirm-dialog-overlay.visible {
   opacity:1}

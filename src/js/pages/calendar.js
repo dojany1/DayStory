@@ -21,8 +21,6 @@ import { navigate } from '../router.js';
 import { shareStory } from '../services/sharing.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
-import { hasFullAccess } from '../utils/access.js';
-import { showSubscriptionModal } from '../components/subscriptionModal.js';
 import { showConfirm } from '../components/confirmDialog.js';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -94,11 +92,7 @@ async function loadCalendar(page) {
     /* 무시: 빈 그리드로 폴백 */
   }
 
-  /* 구독자/어드민 — 그동안 발행된 모든 역사 카드를 일괄 자동 수집.
-     해지 후엔 hasFullAccess=false 라 호출 안 되고, 이미 수집된 카드는 그대로 영구 보존됨. */
-  if (hasFullAccess()) {
-    bulkCollect((state.historyStories || []).map((s) => s?.id).filter(Boolean));
-  }
+  bulkCollect((state.historyStories || []).map((s) => s?.id).filter(Boolean));
 
   renderGrid(page, state, today);
 
@@ -238,17 +232,6 @@ function renderGrid(page, state, today) {
       const story = storyByDate.get(date);
       if (!story) return;
 
-      /* 잠금 카드(미구독 + 미수집 + 기간경과)는 구독 안내 모달로 분기 */
-      const fullAccess = hasFullAccess();
-      if (state.mode === 'history' && story.publish_date && !fullAccess) {
-        const collected = story.id ? isCollected(story.id) : false;
-        const locked = !canCollect(story.publish_date) && !collected;
-        if (locked) {
-          showSubscriptionModal();
-          return;
-        }
-      }
-
       openCardPopup(story, state.mode, state.bookmarkedIds);
     });
   });
@@ -275,24 +258,16 @@ function renderCellPeek(story, mode) {
     ? (story.figure_name || story.title || '')
     : (story.title || '');
 
-  const fullAccess = hasFullAccess();
   const collected = mode === 'history' && story.id ? isCollected(story.id) : false;
-  const locked = mode === 'history' && story.publish_date && !fullAccess
-    ? !canCollect(story.publish_date) && !collected
-    : false;
 
   const collectedBadge = collected
     ? `<span class="cal-cell-collected-badge" aria-label="수집됨">✦</span>`
     : '';
-  const lockedOverlay = locked
-    ? `<span class="cal-cell-locked-overlay" aria-hidden="true"></span>`
-    : '';
 
   return `
-    <span class="cal-cell-peek ${locked ? 'cal-cell-peek--locked' : ''}" aria-hidden="true">
+    <span class="cal-cell-peek" aria-hidden="true">
       <img class="cal-cell-peek-img" ${imageAttrs} alt="" loading="lazy" decoding="async" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.style.visibility='hidden'}" />
       <span class="cal-cell-peek-title">${escapeHtml(title)}</span>
-      ${lockedOverlay}
       ${collectedBadge}
     </span>
   `;
@@ -313,17 +288,16 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   const day = validDate ? dateObj.getDate() : '';
   const year = validDate ? dateObj.getFullYear() : '';
 
-  const fullAccess = hasFullAccess();
   let collected = mode === 'history' && story.id ? isCollected(story.id) : false;
 
-  /* 어드민·구독자가 지난 카드를 열어보면 영구 수집 처리 (해지 후에도 보관) */
-  if (mode === 'history' && fullAccess && !collected && story.id && story.publish_date) {
+  /* 지난 카드를 열어보면 영구 수집 처리 */
+  if (mode === 'history' && !collected && story.id && story.publish_date && !canCollect(story.publish_date)) {
     const res = collect(story.id, story.publish_date, { bypass: true });
     if (res.ok) collected = true;
   }
 
   const collectible = mode === 'history' && story.publish_date ? canCollect(story.publish_date) : false;
-  const locked = mode === 'history' && !collected && !collectible && !fullAccess;
+  const locked = false;
 
   const overlay = document.createElement('div');
   overlay.className = 'calendar-card-popup';
@@ -336,12 +310,10 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       </button>
       <div class="calendar-card-popup-stage">
         ${mode === 'history'
-          ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected, locked, { showDeleteBtn: !!options.onRemove })
+          ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected, { showDeleteBtn: !!options.onRemove })
           : buildMyCardHtml(story, year, month, day)}
       </div>
-      ${locked
-        ? ''
-        : `<div class="calendar-card-popup-hint">${collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint')}</div>`}
+      <div class="calendar-card-popup-hint">${collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint')}</div>
     </div>
   `;
 
@@ -391,7 +363,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       if (e.target.closest('.back-editor-btn')) return;
       if (e.target.closest('.editor-comment-bubble')) return;
       if (e.target.closest('.collect-btn')) return;
-      if (locked && !overlay._collected) return;
+
       if (flipper.classList.contains('is-flipping')) return;
       flipper.classList.add('is-flipping');
       flipper.classList.toggle('flipped');
@@ -511,7 +483,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   }
 }
 
-function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], collected = false, locked = false, options = {}) {
+function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], collected = false, options = {}) {
   const bodyHtml = (story.body || '').split(/\n|\\n/)
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
   const isBookmarked = !!(story.id && bookmarkedIds.includes(story.id));
@@ -560,14 +532,12 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
           <div class="history-card-image-wrap">
             <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
-            ${locked ? `<div class="card-locked-overlay"></div>` : ''}
           </div>
-          ${!locked ? `
           <div class="card-collect-bar">
             <button class="collect-btn${collected ? ' collect-btn--done' : ''}" type="button" ${collected ? 'disabled' : ''}>
               ${collected ? t('calendar.collected_button') : t('calendar.collect_button')}
             </button>
-          </div>` : ''}
+          </div>
         </div>
         <div class="back history-card-back">
           ${options.showDeleteBtn ? `

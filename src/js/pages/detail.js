@@ -16,7 +16,7 @@ import { showToast } from '../components/toast.js';
 import { fetchStoryById } from '../services/stories.js';
 import { toggleBookmark, isBookmarked } from '../services/bookmarks.js';
 import { shareStory, buildShareUrl } from '../services/sharing.js';
-import { isMembershipCardId, getMembershipCardById } from '../services/membershipCards.js';
+
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { preloadImage } from '../utils/imageLoading.js';
 import { localizedStory } from '../utils/storyI18n.js';
@@ -139,10 +139,7 @@ export function renderDetail(params) {
  * @param {string}      storyId - 표시할 스토리의 ID
  */
 async function loadDetail(page, storyId) {
-  /* 멤버십 카드는 Firestore에 없으므로 localStorage에서 직접 조회 */
-  const rawStory = isMembershipCardId(storyId)
-    ? getMembershipCardById(storyId)
-    : await fetchStoryById(storyId);
+  const rawStory = await fetchStoryById(storyId);
 
   if (!rawStory) {
     page.innerHTML = `

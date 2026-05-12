@@ -33,14 +33,10 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
 import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
 import { initI18n } from './js/i18n/index.js';
-import { configureBilling, loginBilling, syncSubscriptionState } from './js/services/billing.js';
 import { auth, db } from './js/firebase.js';
 
 /* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
 initI18n();
-
-/* RevenueCat 부팅 (네이티브 환경에서만 실제 동작, 웹은 noop) */
-configureBilling().catch(() => {});
 
 /*
  * Firebase Auth 함수 임포트
@@ -315,13 +311,7 @@ if (auth) {
               if (profileData.font_size) setState('fontSize', profileData.font_size);
             }
 
-            /* RevenueCat 사용자 식별 + 구독 상태 동기화 */
-            try {
-              await loginBilling(firebaseUser.uid);
-              await syncSubscriptionState();
-            } catch (err) {
-              console.warn('구독 상태 동기화 실패:', err);
-            }
+
           } catch (err) {
             console.warn('프로필 로드 (또는 생성) 실패:', err);
           }

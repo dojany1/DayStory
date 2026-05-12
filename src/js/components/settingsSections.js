@@ -7,12 +7,8 @@ import { auth, db } from '../firebase.js';
 import { signOut, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { t, getCurrentLang, setLang } from '../i18n/index.js';
-import { purchaseMonthly, restorePurchases, syncSubscriptionState, cancelMockSubscription, isMockBilling } from '../services/billing.js';
 import { forceRoute } from '../router.js';
-import { isPaidSubscriber } from '../utils/access.js';
 import pkg from '../../../package.json';
-
-const PLAY_SUBSCRIPTION_URL = 'https://play.google.com/store/account/subscriptions?package=com.daystory.app&sku=daystory_monthly';
 
 const AUTH_SESSION_KEY = 'daystory:auth-session-active';
 
@@ -22,10 +18,7 @@ export function renderSettingsSections() {
   const currentTheme = getState('theme');
   const currentLang = getCurrentLang();
 
-  /* 섹션 순서: 멤버십(가치 어필) → 환경설정(테마/언어/알림) → 권한 영역(에디터/계정) → 정보 */
   return `
-    ${renderSubscriptionSection(profile)}
-
     <div class="settings-section">
       <div class="settings-section-title">${t('settings.section_display')}</div>
       <div class="theme-option-group" role="group" aria-label="${t('settings.section_display')}">
@@ -110,98 +103,12 @@ export function bindSettingsSections(page) {
   bindNotificationSettingsSection(page);
   bindThemeOptions(page);
   bindLangOptions(page);
-  bindSubscriptionSection(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => navigate('/about'));
   bindRow(page, '#setting-license', () => navigate('/license'));
   bindRow(page, '#setting-privacy', () => window.open(PRIVACY_URL, '_blank', 'noopener'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
-}
-
-function renderSubscriptionSection(profile) {
-  const isPaid = isPaidSubscriber(profile);
-  const subEnd = profile?.subscription_end || '';
-  const datePart = subEnd ? new Date(subEnd).toISOString().slice(0, 10) : '';
-  const status = isPaid
-    ? `<div class="subscription-row-status active">✦ ${escapeText(t('subscription.active_status', { date: datePart || '—' }))}</div>`
-    : `<div class="subscription-row-status">${escapeText(t('subscription.inactive_status'))}</div>`;
-
-  const buttons = isPaid
-    ? `
-      <button type="button" class="btn btn-secondary" id="sub-manage">${escapeText(t('subscription.manage_btn'))}</button>
-      <button type="button" class="btn btn-ghost" id="sub-restore">${escapeText(t('subscription.restore_btn'))}</button>
-    `
-    : `
-      <button type="button" class="btn btn-primary" id="sub-purchase">${escapeText(t('subscription.subscribe_btn'))}</button>
-      <button type="button" class="btn btn-ghost" id="sub-restore">${escapeText(t('subscription.restore_btn'))}</button>
-    `;
-
-  return `
-    <div class="settings-section">
-      <div class="settings-section-title">${escapeText(t('subscription.section_title'))}</div>
-      <div class="subscription-row">
-        <div class="subscription-row-tagline">${escapeText(t('subscription.tagline'))} · ${escapeText(t('subscription.price_monthly'))}</div>
-        ${status}
-        <div class="subscription-row-actions">${buttons}</div>
-      </div>
-    </div>
-  `;
-}
-
-function bindSubscriptionSection(page) {
-  const purchaseBtn = page.querySelector('#sub-purchase');
-  const restoreBtn = page.querySelector('#sub-restore');
-  const manageBtn = page.querySelector('#sub-manage');
-
-  if (purchaseBtn) {
-    purchaseBtn.addEventListener('click', async () => {
-      purchaseBtn.disabled = true;
-      const res = await purchaseMonthly();
-      if (res.ok) {
-        showToast(t('subscription.purchase_success'), 'success');
-        navigate('/profile');
-      } else if (res.error === 'cancelled') {
-        purchaseBtn.disabled = false;
-      } else if (res.error === 'native_only') {
-        showToast(t('subscription.native_only'), 'info');
-        purchaseBtn.disabled = false;
-      } else {
-        showToast(t('subscription.purchase_failed'), 'error');
-        purchaseBtn.disabled = false;
-      }
-    });
-  }
-
-  if (restoreBtn) {
-    restoreBtn.addEventListener('click', async () => {
-      restoreBtn.disabled = true;
-      const res = await restorePurchases();
-      restoreBtn.disabled = false;
-      if (!res.ok) {
-        if (res.error === 'native_only') showToast(t('subscription.native_only'), 'info');
-        else showToast(t('subscription.restore_failed'), 'error');
-        return;
-      }
-      await syncSubscriptionState();
-      const stillPaid = isPaidSubscriber();
-      showToast(stillPaid ? t('subscription.restore_success') : t('subscription.restore_none'), stillPaid ? 'success' : 'info');
-      if (stillPaid) navigate('/profile');
-    });
-  }
-
-  if (manageBtn) {
-    manageBtn.addEventListener('click', async () => {
-      if (isMockBilling()) {
-        /* 테스트 모드 — 가상 해지 후 페이지 재렌더 */
-        await cancelMockSubscription();
-        showToast(t('subscription.cancelled_mock'), 'info');
-        forceRoute();
-        return;
-      }
-      window.open(PLAY_SUBSCRIPTION_URL, '_blank', 'noopener');
-    });
-  }
 }
 
 function escapeText(text) {

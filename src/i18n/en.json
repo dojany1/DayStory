@@ -113,26 +113,5 @@
     "bookmark_removed": "Removed from your archive",
     "logged_out": "Logged out",
     "withdraw_done": "Your account has been deleted."
-  },
-  "subscription": {
-    "section_title": "DayStory Membership",
-    "tagline": "All cards, unlimited access",
-    "price_monthly": "$2.90 / month",
-    "subscribe_btn": "Start subscription",
-    "manage_btn": "Manage subscription",
-    "restore_btn": "Restore purchase",
-    "active_status": "Active — renews on {date}",
-    "inactive_status": "Unlock every card for $2.90 a month",
-    "purchase_success": "Subscription started",
-    "purchase_failed": "Purchase failed",
-    "purchase_cancelled": "Purchase cancelled",
-    "restore_success": "Subscription restored",
-    "restore_none": "No subscription found to restore",
-    "restore_failed": "Failed to restore purchase",
-    "modal_title": "This is a membership card",
-    "modal_message": "Subscribe to read every past card, anytime.",
-    "close_btn": "Close",
-    "native_only": "This feature is only available in the mobile app",
-    "cancelled_mock": "Test mode: subscription cancelled"
   }
 }

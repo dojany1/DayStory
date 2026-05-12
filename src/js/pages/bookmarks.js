@@ -10,7 +10,7 @@
 
 import { getBookmarkedStories, toggleBookmark } from '../services/bookmarks.js';
 import { getReceivedStories, removeReceived } from '../services/receivedCards.js';
-import { getMembershipCards, removeMembershipCardById } from '../services/membershipCards.js';
+
 import { openCardPopup } from './calendar.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { safeStoryDateParts } from '../utils/date.js';
@@ -59,9 +59,8 @@ async function loadCollection(page) {
     getBookmarkedStories().catch(() => []),
     getReceivedStories().catch(() => []),
   ]);
-  const membershipCardsRaw = getMembershipCards();
   const bookmarkStories = (bookmarkStoriesRaw || []).map(localizedStory);
-  const receivedStories = [...(receivedStoriesRaw || []), ...membershipCardsRaw].map(localizedStory);
+  const receivedStories = (receivedStoriesRaw || []).map(localizedStory);
 
   const sortByDate = (list) => list.sort((a, b) =>
     String(b.publish_date || '').localeCompare(String(a.publish_date || ''))

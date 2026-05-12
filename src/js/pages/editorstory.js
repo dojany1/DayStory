@@ -21,7 +21,6 @@ import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages } from
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
-import { hasFullAccess } from '../utils/access.js';
 
 const FLIP_DURATION_MS = 400;
 
@@ -78,10 +77,7 @@ async function loadEditorStoryData(page) {
     const historyStories = allStories || [];
     preloadStoryImages([todayStory, ...historyStories], { limit: 8, variant: 'thumb', fallback: false });
 
-    /* 구독자/어드민 — 그동안 발행된 모든 카드 + 오늘 카드를 일괄 자동 수집 */
-    if (hasFullAccess()) {
-      bulkCollect([todayStory, ...historyStories].map((s) => s?.id).filter(Boolean));
-    }
+    bulkCollect([todayStory, ...historyStories].map((s) => s?.id).filter(Boolean));
 
     const monthEl = page.querySelector('#editorstory-month-scroll');
     const dayEl = page.querySelector('#editorstory-calendar');
@@ -419,7 +415,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         if (result.ok && !result.alreadyCollected) {
           showToast(t('calendar.collect_success_text'), 'success');
         }
-      } else if (hasFullAccess()) {
+      } else {
         collect(story.id, story.publish_date, { bypass: true });
       }
     }

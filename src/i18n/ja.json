@@ -113,26 +113,5 @@
     "bookmark_removed": "保管庫から外しました",
     "logged_out": "ログアウトしました",
     "withdraw_done": "アカウントを削除しました。"
-  },
-  "subscription": {
-    "section_title": "DayStory メンバーシップ",
-    "tagline": "すべてのカードを無制限に閲覧",
-    "price_monthly": "月額 290円",
-    "subscribe_btn": "サブスクを始める",
-    "manage_btn": "サブスクを管理",
-    "restore_btn": "購入を復元",
-    "active_status": "ご利用中 — 次回更新 {date}",
-    "inactive_status": "月290円ですべてのカードを楽しめます",
-    "purchase_success": "サブスクを開始しました",
-    "purchase_failed": "購入に失敗しました",
-    "purchase_cancelled": "購入をキャンセルしました",
-    "restore_success": "サブスクを復元しました",
-    "restore_none": "復元できるサブスクがありません",
-    "restore_failed": "購入の復元に失敗しました",
-    "modal_title": "これはメンバーシップ専用のカードです",
-    "modal_message": "サブスクすると過去のすべてのカードを自由に見られます。",
-    "close_btn": "閉じる",
-    "native_only": "この機能はモバイルアプリでのみ利用できます",
-    "cancelled_mock": "テストモード: サブスクを解約しました"
   }
 }

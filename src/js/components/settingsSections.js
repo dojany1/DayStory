@@ -62,13 +62,14 @@ export function renderSettingsSections() {
         titleClass: 'settings-row-danger',
         showChevron: false,
       })}
-      ${renderSettingsRow({
+      ${ /* 회원 탈퇴 — 임시 비활성화
+      renderSettingsRow({
         id: 'setting-withdraw',
         title: t('settings.row_withdraw'),
         icon: userXIcon(),
         titleClass: 'settings-row-muted',
         showChevron: false,
-      })}
+      }) */ ''}
     </div>
     ` : ''}
 
@@ -101,7 +102,7 @@ export function bindSettingsSections(page) {
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => navigate('/about'));
   bindRow(page, '#setting-logout', handleLogout);
-  bindRow(page, '#setting-withdraw', handleWithdraw);
+  // bindRow(page, '#setting-withdraw', handleWithdraw); /* 회원 탈퇴 — 임시 비활성화 */
 }
 
 function escapeText(text) {

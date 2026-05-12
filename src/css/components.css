@@ -285,7 +285,6 @@
   justify-content: space-between;/* 컨테이너 채우기 */
   gap: var(--space-2);
   align-self: stretch;
-  height: 100%;
 }
 
 /* 카드 액션 버튼 그룹 — 공유/북마크 아이콘을 가로로 배치 */

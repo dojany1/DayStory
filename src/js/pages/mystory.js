@@ -37,7 +37,7 @@ export function renderMyStory() {
 
   page.innerHTML = `
     <!-- 휠 피커 스타일 날짜 선택기 -->
-    <div class="wheel-pickers-container" style="margin-top: 10px;">
+    <div class="wheel-pickers-container">
       <!-- 월 피커 -->
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
@@ -149,6 +149,17 @@ async function loadMyStoryData(page) {
         if (forceInstant) {
           activeMonth = monthElement.querySelector('.wheel-item.active');
           activeDay = calendarElement.querySelector('.wheel-item.active');
+          /* 월 변경으로 선택된 일이 disabled가 됐으면 마지막 유효 일로 정정 */
+          if (activeDay && activeDay.classList.contains('disabled')) {
+            const validDays = Array.from(calendarElement.querySelectorAll('.wheel-item:not(.disabled)'));
+            activeDay = validDays[validDays.length - 1] || null;
+            if (activeDay) {
+              calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+              activeDay.classList.add('active');
+              const scrollTarget = activeDay.offsetLeft - calendarElement.offsetWidth / 2 + activeDay.offsetWidth / 2;
+              calendarElement.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+            }
+          }
         } else {
           activeMonth = getActiveItem(monthElement);
           activeDay = getActiveItem(calendarElement);

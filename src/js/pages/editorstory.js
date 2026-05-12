@@ -145,6 +145,17 @@ async function loadEditorStoryData(page) {
       if (forceInstant) {
         activeMonth = monthEl.querySelector('.wheel-item.active');
         activeDay = dayEl.querySelector('.wheel-item.active');
+        /* 월 변경으로 선택된 일이 disabled가 됐으면 마지막 유효 일로 정정 */
+        if (activeDay && activeDay.classList.contains('disabled')) {
+          const validDays = Array.from(dayEl.querySelectorAll('.wheel-item:not(.disabled)'));
+          activeDay = validDays[validDays.length - 1] || null;
+          if (activeDay) {
+            dayEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
+            activeDay.classList.add('active');
+            const scrollTarget = activeDay.offsetLeft - dayEl.offsetWidth / 2 + activeDay.offsetWidth / 2;
+            dayEl.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+          }
+        }
       } else {
         activeMonth = getCenterItem(monthEl);
         activeDay = getCenterItem(dayEl);

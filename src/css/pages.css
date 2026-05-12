@@ -227,7 +227,6 @@
   width: 40px;  /* 50px -> 40px */
   height: 32px; /* 40px -> 32px */
   background: var(--color-border); /* 배경과 구분되는 컬러를 반투명처럼 사용하거나 직접 rgba 설정 가능 (현재는 테마 변수 활용) */
-  border-radius: var(--radius-sm);
   pointer-events: none; /* 클릭 방해 금지 */
   z-index: 1;
 }

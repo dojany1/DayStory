@@ -71,7 +71,7 @@ body {
   margin: 0 auto;                      /* 수평 중앙 정렬 */
   background-color: var(--color-bg-primary); /* 앱 내부 배경색 */
   overflow: hidden;                    /* 앱 외부로 요소가 나가는 것만 방지 */
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); /* 데스크톱에서 약간의 그림자 효과 */
+  box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.2); /* 데스크톱에서 약간의 그림자 효과 */
 }
 
 

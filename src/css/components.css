@@ -374,7 +374,7 @@
 /* 뒷면 전체 레이아웃 — 인물 이름 + 구분선 + 본문 + 날짜 */
 .history-card-back {
   transform: rotateY(180deg);          /* 뒤집혀 있어 앞면이 보일 때는 숨겨짐 */
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-4) var(--space-6);
   background: var(--color-bg-card);
   color: var(--color-text-primary);
 }

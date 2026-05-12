@@ -1,11 +1,9 @@
 /* =====================================================================
-   profile.js — 설정 페이지 (탭: 설정)
+   profile.js — 프로필 페이지 (탭: 프로필)
    =====================================================================
-   하단 네비게이션의 "설정" 탭이 가리키는 페이지입니다.
-   사용자 정보 카드(이 페이지 고유) + 공유 설정 섹션(알림·테마·에디터·계정·앱 정보).
-   설정 섹션은 src/js/components/settingsSections.js 의 renderSettingsSections() /
-   bindSettingsSections() 를 그대로 사용해 다른 진입점과 통일.
-   북마크/검색은 별도의 보관함(/bookmarks) 페이지가 담당.
+   하단 네비게이션의 "프로필" 탭이 가리키는 페이지입니다.
+   사용자 정보 카드만 표시하며, 우상단 설정 버튼으로 /settings로 이동합니다.
+   설정 섹션은 /settings 페이지(settings.js)에서 담당합니다.
    ===================================================================== */
 
 import { navigate } from '../router.js';
@@ -15,7 +13,6 @@ import { auth, db, storage } from '../firebase.js';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { showToast } from '../components/toast.js';
-import { renderSettingsSections, bindSettingsSections } from '../components/settingsSections.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -32,11 +29,17 @@ export function renderProfile() {
   const profile = getState('profile');
 
   page.innerHTML = `
-    <div class="page-header page-header-centered">
-      <h1 class="page-header-title">설정</h1>
+    <div class="page-header" style="height:60px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;">
+      <h1 class="page-header-title">프로필</h1>
+      <button id="goto-settings-btn" style="width:36px;height:36px;padding:0;background:none;border:none;display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);cursor:pointer;" aria-label="설정">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
     </div>
 
-    <!-- 사용자 정보 카드 (이 페이지 전용) -->
+    <!-- 사용자 정보 카드 -->
     <div class="settings-user-info">
       ${user && user.id !== 'guest' ? `
         <div class="settings-user-row">
@@ -75,17 +78,13 @@ export function renderProfile() {
         </button>
       `}
     </div>
-
-    ${renderSettingsSections()}
   `;
 
-  /* 공유 설정 섹션 바인딩(알림/위젯/테마/에디터/계정/라이선스) */
-  bindSettingsSections(page);
-
-  /* 페이지 고유 동작: 프로필 편집, 로그인 이동 */
+  /* 페이지 고유 동작: 프로필 편집, 로그인 이동, 설정 이동 */
   setTimeout(() => {
     page.querySelector('#goto-login-btn')?.addEventListener('click', () => navigate('/login'));
     page.querySelector('#profile-edit-btn')?.addEventListener('click', () => openProfileEditModal());
+    page.querySelector('#goto-settings-btn')?.addEventListener('click', () => navigate('/settings'));
   }, 0);
 
   return page;

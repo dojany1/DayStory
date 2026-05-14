@@ -64,6 +64,29 @@ describe('Calendar image loading', () => {
     expect(historyCardBuilder).not.toContain('card-collect-bar');
   });
 
+  it('Given the calendar mode toggle, when styles are inspected, then it should follow the theme option segmented control layout', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
+    const calendarToggleRule = css.match(/\.calendar-toggle\s*\{[\s\S]*?\}/)?.[0] || '';
+    const calendarToggleBtnRule = css.match(/\.calendar-toggle-btn\s*\{[\s\S]*?\}/)?.[0] || '';
+    const calendarToggleActiveRule = css.match(/\.calendar-toggle-btn\.active\s*\{[\s\S]*?\}/)?.[0] || '';
+    const calendarToggleThumbRule = Array.from(css.matchAll(/(^|\n)\.calendar-toggle-thumb\s*\{[\s\S]*?\}/g))
+      .map((match) => match[0])
+      .find((rule) => rule.trim().startsWith('.calendar-toggle-thumb')) || '';
+
+    expect(calendarToggleRule).toMatch(/background:\s*var\(--color-bg-card-dark\)/);
+    expect(calendarToggleRule).toMatch(/padding:\s*4px/);
+    expect(calendarToggleRule).toMatch(/gap:\s*4px/);
+    expect(calendarToggleBtnRule).toMatch(/display:\s*flex/);
+    expect(calendarToggleBtnRule).toMatch(/align-items:\s*center/);
+    expect(calendarToggleBtnRule).toMatch(/justify-content:\s*center/);
+    expect(calendarToggleBtnRule).toMatch(/border-radius:\s*calc\(var\(--radius-lg\)\s*-\s*2px\)/);
+    expect(calendarToggleBtnRule).toMatch(/transition:\s*all\s+var\(--transition-fast\)/);
+    expect(calendarToggleActiveRule).toMatch(/background:\s*#ffffff/);
+    expect(calendarToggleActiveRule).toMatch(/color:\s*#1c1c1e/);
+    expect(calendarToggleActiveRule).toMatch(/box-shadow:/);
+    expect(calendarToggleThumbRule).toMatch(/display:\s*none/);
+  });
+
   it('Given list thumbnails, when no thumbnail exists, then visible images fall back to the stored original', () => {
     expect(getStoryImageUrl({
       image_url: 'https://example.com/original.jpg',

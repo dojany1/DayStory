@@ -2146,39 +2146,54 @@
   font-weight:800}
 
 .calendar-toggle {
-  background:var(--color-bg-secondary);
+  background:var(--color-bg-card-dark);
   border:1px solid var(--color-border);
   border-radius:var(--radius-lg);
   align-self:center;
   width:min(100%,240px);
   padding:4px;
+  gap:4px;
   display:inline-flex;
-  position:relative}
+  position:relative;
+}
 
 .calendar-toggle-btn {
-  z-index:2;
-  padding:var(--space-2) var(--space-5);
-  border-radius:var(--radius-full);
+  z-index:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:var(--space-3) 0;
+  border-radius:calc(var(--radius-lg) - 2px);
   font-family:var(--font-sans);
   font-size:var(--text-sm);
-  color:var(--color-text-secondary);
+  color:var(--color-text-tertiary);
   text-align:center;
   white-space:nowrap;
   cursor:pointer;
-  transition:color var(--transition-fast);
+  transition:all var(--transition-fast);
   -webkit-tap-highlight-color:transparent;
   background:0 0;
   border:0;
   flex:1 1 0;
   font-weight:600;
-  position:relative}
+  position:relative;
+}
 
 .calendar-toggle-btn.active {
-  color:var(--color-bg-primary)}
+  background:#ffffff;
+  color:#1c1c1e;
+  box-shadow:0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
+}
+
+.calendar-toggle-btn:not(.active):active {
+  background:var(--color-bg-primary);
+  transform:scale(0.96);
+}
 
 .calendar-toggle-thumb {
-  border-radius:var(--radius-full);
-  background:var(--color-accent);
+  display:none;
+  border-radius:var(--radius-lg);
+  background:var(--color-bg-card);
   z-index:1;
   width:calc(50% - 4px);
   transition:transform .25s cubic-bezier(.4,0,.2,1);
@@ -2203,7 +2218,7 @@
   color:var(--color-text-primary);
   border-radius:var(--radius-full);
   cursor:pointer;
-  transition:background var(--transition-fast), opacity var(--transition-fast);
+  transition: background var(--transition-fast), opacity var(--transition-fast);
   background:0 0;
   border:0;
   justify-content:center;

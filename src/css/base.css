@@ -455,11 +455,11 @@ ul, ol {
   pointer-events: none;                /* 토스트 영역 밖은 클릭 통과 */
 }
 
-/* 개별 토스트 메시지 — 둥근 필(pill) 형태 */
+/* 개별 토스트 메시지 */
 .toast {
   padding: var(--space-2) var(--space-5);
   border: 0.85px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   box-shadow: var(--shadow-lg);
   font-size: var(--text-sm);
   font-weight: 500;

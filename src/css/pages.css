@@ -2297,8 +2297,9 @@
 
 .cal-cell-blank {
   cursor: default;
-  background: transparent;
+  background: var(--color-bg-card-dark);
   border: 0;
+  transform: scale(1);
 }
 
 .cal-cell-empty {

@@ -566,11 +566,12 @@
   display: flex;
   flex-direction: column;
   aspect-ratio: 3 / 4.8;              /* 메인 카드와 동일한 비율 */
+  transition: 300ms cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 스프링 효과 */
 }
 
 /* 미니 카드 터치 시 — 축소 + 그림자 줄어듦 */
 .history-card-mini:active {
-  transform: scale(0.96);
+  transform: scale(1.2);
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 

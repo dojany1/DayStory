@@ -1004,7 +1004,7 @@
   overflow: hidden;
   color: var(--color-text-tertiary);
   background: var(--color-bg-secondary);
-  border-radius: 5%;
+  border-radius: 50%;
 }
 /* 프로필 아바타 이미지 또는 SVG 아이콘 */
 .profile-avatar-wrap img,

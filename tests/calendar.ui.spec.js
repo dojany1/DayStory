@@ -104,6 +104,29 @@ describe('Calendar image loading', () => {
     expect(calendarCellRule).toMatch(/aspect-ratio:\s*1\s*\/\s*1\.12/);
   });
 
+  it('Given calendar cells with story images, when source and styles are inspected, then dates should overlay uncropped images without collection icons', () => {
+    const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
+    const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
+    const renderGridSnippet = calendar.match(/const peekHtml = story \? renderCellPeek[\s\S]*?<\/button>/)?.[0] || '';
+    const cellPeekBuilder = calendar.match(/function renderCellPeek[\s\S]*?\/\* ─/)?.[0] || '';
+    const calendarCellRule = css.match(/\.cal-cell\s*\{[\s\S]*?\}/)?.[0] || '';
+    const calendarDayRule = css.match(/(^|\n)\.cal-cell-day\s*\{[\s\S]*?\}/)?.[0] || '';
+    const peekRule = css.match(/\.cal-cell-peek\s*\{[\s\S]*?\}/)?.[0] || '';
+    const peekImageRule = css.match(/\.cal-cell-peek-img\s*\{[\s\S]*?\}/)?.[0] || '';
+
+    expect(renderGridSnippet.indexOf('${peekHtml}')).toBeGreaterThan(-1);
+    expect(renderGridSnippet.indexOf('<span class="cal-cell-day">${d}</span>'))
+      .toBeGreaterThan(renderGridSnippet.indexOf('${peekHtml}'));
+    expect(calendarCellRule).toMatch(/display:\s*block/);
+    expect(calendarDayRule).toMatch(/position:\s*absolute/);
+    expect(calendarDayRule).toMatch(/z-index:\s*2/);
+    expect(peekRule).toMatch(/position:\s*absolute/);
+    expect(peekRule).toMatch(/inset:\s*0/);
+    expect(peekImageRule).toMatch(/object-fit:\s*contain/);
+    expect(cellPeekBuilder).not.toContain('cal-cell-collected-badge');
+    expect(cellPeekBuilder).not.toContain('aria-label="수집됨"');
+  });
+
   it('Given list thumbnails, when no thumbnail exists, then visible images fall back to the stored original', () => {
     expect(getStoryImageUrl({
       image_url: 'https://example.com/original.jpg',

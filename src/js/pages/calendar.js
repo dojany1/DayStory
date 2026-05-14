@@ -211,8 +211,8 @@ function renderGrid(page, state, today) {
 
     html += `
       <button type="button" class="${cellClasses}" data-date="${isoDate}" ${story || canWriteMyStory ? '' : 'disabled aria-disabled="true"'}>
-        <span class="cal-cell-day">${d}</span>
         ${peekHtml}
+        <span class="cal-cell-day">${d}</span>
       </button>
     `;
   }
@@ -259,17 +259,10 @@ function renderCellPeek(story, mode) {
     ? (story.figure_name || story.title || '')
     : (story.title || '');
 
-  const collected = mode === 'history' && story.id ? isCollected(story.id) : false;
-
-  const collectedBadge = collected
-    ? `<span class="cal-cell-collected-badge" aria-label="수집됨">✦</span>`
-    : '';
-
   return `
     <span class="cal-cell-peek" aria-hidden="true">
       <img class="cal-cell-peek-img" ${imageAttrs} alt="" loading="lazy" decoding="async" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.style.visibility='hidden'}" />
       <span class="cal-cell-peek-title">${escapeHtml(title)}</span>
-      ${collectedBadge}
     </span>
   `;
 }

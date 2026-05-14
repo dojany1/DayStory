@@ -2282,11 +2282,8 @@
   font: inherit;
   color: var(--color-text-primary);
   transition: transform var(--transition-fast), border-color var(--transition-fast);
-  padding: 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
+  padding: 0;
+  display: block;
   position: relative;
   overflow: hidden;
 }
@@ -2319,39 +2316,46 @@
 }
 
 .cal-cell-day {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
   z-index: 2;
   font-family: var(--font-body, var(--font-sans));
-  color: var(--color-text-primary);
+  color: var(--color-text-on-dark);
   font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1;
-  padding: 2px;
+  min-width: 1.4em;
+  padding: 3px 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-overlay);
+  text-align: center;
 }
 
 .cal-cell.sun .cal-cell-day {
-  color: var(--color-sunday);
+  color: var(--color-text-on-dark);
 }
 
 .cal-cell.sat .cal-cell-day {
-  color: var(--color-saturday);
+  color: var(--color-text-on-dark);
 }
 
-/* 미니 이미지 — 정사각형으로 셀 안에 카드처럼 박힘 */
+/* 미니 이미지 — 원본 비율을 유지한 채 셀 안에 맞춤 */
 .cal-cell-peek {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  background: var(--color-bg-card);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--color-bg-card-dark);
   overflow: hidden;
   pointer-events: none;
-  position: relative;
   display: block;
 }
 
 .cal-cell-peek-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
   -webkit-user-select: none;
   user-select: none;
@@ -2450,18 +2454,6 @@
   font-size:var(--text-xs);
   color:#ffffffbf;
   letter-spacing:.02em}
-
-/* ── 캘린더 셀 수집 뱃지 / 잠금 ── */
-.cal-cell-collected-badge {
-  position:absolute;
-  top:22px;
-  right:4px;
-  font-size:9px;
-  color:#ffd700;
-  text-shadow:0 0 4px rgba(0,0,0,.6);
-  z-index:4;
-  pointer-events:none;
-  line-height:1}
 
 .cal-cell-locked-overlay {
   position:absolute;

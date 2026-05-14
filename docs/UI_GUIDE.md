@@ -81,7 +81,7 @@ Danger   : color: var(--color-error); (텍스트 버튼). 배경 빨강은 confi
 ```
 
 ### 토스트 (`src/js/components/toast.js`)
-- 화면 상단 정중앙에서 위→아래로 등장, `toastIn` 0.2s.
+- 하단 네비게이션 바 상단 정중앙에서 아래→위로 등장, `toastIn` 0.2s.
 - 상태별 테두리만 다르게 (`.success` / `.error` / `.warning`). 배경은 항상 `--color-bg-elevated`.
 
 ### 확인 모달 (`src/js/components/confirmDialog.js`)

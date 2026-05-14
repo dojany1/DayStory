@@ -332,6 +332,7 @@ ul, ol {
   width: 100%;
   max-width: var(--mobile-max-width);  /* 래퍼 너비에 맞춤 */
   height: calc(var(--nav-height) + var(--safe-area-bottom));
+  padding: 0 var(--space-4) 0;
   padding-bottom: calc(var(--safe-area-bottom) + var(--space-1)); /* 하단 안전 영역 (iPhone 홈 바) */
   background: var(--color-bg-primary); /* 항상 불투명 — backdrop-filter 미지원 환경에서 뒤가 비치지 않도록 */
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
@@ -367,7 +368,6 @@ ul, ol {
 /* 다크 테마에서 활성화된 아이템 — 흰색 */
 [data-theme="dark"] .nav-item.active {
   color: var(--color-text-primary);
-  border-radius: var(--radius-full);
 }
 
 /* 내비게이션 아이템 터치 시 — 살짝 축소 애니메이션 */
@@ -388,11 +388,9 @@ ul, ol {
 /* 활성화된 아이템 뒷 배경 포인트 추가 */
 .bottom-nav.redesigned-nav .nav-item.active {
   background-color: var(--color-border);
-  transform: scale(1.05);
 }
 [data-theme="dark"] .bottom-nav.redesigned-nav .nav-item.active {
   background-color: var(--color-border);
-  transform: scale(1.05);
 }
 
 /* 리디자인된 내비게이션의 아이콘 */
@@ -406,14 +404,12 @@ ul, ol {
 /* 내비게이션 활성화 아이콘 */
 .bottom-nav.redesigned-nav .nav-item.active .nav-icon {
   color: var(--color-text-primary);
-  
+  stroke-width: 1.8;
+  transform: scale(1.05);
 }
 
 /* 프로필 버튼 아바타 전용 래퍼: 다른 아이콘들과 정확히 동일한 사이즈(28x28) 유지 */
 .nav-profile-img-wrap {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
   overflow: hidden;
   background: transparent;
   display: flex;
@@ -438,21 +434,24 @@ ul, ol {
 /* ============================================
    Toast — 토스트 알림 메시지
    ============================================
-   화면 상단에 잠시 나타났다 사라지는 알림입니다.
+   하단 내비게이션 바 위에 잠시 나타났다 사라지는 알림입니다.
    성공/오류/경고 상태에 따라 테두리 색상이 변합니다.
 */
 
-/* 토스트 컨테이너 — 화면 상단 정중앙에 고정 */
+/* 토스트 컨테이너 — 하단 내비게이션 바 상단 정중앙에 고정 */
 .toast-container {
   position: fixed;
-  top: calc(var(--safe-area-top) + var(--space-4));
+  bottom: calc(var(--nav-height) + var(--safe-area-bottom) + var(--space-3));
+  left: 50%;
   z-index: var(--z-toast);             /* 모든 UI 위에 표시 */
   display: flex;
   flex-direction: column;
-  width: auto;
+  align-items: center;
+  width: 100%;
   max-width: var(--mobile-max-width);
   padding: 0 var(--space-4);
   gap: var(--space-2);
+  transform: translateX(-50%);
   pointer-events: none;                /* 토스트 영역 밖은 클릭 통과 */
 }
 
@@ -469,8 +468,8 @@ ul, ol {
   text-align: center;
   color: var(--color-text-primary);
   background: var(--color-bg-elevated);
-  transform: translateY(-100px) scale(0.95);
-  animation: toastIn 0.2s ease-out forwards; /* 위에서 아래로 등장 */
+  transform: translateY(var(--space-4)) scale(0.95);
+  animation: toastIn 0.2s ease-out forwards; /* 아래에서 위로 등장 */
 }
 
 /* 토스트 상태별 테두리 색상 */
@@ -478,21 +477,21 @@ ul, ol {
 .toast.error { border-color: var(--color-error); }     /* 오류: 빨강 */
 .toast.warning { border-color: var(--color-warning); } /* 경고: 주황 */
 
-/* 토스트 사라짐 — .hide 클래스 추가 시 위로 페이드아웃 */
+/* 토스트 사라짐 — .hide 클래스 추가 시 아래로 페이드아웃 */
 .toast.hide {
   animation: toastOut 0.2s ease forwards;
 }
 
-/* 토스트 등장 애니메이션 — 위에서 아래로 미끄러지며 나타남 */
+/* 토스트 등장 애니메이션 — 네비게이션 바 위로 살짝 떠오르며 나타남 */
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(-40px) scale(0.95); }
+  from { opacity: 0; transform: translateY(var(--space-4)) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* 토스트 퇴장 애니메이션 — 위로 사라짐 */
+/* 토스트 퇴장 애니메이션 — 네비게이션 바 방향으로 사라짐 */
 @keyframes toastOut {
   from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-40px); }
+  to { opacity: 0; transform: translateY(var(--space-4)); }
 }
 
 

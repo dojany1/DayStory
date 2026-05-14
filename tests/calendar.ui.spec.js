@@ -92,6 +92,18 @@ describe('Calendar image loading', () => {
     expect(css).toMatch(/\.calendar-toggle\[data-mode=mine\]\s+\.calendar-toggle-thumb\s*\{[\s\S]*?transform:\s*translateX\(calc\(100%\s*\+\s*4px\)\)/);
   });
 
+  it('Given the calendar grid, when styles are inspected, then cells should use a wider screen allocation ratio', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
+    const calendarPageRule = css.match(/\.calendar-page\s*\{[\s\S]*?\}/)?.[0] || '';
+    const calendarGridRule = css.match(/\.calendar-grid\s*\{[\s\S]*?\}/)?.[0] || '';
+    const calendarCellRule = css.match(/\.cal-cell\s*\{[\s\S]*?\}/)?.[0] || '';
+
+    expect(calendarPageRule).toMatch(/padding:\s*var\(--space-3\)\s+var\(--space-3\)\s+var\(--space-6\)/);
+    expect(calendarGridRule).toMatch(/gap:\s*1px/);
+    expect(calendarGridRule).toMatch(/padding:\s*var\(--space-1\)/);
+    expect(calendarCellRule).toMatch(/aspect-ratio:\s*1\s*\/\s*1\.12/);
+  });
+
   it('Given list thumbnails, when no thumbnail exists, then visible images fall back to the stored original', () => {
     expect(getStoryImageUrl({
       image_url: 'https://example.com/original.jpg',

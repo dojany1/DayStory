@@ -2124,7 +2124,7 @@
 
 /* ===== 캘린더 페이지 (5월 1일 AAB) ===== */
 .calendar-page {
-  padding:var(--space-3) var(--space-4) var(--space-6);
+  padding:var(--space-3) var(--space-3) var(--space-6);
   gap:var(--space-3);
   flex-direction:column;
   display:flex}
@@ -2261,8 +2261,8 @@
 
 .calendar-grid {
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-  padding: var(--space-2);
+  gap: 1px;
+  padding: var(--space-1);
   display: grid;
 }
 
@@ -2274,7 +2274,7 @@
 
 /* 캘린더 셀 — 배경 없이 평면, 카드가 있는 셀만 미니 이미지를 띄움 */
 .cal-cell {
-  aspect-ratio: 1 / 1.25;
+  aspect-ratio: 1 / 1.12;
   background-color: var(--color-bg-card);
   border: 2px solid transparent;
   cursor: pointer;

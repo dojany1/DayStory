@@ -92,7 +92,7 @@ describe('Calendar image loading', () => {
     expect(css).toMatch(/\.calendar-toggle\[data-mode=mine\]\s+\.calendar-toggle-thumb\s*\{[\s\S]*?transform:\s*translateX\(calc\(100%\s*\+\s*4px\)\)/);
   });
 
-  it('Given the calendar grid, when styles are inspected, then cells should use a wider screen allocation ratio', () => {
+  it('Given the calendar grid, when styles are inspected, then cells should use a tall image-fit allocation ratio', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
     const calendarPageRule = css.match(/\.calendar-page\s*\{[\s\S]*?\}/)?.[0] || '';
     const calendarGridRule = css.match(/\.calendar-grid\s*\{[\s\S]*?\}/)?.[0] || '';
@@ -101,7 +101,7 @@ describe('Calendar image loading', () => {
     expect(calendarPageRule).toMatch(/padding:\s*var\(--space-3\)\s+var\(--space-3\)\s+var\(--space-6\)/);
     expect(calendarGridRule).toMatch(/gap:\s*1px/);
     expect(calendarGridRule).toMatch(/padding:\s*var\(--space-1\)/);
-    expect(calendarCellRule).toMatch(/aspect-ratio:\s*1\s*\/\s*1\.12/);
+    expect(calendarCellRule).toMatch(/aspect-ratio:\s*1\s*\/\s*1\.5/);
   });
 
   it('Given calendar cells with story images, when source and styles are inspected, then dates should sit above uncropped mini-card images without collection icons', () => {
@@ -124,7 +124,8 @@ describe('Calendar image loading', () => {
     expect(calendarDayRule).not.toMatch(/position:\s*absolute/);
     expect(calendarDayRule).not.toMatch(/background:\s*var\(--color-bg-overlay\)/);
     expect(calendarDayRule).toMatch(/font-size:\s*var\(--text-xs\)/);
-    expect(peekRule).toMatch(/flex:\s*1/);
+    expect(peekRule).toMatch(/flex:\s*0\s+0\s+auto/);
+    expect(peekRule).toMatch(/aspect-ratio:\s*4\s*\/\s*5/);
     expect(peekRule).toMatch(/position:\s*relative/);
     expect(peekImageRule).toMatch(/object-fit:\s*contain/);
     expect(cellPeekBuilder).not.toContain('cal-cell-collected-badge');

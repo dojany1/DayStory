@@ -993,7 +993,7 @@
   gap: var(--space-3);
   min-width: 0;
 }
-
+/* 프로필 아바타 랩 — 원형 배경 + 이미지 또는 SVG 아이콘을 포함하는 컨테이너 */
 .profile-avatar-wrap {
   width: 56px;
   height: 56px;
@@ -1004,10 +1004,9 @@
   overflow: hidden;
   color: var(--color-text-tertiary);
   background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
+  border-radius: 5%;
 }
-
+/* 프로필 아바타 이미지 또는 SVG 아이콘 */
 .profile-avatar-wrap img,
 .profile-avatar-wrap svg {
   width: 100%;
@@ -2274,7 +2273,7 @@
 
 /* 캘린더 셀 — 배경 없이 평면, 카드가 있는 셀만 미니 이미지를 띄움 */
 .cal-cell {
-  aspect-ratio: 1 / 1.12;
+  aspect-ratio: 1 / 1.5;
   background-color: var(--color-bg-card);
   border: 2px solid transparent;
   cursor: pointer;
@@ -2345,8 +2344,8 @@
 
 /* 미니 이미지 — 원본 비율을 유지한 채 셀 안에 맞춤 */
 .cal-cell-peek {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
+  aspect-ratio: 4 / 5;
   width: 100%;
   background: var(--color-bg-card-dark);
   overflow: hidden;

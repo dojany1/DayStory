@@ -30,6 +30,25 @@ let lastSwipeCommitAt = 0;
 const SWIPE_COMMIT_GUARD_MS = 1500;
 const CARD_STACK_SETTLE_MS = 560;
 
+function getMyStoryAuthorNickname(story = {}) {
+  const profile = getState('profile') || {};
+  const user = getState('user') || {};
+  const emailName = typeof user.email === 'string' ? user.email.split('@')[0] : '';
+  const candidates = [
+    story.author_nickname,
+    story.authorNickname,
+    story.author?.nickname,
+    story.author?.displayName,
+    profile.nickname,
+    user.displayName,
+    emailName,
+  ];
+  const nickname = candidates
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .find(Boolean);
+  return nickname || '사용자';
+}
+
 /* ─────────────────────────────────────────────
    섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커)
    ───────────────────────────────────────────── */
@@ -311,6 +330,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
       ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
       : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
     const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
+    const authorNickname = getMyStoryAuthorNickname(story);
 
     newCard.innerHTML = `
       <div class="flipper mystory-flipper">
@@ -336,7 +356,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
                   </svg>
                 </button>
               </div>
-              <div class="card-meta">${escapeHtml(story.title)}</div>
+              <div class="card-meta">${escapeHtml(authorNickname)}</div>
             </div>
           </div>
           <div class="history-card-image-wrap">
@@ -966,7 +986,8 @@ export function renderMyStoryNew() {
         publish_date: document.getElementById('ms-date').value,
         body: document.getElementById('ms-body').value.trim(),
         image_url: document.getElementById('ms-image').value.trim(),
-        image_thumb_url: document.getElementById('ms-image-thumb')?.value.trim() || ''
+        image_thumb_url: document.getElementById('ms-image-thumb')?.value.trim() || '',
+        author_nickname: getMyStoryAuthorNickname()
       };
 
       if (!data.title || !data.body || !data.publish_date) return showToast('필수 항목을 모두 입력해주세요', 'warning');

@@ -240,6 +240,15 @@ function updateNav(path) {
   });
 }
 
+function getLocalTodaySelection() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return { month, day, date };
+}
+
 
 /* ─────────────────────────────────────────────
    섹션 5: 라우터 초기화 및 유틸리티
@@ -269,12 +278,10 @@ export function initRouter() {
 
       /* 에디터 일화 탭 재클릭 → 휠을 오늘 날짜로 되돌리기 */
       if (route === '/editorstory' && currentPath === '/editorstory') {
-        const today = new Date();
-        const mNum = today.getMonth() + 1;
-        const dNum = today.getDate();
+        const today = getLocalTodaySelection();
 
-        const monthItem = document.querySelector(`#editorstory-month-scroll .wheel-item[data-month="${mNum}"]`);
-        const dayItem = document.querySelector(`#editorstory-calendar .wheel-item[data-day="${dNum}"]`);
+        const monthItem = document.querySelector(`#editorstory-month-scroll .wheel-item[data-month="${today.month}"]`);
+        const dayItem = document.querySelector(`#editorstory-calendar .wheel-item[data-date="${today.date}"]`);
 
         if (monthItem && !monthItem.classList.contains('active')) {
           monthItem.click();
@@ -291,12 +298,10 @@ export function initRouter() {
 
       /* 만약 나의 일화 탭인데 이미 나의 일화에 있다면 -> 오늘 날짜로 이동 */
       if (route === '/mystory' && currentPath === '/mystory') {
-        const today = new Date();
-        const mNum = today.getMonth() + 1;
-        const dNum = today.getDate();
+        const today = getLocalTodaySelection();
         
-        const monthItem = document.querySelector(`#mystory-month-scroll .wheel-item[data-month="${mNum}"]`);
-        const dayItem = document.querySelector(`#mystory-calendar .wheel-item[data-day="${dNum}"]`);
+        const monthItem = document.querySelector(`#mystory-month-scroll .wheel-item[data-month="${today.month}"]`);
+        const dayItem = document.querySelector(`#mystory-calendar .wheel-item[data-date="${today.date}"]`);
         
         if (monthItem && !monthItem.classList.contains('active')) {
           monthItem.click();

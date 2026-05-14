@@ -332,8 +332,7 @@ ul, ol {
   width: 100%;
   max-width: var(--mobile-max-width);  /* 래퍼 너비에 맞춤 */
   height: calc(var(--nav-height) + var(--safe-area-bottom));
-  padding-top: var(--space-2);
-  padding-bottom: calc(var(--safe-area-bottom) + var(--space-3)); /* 하단 안전 영역 (iPhone 홈 바) */
+  padding-bottom: calc(var(--safe-area-bottom) + var(--space-1)); /* 하단 안전 영역 (iPhone 홈 바) */
   background: var(--color-bg-primary); /* 항상 불투명 — backdrop-filter 미지원 환경에서 뒤가 비치지 않도록 */
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
   backdrop-filter: blur(20px);         /* 배경 블러 효과 (지원 환경에서만 추가 효과) */
@@ -379,7 +378,6 @@ ul, ol {
 /* 리디자인된 내비게이션의 아이템 — 더 넓은 터치 영역 및 사이즈 확보 */
 .bottom-nav.redesigned-nav .nav-item {
   padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -389,19 +387,24 @@ ul, ol {
 
 /* 활성화된 아이템 뒷 배경 포인트 추가 */
 .bottom-nav.redesigned-nav .nav-item.active {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: var(--color-border);
   transform: scale(1.05);
 }
 [data-theme="dark"] .bottom-nav.redesigned-nav .nav-item.active {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--color-border);
   transform: scale(1.05);
 }
 
-/* 리디자인된 내비게이션의 아이콘 — 28px 크기 */
+/* 리디자인된 내비게이션의 아이콘 */
 .bottom-nav.redesigned-nav .nav-icon {
-  width: 28px;
-  height: 28px;
-  stroke-width: 2;
+  color: var(--color-text-secondary);
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.6;
+}
+
+.bottom-nav.redesigned-nav .nav-item.active .nav-icon {
+  color: var(--color-text-primary);
 }
 
 /* 프로필 버튼 아바타 전용 래퍼: 다른 아이콘들과 정확히 동일한 사이즈(28x28) 유지 */

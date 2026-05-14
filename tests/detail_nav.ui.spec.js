@@ -227,6 +227,13 @@ describe('Bottom navigation visuals', () => {
     expect(css).not.toMatch(/\.nav-item\.active\s+\.nav-profile-img-wrap\s*\{[\s\S]*?border-color:/);
   });
 
+  it('Given a redesigned bottom nav item is active, when styles are inspected, then its icon should use the primary text color token', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/css/base.css'), 'utf8');
+    const activeIconRule = css.match(/\.bottom-nav\.redesigned-nav \.nav-item\.active \.nav-icon\s*\{[\s\S]*?\}/)?.[0] || '';
+
+    expect(activeIconRule).toMatch(/color:\s*var\(--color-text-primary\)/);
+  });
+
   it('Given the my story bottom navigation icon, when its markup and styles are inspected, then it should use the same nav item treatment as neighboring tabs', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const css = readFileSync(resolve(process.cwd(), 'src/css/base.css'), 'utf8');

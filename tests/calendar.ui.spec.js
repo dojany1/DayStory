@@ -104,24 +104,28 @@ describe('Calendar image loading', () => {
     expect(calendarCellRule).toMatch(/aspect-ratio:\s*1\s*\/\s*1\.12/);
   });
 
-  it('Given calendar cells with story images, when source and styles are inspected, then dates should overlay uncropped images without collection icons', () => {
+  it('Given calendar cells with story images, when source and styles are inspected, then dates should sit above uncropped mini-card images without collection icons', () => {
     const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
     const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
     const renderGridSnippet = calendar.match(/const peekHtml = story \? renderCellPeek[\s\S]*?<\/button>/)?.[0] || '';
     const cellPeekBuilder = calendar.match(/function renderCellPeek[\s\S]*?\/\* ─/)?.[0] || '';
     const calendarCellRule = css.match(/\.cal-cell\s*\{[\s\S]*?\}/)?.[0] || '';
+    const calendarStoryCellRule = css.match(/\.cal-cell-has-story\s*\{[\s\S]*?\}/)?.[0] || '';
     const calendarDayRule = css.match(/(^|\n)\.cal-cell-day\s*\{[\s\S]*?\}/)?.[0] || '';
     const peekRule = css.match(/\.cal-cell-peek\s*\{[\s\S]*?\}/)?.[0] || '';
     const peekImageRule = css.match(/\.cal-cell-peek-img\s*\{[\s\S]*?\}/)?.[0] || '';
 
     expect(renderGridSnippet.indexOf('${peekHtml}')).toBeGreaterThan(-1);
     expect(renderGridSnippet.indexOf('<span class="cal-cell-day">${d}</span>'))
-      .toBeGreaterThan(renderGridSnippet.indexOf('${peekHtml}'));
-    expect(calendarCellRule).toMatch(/display:\s*block/);
-    expect(calendarDayRule).toMatch(/position:\s*absolute/);
-    expect(calendarDayRule).toMatch(/z-index:\s*2/);
-    expect(peekRule).toMatch(/position:\s*absolute/);
-    expect(peekRule).toMatch(/inset:\s*0/);
+      .toBeLessThan(renderGridSnippet.indexOf('${peekHtml}'));
+    expect(calendarCellRule).toMatch(/display:\s*flex/);
+    expect(calendarCellRule).toMatch(/flex-direction:\s*column/);
+    expect(calendarStoryCellRule).toMatch(/box-shadow:\s*var\(--shadow-sm\)/);
+    expect(calendarDayRule).not.toMatch(/position:\s*absolute/);
+    expect(calendarDayRule).not.toMatch(/background:\s*var\(--color-bg-overlay\)/);
+    expect(calendarDayRule).toMatch(/font-size:\s*var\(--text-xs\)/);
+    expect(peekRule).toMatch(/flex:\s*1/);
+    expect(peekRule).toMatch(/position:\s*relative/);
     expect(peekImageRule).toMatch(/object-fit:\s*contain/);
     expect(cellPeekBuilder).not.toContain('cal-cell-collected-badge');
     expect(cellPeekBuilder).not.toContain('aria-label="수집됨"');

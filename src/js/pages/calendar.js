@@ -211,8 +211,8 @@ function renderGrid(page, state, today) {
 
     html += `
       <button type="button" class="${cellClasses}" data-date="${isoDate}" ${story || canWriteMyStory ? '' : 'disabled aria-disabled="true"'}>
-        ${peekHtml}
         <span class="cal-cell-day">${d}</span>
+        ${peekHtml}
       </button>
     `;
   }

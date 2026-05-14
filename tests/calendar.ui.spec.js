@@ -56,6 +56,14 @@ describe('Calendar image loading', () => {
     expect(imageService).toMatch(/for\s*\(const story of candidates\)/);
   });
 
+  it('Given a calendar history card front, when source is inspected, then it should not render the collect bar inside the front face', () => {
+    const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
+    const historyCardBuilder = calendar.match(/function buildHistoryCardHtml[\s\S]*?function buildMyCardHtml/)?.[0] || '';
+
+    expect(historyCardBuilder).toContain('history-card-front');
+    expect(historyCardBuilder).not.toContain('card-collect-bar');
+  });
+
   it('Given list thumbnails, when no thumbnail exists, then visible images fall back to the stored original', () => {
     expect(getStoryImageUrl({
       image_url: 'https://example.com/original.jpg',

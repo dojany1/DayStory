@@ -536,11 +536,6 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
             <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
           </div>
-          <div class="card-collect-bar">
-            <button class="collect-btn${collected ? ' collect-btn--done' : ''}" type="button" ${collected ? 'disabled' : ''}>
-              ${collected ? t('calendar.collected_button') : t('calendar.collect_button')}
-            </button>
-          </div>
         </div>
         <div class="back history-card-back">
           ${options.showDeleteBtn ? `
@@ -613,4 +608,3 @@ function buildMyCardHtml(story, year, month, day) {
     </div>
   `;
 }
-

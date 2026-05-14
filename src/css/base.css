@@ -403,8 +403,10 @@ ul, ol {
   stroke-width: 1.6;
 }
 
+/* 내비게이션 활성화 아이콘 */
 .bottom-nav.redesigned-nav .nav-item.active .nav-icon {
   color: var(--color-text-primary);
+  
 }
 
 /* 프로필 버튼 아바타 전용 래퍼: 다른 아이콘들과 정확히 동일한 사이즈(28x28) 유지 */

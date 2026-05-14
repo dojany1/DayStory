@@ -813,7 +813,7 @@
 }
 
 .archive-toggle[data-mode="received"] .calendar-toggle-thumb {
-  transform: translate(100%);
+  transform: translateX(calc(100% + 4px));
 }
 
 /* 보관함 검색바 — 표준 .search-bar 그대로 사용, margin만 조정 */
@@ -2158,7 +2158,7 @@
 }
 
 .calendar-toggle-btn {
-  z-index:1;
+  z-index:2;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -2170,7 +2170,7 @@
   text-align:center;
   white-space:nowrap;
   cursor:pointer;
-  transition:all var(--transition-fast);
+  transition:color var(--transition-fast), transform var(--transition-fast);
   -webkit-tap-highlight-color:transparent;
   background:0 0;
   border:0;
@@ -2180,9 +2180,7 @@
 }
 
 .calendar-toggle-btn.active {
-  background:#ffffff;
   color:#1c1c1e;
-  box-shadow:0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
 }
 
 .calendar-toggle-btn:not(.active):active {
@@ -2191,11 +2189,12 @@
 }
 
 .calendar-toggle-thumb {
-  display:none;
-  border-radius:var(--radius-lg);
-  background:var(--color-bg-card);
+  display:block;
+  border-radius:calc(var(--radius-lg) - 2px);
+  background:#ffffff;
+  box-shadow:0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
   z-index:1;
-  width:calc(50% - 4px);
+  width:calc((100% - 12px) / 2);
   transition:transform .25s cubic-bezier(.4,0,.2,1);
   position:absolute;
   top:4px;
@@ -2203,7 +2202,7 @@
   left:4px}
 
 .calendar-toggle[data-mode=mine] .calendar-toggle-thumb {
-  transform:translate(100%)}
+  transform:translateX(calc(100% + 4px))}
 
 .calendar-month-nav {
   justify-content:center;

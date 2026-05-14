@@ -80,11 +80,16 @@ describe('Calendar image loading', () => {
     expect(calendarToggleBtnRule).toMatch(/align-items:\s*center/);
     expect(calendarToggleBtnRule).toMatch(/justify-content:\s*center/);
     expect(calendarToggleBtnRule).toMatch(/border-radius:\s*calc\(var\(--radius-lg\)\s*-\s*2px\)/);
-    expect(calendarToggleBtnRule).toMatch(/transition:\s*all\s+var\(--transition-fast\)/);
-    expect(calendarToggleActiveRule).toMatch(/background:\s*#ffffff/);
+    expect(calendarToggleBtnRule).toMatch(/z-index:\s*2/);
+    expect(calendarToggleBtnRule).toMatch(/transition:\s*color\s+var\(--transition-fast\),\s*transform\s+var\(--transition-fast\)/);
     expect(calendarToggleActiveRule).toMatch(/color:\s*#1c1c1e/);
-    expect(calendarToggleActiveRule).toMatch(/box-shadow:/);
-    expect(calendarToggleThumbRule).toMatch(/display:\s*none/);
+    expect(calendarToggleActiveRule).not.toMatch(/background:/);
+    expect(calendarToggleActiveRule).not.toMatch(/box-shadow:/);
+    expect(calendarToggleThumbRule).toMatch(/display:\s*block/);
+    expect(calendarToggleThumbRule).toMatch(/background:\s*#ffffff/);
+    expect(calendarToggleThumbRule).toMatch(/box-shadow:/);
+    expect(calendarToggleThumbRule).toMatch(/transition:\s*transform\s+\.25s/);
+    expect(css).toMatch(/\.calendar-toggle\[data-mode=mine\]\s+\.calendar-toggle-thumb\s*\{[\s\S]*?transform:\s*translateX\(calc\(100%\s*\+\s*4px\)\)/);
   });
 
   it('Given list thumbnails, when no thumbnail exists, then visible images fall back to the stored original', () => {

@@ -108,3 +108,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 검증: `npm test -- tests/toast.ui.spec.js` 통과, `npm run build` 통과. `npm test`는 기존 `localStorage` 테스트 환경 및 editorstory CSS 기대값 불일치로 실패했습니다.
 - 캘린더 날짜 셀 전체 비율을 더 세로로 늘리고, 내부 이미지 영역을 4:5 비율로 고정해 이미지가 잘리지 않으면서 좌우 여백 없이 표시되도록 조정했습니다.
 - 검증: `npm test -- tests/calendar.ui.spec.js` 통과, `npm run build` 통과. `npm test`는 기존 `localStorage` 테스트 환경 및 editorstory CSS 기대값 불일치로 실패했습니다.
+
+## 2026-05-14 18:30 — Claude Sonnet 4.6
+
+- 요구사항: 별도 `/calendar` 라우트 페이지를 제거하고, `editorstory-page`·`mystory-page` 내부에 카드/캘린더 보기 방식 전환 토글 버튼을 추가. 하단 내비게이션 캘린더 버튼도 제거.
+- 구현방법: `calendar.js`에서 `renderGrid`, `isAtCurrentMonth`, `WEEKDAYS`를 export로 전환. `editorstory.js`·`mystory.js` 각각에 월 휠 우측 절대 위치 토글 버튼, 일 피커 hide/show, `.page-calendar-view` 컨테이너(월 nav + 요일 헤더 + 그리드)를 추가. 토글 클릭 시 180ms fade 애니메이션으로 카드⟷캘린더 뷰 전환. 월 휠 스크롤이 캘린더 그리드와 양방향 동기화. `main.js`에서 워밍업·라우트 제거. `index.html`에서 `#nav-calendar` 버튼 제거. `pages.css`에 `.view-toggle-btn`·`.page-calendar-view`·전환 keyframe 추가.
+- 변경파일: `src/js/pages/calendar.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/css/pages.css`, `src/main.js`, `index.html`, `tests/calendar.ui.spec.js`, `tests/view-toggle.spec.js` (신규)
+- 검증: `npx vitest run tests/view-toggle.spec.js` 15/15 통과. `npx vitest run tests/calendar.ui.spec.js` 8/8 통과. 기존 실패 테스트는 내 변경 이전부터 동일하게 실패함 확인.

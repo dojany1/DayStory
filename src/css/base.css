@@ -27,6 +27,9 @@
   -webkit-tap-highlight-color: transparent; /* 모바일에서 탭 시 파란색 하이라이트 제거 */
 }
 
+/* hidden 속성이 display 값에 관계없이 항상 숨김 처리되도록 보장 */
+[hidden] { display: none !important; }
+
 /* HTML 루트 요소 — 기본 폰트 크기와 스크롤 동작 설정 */
 html {
   font-size: 16px;                     /* rem 단위의 기준 크기 */
@@ -338,8 +341,8 @@ ul, ol {
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
   backdrop-filter: blur(20px);         /* 배경 블러 효과 (지원 환경에서만 추가 효과) */
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--color-divider);
-  box-shadow: 0 -12px 12px rgba(0, 0, 0, 0.05); /* 미세한 그림자 효과 */
+  
+
 }
 
 /* 다크 테마 내비게이션 — 반투명 검정 배경 */

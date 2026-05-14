@@ -21,8 +21,12 @@ import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages } from
 import { bindImageVariantFields } from '../utils/imageFields.js';
 import { uploadCardImageVariants } from '../services/images.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
+import { renderGrid, isAtCurrentMonth, WEEKDAYS } from './calendar.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
+
+const ICON_CALENDAR_MY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7v10"/><path d="M6 5v14"/><rect width="12" height="18" x="10" y="3" rx="2"/></svg>`;
+const ICON_CARD_MY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>`;
 
 /* 스와이프 commit 가드 — bindCardEvents 가 카드 재렌더로 다시 호출돼도
    짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다 (세션 1 #2). */
@@ -64,9 +68,10 @@ export function renderMyStory() {
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
         <div class="modern-wheel-scroll" id="mystory-month-scroll"></div>
+        <button type="button" class="view-toggle-btn" id="mystory-view-toggle" aria-label="보기 방식 변경">${ICON_CALENDAR_MY}</button>
       </div>
       <!-- 일 피커 -->
-      <div class="wheel-picker-wrapper">
+      <div class="wheel-picker-wrapper" id="mystory-day-picker">
         <div class="wheel-selection-box"></div>
         <div class="modern-wheel-scroll" id="mystory-calendar"></div>
       </div>
@@ -76,6 +81,24 @@ export function renderMyStory() {
     <div class="editorstory-card-area" id="mystory-card-area">
       <div style="display:flex;justify-content:center;padding:var(--space-8);width:100%;">
         <div class="loading-spinner"></div>
+      </div>
+    </div>
+
+    <div class="page-calendar-view" id="mystory-cal-view" hidden>
+      <div class="calendar-month-nav">
+        <button type="button" class="calendar-month-arrow" id="cal-prev-month" aria-label="이전 달">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="calendar-month-label" id="cal-month-label">—</div>
+        <button type="button" class="calendar-month-arrow" id="cal-next-month" aria-label="다음 달">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="calendar-weekdays">
+        ${WEEKDAYS.map((d, i) => `<div class="calendar-weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}
+      </div>
+      <div class="calendar-grid" id="calendar-grid">
+        <div class="calendar-grid-loading"><div class="loading-spinner"></div></div>
       </div>
     </div>
   `;
@@ -104,7 +127,7 @@ async function loadMyStoryData(page) {
     const [rtY, rtM, rtD] = localTodayStr.split('-');
     const realToday = new Date(parseInt(rtY), parseInt(rtM)-1, parseInt(rtD));
     
-    // URL 파라미터가 있으면 해당 날짜를 초기 렌더링 날짜로 사용
+    // URL 파라미터 > 오늘 순서로 초기 날짜 결정
     const targetDateStr = params.date || localTodayStr;
     const [tY, tM, tD] = targetDateStr.split('-');
     const targetDate = new Date(parseInt(tY), parseInt(tM)-1, parseInt(tD));
@@ -198,13 +221,16 @@ async function loadMyStoryData(page) {
     let scrollTimeout;
     const onDayScrollEnd = () => {
       clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => updateWheelSelection(false), 150);
+      scrollTimeout = setTimeout(() => {
+        updateWheelSelection(false);
+      }, 150);
     };
     calendarElement.addEventListener('scroll', onDayScrollEnd, { passive: true });
 
     /* 월 휠 스크롤 디바운스 — 중앙 월로 일 휠을 점프 */
     let monthScrollTimeout;
     const onMonthScrollEnd = () => {
+      if (currentView !== 'card') return;
       clearTimeout(monthScrollTimeout);
       monthScrollTimeout = setTimeout(() => {
         const centerMonth = getActiveItem(monthElement);
@@ -258,24 +284,119 @@ async function loadMyStoryData(page) {
       item.addEventListener('click', () => onDayClick(item))
     );
 
-    /* 초기 위치: targetDate (URL 파라미터 또는 오늘) */
+    /* 초기 위치: targetDate — rAF로 레이아웃 완료 후 실행 */
     setTimeout(() => {
-      const initStr = targetDateStr;
-      const initDayEl = calendarElement.querySelector(`.wheel-item[data-date="${initStr}"]`);
-      const initMonth = targetDate.getMonth() + 1;
-      const initMonthEl = monthElement.querySelector(`.wheel-item[data-month="${initMonth}"]`);
-      if (initDayEl) {
-        calendarElement.scrollLeft = initDayEl.offsetLeft - calendarElement.offsetWidth / 2 + initDayEl.offsetWidth / 2;
-        initDayEl.classList.add('active');
-      }
-      if (initMonthEl) {
-        monthElement.scrollLeft = initMonthEl.offsetLeft - monthElement.offsetWidth / 2 + initMonthEl.offsetWidth / 2;
-        initMonthEl.classList.add('active');
-      }
+      requestAnimationFrame(() => {
+        const initStr = targetDateStr;
+        const initDayEl = calendarElement.querySelector(`.wheel-item[data-date="${initStr}"]`);
+        const initMonth = targetDate.getMonth() + 1;
+        const initMonthEl = monthElement.querySelector(`.wheel-item[data-month="${initMonth}"]`);
+        if (initDayEl) {
+          initDayEl.classList.add('active');
+          if (!dayPicker.hidden) {
+            calendarElement.scrollLeft = initDayEl.offsetLeft - calendarElement.offsetWidth / 2 + initDayEl.offsetWidth / 2;
+          }
+        }
+        if (initMonthEl) {
+          initMonthEl.classList.add('active');
+          monthElement.scrollLeft = initMonthEl.offsetLeft - monthElement.offsetWidth / 2 + initMonthEl.offsetWidth / 2;
+        }
+      });
     }, 0);
 
     const initialStory = allStories.find(s => s.publish_date === targetDateStr);
     renderCardToArea(cardArea, initialStory || null, targetDate, targetDateStr, null, allStories);
+
+    /* ── 보기 방식 토글 (카드 ↔ 캘린더) ── */
+    const calState = {
+      mode: 'mine',
+      year: currentYear,
+      month: realToday.getMonth(),
+      historyStories: [],
+      myStories: allStories,
+      bookmarkedIds: [],
+    };
+
+    const toggleBtn = page.querySelector('#mystory-view-toggle');
+    const dayPicker = page.querySelector('#mystory-day-picker');
+    const calView   = page.querySelector('#mystory-cal-view');
+    let currentView = localStorage.getItem('daystory_mystory_view') || 'card';
+
+    if (currentView === 'calendar') {
+      toggleBtn.innerHTML = ICON_CARD_MY;
+      dayPicker.hidden = true;
+      cardArea.hidden = true;
+      calView.hidden = false;
+      renderGrid(page, calState, realToday);
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (currentView === 'card') {
+        currentView = 'calendar';
+        localStorage.setItem('daystory_mystory_view', 'calendar');
+        toggleBtn.innerHTML = ICON_CARD_MY;
+        dayPicker.hidden = true;
+        cardArea.hidden = true;
+        calView.hidden = false;
+        requestAnimationFrame(() => {
+          calView.classList.add('view-enter');
+          renderGrid(page, calState, realToday);
+          setTimeout(() => calView.classList.remove('view-enter'), 250);
+        });
+      } else {
+        currentView = 'card';
+        localStorage.setItem('daystory_mystory_view', 'card');
+        toggleBtn.innerHTML = ICON_CALENDAR_MY;
+        calView.hidden = true;
+        dayPicker.hidden = false;
+        cardArea.hidden = false;
+        requestAnimationFrame(() => {
+          const activeDay = calendarElement.querySelector('.wheel-item.active');
+          if (activeDay) {
+            calendarElement.scrollLeft = activeDay.offsetLeft - calendarElement.offsetWidth / 2 + activeDay.offsetWidth / 2;
+          }
+          updateWheelSelection(true);
+          cardArea.classList.add('view-enter');
+          setTimeout(() => cardArea.classList.remove('view-enter'), 250);
+        });
+      }
+    });
+
+    /* 월 휠 스크롤 → 캘린더 모드일 때 그리드 업데이트 */
+    let calMonthScrollTimer;
+    monthElement.addEventListener('scroll', () => {
+      if (currentView !== 'calendar') return;
+      clearTimeout(calMonthScrollTimer);
+      calMonthScrollTimer = setTimeout(() => {
+        const active = getActiveItem(monthElement);
+        if (!active) return;
+        const m = parseInt(active.dataset.month, 10) - 1;
+        if (m === calState.month && calState.year === currentYear) return;
+        calState.month = m;
+        calState.year = currentYear;
+        renderGrid(page, calState, realToday);
+      }, 150);
+    }, { passive: true });
+
+    /* 캘린더 이전/다음 달 버튼 */
+    page.querySelector('#cal-prev-month').addEventListener('click', () => {
+      calState.month -= 1;
+      if (calState.month < 0) { calState.month = 11; calState.year -= 1; }
+      const yearLabel = page.querySelector('#mystory-year-label');
+      if (yearLabel) yearLabel.textContent = calState.year;
+      renderGrid(page, calState, realToday);
+      syncMonthWheel(calState.month + 1);
+    });
+
+    page.querySelector('#cal-next-month').addEventListener('click', () => {
+      if (isAtCurrentMonth(calState, realToday)) return;
+      calState.month += 1;
+      if (calState.month > 11) { calState.month = 0; calState.year += 1; }
+      const yearLabel = page.querySelector('#mystory-year-label');
+      if (yearLabel) yearLabel.textContent = calState.year;
+      renderGrid(page, calState, realToday);
+      syncMonthWheel(calState.month + 1);
+    });
 
   } catch (err) {
     console.error(err);

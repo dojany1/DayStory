@@ -19,6 +19,8 @@ export function renderSettingsSections() {
   const profile = getState('profile');
   const currentTheme = getState('theme');
   const currentLang = getCurrentLang();
+  const themeActiveIdx = Math.max(0, ['light', 'dark', 'system'].indexOf(currentTheme));
+  const langActiveIdx = Math.max(0, ['ko', 'en', 'ja'].indexOf(currentLang));
 
   return `
     ${profile && profile.role === 'editor' ? `
@@ -35,15 +37,17 @@ export function renderSettingsSections() {
 
     <div class="settings-section">
       <div class="settings-section-title">앱 설정</div>
-      <div class="theme-option-group" role="group" aria-label="${t('settings.section_display')}">
+      <div class="theme-option-group" role="group" aria-label="${t('settings.section_display')}" data-active="${themeActiveIdx}">
         ${renderThemeOption('light', t('settings.theme_light'), currentTheme, sunIcon())}
         ${renderThemeOption('dark', t('settings.theme_dark'), currentTheme, moonIcon())}
         ${renderThemeOption('system', t('settings.theme_system'), currentTheme, systemIcon())}
+        <span class="theme-option-thumb" aria-hidden="true"></span>
       </div>
-      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}">
+      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}" data-active="${langActiveIdx}">
         ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
         ${renderLangOption('en', t('settings.lang_en'), currentLang)}
         ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
+        <span class="theme-option-thumb" aria-hidden="true"></span>
       </div>
       ${renderNotificationListItem()}
     </div>
@@ -144,12 +148,15 @@ function bindThemeOptions(page) {
     btn.addEventListener('click', () => {
       const selectedTheme = btn.dataset.theme;
       setState('theme', selectedTheme);
-      page.querySelectorAll('.theme-option[data-theme]').forEach((option) => {
+      const group = btn.closest('.theme-option-group');
+      const btns = [...group.querySelectorAll('.theme-option[data-theme]')];
+      btns.forEach((option) => {
         option.classList.remove('active');
         option.setAttribute('aria-pressed', 'false');
       });
       btn.classList.add('active');
       btn.setAttribute('aria-pressed', 'true');
+      group.dataset.active = btns.indexOf(btn);
       showToast(t('settings.theme_changed', { label: themeLabel(selectedTheme) }), 'success');
     });
   });
@@ -160,6 +167,9 @@ function bindLangOptions(page) {
     btn.addEventListener('click', () => {
       const selectedLang = btn.dataset.lang;
       if (getCurrentLang() === selectedLang) return;
+      const group = btn.closest('.theme-option-group');
+      const btns = [...group.querySelectorAll('.lang-option[data-lang]')];
+      group.dataset.active = btns.indexOf(btn);
       setLang(selectedLang);
       /* setLang → state 발행 → i18n init이 등록한 forceRoute() 자동 호출됨 → 페이지 재렌더 */
       showToast(t('settings.lang_changed'), 'success');

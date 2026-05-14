@@ -24,7 +24,7 @@ import { t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { showConfirm } from '../components/confirmDialog.js';
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 export function renderCalendar() {
   const page = document.createElement('div');
   page.className = 'calendar-page page';
@@ -133,11 +133,11 @@ async function loadCalendar(page) {
   });
 }
 
-function isAtCurrentMonth(state, today) {
+export function isAtCurrentMonth(state, today) {
   return state.year === today.getFullYear() && state.month === today.getMonth();
 }
 
-function renderGrid(page, state, today) {
+export function renderGrid(page, state, today) {
   const grid = page.querySelector('#calendar-grid');
   const monthLabel = page.querySelector('#cal-month-label');
   if (!grid || !monthLabel) return;
@@ -305,7 +305,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       <div class="calendar-card-popup-stage">
         ${mode === 'history'
           ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected, { showDeleteBtn: !!options.onRemove })
-          : buildMyCardHtml(story, year, month, day)}
+          : buildMyCardHtml(story, year, month, day, getMyCardNickname(story))}
       </div>
       <div class="calendar-card-popup-hint">${collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint')}</div>
     </div>
@@ -428,6 +428,27 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       bubbleTimer = setTimeout(() => bubble.remove(), 4000);
     };
     editorBtn.addEventListener('click', showEditorBubble);
+  }
+
+  /* 공유 / 수정 버튼 — 나의 일화에만 표시 */
+  if (mode !== 'history') {
+    const shareBtn = overlay.querySelector('.share-my-story-btn');
+    const editBtn = overlay.querySelector('.edit-my-story-btn');
+
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await shareStory(story, { kind: 'mystory', includeImage: false });
+      });
+    }
+
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        close();
+        navigate('/mystory/new?edit=' + editBtn.dataset.id);
+      });
+    }
   }
 
   /* 공유 / 북마크 버튼 — 역사 일화에만 표시 */
@@ -560,7 +581,19 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
   `;
 }
 
-function buildMyCardHtml(story, year, month, day) {
+function getMyCardNickname(story) {
+  const profile = getState('profile') || {};
+  const user = getState('user') || {};
+  const emailName = typeof user.email === 'string' ? user.email.split('@')[0] : '';
+  const candidates = [
+    story.author_nickname, story.authorNickname,
+    story.author?.nickname, story.author?.displayName,
+    profile.nickname, user.displayName, emailName,
+  ];
+  return candidates.map(v => typeof v === 'string' ? v.trim() : '').find(Boolean) || '사용자';
+}
+
+function buildMyCardHtml(story, year, month, day, nickname = '') {
   const bodyHtml = (story.body || '').split(/\n|\\n/)
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
   const imageSources = getStoryImageSources(story, 'thumb');
@@ -581,7 +614,21 @@ function buildMyCardHtml(story, year, month, day) {
               <div class="card-date">${month}. ${day}</div>
             </div>
             <div class="card-top-right">
-              <div class="card-meta">${escapeHtml(story.title || '')}</div>
+              <div class="card-actions">
+                <button class="card-action-btn share-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="공유">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                </button>
+                <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="수정">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="card-meta">${escapeHtml(nickname)}</div>
             </div>
           </div>
           <div class="history-card-image-wrap">

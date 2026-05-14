@@ -800,7 +800,7 @@
 
 /* 컬렉션 페이지 전체 */
 .archive-page {
-  padding: var(--space-5);
+  padding: 0 var(--space-5) var(--space-12);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -1088,6 +1088,7 @@
   border-radius: var(--radius-lg);
   padding: 4px;
   gap: 4px;
+  position: relative;
 }
 
 .theme-option {
@@ -1104,8 +1105,10 @@
   cursor: pointer;
   font-size: small;
   font-weight: 600;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), transform var(--transition-fast);
   color: var(--color-text-tertiary);
+  position: relative;
+  z-index: 2;
 }
 
 .theme-option svg {
@@ -1118,16 +1121,37 @@
   display: none;
 }
 
-/* 활성화된 테마 옵션 — 흰 카드 (iOS 세그먼트 컨트롤) */
+/* 활성화된 테마 옵션 — thumb이 뒤에서 슬라이드 */
 .theme-option.active {
-  background: #ffffff;
   color: #1c1c1e;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
 }
 
 .theme-option:not(.active):active {
   background: var(--color-bg-primary);
   transform: scale(0.96);
+}
+
+/* 슬라이딩 thumb — calendar-toggle-thumb과 동일한 패턴, 3개 아이템 기준 */
+.theme-option-thumb {
+  display: block;
+  border-radius: calc(var(--radius-lg) - 2px);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
+  z-index: 1;
+  width: calc((100% - 16px) / 3);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+}
+
+.theme-option-group[data-active="1"] .theme-option-thumb {
+  transform: translateX(calc(100% + 4px));
+}
+
+.theme-option-group[data-active="2"] .theme-option-thumb {
+  transform: translateX(calc(2 * (100% + 4px)));
 }
 
 
@@ -2742,3 +2766,61 @@
   width: 100%;
   text-align: center;
 }
+
+/* ══════════════════════════════════════════
+   보기 방식 토글 버튼
+   ══════════════════════════════════════════ */
+.view-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 38px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  color: var(--color-text-primary);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.view-toggle-btn:active {
+  transform: translateY(-50%) scale(0.88);
+  background: var(--color-bg-secondary);
+  box-shadow: none;
+}
+[data-theme="dark"] .view-toggle-btn {
+  background: var(--color-bg-card-dark, var(--color-bg-card));
+}
+
+/* ══════════════════════════════════════════
+   페이지 내 캘린더 뷰 컨테이너
+   ══════════════════════════════════════════ */
+.page-calendar-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-1) var(--space-3) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ══════════════════════════════════════════
+   뷰 전환 애니메이션
+   ══════════════════════════════════════════ */
+@keyframes viewEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes viewExit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+.view-enter { animation: viewEnter 220ms ease forwards; }
+.view-exit  { animation: viewExit  180ms ease forwards; }

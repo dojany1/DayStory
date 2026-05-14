@@ -230,7 +230,7 @@
 .card-detail-shortcut-btn {
   padding: 0.45rem 0.8rem;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   font-family: var(--font-ui);
@@ -560,7 +560,7 @@
   width: 100%;
   overflow: hidden;
   background: var(--color-bg-card);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-lg);
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;

@@ -64,7 +64,6 @@ import { Capacitor } from '@capacitor/core';
 */
 import { renderEditorStory } from './js/pages/editorstory.js';
 import { getLocalToday } from './js/utils/date.js';
-import { warmStoriesCache } from './js/services/stories.js';
 import { preloadStoryImages } from './js/utils/imageLoading.js';
 
 function registerImageCacheWorker() {
@@ -77,57 +76,6 @@ function registerImageCacheWorker() {
 
 registerImageCacheWorker();
 
-let calendarRoutePromise = null;
-let warmedStoriesPromise = null;
-
-function loadCalendarModule() {
-  if (!calendarRoutePromise) {
-    calendarRoutePromise = import('./js/pages/calendar.js');
-  }
-  return calendarRoutePromise;
-}
-
-function getCurrentMonthStories(stories) {
-  const [year, month] = getLocalToday().split('-').map(Number);
-  return (stories || []).filter((story) => {
-    if (!story?.publish_date) return false;
-    const [storyYear, storyMonth] = story.publish_date.split('-').map(Number);
-    return storyYear === year && storyMonth === month;
-  });
-}
-
-function warmCalendarRoute() {
-  loadCalendarModule();
-  if (!warmedStoriesPromise) {
-    warmedStoriesPromise = warmStoriesCache().catch(() => []);
-  }
-
-  warmedStoriesPromise.then((stories) => {
-    preloadStoryImages(getCurrentMonthStories(stories), {
-      variant: 'thumb',
-      limit: 8,
-      fallback: false,
-    });
-  });
-}
-
-function scheduleCalendarWarmup() {
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(warmCalendarRoute, { timeout: 1500 });
-    return;
-  }
-  setTimeout(warmCalendarRoute, 800);
-}
-
-function bindCalendarNavWarmup() {
-  const calendarNav = document.getElementById('nav-calendar');
-  if (!calendarNav) return;
-
-  ['pointerenter', 'touchstart', 'focus'].forEach((eventName) => {
-    calendarNav.addEventListener(eventName, warmCalendarRoute, { passive: true });
-  });
-  scheduleCalendarWarmup();
-}
 
 /* ─────────────────────────────────────────────
    섹션 4: 라우트(경로) 등록 및 Lazy Loading 분할
@@ -154,7 +102,6 @@ registerRoute('/editor', () => import('./js/pages/editor.js').then(m => m.render
 registerRoute('/editor/new', () => import('./js/pages/editor.js').then(m => m.renderEditorNew()));
 registerRoute('/mystory', () => import('./js/pages/mystory.js').then(m => m.renderMyStory()));
 registerRoute('/mystory/new', () => import('./js/pages/mystory.js').then(m => m.renderMyStoryNew()));
-registerRoute('/calendar', () => loadCalendarModule().then(m => m.renderCalendar()));
 registerRoute('/bookmarks', () => import('./js/pages/bookmarks.js').then(m => m.renderBookmarks()));
 registerRoute('/license', () => import('./js/pages/license.js').then(m => m.renderLicense()));
 registerRoute('/about', () => import('./js/pages/about.js').then(m => m.renderAbout()));
@@ -264,7 +211,6 @@ function checkAndStartApp() {
 
   /* 라우터 시작 → 현재 URL에 맞는 페이지 표시 */
   initRouter();
-  bindCalendarNavWarmup();
   if (pendingWidgetDeepLinkUrl) {
     const url = pendingWidgetDeepLinkUrl;
     pendingWidgetDeepLinkUrl = null;
@@ -478,7 +424,7 @@ if (Capacitor.isNativePlatform()) {
    */
   function showExitToast() {
     const toast = document.createElement('div');
-    toast.innerText = '뒤로가기 버튼을 한 번 더 누르면 종료됩니다';
+    toast.innerText = '한 번 더 눌러 종료';
     Object.assign(toast.style, {
       position: 'fixed',
       bottom: '100px',

@@ -18,19 +18,6 @@ describe('Calendar image loading', () => {
     expect(calendar).toMatch(/preloadStoryImages\([\s\S]*variant:\s*'thumb'[\s\S]*fallback:\s*false/);
   });
 
-  it('Given calendar route warmup, when source is inspected, then home should warm the route and current-month thumbnails from the calendar nav', () => {
-    const main = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
-
-    expect(main).toMatch(/warmCalendarRoute/);
-    expect(main).toMatch(/nav-calendar/);
-    expect(main).toMatch(/pointerenter/);
-    expect(main).toMatch(/touchstart/);
-    expect(main).toMatch(/focus/);
-    expect(main).toMatch(/warmStoriesCache/);
-    expect(main).toMatch(/variant:\s*'thumb'/);
-    expect(main).toMatch(/fallback:\s*false/);
-  });
-
   it('Given downloaded card images, when app sources are inspected, then images should be cached locally and future loads should prefer the cache', () => {
     const main = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
     const sw = readFileSync(resolve(process.cwd(), 'public/daystory-image-cache-sw.js'), 'utf8');

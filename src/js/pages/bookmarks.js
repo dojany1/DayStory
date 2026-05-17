@@ -9,12 +9,10 @@
    ===================================================================== */
 
 import { getBookmarkedStories, toggleBookmark } from '../services/bookmarks.js';
-import { getReceivedStories, removeReceived } from '../services/receivedCards.js';
 
 import { openCardPopup } from './calendar.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { safeStoryDateParts } from '../utils/date.js';
-import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, prepareLazyImages } from '../utils/imageLoading.js';
 import { t } from '../i18n/index.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { showToast } from '../components/toast.js';
@@ -23,16 +21,14 @@ import { showToast } from '../components/toast.js';
 export function renderArchiveSection() {
   return `
     <div class="archive-page">
-      <div class="calendar-toggle archive-toggle" data-mode="bookmarks" role="tablist">
-        <button type="button" class="calendar-toggle-btn active" data-tab="bookmarks" role="tab" aria-selected="true">${t('bookmarks.tab_mine')}</button>
-        <button type="button" class="calendar-toggle-btn" data-tab="received" role="tab" aria-selected="false">${t('bookmarks.tab_received')}</button>
-        <span class="calendar-toggle-thumb"></span>
-      </div>
-      <div class="search-bar archive-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
+      <div class="archive-section-header">
+        <span class="archive-section-label">${t('bookmarks.section_label')}</span>
+        <div class="search-bar archive-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
+        </div>
       </div>
       <div id="archive-content" class="archive-content-loading">
         <div class="loading-spinner"></div>
@@ -53,7 +49,18 @@ export function renderBookmarks() {
     <div class="page-header page-header-centered">
       <h1 class="page-header-title">${t('bookmarks.title')}</h1>
     </div>
-    ${renderArchiveSection()}
+    <div class="archive-section-header">
+      <span class="archive-section-label">${t('bookmarks.section_label')}</span>
+      <div class="search-bar archive-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
+      </div>
+    </div>
+    <div id="archive-content" class="archive-content-loading">
+      <div class="loading-spinner"></div>
+    </div>
   `;
 
   initArchiveSection(page);
@@ -64,56 +71,29 @@ export function renderBookmarks() {
 async function loadCollection(page) {
   const contentEl = page.querySelector('#archive-content');
 
-  const [bookmarkStoriesRaw, receivedStoriesRaw] = await Promise.all([
-    getBookmarkedStories().catch(() => []),
-    getReceivedStories().catch(() => []),
-  ]);
+  const bookmarkStoriesRaw = await getBookmarkedStories().catch(() => []);
   const bookmarkStories = (bookmarkStoriesRaw || []).map(localizedStory);
-  const receivedStories = (receivedStoriesRaw || []).map(localizedStory);
-
-  const sortByDate = (list) => list.sort((a, b) =>
+  bookmarkStories.sort((a, b) =>
     String(b.publish_date || '').localeCompare(String(a.publish_date || ''))
   );
-  sortByDate(bookmarkStories);
-  sortByDate(receivedStories);
 
   const state = {
-    tab: 'bookmarks',
     bookmarks: bookmarkStories,
-    received: receivedStories,
     queryStr: '',
   };
 
   const filterAndRender = () => {
-    const source = state.tab === 'bookmarks' ? state.bookmarks : state.received;
     const list = state.queryStr
-      ? source.filter(story =>
+      ? state.bookmarks.filter(story =>
           (story.figure_name || '').toLowerCase().includes(state.queryStr) ||
           (story.country || '').toLowerCase().includes(state.queryStr) ||
           (story.summary || '').toLowerCase().includes(state.queryStr)
         )
-      : source;
-    renderStories(contentEl, list, state.tab, (story) => onCardClick(state, story));
+      : state.bookmarks;
+    renderStories(contentEl, list, 'bookmarks', (story) => onCardClick(state, story));
   };
 
   filterAndRender();
-
-  /* 탭 전환 */
-  const toggleEl = page.querySelector('.archive-toggle');
-  toggleEl.querySelectorAll('.calendar-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      if (tab === state.tab) return;
-      state.tab = tab;
-      toggleEl.dataset.mode = tab;
-      toggleEl.querySelectorAll('.calendar-toggle-btn').forEach(b => {
-        const active = b.dataset.tab === tab;
-        b.classList.toggle('active', active);
-        b.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-      filterAndRender();
-    });
-  });
 
   /* 검색 */
   const searchInput = page.querySelector('#collection-search-input');
@@ -126,6 +106,7 @@ async function loadCollection(page) {
 
   function onCardClick(stateRef, story) {
     openCardPopup(story, 'history', stateRef.bookmarks.map(s => s.id), {
+      hideHint: true,
       onRemove: async (target) => {
         await removeCard(stateRef, target);
         showToast(t('bookmarks.removed'), 'success');
@@ -142,20 +123,6 @@ async function loadCollection(page) {
 async function removeCard(state, story) {
   if (!story || !story.id) return;
 
-  if (story.isMembershipCard) {
-    removeMembershipCardById(story.id);
-    state.received = state.received.filter((s) => s.id !== story.id);
-    return;
-  }
-
-  /* 받은 카드 (SNS 공유) — receivedCards localStorage */
-  if (state.received.some((s) => s.id === story.id) && !state.bookmarks.some((s) => s.id === story.id)) {
-    removeReceived(story.id);
-    state.received = state.received.filter((s) => s.id !== story.id);
-    return;
-  }
-
-  /* 내 보관함 — toggleBookmark 로 해제 */
   try {
     await toggleBookmark(story.id);
   } catch {
@@ -192,7 +159,6 @@ function renderStories(contentEl, list, tab, onClick) {
     const story = list[idx];
     card.addEventListener('click', () => onClick(story));
   });
-  prepareLazyImages(contentEl);
 }
 
 
@@ -204,14 +170,8 @@ function renderMiniCard(story) {
   const dateMeta = valid
     ? `${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`
     : '';
-  const imageSources = getStoryImageSources(story, 'thumb');
-  const imageUrl = imageSources.primary;
-  const fallbackAttr = imageSources.fallback
-    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
-    : '';
-  const imageAttrs = imageUrl
-    ? `src="${CARD_PLACEHOLDER_IMAGE}" data-src="${escapeHtml(imageUrl)}"${fallbackAttr}`
-    : `src="${CARD_PLACEHOLDER_IMAGE}"`;
+  const imageUrl = story.image_url || '';
+  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
 
   return `
     <div class="history-card-mini" data-story-id="${escapeHtml(story.id)}">
@@ -226,7 +186,7 @@ function renderMiniCard(story) {
         </div>
       </div>
       <div class="mini-card-image-wrap">
-        <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
+        <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="lazy" decoding="async" />
         <div class="mini-card-overlay">
           ${escapeHtml(story.figure_name || '')}
         </div>

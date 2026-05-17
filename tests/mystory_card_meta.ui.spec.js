@@ -44,23 +44,7 @@ vi.mock('../src/js/services/sharing.js', () => ({
 }));
 
 vi.mock('../src/js/services/images.js', () => ({
-  uploadCardImageVariants: vi.fn(),
-}));
-
-vi.mock('../src/js/utils/imageFields.js', () => ({
-  bindImageVariantFields: vi.fn(() => ({
-    applyUploadResult: vi.fn(),
-    clear: vi.fn(),
-  })),
-}));
-
-vi.mock('../src/js/utils/imageLoading.js', () => ({
-  CARD_PLACEHOLDER_IMAGE: '/placeholder.png',
-  getStoryImageSources: vi.fn((story) => ({
-    primary: story?.image_url || '',
-    fallback: '',
-  })),
-  preloadStoryImages: vi.fn(),
+  uploadImage: vi.fn(),
 }));
 
 vi.mock('../src/js/utils/scrollLock.js', () => ({

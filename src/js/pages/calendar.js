@@ -15,8 +15,6 @@ import { auth } from '../firebase.js';
 import { getState } from '../state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date.js';
-import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages, prepareLazyImages } from '../utils/imageLoading.js';
-import { backfillStoryThumbnailsForMonth } from '../services/images.js';
 import { navigate } from '../router.js';
 import { shareStory } from '../services/sharing.js';
 import { localizedStory } from '../utils/storyI18n.js';
@@ -162,16 +160,8 @@ export function renderGrid(page, state, today) {
     const [year, month] = story.publish_date.split('-');
     return Number(year) === state.year && Number(month) === state.month + 1;
   });
-  preloadStoryImages(currentMonthStories, { variant: 'thumb', limit: 8, fallback: false });
-
   const profile = getState('profile') || {};
   if (profile.role === 'editor') {
-    void backfillStoryThumbnailsForMonth(currentMonthStories, {
-      collectionName: state.mode === 'history' ? 'stories' : 'userStories',
-      uid: auth?.currentUser?.uid || getState('user')?.id || 'guest',
-      year: state.year,
-      month: state.month + 1,
-    });
   }
 
   const firstDay = toLocalDateFromIso(`${state.year}-${String(state.month + 1).padStart(2, '0')}-01`);
@@ -208,11 +198,19 @@ export function renderGrid(page, state, today) {
     ].filter(Boolean).join(' ');
 
     const peekHtml = story ? renderCellPeek(story, state.mode) : '';
+    const writeHtml = (canWriteMyStory && isToday)
+      ? `<div class="cal-cell-write-prompt">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+           </svg>
+         </div>`
+      : '';
 
     html += `
       <button type="button" class="${cellClasses}" data-date="${isoDate}" ${story || canWriteMyStory ? '' : 'disabled aria-disabled="true"'}>
         <span class="cal-cell-day">${d}</span>
         ${peekHtml}
+        ${writeHtml}
       </button>
     `;
   }
@@ -225,7 +223,6 @@ export function renderGrid(page, state, today) {
   }
 
   grid.innerHTML = html;
-  prepareLazyImages(grid);
 
   grid.querySelectorAll('.cal-cell-has-story').forEach(cell => {
     cell.addEventListener('click', () => {
@@ -247,21 +244,15 @@ export function renderGrid(page, state, today) {
 }
 
 function renderCellPeek(story, mode) {
-  const imageSources = getStoryImageSources(story, 'thumb');
-  const img = imageSources.primary;
-  const fallbackAttr = imageSources.fallback
-    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
-    : '';
-  const imageAttrs = img
-    ? `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}" data-src="${escapeHtml(img)}"${fallbackAttr}`
-    : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
+  const img = story.image_url || '';
+  const imageAttrs = img ? `src="${escapeHtml(img)}"` : '';
   const title = mode === 'history'
     ? (story.figure_name || story.title || '')
     : (story.title || '');
 
   return `
     <span class="cal-cell-peek" aria-hidden="true">
-      <img class="cal-cell-peek-img" ${imageAttrs} alt="" loading="lazy" decoding="async" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.style.visibility='hidden'}" />
+      <img class="cal-cell-peek-img" ${imageAttrs} alt="" loading="lazy" decoding="async" draggable="false" />
       <span class="cal-cell-peek-title">${escapeHtml(title)}</span>
     </span>
   `;
@@ -307,13 +298,12 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
           ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected, { showDeleteBtn: !!options.onRemove })
           : buildMyCardHtml(story, year, month, day, getMyCardNickname(story))}
       </div>
-      <div class="calendar-card-popup-hint">${collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint')}</div>
+      ${options.hideHint ? '' : `<div class="calendar-card-popup-hint">${collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint')}</div>`}
     </div>
   `;
 
   document.body.appendChild(overlay);
   lockScroll();
-  prepareLazyImages(overlay);
   requestAnimationFrame(() => overlay.classList.add('open'));
 
   const close = () => {
@@ -404,18 +394,25 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   /* 에디터 한마디 버튼 — 클릭 시 말풍선 표시 (역사 모드에만 존재) */
   const editorBtn = overlay.querySelector('.back-editor-btn');
   if (editorBtn) {
-    let bubbleTimer = null;
+    let removeOutsideListener = null;
+
+    const removeEditorBubble = () => {
+      const bubble = overlay.querySelector('.editor-comment-bubble');
+      if (bubble) bubble.remove();
+      if (removeOutsideListener) { removeOutsideListener(); removeOutsideListener = null; }
+    };
+
     const showEditorBubble = (e) => {
       e.stopPropagation();
+      const existing = overlay.querySelector('.editor-comment-bubble');
+      if (existing) {
+        if (existing.contains(e.target)) return;
+        removeEditorBubble();
+        return;
+      }
       const comment = editorBtn.dataset.comment;
       const editorName = editorBtn.dataset.editorName || 'DayStory';
       if (!comment) return;
-      const existing = overlay.querySelector('.editor-comment-bubble');
-      if (existing) {
-        existing.remove();
-        if (bubbleTimer) clearTimeout(bubbleTimer);
-        return;
-      }
       const bubble = document.createElement('div');
       bubble.className = 'editor-comment-bubble';
       const nameEl = document.createElement('span');
@@ -423,10 +420,15 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       nameEl.textContent = editorName;
       bubble.appendChild(nameEl);
       bubble.appendChild(document.createTextNode(comment));
-      editorBtn.parentElement.appendChild(bubble);
-      if (bubbleTimer) clearTimeout(bubbleTimer);
-      bubbleTimer = setTimeout(() => bubble.remove(), 4000);
+      editorBtn.appendChild(bubble);
+      const handleOutside = (event) => {
+        if (editorBtn.contains(event.target)) return;
+        removeEditorBubble();
+      };
+      document.addEventListener('click', handleOutside);
+      removeOutsideListener = () => document.removeEventListener('click', handleOutside);
     };
+
     editorBtn.addEventListener('click', showEditorBubble);
   }
 
@@ -508,14 +510,8 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
   const editorPhotoURL = (story.editor && story.editor.photoURL) || '';
   const editorName = (story.editor && story.editor.displayName) || 'DayStory';
   const editorBtnHidden = !editorComment.trim();
-  const imageSources = getStoryImageSources(story, 'thumb');
-  const imageUrl = imageSources.primary;
-  const fallbackAttr = imageSources.fallback
-    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
-    : '';
-  const imageAttrs = imageUrl
-    ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
-    : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
+  const imageUrl = story.image_url || '';
+  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
 
   return `
     <div class="flip-container">
@@ -547,7 +543,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
+            <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
           </div>
         </div>
@@ -596,14 +592,8 @@ function getMyCardNickname(story) {
 function buildMyCardHtml(story, year, month, day, nickname = '') {
   const bodyHtml = (story.body || '').split(/\n|\\n/)
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
-  const imageSources = getStoryImageSources(story, 'thumb');
-  const imageUrl = imageSources.primary;
-  const fallbackAttr = imageSources.fallback
-    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
-    : '';
-  const imageAttrs = imageUrl
-    ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
-    : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
+  const imageUrl = story.image_url || '';
+  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
   return `
     <div class="flip-container">
       <div class="flipper mystory-flipper">
@@ -632,7 +622,7 @@ function buildMyCardHtml(story, year, month, day, nickname = '') {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.title || '')}" loading="eager" decoding="async" width="320" height="400" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.title || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.title || '')}</div>
           </div>
         </div>

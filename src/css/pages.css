@@ -196,19 +196,32 @@
 .wheel-pickers-container {
   display: flex;
   flex-direction: column;
+  
   background: var(--color-bg-primary);
-  border-bottom: 2px solid var(--color-divider);
   box-shadow: var(--shadow-card);
+
   margin-bottom: var(--space-4);
   gap: var(--space-1);
 }
 
+/* 페이지 전환 시 부모(.page)의 translateY(12px)를 상쇄해 휠 피커가 움직이지 않도록 고정 */
+.editorstory-page .wheel-pickers-container,
+.mystory-page .wheel-pickers-container {
+  animation: wheelPickerStatic 0.35s ease;
+}
+
+@keyframes wheelPickerStatic {
+  from { transform: translateY(-12px); }
+  to   { transform: translateY(0); }
+}
+
+/* 휠 년도 레이블 (현재 년도 표시) */
 .wheel-year-label {
   text-align: center;
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   font-weight: 600;
-  padding: var(--space-1) 0 0;
+  padding-top: var(--space-1);
   letter-spacing: 0.08em;
   pointer-events: none;
 }
@@ -226,7 +239,7 @@
   transform: translate(-50%, -50%);
   width: 40px;  /* 50px -> 40px */
   height: 32px; /* 40px -> 32px */
-  background: var(--color-border); /* 배경과 구분되는 컬러를 반투명처럼 사용하거나 직접 rgba 설정 가능 (현재는 테마 변수 활용) */
+  background: var(--color-bg-card-dark); /* 배경과 구분되는 컬러를 반투명처럼 사용하거나 직접 rgba 설정 가능 (현재는 테마 변수 활용) */
   pointer-events: none; /* 클릭 방해 금지 */
   z-index: 1;
 }
@@ -242,8 +255,7 @@
   height: 100%;
   align-items: center;
   padding: 0 calc(50% - 20px); /* 아이템 넓이 절반(20px) 여백 */
-  scroll-behavior: smooth;
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-card);
 }
 
 .modern-wheel-scroll::-webkit-scrollbar {
@@ -800,7 +812,7 @@
 
 /* 컬렉션 페이지 전체 */
 .archive-page {
-  padding: 0 var(--space-5) var(--space-12);
+  padding: var(--space-4) var(--space-5) var(--space-12);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -819,6 +831,39 @@
 /* 보관함 검색바 — 표준 .search-bar 그대로 사용, margin만 조정 */
 .archive-search {
   margin-bottom: 0;
+}
+
+/* 보관함 섹션 헤더 — 레이블 + 검색바 나란히 */
+.archive-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.archive-section-label {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  padding: 0 var(--space-2);
+  flex: auto;
+  text-align: center;
+}
+
+.archive-section-header .archive-search {
+  flex: 0 0 70%;
+  margin-bottom: 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+.archive-section-header .archive-search svg {
+  width: 15px;
+  height: 15px;
+}
+
+.archive-section-header .archive-search input {
+  font-size: var(--text-sm);
 }
 
 /* 컬렉션 그리드 — 2열 배치 */
@@ -974,17 +1019,16 @@
 
 /* 설정 페이지 전체 — 하단 여백 */
 .settings-page {
-  padding-top: var(--space-5);
   padding-bottom: var(--space-8);
+  padding-top: 48px; /* 상단 헤더 공간 확보 */
 }
 
 .settings-user-info {
-  margin: var(--space-4) var(--space-5);
+  margin: 0 var(--space-5);
   padding: var(--space-4);
-  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: var(--color-bg-secondary);
 }
 
 .settings-user-row {
@@ -1082,7 +1126,7 @@
    ───────────────────────────────────────────── */
 .theme-option-group {
   display: flex;
-  margin: var(--space-2) var(--space-5) var(--space-4);
+  margin: var(--space-4) var(--space-5);
   background: var(--color-bg-card-dark);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -1152,6 +1196,11 @@
 
 .theme-option-group[data-active="2"] .theme-option-thumb {
   transform: translateX(calc(2 * (100% + 4px)));
+}
+
+.theme-option-group--disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 
@@ -1857,6 +1906,47 @@
   background: rgba(220, 53, 69, 0.1);
 }
 
+/* 편집 모드의 폼 하단 인라인 액션 영역 — 우측 정렬, 내부 콘텐츠 너비 유지 */
+.mystory-form-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}
+
+/* 나의 일화 작성/편집 — 폼 영역
+   하단 floating 액션 버튼에 가리지 않도록 충분한 bottom padding 확보 */
+.mystory-form-section {
+  padding-bottom: calc(220px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 나의 일화 작성/편집 — 하단 floating 액션 영역 (저장/삭제 버튼)
+   .mobile-wrapper 너비에 맞춰 화면 가장 하단에 고정 */
+.mystory-form-actions {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  padding: var(--space-4) var(--space-5);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  z-index: 50;
+}
+
+.mystory-form-actions #ms-save-btn {
+  font-size: var(--text-md);
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
 
 /* ============================================
    13. 프로필 편집 모달
@@ -1873,14 +1963,11 @@
   justify-content: center;
   flex-shrink: 0;
   /* 2. Box Model */
-  width: 32px;
-  height: 32px;
-  padding: 0;
+  width: 40px;
+  height: 40px;
   /* 3. Typography */
   color: var(--color-text-tertiary);
   /* 4. Visuals */
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
   border-radius: 50%;
   /* 5. Misc */
   cursor: pointer;
@@ -1934,6 +2021,7 @@
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   /* 5. Misc */
   overflow-y: auto;
+  overscroll-behavior: contain;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2347,6 +2435,21 @@
   border-color: var(--color-text-secondary);
 }
 
+/* 오늘 + 미작성 + 쓰기 가능 — + 아이콘 프롬프트 */
+.cal-cell-write-prompt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+}
+
+.cal-cell-write-prompt svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-primary);
+}
+
 .cal-cell-day {
   z-index: 2;
   font-family: var(--font-body, var(--font-sans));
@@ -2402,10 +2505,15 @@
   border: 0;
 }
 
+/* 카드 상세 팝업 — 전체 화면 오버레이 + 중앙 카드 레이아웃 */
 .calendar-card-popup {
   z-index:var(--z-modal,200);
   padding:var(--space-5);
+  padding-top:calc(var(--space-5) + var(--safe-area-top));
+  padding-bottom:calc(var(--space-5) + var(--safe-area-bottom));
   background:var(--color-bg-overlay);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
   opacity:0;
   pointer-events:none;
   justify-content:center;
@@ -2448,10 +2556,11 @@
   justify-content:center;
   align-self:flex-end;
   align-items:center;
-  display:flex}
-
+  display:flex
+}
 .calendar-card-popup-close:active {
-  background:#ffffff38}
+  background:#ffffff38
+}
 
 .calendar-card-popup-stage {
   width:100%}
@@ -2569,11 +2678,14 @@
   margin:0;
   font-weight:800}
 
-.settings-page-header {
-  height:60px;
-  padding:0 var(--space-4)}
+.settings-page .page-header {
+  height:48px;
+  padding-top:0;
+  padding-bottom:0;
+  padding-left:var(--space-4);
+  padding-right:var(--space-4)}
 
-.settings-page-header .page-header-title {
+.settings-page .page-header-title {
   margin:0;
   line-height:1}
 
@@ -2714,6 +2826,7 @@
 
 .about-page {
   padding-bottom: var(--space-10);
+  padding-top: 48px;
 }
 
 .about-page .page-header {
@@ -2721,7 +2834,7 @@
 }
 
 .about-article {
-  padding: var(--space-4) var(--space-5) var(--space-8);
+  padding: var(--space-4) var(--space-4) var(--space-12);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2745,10 +2858,10 @@
 .about-article-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   color: var(--color-text-primary);
-  font-size: var(--text-base);
-  line-height: 1.75;
+  font-size: var(--text-sm);
+  line-height: 1.25;
   text-align: center;
   width: 100%;
 }

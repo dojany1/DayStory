@@ -17,7 +17,6 @@
 import { navigate } from '../router.js';
 import { searchStoriesDB, fetchStories } from '../services/stories.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, prepareLazyImages } from '../utils/imageLoading.js';
 
 
 /* ─────────────────────────────────────────────
@@ -67,7 +66,6 @@ export function renderSearch() {
     if (resultsEl) {
       resultsEl.innerHTML = allStories.map(story => renderSearchItem(story)).join('');
       bindSearchItemClicks();
-      prepareLazyImages(resultsEl);
     }
   })();
 
@@ -93,8 +91,7 @@ export function renderSearch() {
           emptyEl.style.display = 'none';
           resultsEl.style.display = 'flex';
           bindSearchItemClicks();
-          prepareLazyImages(resultsEl);
-          return;
+              return;
         }
 
         /* 서버에서 검색 실행 */
@@ -105,8 +102,7 @@ export function renderSearch() {
           resultsEl.innerHTML = results.map(story => renderSearchItem(story)).join('');
           emptyEl.style.display = 'none';
           resultsEl.style.display = 'flex';
-          prepareLazyImages(resultsEl);
-        } else {
+            } else {
           /* 결과 없음: 빈 상태 메시지 표시 */
           resultsEl.style.display = 'none';
           emptyEl.style.display = 'flex';
@@ -145,19 +141,13 @@ function bindSearchItemClicks() {
 function renderSearchItem(story) {
   const pubDate = new Date(story.publish_date);
   const dateStr = `${pubDate.getFullYear()}.${pubDate.getMonth() + 1}.${pubDate.getDate()}`;
-  const imageSources = getStoryImageSources(story, 'thumb');
-  const imageUrl = imageSources.primary;
-  const fallbackAttr = imageSources.fallback
-    ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
-    : '';
-  const imageAttrs = imageUrl
-    ? `src="${CARD_PLACEHOLDER_IMAGE}" data-src="${escapeHtml(imageUrl)}"${fallbackAttr}`
-    : `src="${CARD_PLACEHOLDER_IMAGE}"`;
+  const imageUrl = story.image_url || '';
+  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
 
   return `
     <div class="search-result-item" data-story-id="${escapeHtml(story.id)}">
       <div class="search-result-thumb">
-        <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
+        <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" />
       </div>
       <div class="search-result-info">
         <div class="search-result-date">${dateStr} · ${escapeHtml(story.country)}</div>

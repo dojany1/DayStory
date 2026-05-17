@@ -424,17 +424,15 @@ describe('Regression bugs', () => {
     expect(overlays[0]).toBe(firstOverlay);
   });
 
-  it('Given the notification settings sheet opens, when source is inspected, then it should not replay bottom-sheet entrance animation', () => {
+  it('Given the notification settings page opens, when source is inspected, then it should use a right-slide page transition', () => {
     const sheetSource = readFileSync(resolve(process.cwd(), 'src/js/components/notificationSettingsSheet.js'), 'utf8');
     const componentsCss = readFileSync(resolve(process.cwd(), 'src/css/components.css'), 'utf8');
 
-    const notificationOverlayRule = componentsCss.match(/\.notification-settings-overlay\s*\{[\s\S]*?\}/)?.[0];
-    const notificationSheetRule = componentsCss.match(/\.notification-settings-overlay\s+\.notification-settings-sheet\s*\{[\s\S]*?\}/)?.[0];
-
-    expect(notificationOverlayRule).toMatch(/animation:\s*none/);
-    expect(notificationSheetRule).toMatch(/animation:\s*none/);
-    expect(sheetSource).not.toMatch(/existing\.classList\.add\('open'\)/);
-    expect(sheetSource).not.toMatch(/requestAnimationFrame\(\(\)\s*=>\s*overlay\.classList\.add\('open'\)\)/);
+    expect(componentsCss).toMatch(/\.notification-settings-overlay[\s\S]*?translateX\(100%\)/);
+    expect(componentsCss).toMatch(/\.notification-settings-overlay\.visible/);
+    expect(sheetSource).toMatch(/classList\.add\('visible'\)/);
+    expect(sheetSource).toMatch(/classList\.remove\('visible'\)/);
+    expect(sheetSource).not.toMatch(/bindSheetDragDismiss/);
   });
 
   it('Given an editor story swipe on mobile, when a compatibility mouse gesture follows the touch swipe, then the date should advance only once', async () => {

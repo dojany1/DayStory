@@ -17,10 +17,10 @@
 :root {
 
   /* ── 라이트 테마 배경 색상 ── */
-  --color-bg-primary: #f9f9fb;           /* 더 깔끔하고 부드러온 앱 기본 배경 */
+  --color-bg-primary: #f3f2ee;           /* 더 깔끔하고 부드러온 앱 기본 배경 */
   --color-bg-secondary: #ffffff;         /* 보조 배경 */
-  --color-bg-card: #ffffff;              /* 카드 배경색 */
-  --color-bg-card-dark: #f2f2f7;         /* 카드 어두운 배경 (비활성 상태 등) */
+  --color-bg-card: #FDF9F4;              /* 카드 배경색 */
+  --color-bg-card-dark: #F8F5F2;         /* 카드 어두운 배경 (비활성 상태 등) */
   --color-bg-elevated: #ffffff;          /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.45); /* 오버레이 (대비 소폭 강화) */
 
@@ -38,9 +38,9 @@
   --color-accent-border: #5f5f5f;        /* 강조색 테두리 */
 
   /* ── 라이트 테마 테두리/구분선 색상 ── */
-  --color-border: #eeeff2;               /* 배경과 더 잘 어우러지는 테두리 */
+  --color-border: #d7d3cc;               /* 배경과 더 잘 어우러지는 테두리 */
   --color-border-light: #f5f5f7;         /* 얇은 테두리 */
-  --color-divider: #ebecef;              /* 섹션 구분선 */
+  --color-divider: #efebe7;              /* 섹션 구분선 */
 
   /* ── 라이트 테마 상태 색상 (현대적인 시맨틱 컬러) ── */
   --color-success: #34c759;              /* 성공 (Green) */
@@ -120,7 +120,7 @@
   --mobile-max-width: 430px;                       /* 모바일 래퍼 최대 너비 */
   --card-max-width: 94%;                           /* 카드 최대 너비 */
   --card-aspect-ratio: 3.1 / 4.8;                /* 카드 비율 */
-  --nav-height: 62px;                              /* 하단 내비게이션 바 높이 */
+  --nav-height: 58px;                              /* 하단 내비게이션 바 높이 */
   --safe-area-top: env(safe-area-inset-top, 0px);  /* 상단 안전 영역 (노치 대응) */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px); /* 하단 안전 영역 (홈 바 대응) */
 
@@ -136,10 +136,10 @@
 [data-theme="dark"] {
   /* ── 다크 테마 배경 색상 (가시성 대폭 개선) ── */
   --color-bg-primary: #1c1c1e;              /* 순수 블랙보다 눈이 편하고 가시성이 좋은 다크 챠콜 */
-  --color-bg-secondary: #222224;            /* 보조 배경 */
-  --color-bg-card: #303033;                 /* 카드 배경 (배경과 명확히 구분되도록 상향) */
-  --color-bg-card-dark: #222224;            /* 카드 더 어두운 배경 */
-  --color-bg-elevated: #1c1c1e;             /* 부유 요소 배경 */
+  --color-bg-secondary: #323235;            /* 보조 배경 */
+  --color-bg-card: #363639;                 /* 카드 배경 (배경과 명확히 구분되도록 상향) */
+  --color-bg-card-dark: #29292b;            /* 카드 더 어두운 배경 */
+  --color-bg-elevated: #303036;             /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.75);
 
   /* ── 다크 테마 텍스트 색상 ── */
@@ -157,7 +157,7 @@
   /* ── 다크 테마 테두리 (대비 강화) ── */
   --color-border: #3a3a3c;                  /* 카드 테두리를 더 선명하게 */
   --color-border-light: #2c2c2e;
-  --color-divider: #2a2a2b;                 /* 구분선 */
+  --color-divider: #313133;                 /* 구분선 */
 
   /* ── 다크 테마 그림자 ── */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);

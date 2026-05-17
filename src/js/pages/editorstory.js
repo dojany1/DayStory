@@ -17,7 +17,6 @@ import { shareStory } from '../services/sharing.js';
 import { getState } from '../state.js';
 import { navigate } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
-import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages } from '../utils/imageLoading.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
@@ -43,17 +42,20 @@ export function renderEditorStory() {
   const page = document.createElement('div');
   page.className = 'editorstory-page page';
 
+  const savedView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
+  const initialYear = new Date().getFullYear();
+
   page.innerHTML = `
     <div class="editorstory-header">
       <h1 class="editorstory-title"></h1>
     </div>
 
     <div class="wheel-pickers-container">
-      <div class="wheel-year-label" id="editorstory-year-label"></div>
+      <div class="wheel-year-label" id="editorstory-year-label">${initialYear}</div>
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
         <div class="modern-wheel-scroll" id="editorstory-month-scroll"></div>
-        <button type="button" class="view-toggle-btn" id="editorstory-view-toggle" aria-label="보기 방식 변경">${ICON_CALENDAR}</button>
+        <button type="button" class="view-toggle-btn" id="editorstory-view-toggle" aria-label="보기 방식 변경">${savedView === 'calendar' ? ICON_CARD : ICON_CALENDAR}</button>
       </div>
       <div class="wheel-picker-wrapper" id="editorstory-day-picker">
         <div class="wheel-selection-box"></div>
@@ -87,6 +89,12 @@ export function renderEditorStory() {
   `;
 
 
+  if (savedView === 'calendar') {
+    page.querySelector('#editorstory-day-picker').hidden = true;
+    page.querySelector('#editorstory-card-area').hidden = true;
+    page.querySelector('#editorstory-cal-view').hidden = false;
+  }
+
   loadEditorStoryData(page);
   return page;
 }
@@ -106,8 +114,6 @@ async function loadEditorStoryData(page) {
 
     const today = new Date(todayStory.publish_date + 'T00:00:00');
     const historyStories = allStories || [];
-    preloadStoryImages([todayStory, ...historyStories], { limit: 8, variant: 'thumb', fallback: false });
-
     bulkCollect([todayStory, ...historyStories].map((s) => s?.id).filter(Boolean));
 
     const monthEl = page.querySelector('#editorstory-month-scroll');
@@ -120,9 +126,6 @@ async function loadEditorStoryData(page) {
     let latestDate = today;
     let isInitial = true;
 
-    /* 연도 라벨 */
-    const yearLabel = page.querySelector('#editorstory-year-label');
-    if (yearLabel) yearLabel.textContent = currentYear;
 
     /* 월 휠: 1~12, currentMonth 초과는 disabled */
     if (monthEl) {
@@ -193,7 +196,6 @@ async function loadEditorStoryData(page) {
       latestDate = newDate;
       const story = historyStories.find((s) => s.publish_date === isoDate)
         || (todayStory.publish_date === isoDate ? todayStory : null);
-      preloadStoryImages([story], { limit: 1, variant: 'thumb', fallback: false });
       renderCard(cardArea, story, newDate, bookmarkedIds, direction);
       isInitial = false;
     }
@@ -301,20 +303,16 @@ async function loadEditorStoryData(page) {
     const toggleBtn = page.querySelector('#editorstory-view-toggle');
     const dayPicker = page.querySelector('#editorstory-day-picker');
     const calView   = page.querySelector('#editorstory-cal-view');
-    let currentView = localStorage.getItem('daystory_editorstory_view') || 'card';
+    let currentView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
 
     if (currentView === 'calendar') {
-      toggleBtn.innerHTML = ICON_CARD;
-      dayPicker.hidden = true;
-      cardArea.hidden = true;
-      calView.hidden = false;
       renderGrid(page, calState, today);
     }
 
     toggleBtn.addEventListener('click', () => {
       if (currentView === 'card') {
         currentView = 'calendar';
-        localStorage.setItem('daystory_editorstory_view', 'calendar');
+        sessionStorage.setItem('ds_session_view', 'calendar');
         toggleBtn.innerHTML = ICON_CARD;
         dayPicker.hidden = true;
         cardArea.hidden = true;
@@ -326,7 +324,7 @@ async function loadEditorStoryData(page) {
         });
       } else {
         currentView = 'card';
-        localStorage.setItem('daystory_editorstory_view', 'card');
+        sessionStorage.setItem('ds_session_view', 'card');
         toggleBtn.innerHTML = ICON_CALENDAR;
         calView.hidden = true;
         dayPicker.hidden = false;
@@ -433,14 +431,8 @@ function renderCard(cardArea, story, dateObj, bookmarkedIds, direction) {
       </div>
     `;
   } else {
-    const imageSources = getStoryImageSources(story, 'thumb');
-    const imageUrl = imageSources.primary;
-    const fallbackAttr = imageSources.fallback
-      ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
-      : '';
-    const imageAttrs = imageUrl
-      ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
-      : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
+    const imageUrl = story.image_url || '';
+    const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
 
     newCard.innerHTML = `
       <div class="flipper">
@@ -471,7 +463,7 @@ function renderCard(cardArea, story, dateObj, bookmarkedIds, direction) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" width="320" height="400" draggable="false" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" />
+            <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
           </div>
         </div>
@@ -738,14 +730,11 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   /* 에디터 한마디 말풍선 */
   const editorBtn = flipContainer.querySelector('.back-editor-btn');
   if (editorBtn) {
-    let editorBubbleTimer = null;
     let removeOutsideBubbleListeners = null;
 
     const removeEditorBubble = () => {
       const bubble = flipContainer.querySelector('.editor-comment-bubble');
       if (bubble) bubble.remove();
-      if (editorBubbleTimer) clearTimeout(editorBubbleTimer);
-      editorBubbleTimer = null;
       if (removeOutsideBubbleListeners) {
         removeOutsideBubbleListeners();
         removeOutsideBubbleListeners = null;
@@ -768,10 +757,8 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
         removeEditorBubble();
       };
       document.addEventListener('click', handleOutsideBubbleInput);
-      document.addEventListener('touchstart', handleOutsideBubbleInput, { passive: true });
       removeOutsideBubbleListeners = () => {
         document.removeEventListener('click', handleOutsideBubbleInput);
-        document.removeEventListener('touchstart', handleOutsideBubbleInput);
       };
     };
 
@@ -779,6 +766,7 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
       if (e) e.stopPropagation();
       const existing = flipContainer.querySelector('.editor-comment-bubble');
       if (existing) {
+        if (existing.contains(e.target)) return;
         removeEditorBubble();
         return;
       }
@@ -792,9 +780,8 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
       nameEl.textContent = editorName;
       bubble.appendChild(nameEl);
       bubble.appendChild(document.createTextNode(comment));
-      editorBtn.parentElement.appendChild(bubble);
+      editorBtn.appendChild(bubble);
       bindOutsideBubbleDismiss();
-      editorBubbleTimer = setTimeout(removeEditorBubble, 4000);
     };
 
     editorBtn.addEventListener('click', showBubble);

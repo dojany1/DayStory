@@ -50,7 +50,8 @@
     "remove_btn": "Remove",
     "remove_confirm_title": "Remove this card?",
     "remove_confirm_message": "The card will be deleted from your archive.",
-    "removed": "Card removed"
+    "removed": "Card removed",
+    "section_label": "Bookmarks"
   },
   "detail": {
     "share_button": "Share",
@@ -104,7 +105,14 @@
     "row_license": "Image credits & licenses",
     "row_about": "About DOKHU",
     "row_about_subtitle": "The people behind DayStory",
-    "privacy_link": "Privacy policy"
+    "privacy_link": "Privacy policy",
+    "section_view_mode": "Default View",
+    "view_card": "Card",
+    "view_calendar": "Calendar",
+    "view_card_action": "Set to Card View",
+    "view_calendar_action": "Set to Calendar View",
+    "view_mode_changed": "Default view updated",
+    "notification_saved": "Notification settings saved"
   },
   "toast": {
     "login_required": "You need to log in to use this feature.",

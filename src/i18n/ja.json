@@ -50,7 +50,8 @@
     "remove_btn": "削除",
     "remove_confirm_title": "このカードを削除しますか?",
     "remove_confirm_message": "保管庫からカードが削除されます。",
-    "removed": "カードを削除しました"
+    "removed": "カードを削除しました",
+    "section_label": "ブックマーク"
   },
   "detail": {
     "share_button": "シェア",
@@ -104,7 +105,14 @@
     "row_license": "画像出典・ライセンス",
     "row_about": "DOKHU について",
     "row_about_subtitle": "DayStory を作った人たち",
-    "privacy_link": "プライバシーポリシー"
+    "privacy_link": "プライバシーポリシー",
+    "section_view_mode": "デフォルト表示",
+    "view_card": "カード",
+    "view_calendar": "カレンダー",
+    "view_card_action": "カード表示に設定",
+    "view_calendar_action": "カレンダー表示に設定",
+    "view_mode_changed": "デフォルト表示を変更しました",
+    "notification_saved": "通知設定を保存しました"
   },
   "toast": {
     "login_required": "ログインが必要な機能です。",

@@ -15,7 +15,7 @@
    ===================================================================== */
 
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
 import {
   getFirestore,
   initializeFirestore,
@@ -23,6 +23,7 @@ import {
   persistentMultipleTabManager,
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { Capacitor } from '@capacitor/core';
 
 const aabFirebaseConfig = {
   apiKey: 'AIzaSyChrxkQDK9gdE493vL-skW2WdQxa8LDOY0',
@@ -56,7 +57,11 @@ let storage = null;
 if (isConfigValid) {
   try {
     app  = initializeApp(firebaseConfig);
-    auth = getAuth(app);
+    /* Capacitor iOS/Android: WKWebView의 IndexedDB 불안정 이슈를 우회하기 위해
+       initializeAuth + indexedDBLocalPersistence를 직접 지정 */
+    auth = Capacitor.isNativePlatform()
+      ? initializeAuth(app, { persistence: indexedDBLocalPersistence })
+      : getAuth(app);
     /*
      * 세션 1 #8: Firestore 오프라인 캐시 활성화 — 네트워크가 없거나 느려도 기존 데이터를 표시.
      * IndexedDB 차단 같은 환경에서 실패하면 메모리 캐시로 폴백한다.

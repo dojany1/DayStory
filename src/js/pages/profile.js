@@ -7,6 +7,7 @@
    ===================================================================== */
 
 import { navigate } from '../router.js';
+import { renderPageHeader } from '../components/pageHeader.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getState, setState } from '../state.js';
 import { auth, db, storage } from '../firebase.js';
@@ -30,16 +31,15 @@ export function renderProfile() {
   const user = getState('user');
   const profile = getState('profile');
 
+  const gearBtn = '<button type="button" id="goto-settings-btn" class="page-header-back" aria-label="설정">'
+    + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>'
+    + '<circle cx="12" cy="12" r="3"/>'
+    + '</svg></button>';
+  const profileHeader = renderPageHeader({ title: '프로필', icon: 'none', rightAction: gearBtn });
+
   page.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-header-title">프로필</h1>
-      <button id="goto-settings-btn" aria-label="설정">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-          <circle cx="12" cy="12" r="3"></circle>
-        </svg>
-      </button>
-    </div>
+    ${profileHeader}
 
     <!-- 사용자 정보 카드 -->
     <div class="settings-user-info">
@@ -150,6 +150,12 @@ function openProfileEditModal() {
   wrapper.appendChild(overlay);
   lockScroll();
   requestAnimationFrame(() => overlay.classList.add('visible'));
+
+  overlay.addEventListener('touchmove', (e) => {
+    if (!e.target.closest('.profile-edit-modal')) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
   let croppedBlob = null;
 

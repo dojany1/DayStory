@@ -17,8 +17,6 @@ import { navigate, setBeforeNavigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { getState } from '../state.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
-import { CARD_PLACEHOLDER_IMAGE, EDITOR_PREVIEW_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages, prepareLazyImages } from '../utils/imageLoading.js';
-import { bindImageVariantFields } from '../utils/imageFields.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import {
   fetchAllStoriesEditor,
@@ -26,7 +24,7 @@ import {
   updateStory,
   fetchStoryById
 } from '../services/stories.js';
-import { backfillStoryThumbnailsForMonth, uploadCardImageVariants } from '../services/images.js';
+import { uploadImage } from '../services/images.js';
 import { auth } from '../firebase.js';
 
 import Cropper from 'cropperjs';
@@ -103,8 +101,6 @@ export function renderEditor() {
   const now = new Date();
   let visibleYear = now.getFullYear();
   let visibleMonth = now.getMonth();
-  const requestedThumbBackfills = new Set();
-
   async function loadStories() {
     allStories = await fetchAllStoriesEditor();
     const initial = getLatestStoryDate(allStories);
@@ -139,21 +135,6 @@ export function renderEditor() {
       const [storyYear, storyMonth] = String(story?.publish_date || '').split('-').map(Number);
       return storyYear === visibleYear && storyMonth === visibleMonth + 1;
     });
-    preloadStoryImages(visibleMonthStories, { limit: 8, variant: 'thumb', fallback: false });
-
-    const backfillKey = `${visibleYear}-${visibleMonth + 1}`;
-    const shouldBackfillThumbs = visibleMonthStories.some((story) => story?.image_url && !story.image_thumb_url);
-    if (shouldBackfillThumbs && !requestedThumbBackfills.has(backfillKey)) {
-      requestedThumbBackfills.add(backfillKey);
-      void backfillStoryThumbnailsForMonth(visibleMonthStories, {
-        collectionName: 'stories',
-        uid: auth?.currentUser?.uid || getState('user')?.id || 'guest',
-        year: visibleYear,
-        month: visibleMonth + 1,
-      }).then(() => {
-        renderCalendar();
-      });
-    }
 
     for (let i = 0; i < firstDay; i += 1) {
       cells.push('<div class="editor-calendar-cell editor-calendar-cell-blank cal-cell cal-cell-blank" aria-hidden="true"></div>');
@@ -177,7 +158,6 @@ export function renderEditor() {
     }
 
     gridEl.innerHTML = cells.join('');
-    prepareLazyImages(gridEl);
 
     gridEl.querySelectorAll('.editor-calendar-cell[data-date]').forEach((cell) => {
       const openNewStory = () => navigate(`/editor/new?date=${cell.dataset.date}`);
@@ -210,21 +190,14 @@ export function renderEditor() {
   function renderCalendarStory(story) {
     const title = escapeHtml(story.title || story.figure_name || '제목 없음');
     const country = escapeHtml(story.country || '');
-    const imageSources = getStoryImageSources(story, 'thumb');
-    const imageUrl = sanitizeUrl(imageSources.primary);
-    const imageFallbackUrl = sanitizeUrl(imageSources.fallback);
-    const fallbackAttr = imageFallbackUrl
-      ? ` data-fallback-src="${escapeHtml(imageFallbackUrl)}"`
-      : '';
+    const imageUrl = sanitizeUrl(story.image_url || '');
+    const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
     const badge = getStatusBadge(story.status);
-    const imageAttrs = imageUrl
-      ? `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}" data-src="${escapeHtml(imageUrl)}"${fallbackAttr}`
-      : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
 
     return `
       <button type="button" class="editor-calendar-story" data-id="${escapeHtml(story.id)}">
         <span class="editor-calendar-thumb">
-          <img ${imageAttrs} alt="" loading="lazy" decoding="async" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.style.visibility='hidden'}" />
+          <img ${imageAttrs} alt="" loading="lazy" decoding="async" />
         </span>
         <span class="editor-calendar-story-title">${title}</span>
         <span class="editor-calendar-story-meta">${country}</span>
@@ -537,11 +510,6 @@ export function renderEditorNew() {
       if (btn) btn.style.display = url ? 'inline-block' : 'none';
     }
 
-    const imageVariantFields = bindImageVariantFields({
-      imageInput: document.getElementById('sf-image'),
-      thumbInput: document.getElementById('sf-image-thumb'),
-    });
-
     const formEl = document.getElementById('story-form');
     if (formEl) {
       formEl.addEventListener('input', () => {
@@ -701,9 +669,13 @@ export function renderEditorNew() {
         
         blob.name = fallbackName;
         const uploadUid = auth?.currentUser?.uid || getState('user')?.id || 'guest';
-        const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'editor_images' });
-        
-        imageVariantFields.applyUploadResult({ image_url, image_thumb_url });
+        const { image_url } = await uploadImage(blob, { uid: uploadUid, folder: 'editor_images' });
+        const image_thumb_url = '';
+
+        const imageInput = document.getElementById('sf-image');
+        const thumbInput = document.getElementById('sf-image-thumb');
+        if (imageInput) imageInput.value = image_url;
+        if (thumbInput) thumbInput.value = image_thumb_url;
         updateImageEditBtn();
         STATUS_EL.textContent = '업로드 완료! ✅';
         STATUS_EL.style.color = 'var(--color-info)';
@@ -945,7 +917,7 @@ export function renderEditorNew() {
     const month = pubDate.getMonth() + 1;
     const day = pubDate.getDate();
     const displayYear = new Date().getFullYear();
-    const imageUrl = imgRaw || EDITOR_PREVIEW_PLACEHOLDER_IMAGE;
+    const imageUrl = imgRaw || '';
 
     /* 에디터 프로필 정보 (미리보기용) */
     const u = auth?.currentUser;

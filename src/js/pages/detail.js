@@ -18,7 +18,6 @@ import { toggleBookmark, isBookmarked } from '../services/bookmarks.js';
 import { shareStory, buildShareUrl } from '../services/sharing.js';
 
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
-import { preloadImage } from '../utils/imageLoading.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 
@@ -170,8 +169,6 @@ async function loadDetail(page, storyId) {
   const editorComment = (story.editor_comment || (story.editor && story.editor.comment) || '').trim();
   const editorName = ((story.editor && story.editor.displayName) || 'DayStory').trim() || 'DayStory';
   const editorAvatar = (story.editor && story.editor.photoURL) || '';
-  preloadImage(story.image_url);
-  preloadImage(editorAvatar);
   const editorCommentHtml = escapeHtml(editorComment).replace(/\n/g, '<br />');
   const historicalMetaHtml = [story.historical_date, story.country]
     .map(value => String(value ?? '').trim())

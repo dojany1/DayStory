@@ -3,6 +3,9 @@ import {
   updateNotificationSetting,
 } from '../services/notifications.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
+import { showToast } from './toast.js';
+import { t } from '../i18n/index.js';
+import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
 
 const NOTIFICATION_LABELS = {
   diary: {
@@ -24,9 +27,11 @@ export function renderNotificationListItem() {
   return `
     <div class="list-item" id="setting-notifications" role="button" tabindex="0">
       <div class="list-item-icon notification-settings-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+          <path d="M4 2C2.8 3.7 2 5.7 2 8"/>
+          <path d="M20 2c1.2 1.7 2 3.7 2 8"/>
         </svg>
       </div>
       <div class="list-item-content">
@@ -75,46 +80,42 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
   }
 
   const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay notification-settings-overlay';
+  overlay.className = 'notification-settings-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'notification-settings-title');
   overlay.innerHTML = `
-    <div class="modal-sheet notification-settings-sheet" role="dialog" aria-modal="true" aria-labelledby="notification-settings-title">
-      <div class="modal-handle"></div>
-      <div class="notification-settings-header">
-        <h2 id="notification-settings-title">알림</h2>
-        <button type="button" class="notification-settings-close" aria-label="닫기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6L6 18M6 6l12 12"></path>
-          </svg>
-        </button>
-      </div>
+    <div class="notification-settings-sheet">
+      ${renderPageHeader({ title: '알림', titleId: 'notification-settings-title', icon: 'close', backLabel: '닫기' })}
       <div class="notification-settings-list">
         ${renderNotificationRow('diary')}
         ${renderNotificationRow('editor')}
       </div>
-      <button type="button" class="btn btn-primary btn-full notification-settings-done">완료</button>
     </div>
   `;
 
   const wrapper = document.querySelector('.mobile-wrapper') || document.body;
   wrapper.appendChild(overlay);
   lockScroll();
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+
+  overlay.addEventListener('touchmove', (e) => {
+    if (!e.target.closest('.notification-settings-sheet')) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
   let isClosing = false;
   const close = () => {
     if (isClosing) return;
     isClosing = true;
     unlockScroll();
-    overlay.classList.remove('open');
+    overlay.classList.remove('visible');
     overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
-    /* 안전망: transition 미발생 시 400ms 후 제거 */
-    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 400);
+    /* 안전망: transition 미발생 시 450ms 후 제거 */
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 450);
   };
-  bindSheetDragDismiss(overlay, close);
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) close();
-  });
-  overlay.querySelector('.notification-settings-close')?.addEventListener('click', close);
-  overlay.querySelector('.notification-settings-done')?.addEventListener('click', close);
+  bindPageHeaderBack(overlay, close);
 
   overlay.querySelectorAll('[data-notification-toggle]').forEach((toggle) => {
     toggle.addEventListener('click', async () => {
@@ -126,6 +127,7 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
       const nextSettings = await updateNotificationSetting(type, { enabled: !current.enabled });
       updateRow(overlay, type, nextSettings[type]);
       updateNotificationSummary(document);
+      showToast(t('settings.notification_saved'), 'success');
       onChange();
 
       toggle.disabled = false;
@@ -144,80 +146,6 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
   });
 
   return overlay;
-}
-
-function bindSheetDragDismiss(overlay, close) {
-  const sheet = overlay.querySelector('.modal-sheet');
-  if (!sheet) return;
-
-  let startY = 0;
-  let currentY = 0;
-  let startTime = 0;
-  let isDragging = false;
-
-  const reset = () => {
-    sheet.style.transition = '';
-    sheet.style.transform = '';
-    isDragging = false;
-  };
-
-  const stopTracking = () => {
-    document.removeEventListener('pointermove', onPointerMove);
-    document.removeEventListener('pointerup', onPointerUp);
-    document.removeEventListener('pointercancel', onPointerCancel);
-  };
-
-  const shouldStartDrag = (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return false;
-    if (target.closest('button, select, input, textarea, a, label, [role="button"]')) return false;
-    return Boolean(target.closest('.modal-handle')) || target === sheet || Boolean(target.closest('.notification-settings-header'));
-  };
-
-  const onPointerMove = (event) => {
-    if (!isDragging) return;
-    currentY = Math.max(0, event.clientY - startY);
-    sheet.style.transition = 'none';
-    sheet.style.transform = `translateY(${currentY}px)`;
-    if (currentY > 0) event.preventDefault();
-  };
-
-  const onPointerUp = (event) => {
-    if (!isDragging) return;
-    stopTracking();
-    currentY = Math.max(0, event.clientY - startY);
-    const elapsed = Math.max(1, Date.now() - startTime);
-    const velocity = currentY / elapsed;
-    const shouldClose = currentY >= 80 || (currentY >= 24 && velocity >= 0.5);
-
-    if (shouldClose) {
-      sheet.style.transition = '';
-      sheet.style.transform = '';
-      close();
-      return;
-    }
-
-    reset();
-  };
-
-  const onPointerCancel = () => {
-    stopTracking();
-    reset();
-  };
-
-  sheet.addEventListener('pointerdown', (event) => {
-    if (event.button !== undefined && event.button !== 0) return;
-    if (!shouldStartDrag(event)) return;
-
-    startY = event.clientY;
-    currentY = 0;
-    startTime = Date.now();
-    isDragging = true;
-
-    document.addEventListener('pointermove', onPointerMove, { passive: false });
-    document.addEventListener('pointerup', onPointerUp);
-    document.addEventListener('pointercancel', onPointerCancel);
-  });
 }
 
 function renderNotificationRow(type) {

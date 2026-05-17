@@ -1,8 +1,12 @@
 /* ============================================
-   마지막 수정 날짜 : 2026-03-31 20:15
+   마지막 수정 날짜 : 2026-05-17 00:00
    ============================================
    : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
 */
+
+@keyframes ms-spin {
+  to { transform: rotate(360deg); }
+}
 
 
 /* ============================================
@@ -382,7 +386,7 @@
 /* 뒷면 제목 — 역사 인물의 이름 */
 .back-title {
   font-family: var(--font-sans);
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   font-weight: 800;
   text-align: center;
 }
@@ -400,8 +404,8 @@
   flex: 1;                             /* 남은 공간 모두 차지 */
   overflow-y: auto;                    /* 긴 텍스트는 스크롤 (스크롤은 가능, 스크롤바만 숨김) */
   font-family: var(--font-body);
-  font-size: 0.9rem;
-  line-height: 2;
+  font-size: 0.98rem;
+  line-height: 1.8rem;
   color: var(--color-text-secondary);
   scrollbar-width: none;               /* Firefox: 스크롤바 숨김 */
   -ms-overflow-style: none;            /* 레거시 Edge/IE */
@@ -444,8 +448,8 @@
 
 /* 에디터 프로필 아이콘 버튼 */
 .back-editor-btn {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1.5px solid var(--color-border);
   background: var(--color-bg-secondary);
@@ -478,7 +482,7 @@
 }
 
 .back-editor-btn:active {
-  transform: scale(0.9);
+  transform: scale(0.98);
 }
 
 /* 에디터 프로필 사진 */
@@ -502,18 +506,19 @@
 /* 에디터 한마디 말풍선 */
 .editor-comment-bubble {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 12px); /* 버튼 바로 위에 위치 */
   left: 0;
   background: var(--color-bg-elevated, var(--color-bg-secondary));
   color: var(--color-text-primary);
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   line-height: 1.4;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-3);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  max-width: 220px;
-  min-width: 100px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+  max-width: 400px;
+  min-width: 232px;
   word-break: keep-all;
+  text-align: left;
   animation: editorBubbleIn 0.25s ease;
   z-index: 10;
   pointer-events: auto;
@@ -536,7 +541,7 @@
 .editor-comment-name {
   display: block;
   font-weight: 600;
-  font-size: 0.65rem;
+  font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   margin-bottom: 2px;
 }
@@ -560,7 +565,7 @@
   width: 100%;
   overflow: hidden;
   background: var(--color-bg-card);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
@@ -571,8 +576,8 @@
 
 /* 미니 카드 터치 시 — 축소 + 그림자 줄어듦 */
 .history-card-mini:active {
-  transform: scale(1.1);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-card-hover);
 }
 
 /* 미니 카드 상단 — 연도, 날짜, 메타 정보 */
@@ -702,17 +707,21 @@
 
 /* 페이지 헤더 — 좌우로 요소 배치 */
 .page-header {
-  padding: var(--space-1) var(--space-6);
+  position: sticky;
+  top: env(safe-area-inset-top, 0px); /* status-bar-spacer 바로 아래 고정 */
+  height: 48px;
+  padding: 0 var(--space-4) 0 var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--color-bg-primary);
 }
 
 /* 페이지 헤더 제목 — line-height:1 및 미세 이동으로 한글 폰트 수직 중앙 정렬 완벽 보정 */
 .page-header-title {
   font-family: var(--font-ui);
-  font-size: var(--text-xl);
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: 600;
   line-height: 1;
   transform: translateY(1px);
 }
@@ -748,7 +757,7 @@
 
 /* 섹션 — 패딩이 적용된 콘텐츠 그룹 */
 .section {
-  padding: var(--space-6) var(--space-5);
+  padding: 52px var(--space-6) var(--space-8);
 }
 
 /* 섹션 제목 — 섹션 상단의 소제목 */
@@ -775,7 +784,7 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-divider);
   transition: background var(--transition-fast);
   cursor: pointer;
 }
@@ -811,6 +820,8 @@
 
 /* 리스트 제목 */
 .list-item-title {
+  /* 좌측 정렬, 아이콘과 간격 유지 */
+  text-align: left;
   font-size: var(--text-base);
   font-weight: 500;
 }
@@ -824,6 +835,11 @@
 
 /* 리스트 액션 — 오른쪽의 토글/화살표 등 */
 .list-item-action {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   color: var(--color-text-tertiary);
 }
@@ -848,7 +864,7 @@
 
 /* 토글 활성화 — 배경 강조색 */
 .toggle.active {
-  background: var(--color-accent);
+  background: var(--color-success);
 }
 
 /* 토글 원형 핸들 — ::after 가상 요소로 생성 */
@@ -940,16 +956,47 @@
   background: var(--color-bg-elevated);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0; /* 상단만 둥글게 */
   padding: var(--space-6);
+  padding-bottom: calc(var(--space-6) + var(--safe-area-bottom));
   overflow-y: auto;
+  overscroll-behavior: contain;
   animation: slideUp 0.3s var(--transition-spring);
 }
 
+/* 알림 설정 — 풀스크린 페이지 (우측에서 슬라이드 인) */
 .notification-settings-overlay {
-  animation: none;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateX(100%);
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  height: 100dvh;
+  background: var(--color-bg-primary);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* touch-action: none 제거 — iOS에서 시트 내부 스크롤을 완전히 차단함.
+     배경 스크롤 방지는 JS의 touchmove 핸들러와 lockScroll()로 처리. */
+  padding-top: env(safe-area-inset-top, 0px); /* 하드코딩 48px 대신 실제 safe-area 사용 */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-lg);
 }
 
-.notification-settings-overlay .notification-settings-sheet {
-  animation: none;
+.notification-settings-overlay.visible {
+  transform: translateX(-50%) translateX(0);
+}
+
+.notification-settings-sheet {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y; /* 세로 스크롤 허용 */
+  padding-top: 48px; /* 헤더 높이만큼 패딩 */
+  padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
 }
 
 /* 모달 핸들 바 — 시트 상단의 드래그 핸들 (장식용) */
@@ -1099,7 +1146,8 @@
   align-items: center;
   justify-content: center;
   /* 2. Box Model */
-  height: 60px;
+  height: calc(60px + var(--safe-area-top));
+  padding-top: var(--safe-area-top);
   flex-shrink: 0;
   /* 3. Typography */
   font-size: var(--text-lg);
@@ -1113,7 +1161,7 @@
 .crop-modal-back-btn {
   position: absolute;
   left: var(--space-4);
-  top: 50%;
+  top: calc(var(--safe-area-top) + 30px);
   transform: translateY(-50%);
   display: flex;
   align-items: center;
@@ -1157,20 +1205,11 @@
 }
 
 .btn-rotate {
-  /* 1. Positioning */
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  /* 2. Box Model */
   padding: var(--space-2);
-  /* 3. Typography */
-  font-size: var(--text-base);
   color: var(--color-text-primary);
-  /* 4. Visuals */
-  background: none;
-  border: none;
-  /* 5. Misc */
-  cursor: pointer;
 }
 
 .btn-rotate svg {
@@ -1219,25 +1258,26 @@
   justify-content:center}
 
 .page-header-with-back {
-  gap:var(--space-2);
-  grid-template-columns:36px minmax(0,1fr) 36px;
-  align-items:center;
-  display:grid}
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
 .page-header-centered .page-header-title,.page-header-with-back .page-header-title {
+  flex:1;
   text-align:center;
-  grid-column:2;
-  justify-self:center;
   min-width:0}
 
-.page-header-with-back .page-header-back {
-  grid-column:1;
-  justify-self:start}
-
 .page-header-spacer {
-  grid-column:3;
   width:36px;
-  height:36px}
+  flex-shrink:0}
 
 .page-header-actions {
   gap:var(--space-3)}
@@ -1324,44 +1364,16 @@
 
 /* ===== 알림 설정 시트 (5월 1일 AAB) ===== */
 
-.notification-settings-sheet {
-  padding:var(--space-5)}
+.notification-settings-sheet .page-header {
+  margin-bottom: var(--space-4);
+}
 
-.notification-settings-header {
-  margin-bottom:var(--space-4);
-  justify-content:space-between;
-  align-items:center;
-  display:flex}
-
-.notification-settings-header h2 {
-  font-size:var(--text-lg);
-  color:var(--color-text-primary);
-  margin:0;
-  font-weight:700}
-
-.notification-settings-close {
-  width:36px;
-  height:36px;
-  color:var(--color-text-secondary);
-  cursor:pointer;
-  background:0 0;
-  border:0;
-  border-radius:50%;
-  justify-content:center;
-  align-items:center;
-  padding:0;
-  display:flex}
-
-.notification-settings-close:active {
-  background:var(--color-bg-secondary)}
-
-.notification-settings-close svg,.notification-settings-icon svg {
+.notification-settings-icon svg {
   width:20px;
   height:20px}
 
 .notification-settings-list {
   margin-bottom:var(--space-5);
-  border-top:1px solid var(--color-border-light);
   flex-direction:column;
   display:flex}
 
@@ -1369,7 +1381,7 @@
   align-items:center;
   gap:var(--space-3);
   min-height:96px;
-  padding:var(--space-4) 0;
+  padding:var(--space-4);
   border-bottom:1px solid var(--color-border-light);
   grid-template-columns:minmax(0,1fr) auto;
   grid-template-areas:"copy toggle""time time";
@@ -1398,7 +1410,8 @@
   grid-template-columns:1fr 1fr 1fr;
   width:100%;
   min-width:0;
-  display:grid}
+  display:grid
+}
 
 .notification-settings-time-select {
   width:100%;
@@ -1410,12 +1423,29 @@
   color:var(--color-text-primary);
   font-family:var(--font-ui);
   font-size:var(--text-sm);
-  line-height:1.2}
+  line-height:1.2
+}
 
 .notification-settings-time-select:focus {
   border-color:var(--color-accent);
-  outline:none}
+  outline:none
+}
 
+
+/* ===== 보기 방식 시트 — 체크마크 ===== */
+
+.view-mode-check {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent);
+  /* opacity transition 제거 — iOS WebKit에서 rapid toggle 시 opacity가
+     중간값에 고착되어 두 옵션이 동시에 선택된 것처럼 보이는 버그 방지 */
+  display: none;
+}
+
+.view-mode-option.active .view-mode-check {
+  display: block;
+}
 
 /* ===== 위젯 테마 프리뷰 (5월 1일 AAB) ===== */
 

@@ -32,8 +32,8 @@
     "title": "캘린더",
     "tab_history": "역사 일화",
     "tab_mine": "나의 일화",
-    "card_tap_hint": "카드를 탭하면 뒤집힙니다",
-    "card_collected_hint": "수집된 카드입니다 — 탭하면 뒤집힙니다",
+    "card_tap_hint": "탭 하면 카드가 뒤집힙니다.",
+    "card_collected_hint": "탭 하면 카드가 뒤집힙니다.",
     "collect_button": "수집하기",
     "collected_button": "수집됨 ✦",
     "collect_success_text": "수집되었어요!",
@@ -49,7 +49,8 @@
     "remove_btn": "삭제",
     "remove_confirm_title": "이 카드를 삭제할까요?",
     "remove_confirm_message": "보관함에서 카드가 제거됩니다.",
-    "removed": "카드를 삭제했습니다"
+    "removed": "카드를 삭제했습니다",
+    "section_label": "북마크"
   },
   "detail": {
     "share_button": "공유",
@@ -85,7 +86,7 @@
   "settings": {
     "section_display": "디스플레이",
     "section_language": "언어",
-    "section_editor_tools": "에디터 도구",
+    "section_editor_tools": "관리자 도구",
     "section_account": "계정",
     "section_app_info": "앱 정보",
     "theme_light": "라이트",
@@ -101,9 +102,16 @@
     "row_logout": "로그아웃",
     "row_withdraw": "회원 탈퇴",
     "row_license": "이미지 출처 및 라이선스",
-    "row_about": "DOKHU의 소개",
+    "row_about": "개발자 알아보기",
     "row_about_subtitle": "DayStory를 만든 사람들",
-    "privacy_link": "개인정보처리방침"
+    "privacy_link": "개인정보처리방침",
+    "section_view_mode": "기본 보기 방식",
+    "view_card": "카드",
+    "view_calendar": "캘린더",
+    "view_card_action": "카드 보기",
+    "view_calendar_action": "캘린더 보기",
+    "view_mode_changed": "기본 보기 방식을 변경했습니다",
+    "notification_saved": "알림 설정을 저장했습니다"
   },
   "toast": {
     "login_required": "로그인이 필요한 기능입니다.",

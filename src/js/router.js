@@ -178,6 +178,12 @@ async function handleRoute() {
   /* 1) 같은 페이지면 다시 그리지 않음, 현재 로딩 중인 페이지와 같아도 다시 불러오지 않음 */
   if (path === currentRoute || path === targetRoute) return;
 
+  /* 콘텐츠 페이지(editorstory/mystory)에서 다른 페이지로 이동하면 임시 보기 상태 초기화 */
+  const CONTENT_ROUTES = new Set(['/editorstory', '/mystory']);
+  if (currentRoute && CONTENT_ROUTES.has(currentRoute) && !CONTENT_ROUTES.has(path)) {
+    sessionStorage.removeItem('ds_session_view');
+  }
+
   targetRoute = path;
 
   /* 2) beforeNavigate 훅 실행 (페이지 이동 허용 여부 확인) */
@@ -224,7 +230,7 @@ async function handleRoute() {
 
   /* 6) 하단 내비게이션 바의 활성 항목 업데이트 및 스크롤 최상단 */
   updateNav(path);
-  container.scrollTo(0, 0);
+  container.scrollTop = 0;
 }
 
 
@@ -317,8 +323,11 @@ export function initRouter() {
         return; // 라우팅 중단
       }
 
-      // 이미 다른 탭 같은 경로라면 동일하게 새로 렌더링 무시
-      if (route === currentPath) return;
+      // 이미 같은 경로: 페이지 최상단으로 스크롤
+      if (route === currentPath) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
       navigate(route);
     });
   }

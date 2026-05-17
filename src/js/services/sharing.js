@@ -10,7 +10,6 @@
    ===================================================================== */
 
 import { Share } from '@capacitor/share';
-import { getStoryImageSources } from '../utils/imageLoading.js';
 
 /* 공유 URL 도메인. 실제 배포 도메인으로 변경 시 한 곳만 수정. */
 const SHARE_DOMAIN = 'https://daystory.app';
@@ -67,8 +66,7 @@ export async function shareStory(story, options = {}) {
   /* 1) 이미지 첨부 시도 (Web Share Level 2) */
   if (includeImage && typeof navigator !== 'undefined' && navigator.canShare) {
     try {
-      const sources = getStoryImageSources(story, 'full');
-      const imageUrl = sources.primary || sources.fallback;
+      const imageUrl = story.image_url || '';
       if (imageUrl) {
         const file = await fetchAsFile(imageUrl, `daystory_${story.id || 'card'}.jpg`);
         if (file && navigator.canShare({ files: [file] })) {

@@ -64,7 +64,6 @@ import { Capacitor } from '@capacitor/core';
 */
 import { renderEditorStory } from './js/pages/editorstory.js';
 import { getLocalToday } from './js/utils/date.js';
-import { preloadStoryImages } from './js/utils/imageLoading.js';
 
 function registerImageCacheWorker() {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -125,7 +124,7 @@ setBeforeNavigate((path) => {
   /* 하단 내비게이션 바 표시/숨김 제어 */
   const nav = document.getElementById('bottom-nav');
   if (nav) {
-    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings' || path === '/about';
+    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings' || path === '/about' || path === '/mystory/new';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
   }
 

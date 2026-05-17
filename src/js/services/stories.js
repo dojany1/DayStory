@@ -38,7 +38,7 @@ import {
 } from 'firebase/firestore';
 
 import { ref, deleteObject } from 'firebase/storage';
-import { uploadCardImageVariants } from './images.js';
+import { uploadImage as uploadImageToStorage } from './images.js';
 
 const STORIES_CACHE_TTL_MS = 60000;
 let storiesCachePromise = null;
@@ -382,6 +382,6 @@ export async function uploadImage(file) {
   if (!storage) throw new Error('Firebase Storage is not configured');
   
   const uid = auth?.currentUser?.uid || 'guest';
-  const { image_url } = await uploadCardImageVariants(file, { uid, folder: 'editor_images' });
+  const { image_url } = await uploadImageToStorage(file, { uid, folder: 'editor_images' });
   return image_url;
 }

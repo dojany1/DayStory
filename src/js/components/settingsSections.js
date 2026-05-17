@@ -3,6 +3,8 @@ import { getState, setState } from '../state.js';
 import { showToast } from './toast.js';
 import { showConfirm } from './confirmDialog.js';
 import { bindNotificationSettingsSection, renderNotificationListItem } from './notificationSettingsSheet.js';
+import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
+import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
 import { auth, db } from '../firebase.js';
 import { signOut, deleteUser } from 'firebase/auth';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -20,7 +22,6 @@ export function renderSettingsSections() {
   const currentTheme = getState('theme');
   const currentLang = getCurrentLang();
   const themeActiveIdx = Math.max(0, ['light', 'dark', 'system'].indexOf(currentTheme));
-  const langActiveIdx = Math.max(0, ['ko', 'en', 'ja'].indexOf(currentLang));
 
   return `
     ${profile && profile.role === 'editor' ? `
@@ -43,13 +44,8 @@ export function renderSettingsSections() {
         ${renderThemeOption('system', t('settings.theme_system'), currentTheme, systemIcon())}
         <span class="theme-option-thumb" aria-hidden="true"></span>
       </div>
-      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}" data-active="${langActiveIdx}">
-        ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
-        ${renderLangOption('en', t('settings.lang_en'), currentLang)}
-        ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
-        <span class="theme-option-thumb" aria-hidden="true"></span>
-      </div>
       ${renderNotificationListItem()}
+      ${renderViewModeListItem()}
     </div>
 
     <div class="settings-section">
@@ -94,10 +90,10 @@ export function renderSettingsSections() {
 export function bindSettingsSections(page) {
   bindNotificationSettingsSection(page);
   bindThemeOptions(page);
-  bindLangOptions(page);
+  bindViewModeItem(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => navigate('/about'));
-  bindRow(page, '#setting-contact', () => window.open(CONTACT_URL, '_blank', 'noopener'));
+  bindRow(page, '#setting-contact', () => showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info'));
   bindRow(page, '#setting-logout', handleLogout);
 }
 
@@ -123,6 +119,14 @@ function renderThemeOption(theme, label, currentTheme, icon) {
 function renderLangOption(lang, label, currentLang) {
   return `
     <button type="button" class="theme-option lang-option ${currentLang === lang ? 'active' : ''}" data-lang="${lang}" aria-pressed="${currentLang === lang ? 'true' : 'false'}">
+      <span class="theme-option-label">${label}</span>
+    </button>
+  `;
+}
+
+function renderViewOption(view, label, currentView) {
+  return `
+    <button type="button" class="theme-option view-option ${currentView === view ? 'active' : ''}" data-view="${view}" aria-pressed="${currentView === view ? 'true' : 'false'}">
       <span class="theme-option-label">${label}</span>
     </button>
   `;
@@ -165,6 +169,7 @@ function bindThemeOptions(page) {
 function bindLangOptions(page) {
   page.querySelectorAll('.lang-option[data-lang]').forEach((btn) => {
     btn.addEventListener('click', () => {
+      if (btn.closest('.theme-option-group--disabled')) return;
       const selectedLang = btn.dataset.lang;
       if (getCurrentLang() === selectedLang) return;
       const group = btn.closest('.theme-option-group');
@@ -175,6 +180,112 @@ function bindLangOptions(page) {
       showToast(t('settings.lang_changed'), 'success');
     });
   });
+}
+
+function renderViewModeListItem() {
+  const defaultView = localStorage.getItem('ds_default_view') || 'card';
+  const subtitle = defaultView === 'calendar' ? t('settings.view_calendar') : t('settings.view_card');
+  return `
+    <div class="list-item" id="setting-view-mode" role="button" tabindex="0">
+      <div class="list-item-icon">${layoutIcon()}</div>
+      <div class="list-item-content">
+        <div class="list-item-title">${t('settings.section_view_mode')}</div>
+        <div class="list-item-subtitle" id="view-mode-summary">${subtitle}</div>
+      </div>
+      <div class="list-item-action">${chevronIcon()}</div>
+    </div>
+  `;
+}
+
+function bindViewModeItem(page) {
+  const item = page.querySelector('#setting-view-mode');
+  if (!item) return;
+  const open = () => openViewModeSheet(() => updateViewModeSummary(page));
+  item.addEventListener('click', open);
+  item.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+  });
+}
+
+function openViewModeSheet(onChange = () => {}) {
+  if (document.querySelector('.view-mode-settings-overlay')) return;
+
+  const defaultView = localStorage.getItem('ds_default_view') || 'card';
+  const viewActiveIdx = defaultView === 'calendar' ? 1 : 0;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'notification-settings-overlay view-mode-settings-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = `
+    <div class="notification-settings-sheet">
+      ${renderPageHeader({ title: t('settings.section_view_mode'), icon: 'close', backLabel: '닫기' })}
+      <div class="notification-settings-list" role="radiogroup">
+        <button type="button" class="list-item view-mode-option ${defaultView === 'card' ? 'active' : ''}" data-view="card" role="radio" aria-checked="${defaultView === 'card'}">
+          <div class="list-item-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7v10"/><path d="M6 5v14"/><rect width="12" height="18" x="10" y="3" rx="2"/></svg>
+          </div>
+          <div class="list-item-content">
+            <div class="list-item-title">${t('settings.view_card_action')}</div>
+          </div>
+          <div class="list-item-action">
+            <svg class="view-mode-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </button>
+        <button type="button" class="list-item view-mode-option ${defaultView === 'calendar' ? 'active' : ''}" data-view="calendar" role="radio" aria-checked="${defaultView === 'calendar'}">
+          <div class="list-item-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+          </div>
+          <div class="list-item-content">
+            <div class="list-item-title">${t('settings.view_calendar_action')}</div>
+          </div>
+          <div class="list-item-action">
+            <svg class="view-mode-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </button>
+      </div>
+    </div>
+  `;
+
+  const wrapper = document.querySelector('.mobile-wrapper') || document.body;
+  wrapper.appendChild(overlay);
+  lockScroll();
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+
+  let isClosing = false;
+  const close = () => {
+    if (isClosing) return;
+    isClosing = true;
+    unlockScroll();
+    overlay.classList.remove('visible');
+    overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 450);
+  };
+  bindPageHeaderBack(overlay, close);
+
+  overlay.querySelectorAll('.view-mode-option[data-view]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const selected = btn.dataset.view;
+      if (localStorage.getItem('ds_default_view') === selected) return;
+      localStorage.setItem('ds_default_view', selected);
+      overlay.querySelectorAll('.view-mode-option').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-checked', 'true');
+      showToast(t('settings.view_mode_changed'), 'success');
+      updateViewModeSummary(document);
+      onChange();
+    });
+  });
+}
+
+function updateViewModeSummary(container) {
+  const el = container.querySelector('#view-mode-summary');
+  if (!el) return;
+  const defaultView = localStorage.getItem('ds_default_view') || 'card';
+  el.textContent = defaultView === 'calendar' ? t('settings.view_calendar') : t('settings.view_card');
 }
 
 function bindRow(page, selector, handler) {
@@ -311,5 +422,9 @@ function bookIcon() {
 }
 
 function mailIcon() {
-  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
+}
+
+function layoutIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="1"/><path d="M5 12s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5"/></svg>';
 }

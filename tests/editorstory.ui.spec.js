@@ -150,50 +150,29 @@ describe('Editor Story comment styles', () => {
     expect(imageOverlayRule).toMatch(/pointer-events:\s*none/);
   });
 
-  it('Given image-heavy card surfaces, when source is inspected, then visible images should decode async and uploads should create WebP display and thumbnail variants', () => {
+  it('Given image card surfaces, when source is inspected, then visible images should decode async and upload via uploadImage', () => {
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
     const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
-    const detail = readFileSync(resolve(process.cwd(), 'src/js/pages/detail.js'), 'utf8');
     const storiesService = readFileSync(resolve(process.cwd(), 'src/js/services/stories.js'), 'utf8');
     const imageService = readFileSync(resolve(process.cwd(), 'src/js/services/images.js'), 'utf8');
     const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
 
-    expect(editorStory).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
-    expect(editorStory).toMatch(/src="\$\{escapeHtml\(imageUrl\)\}"/);
-    expect(editorStory).not.toMatch(/data-src="\$\{escapeHtml\(imageUrl\)\}"/);
-    expect(editorStory).not.toMatch(/fetchpriority="high"/);
     expect(editorStory).toMatch(/decoding="async"/);
-    expect(editorStory).toMatch(/preloadStoryImages/);
-    expect(myStory).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
-    expect(myStory).toMatch(/src="\$\{escapeHtml\(imageUrl\)\}"/);
-    expect(myStory).not.toMatch(/data-src="\$\{escapeHtml\(imageUrl\)\}"/);
     expect(myStory).toMatch(/decoding="async"/);
-    expect(myStory).toMatch(/preloadStoryImages/);
-    expect(detail).toMatch(/fetchpriority="high"/);
-    expect(detail).toMatch(/preloadImage/);
-    expect(storiesService).toMatch(/uploadCardImageVariants/);
-    expect(imageService).toMatch(/export async function uploadCardImageVariants/);
-    expect(imageService).toMatch(/image_thumb_url/);
-    expect(imageService).toMatch(/IMAGE_OUTPUT_TYPE\s*=\s*'image\/webp'/);
-    expect(imageService).toMatch(/fileType:\s*IMAGE_OUTPUT_TYPE/);
-    expect(imageService).toMatch(/\.webp/);
-    expect(imageService).toMatch(/maxSizeMB:\s*0\.[0-9]+/);
-    expect(imageService).toMatch(/uploadBytes\(storageRef,\s*optimizedFile,\s*\{\s*contentType:/);
+    expect(storiesService).toMatch(/uploadImage/);
+    expect(imageService).toMatch(/export async function uploadImage/);
+    expect(imageService).toMatch(/uploadBytes/);
     expect(editor).toMatch(/id="sf-image-thumb"/);
-    expect(editor).toMatch(/image_thumb_url/);
   });
 
-  it('Given compact image surfaces, when source is inspected, then calendar, bookmarks, and search should prefer thumbnail URLs', () => {
+  it('Given compact image surfaces, when source is inspected, then card images use story.image_url directly', () => {
     const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
     const bookmarks = readFileSync(resolve(process.cwd(), 'src/js/pages/bookmarks.js'), 'utf8');
     const search = readFileSync(resolve(process.cwd(), 'src/js/pages/search.js'), 'utf8');
 
-    expect(calendar).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
-    expect(bookmarks).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
-    expect(search).toMatch(/getStoryImageSources\(story,\s*'thumb'\)/);
-    expect(calendar).toMatch(/prepareLazyImages\(grid\)/);
-    expect(bookmarks).toMatch(/prepareLazyImages\(contentEl\)/);
-    expect(search).toMatch(/prepareLazyImages\(resultsEl\)/);
+    expect(calendar).toMatch(/story\.image_url/);
+    expect(bookmarks).toMatch(/story\.image_url/);
+    expect(search).toMatch(/story\.image_url/);
   });
 
   it('Given card stack motion, when source is inspected, then transitions should use the shared settle timing and GPU-friendly transforms', () => {
@@ -209,32 +188,6 @@ describe('Editor Story comment styles', () => {
     expect(pagesCss).toMatch(/translate3d/);
   });
 
-  it('Given shared image fallbacks, when source is inspected, then card placeholder data URIs should not be redeclared in pages', () => {
-    const imageLoading = readFileSync(resolve(process.cwd(), 'src/js/utils/imageLoading.js'), 'utf8');
-    const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
-    const bookmarks = readFileSync(resolve(process.cwd(), 'src/js/pages/bookmarks.js'), 'utf8');
-    const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
-    const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
-
-    expect(imageLoading).toMatch(/export const CARD_PLACEHOLDER_IMAGE/);
-    expect(imageLoading).toMatch(/export const EDITOR_PREVIEW_PLACEHOLDER_IMAGE/);
-    expect(calendar).not.toMatch(/const PLACEHOLDER_IMG/);
-    expect(bookmarks).not.toMatch(/const PLACEHOLDER_IMG/);
-    expect(myStory).not.toMatch(/const PLACEHOLDER_IMG/);
-    expect(editor).not.toMatch(/const PLACEHOLDER_IMG/);
-  });
-
-  it('Given editor image forms, when source is inspected, then thumb reset behavior should be shared', () => {
-    const imageFields = readFileSync(resolve(process.cwd(), 'src/js/utils/imageFields.js'), 'utf8');
-    const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
-    const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
-
-    expect(imageFields).toMatch(/export function bindImageVariantFields/);
-    expect(editor).toMatch(/bindImageVariantFields/);
-    expect(myStory).toMatch(/bindImageVariantFields/);
-    expect(editor).not.toMatch(/suppressImageThumbClear/);
-    expect(myStory).not.toMatch(/suppressImageThumbClear/);
-  });
 
   it('Given the removed letter animation, when styles and code are inspected, then the home card should render without an entry motion', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');

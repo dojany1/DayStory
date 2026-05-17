@@ -1,14 +1,5 @@
 package com.daystory.app;
 
-import android.os.Bundle;
-
-import com.daystory.app.widget.DayStoryWidgetPlugin;
 import com.getcapacitor.BridgeActivity;
 
-public class MainActivity extends BridgeActivity {
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        registerPlugin(DayStoryWidgetPlugin.class);
-        super.onCreate(savedInstanceState);
-    }
-}
+public class MainActivity extends BridgeActivity {}

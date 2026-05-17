@@ -74,6 +74,81 @@ describe('View toggle — /calendar route removed', () => {
   });
 });
 
+describe('View toggle — shared storage key sync', () => {
+  it('editorstory uses shared key ds_default_view (not page-specific key)', () => {
+    const src = readFileSync(root('src/js/pages/editorstory.js'), 'utf8');
+    expect(src).not.toMatch(/daystory_editorstory_view/);
+    expect(src).not.toMatch(/daystory_story_view/);
+    expect(src).toMatch(/ds_default_view/);
+  });
+
+  it('mystory uses shared key ds_default_view (not page-specific key)', () => {
+    const src = readFileSync(root('src/js/pages/mystory.js'), 'utf8');
+    expect(src).not.toMatch(/daystory_mystory_view/);
+    expect(src).not.toMatch(/daystory_story_view/);
+    expect(src).toMatch(/ds_default_view/);
+  });
+
+  it('both pages use the exact same key string', () => {
+    const editor = readFileSync(root('src/js/pages/editorstory.js'), 'utf8');
+    const mystory = readFileSync(root('src/js/pages/mystory.js'), 'utf8');
+    const SHARED_KEY = 'ds_default_view';
+    expect(editor).toMatch(SHARED_KEY);
+    expect(mystory).toMatch(SHARED_KEY);
+  });
+});
+
+describe('View toggle — session view state', () => {
+  it('editorstory toggle handler writes to ds_session_view, not ds_default_view', () => {
+    const src = readFileSync(root('src/js/pages/editorstory.js'), 'utf8');
+    expect(src).toMatch(/sessionStorage\.setItem\(['"]ds_session_view['"]/);
+    expect(src).not.toMatch(/localStorage\.setItem\(['"]ds_default_view['"]/);
+  });
+
+  it('mystory toggle handler writes to ds_session_view, not ds_default_view', () => {
+    const src = readFileSync(root('src/js/pages/mystory.js'), 'utf8');
+    expect(src).toMatch(/sessionStorage\.setItem\(['"]ds_session_view['"]/);
+    expect(src).not.toMatch(/localStorage\.setItem\(['"]ds_default_view['"]/);
+  });
+
+  it('editorstory reads ds_session_view with fallback to ds_default_view', () => {
+    const src = readFileSync(root('src/js/pages/editorstory.js'), 'utf8');
+    expect(src).toMatch(/sessionStorage\.getItem\(['"]ds_session_view['"]/);
+    expect(src).toMatch(/ds_default_view/);
+  });
+
+  it('mystory reads ds_session_view with fallback to ds_default_view', () => {
+    const src = readFileSync(root('src/js/pages/mystory.js'), 'utf8');
+    expect(src).toMatch(/sessionStorage\.getItem\(['"]ds_session_view['"]/);
+    expect(src).toMatch(/ds_default_view/);
+  });
+
+  it('router.js clears ds_session_view when leaving content pages', () => {
+    const src = readFileSync(root('src/js/router.js'), 'utf8');
+    expect(src).toMatch(/ds_session_view/);
+    expect(src).toMatch(/editorstory/);
+    expect(src).toMatch(/mystory/);
+  });
+});
+
+describe('View toggle — settings default view option', () => {
+  it('settingsSections.js uses ds_default_view key', () => {
+    const src = readFileSync(root('src/js/components/settingsSections.js'), 'utf8');
+    expect(src).toMatch(/ds_default_view/);
+  });
+
+  it('settingsSections.js renders view-option buttons', () => {
+    const src = readFileSync(root('src/js/components/settingsSections.js'), 'utf8');
+    expect(src).toMatch(/view-option/);
+    expect(src).toMatch(/data-view/);
+  });
+
+  it('settingsSections.js binds view mode options', () => {
+    const src = readFileSync(root('src/js/components/settingsSections.js'), 'utf8');
+    expect(src).toMatch(/bindViewModeOptions/);
+  });
+});
+
 describe('View toggle — CSS', () => {
   it('pages.css contains view-toggle-btn styles', () => {
     const src = readFileSync(root('src/css/pages.css'), 'utf8');

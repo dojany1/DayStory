@@ -9,6 +9,8 @@ import { navigate, getParams } from '../router.js';
 import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { auth, storage } from '../firebase.js';
@@ -17,11 +19,10 @@ import { shareStory } from '../services/sharing.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { syncDiaryStateFromList } from '../services/widget.js';
-import { CARD_PLACEHOLDER_IMAGE, getStoryImageSources, preloadStoryImages } from '../utils/imageLoading.js';
-import { bindImageVariantFields } from '../utils/imageFields.js';
-import { uploadCardImageVariants } from '../services/images.js';
+import { uploadImage } from '../services/images.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderGrid, isAtCurrentMonth, WEEKDAYS } from './calendar.js';
+import { renderPageHeader, bindPageHeaderBack } from '../components/pageHeader.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
@@ -60,15 +61,18 @@ export function renderMyStory() {
   const page = document.createElement('div');
   page.className = 'mystory-page page';
 
+  const savedView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
+  const initialYear = new Date().getFullYear();
+
   page.innerHTML = `
     <!-- 휠 피커 스타일 날짜 선택기 -->
     <div class="wheel-pickers-container">
-      <div class="wheel-year-label" id="mystory-year-label"></div>
+      <div class="wheel-year-label" id="mystory-year-label">${initialYear}</div>
       <!-- 월 피커 -->
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
         <div class="modern-wheel-scroll" id="mystory-month-scroll"></div>
-        <button type="button" class="view-toggle-btn" id="mystory-view-toggle" aria-label="보기 방식 변경">${ICON_CALENDAR_MY}</button>
+        <button type="button" class="view-toggle-btn" id="mystory-view-toggle" aria-label="보기 방식 변경">${savedView === 'calendar' ? ICON_CARD_MY : ICON_CALENDAR_MY}</button>
       </div>
       <!-- 일 피커 -->
       <div class="wheel-picker-wrapper" id="mystory-day-picker">
@@ -103,6 +107,12 @@ export function renderMyStory() {
     </div>
   `;
 
+  if (savedView === 'calendar') {
+    page.querySelector('#mystory-day-picker').hidden = true;
+    page.querySelector('#mystory-card-area').hidden = true;
+    page.querySelector('#mystory-cal-view').hidden = false;
+  }
+
   loadMyStoryData(page);
 
   return page;
@@ -117,8 +127,7 @@ async function loadMyStoryData(page) {
     const uid = auth?.currentUser?.uid || user.id;
     const allStories = await fetchMyStories(uid);
     void syncDiaryStateFromList(allStories);
-    preloadStoryImages(allStories, { limit: 5, variant: 'thumb', fallback: false });
-    
+
     // 로컬 시간 기준 실제 오늘 날짜 (휠 피커의 미래 날짜 제한용)
     const params = getParams();
     const now = new Date();
@@ -142,9 +151,6 @@ async function loadMyStoryData(page) {
     const currentMonth = realToday.getMonth() + 1;
     const currentDate = realToday.getDate();
 
-    /* 연도 라벨 */
-    const yearLabel = page.querySelector('#mystory-year-label');
-    if (yearLabel) yearLabel.textContent = currentYear;
 
     /* 월 휠: 1~12, currentMonth 초과는 disabled */
     if (monthElement) {
@@ -320,20 +326,16 @@ async function loadMyStoryData(page) {
     const toggleBtn = page.querySelector('#mystory-view-toggle');
     const dayPicker = page.querySelector('#mystory-day-picker');
     const calView   = page.querySelector('#mystory-cal-view');
-    let currentView = localStorage.getItem('daystory_mystory_view') || 'card';
+    let currentView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
 
     if (currentView === 'calendar') {
-      toggleBtn.innerHTML = ICON_CARD_MY;
-      dayPicker.hidden = true;
-      cardArea.hidden = true;
-      calView.hidden = false;
       renderGrid(page, calState, realToday);
     }
 
     toggleBtn.addEventListener('click', () => {
       if (currentView === 'card') {
         currentView = 'calendar';
-        localStorage.setItem('daystory_mystory_view', 'calendar');
+        sessionStorage.setItem('ds_session_view', 'calendar');
         toggleBtn.innerHTML = ICON_CARD_MY;
         dayPicker.hidden = true;
         cardArea.hidden = true;
@@ -345,7 +347,7 @@ async function loadMyStoryData(page) {
         });
       } else {
         currentView = 'card';
-        localStorage.setItem('daystory_mystory_view', 'card');
+        sessionStorage.setItem('ds_session_view', 'card');
         toggleBtn.innerHTML = ICON_CALENDAR_MY;
         calView.hidden = true;
         dayPicker.hidden = false;
@@ -399,15 +401,13 @@ async function loadMyStoryData(page) {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error('loadMyStoryData 오류:', err?.message || err?.code || JSON.stringify(err));
     page.innerHTML = `<div class="empty-state"><div class="empty-state-title">오류가 발생했습니다</div></div>`;
   }
 }
 
 function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null, allStories) {
   if (!cardArea) return;
-  preloadStoryImages([story], { limit: 1, variant: 'thumb', fallback: false });
-
   const allCards = Array.from(cardArea.querySelectorAll('.flip-container'));
   const oldCard = allCards.pop() || null;
   allCards.forEach(c => c.remove());
@@ -442,14 +442,8 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
     const storyYear = parseInt(storyYearRaw, 10) || displayYear;
     const storyMonth = parseInt(storyMonthRaw, 10) || month;
     const storyDay = parseInt(storyDayRaw, 10) || day;
-    const imageSources = getStoryImageSources(story, 'thumb');
-    const imageUrl = imageSources.primary;
-    const fallbackAttr = imageSources.fallback
-      ? ` data-fallback-src="${escapeHtml(imageSources.fallback)}"`
-      : '';
-    const imageAttrs = imageUrl
-      ? `src="${escapeHtml(imageUrl)}"${fallbackAttr}`
-      : `src="${escapeHtml(CARD_PLACEHOLDER_IMAGE)}"`;
+    const imageUrl = story.image_url || '';
+    const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
     const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
     const authorNickname = getMyStoryAuthorNickname(story);
 
@@ -481,7 +475,7 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.title)}" loading="eager" decoding="async" width="320" height="400" onerror="if(this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc}else{this.src='${CARD_PLACEHOLDER_IMAGE}'}" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.title)}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.title)}</div>
           </div>
         </div>
@@ -764,9 +758,7 @@ export function renderMyStoryNew() {
   const uid = auth?.currentUser?.uid || userObj.id;
   if (!uid || uid === 'guest') {
     page.innerHTML = `
-      <div class="page-header" style="height: 60px; padding: 0 16px; align-items:center; display:flex; justify-content:center;">
-        <h1 class="page-header-title">권한 없음</h1>
-      </div>
+      ${renderPageHeader({ title: '권한 없음', backLabel: '뒤로' })}
       <div class="empty-state" style="padding-top: 100px;">
         <div class="empty-state-title">로그인이 필요합니다</div>
         <div class="empty-state-desc">나의 일화를 작성하려면 로그인해주세요.</div>
@@ -774,6 +766,7 @@ export function renderMyStoryNew() {
       </div>
     `;
     setTimeout(() => {
+      bindPageHeaderBack(page, () => history.back());
       document.getElementById('ms-no-auth-back')?.addEventListener('click', () => history.back());
     }, 0);
     return page;
@@ -783,60 +776,92 @@ export function renderMyStoryNew() {
   const params = getParams();
   let editingId = params.edit || null;
   let defaultDate = params.date || new Date().toISOString().split('T')[0];
+  let originalSnapshot = null;
 
   page.innerHTML = `
-    <div class="page-header" style="height: 60px; padding: 0 16px; align-items:center; display:flex; justify-content:flex-start; gap:8px;">
-      <button class="page-header-back" id="mystory-form-back" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center;">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <h1 class="page-header-title" style="margin:0; font-size:1.2rem; transform: translateY(1px);">${editingId ? '나의 일화 수정' : '나의 일화 쓰기'}</h1>
-    </div>
+    ${renderPageHeader({ title: editingId ? '나의 일화 수정' : '나의 일화 쓰기', backLabel: '뒤로' })}
 
-    <div class="editor-form-section section" style="padding-bottom: 6rem;">
+    <div class="editor-form-section section mystory-form-section">
       <form id="mystory-form" class="story-form">
-        <!-- 1. 이미지 -->
-        <div class="input-group">
-          <label class="input-label">이미지 업로드 및 URL</label>
-          <div style="display:flex; gap:var(--space-2); align-items:center;">
-          <input class="input-field" id="ms-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
-          <input type="hidden" id="ms-image-thumb" />
-            <button type="button" id="ms-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">편집</button>
-            <label for="ms-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
-              사진 추가
-            </label>
-            <input type="file" id="ms-image-file" accept="image/*" style="display:none;" />
-          </div>
-          <div id="ms-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">사진을 업로드하는 중입니다... ⏳</div>
-        </div>
-        <!-- 2. 단일 제목 -->
-        <div class="input-group">
-          <label class="input-label">제목 *</label>
-          <input class="input-field" id="ms-title" placeholder="일화 제목을 입력하세요" required />
-        </div>
-        <!-- 3. 날짜 -->
+        <!-- 1. 날짜 -->
         <div class="input-group">
           <label class="input-label">날짜 *</label>
-          <input class="input-field" type="date" id="ms-date" required />
+          <input class="input-field" type="date" id="ms-date" required style="text-align:left; -webkit-appearance:none; appearance:none;" />
+        </div>
+        <!-- 2. 카드 이미지 -->
+        <div class="input-group">
+          <label class="input-label">카드 이미지 *</label>
+          <input type="hidden" id="ms-image" />
+          <input type="hidden" id="ms-image-thumb" />
+          <div style="display:flex; gap:var(--space-2);">
+            <label for="ms-image-file" class="btn btn-secondary" style="cursor:pointer; flex:1; justify-content:center; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm);">파일</label>
+            <input type="file" id="ms-image-file" accept="image/*" style="display:none;" />
+            <label for="ms-image-camera" class="btn btn-secondary" style="cursor:pointer; flex:1; justify-content:center; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm);">카메라</label>
+            <input type="file" id="ms-image-camera" accept="image/*" capture="environment" style="display:none;" />
+          </div>
+        </div>
+        <!-- 3. 단일 제목 -->
+        <div class="input-group">
+          <label class="input-label">제목</label>
+          <input class="input-field" id="ms-title" placeholder="일화 제목을 입력하세요" />
         </div>
         <!-- 4. 본문 -->
         <div class="input-group">
-          <label class="input-label">본문 *</label>
-          <textarea class="input-field" id="ms-body" placeholder="본문을 입력하세요..." style="min-height:250px; resize:vertical; line-height:1.6; font-family:var(--font-body);" required></textarea>
-        </div>
-        <div style="margin-top:var(--space-6);">
-          <button type="submit" class="btn btn-primary btn-full" style="font-size:var(--text-md); padding:var(--space-4);">저장하기</button>
+          <label class="input-label">본문</label>
+          <textarea class="input-field" id="ms-body" placeholder="본문을 입력하세요..." style="min-height:250px; resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
         </div>
         ${editingId ? `
-        <div style="margin-top:var(--space-3);">
-          <button type="button" class="btn btn-secondary btn-full mystory-form-delete-btn" id="delete-my-story-edit">삭제</button>
-        </div>
+          <!-- 편집 모드: 폼 하단 우측에 삭제 버튼 배치 -->
+          <div class="mystory-form-inline-actions">
+            <button type="button" class="btn btn-secondary mystory-form-delete-btn" id="delete-my-story-edit">삭제</button>
+          </div>
         ` : ''}
       </form>
+    </div>
+
+    <!-- 화면 하단 floating 액션 영역 (저장 버튼) -->
+    <div class="mystory-form-actions">
+      <button type="submit" form="mystory-form" id="ms-save-btn" class="btn btn-primary btn-full">저장하기</button>
     </div>
   `;
 
   setTimeout(async () => {
-    document.getElementById('mystory-form-back')?.addEventListener('click', () => history.back());
+    function hasUnsavedChanges() {
+      if (editingId) {
+        if (!originalSnapshot) return false;
+        return (
+          (document.getElementById('ms-title')?.value ?? '') !== originalSnapshot.title ||
+          (document.getElementById('ms-body')?.value ?? '') !== originalSnapshot.body ||
+          (document.getElementById('ms-date')?.value ?? '') !== originalSnapshot.date ||
+          (document.getElementById('ms-image')?.value ?? '') !== originalSnapshot.image_url
+        );
+      }
+      return !!(
+        document.getElementById('ms-title')?.value.trim() ||
+        document.getElementById('ms-body')?.value.trim() ||
+        document.getElementById('ms-image')?.value
+      );
+    }
+
+    async function handleBack() {
+      if (hasUnsavedChanges()) {
+        const confirmed = await showConfirm({
+          title: '저장하지 않고 나가기',
+          message: '작성 중인 내용이 저장되지 않습니다.\n나가시겠습니까?',
+          confirmText: '나가기',
+          cancelText: '취소',
+        });
+        if (!confirmed) return;
+      }
+      history.back();
+    }
+
+    bindPageHeaderBack(page, handleBack);
+
+    if (Capacitor.isNativePlatform()) {
+      const backListener = await CapApp.addListener('backButton', handleBack);
+      window.addEventListener('hashchange', () => backListener.remove(), { once: true });
+    }
     let dateInput = document.getElementById('ms-date');
     if (dateInput) dateInput.value = defaultDate;
 
@@ -864,6 +889,12 @@ export function renderMyStoryNew() {
         document.getElementById('ms-body').value = story.body || '';
         document.getElementById('ms-image').value = story.image_url || '';
         document.getElementById('ms-image-thumb').value = story.image_thumb_url || '';
+        originalSnapshot = {
+          title: story.title || '',
+          body: story.body || '',
+          date: story.publish_date || defaultDate,
+          image_url: story.image_url || '',
+        };
       }
     }
 
@@ -889,24 +920,7 @@ export function renderMyStoryNew() {
       }
     });
 
-    function updateImageEditBtn() {
-      const url = document.getElementById('ms-image')?.value.trim();
-      const btn = document.getElementById('ms-image-edit-btn');
-      if (btn) btn.style.display = url ? 'inline-block' : 'none';
-    }
-
-    const imageVariantFields = bindImageVariantFields({
-      imageInput: document.getElementById('ms-image'),
-      thumbInput: document.getElementById('ms-image-thumb'),
-    });
-
     const formEl = document.getElementById('mystory-form');
-    if (formEl) {
-      formEl.addEventListener('input', () => {
-        updateImageEditBtn();
-      });
-    }
-    updateImageEditBtn();
 
     async function openCropModal(imageSrc, isCrossOrigin = false, callbackBlobFile) {
       let localSrc = imageSrc;
@@ -938,7 +952,7 @@ export function renderMyStoryNew() {
         <div class="crop-modal-header">
           <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="닫기">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
           카드 이미지 편집
@@ -949,11 +963,12 @@ export function renderMyStoryNew() {
         <div class="crop-modal-footer">
           <button type="button" class="btn-rotate" id="btn-crop-rotate">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.53-11.23l5.67 5.66" />
+              <path d="M21 2v6h-6"/>
+              <path d="M21 8A9 9 0 1 1 5.82 5.82"/>
             </svg>
             회전
           </button>
-          <button type="button" class="btn-crop-confirm" id="btn-crop-confirm">다음</button>
+          <button type="button" class="btn-crop-confirm" id="btn-crop-confirm">완료</button>
         </div>
       `;
       const wrapper = document.querySelector('.mobile-wrapper') || document.body;
@@ -1036,36 +1051,58 @@ export function renderMyStoryNew() {
       });
     }
 
+    const ICON_SPINNER = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:ms-spin 1s linear infinite;flex-shrink:0;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
+    const ICON_CHECK = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>`;
+
+    function setSaveBtnUploading() {
+      const btn = document.getElementById('ms-save-btn');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.innerHTML = `${ICON_SPINNER}업로드 중...`;
+    }
+
+    function setSaveBtnDone() {
+      const btn = document.getElementById('ms-save-btn');
+      if (!btn) return;
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.innerHTML = `${ICON_CHECK}업로드 완료!`;
+      setTimeout(() => {
+        if (btn) btn.innerHTML = '저장하기';
+      }, 2000);
+    }
+
+    function setSaveBtnReady() {
+      const btn = document.getElementById('ms-save-btn');
+      if (!btn) return;
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.innerHTML = '저장하기';
+    }
+
     async function processUploadBlob(blob, fallbackName) {
-      const STATUS_EL = document.getElementById('ms-image-status');
       const IMAGE_FIELD = document.getElementById('ms-image');
-      if (!STATUS_EL || !IMAGE_FIELD) return;
+      if (!IMAGE_FIELD) return;
 
       try {
-        STATUS_EL.style.display = 'block';
-        STATUS_EL.style.color = 'var(--color-primary)';
-        STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
-
+        setSaveBtnUploading();
         const uploadUid = uid || 'guest';
         blob.name = fallbackName;
-        const { image_url, image_thumb_url } = await uploadCardImageVariants(blob, { uid: uploadUid, folder: 'diary' });
+        const { image_url } = await uploadImage(blob, { uid: uploadUid, folder: 'diary' });
 
-        imageVariantFields.applyUploadResult({ image_url, image_thumb_url });
-        STATUS_EL.textContent = '업로드 완료! ✅';
-        STATUS_EL.style.color = 'var(--color-info)';
+        const imageInput = document.getElementById('ms-image');
+        const thumbInput = document.getElementById('ms-image-thumb');
+        if (imageInput) imageInput.value = image_url;
+        if (thumbInput) thumbInput.value = '';
+        setSaveBtnDone();
       } catch (error) {
         console.error('이미지 업로드 오류:', error);
-        STATUS_EL.style.color = 'var(--color-error)';
-        STATUS_EL.textContent = '이미지 저장에 실패했습니다.';
+        setSaveBtnReady();
         showToast('이미지 저장에 실패했습니다.', 'error');
       } finally {
         const fileInput = document.getElementById('ms-image-file');
-        if(fileInput) fileInput.value = '';
-        setTimeout(() => {
-          if (STATUS_EL && STATUS_EL.textContent.includes('완료')) {
-            STATUS_EL.style.display = 'none';
-          }
-        }, 3000);
+        if (fileInput) fileInput.value = '';
       }
     }
 
@@ -1083,20 +1120,24 @@ export function renderMyStoryNew() {
       reader.readAsDataURL(file);
     });
 
-    document.getElementById('ms-image-edit-btn')?.addEventListener('click', async () => {
-      const url = document.getElementById('ms-image')?.value.trim();
-      if (!url) return;
-      openCropModal(url, true, (blob) => {
-        processUploadBlob(blob, 'edited_image.jpeg');
-      });
+    document.getElementById('ms-image-camera')?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        openCropModal(event.target.result, false, (blob) => {
+          processUploadBlob(blob, file.name || 'camera_image.jpeg');
+        });
+      };
+      reader.readAsDataURL(file);
     });
 
     document.getElementById('mystory-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      /* 이미지 업로드 중이면 저장 차단 */
-      const statusEl = document.getElementById('ms-image-status');
-      if (statusEl && statusEl.style.display !== 'none' && statusEl.textContent.includes('업로드')) {
+      /* 이미지 업로드 중이면 저장 차단 (버튼 disabled 상태로 판단) */
+      const saveBtnEl = document.getElementById('ms-save-btn');
+      if (saveBtnEl?.disabled) {
         showToast('사진 업로드가 완료될 때까지 기다려주세요', 'warning');
         return;
       }
@@ -1111,7 +1152,8 @@ export function renderMyStoryNew() {
         author_nickname: getMyStoryAuthorNickname()
       };
 
-      if (!data.title || !data.body || !data.publish_date) return showToast('필수 항목을 모두 입력해주세요', 'warning');
+      if (!data.publish_date) return showToast('날짜를 입력해주세요', 'warning');
+      if (!data.image_url) return showToast('카드 이미지를 추가해주세요', 'warning');
 
       try {
         if (editingId) {

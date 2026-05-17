@@ -29,7 +29,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   sendPasswordResetEmail,
-  signInWithCredential
+  signInWithCredential,
 } from 'firebase/auth';
 
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -177,11 +177,11 @@ export function renderLogin() {
         let firebaseUser = null;
 
         if (Capacitor.isNativePlatform()) {
-          /* 모바일 네이티브 환경: Capacitor Google Auth 플러그인 사용 후 Web SDK 연동 */
-          const result = await FirebaseAuthentication.signInWithGoogle({
-            clientId: '1063822349351-rnk0hgs8gg6nuae0k4ocfl4qhvcg2u2s.apps.googleusercontent.com'
-          });
-          const credential = GoogleAuthProvider.credential(result.credential?.idToken, result.credential?.accessToken);
+          /* 네이티브: skipNativeAuth로 Google credential만 받아 Web SDK로 로그인 */
+          const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+          const idToken = result.credential?.idToken;
+          if (!idToken) throw new Error('Google 인증 토큰을 받지 못했습니다.');
+          const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
           const userCredential = await signInWithCredential(auth, credential);
           firebaseUser = userCredential.user;
         } else {

@@ -130,3 +130,11 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: (소스 변경 없음, build 산출물만 정리)
 - 검증: `./gradlew bundleRelease` BUILD SUCCESSFUL in 37s. `app-release.aab` 재생성.
 - 참고: 프로젝트가 `~/Documents` 하위(iCloud Drive 동기화 경로)에 있어 빌드 도중 중복 파일이 재생성될 수 있음. 빌드 실패 재발 시 `./gradlew clean` 우선 시도.
+
+## 2026-05-18 18:58 — Claude Opus 4.7
+
+- 요구사항: 프로젝트 전역에 누적된 iCloud Drive 동기화 충돌 파일(`* 2.ext`, `* 3.ext`)을 원본을 건드리지 않고 일괄 삭제.
+- 구현방법: 두 단계 dry-run 후 삭제. 그룹 A(git 추적 114개)는 `git ls-files | grep -E " [0-9](\.|$)"`로 식별해 line-by-line `git rm`(공백 포함 파일명 안전 처리). 그룹 B(untracked 빌드 산출물 45개, `android/build/`·`android/.gradle/`·`ios/App/App/public/` 등)는 `find -print0 | while IFS= read -r -d '' ...` 로 안전 삭제. iOS SPM `.build/checkouts`, `DerivedData` 16개는 3rd party 캐시라 제외. 사전 검증으로 샘플 파일이 원본과 바이트 단위 동일(`cmp -s` IDENTICAL)임을 확인.
+- 변경파일: 총 159개 삭제(원본 변경 없음). 그룹 A 114개는 staged deletion으로 워크 트리에서 제거, 그룹 B 45개는 단순 `rm`. 커밋은 사용자 검토 후 결정.
+- 검증: 재탐색 결과 충돌 파일 0개. 샘플 원본(`src/js/pages/about.js`, `src/js/services/collection.js`, `CLAUDE.md`, `AGENTS.md`, `daystory.jks`, `upload_certificate.pem` 등 11개) 모두 보존 확인. `git status --short` staged D 114건, 비관련 변경(.jar 9건, `Package.resolved` 1건)은 이전부터 존재.
+- 후속 권장: `.gitignore`에 `* [0-9].*` 패턴 추가 또는 프로젝트를 iCloud 외부로 이동해 재발 방지(이번 작업 범위 외).

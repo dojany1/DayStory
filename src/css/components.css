@@ -1,60 +1,83 @@
 /* ============================================
-   DayStory — Component Styles
+   마지막 수정 날짜 : 2026-05-17 00:00
+   ============================================
+   : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
+*/
+
+@keyframes ms-spin {
+  to { transform: rotate(360deg); }
+}
+
+
+/* ============================================
+   1. Buttons — 버튼 컴포넌트
    ============================================ */
 
-/* ---- Buttons ---- */
+/* 버튼 기본 스타일 — 모든 버튼의 공통 레이아웃 */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-2);                 /* 아이콘과 텍스트 사이 간격 */
   padding: var(--space-3) var(--space-6);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-full);   /* 완전한 둥근 모서리 (알약 형태) */
   font-family: var(--font-ui);
   font-size: var(--text-sm);
   font-weight: 600;
   transition: all var(--transition-fast);
   cursor: pointer;
   border: none;
-  white-space: nowrap;
+  white-space: nowrap;                 /* 텍스트 줄바꿈 방지 */
 }
 
+/* 주요(Primary) 버튼 — 검정 배경에 흰 글씨 */
 .btn-primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-text-inverse);
 }
+
+/* 주요 버튼 터치 시 — 약간 축소 */
 .btn-primary:active {
   background: var(--color-accent-dark);
   transform: scale(0.97);
 }
 
+/* 보조(Secondary) 버튼 — 흰 배경에 테두리 */
 .btn-secondary {
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
+
+/* 보조 버튼 터치 시 */
 .btn-secondary:active {
   background: var(--color-border);
   transform: scale(0.97);
 }
 
+/* 고스트(Ghost) 버튼 — 배경 없이 텍스트만 */
 .btn-ghost {
   background: transparent;
   color: var(--color-text-secondary);
 }
+
+/* 고스트 버튼 터치 시 — 배경이 살짝 나타남 */
 .btn-ghost:active {
   background: var(--color-bg-secondary);
 }
 
+/* 전폭(Full Width) 버튼 — 부모 너비 100% */
 .btn-full {
   width: 100%;
 }
 
+/* 큰(Large) 버튼 — 더 넓은 패딩과 큰 폰트 */
 .btn-large {
   padding: var(--space-4) var(--space-8);
   font-size: var(--text-base);
 }
 
+/* 아이콘 전용 버튼 — 정사각형 44x44px (터치 영역 최소 기준) */
 .btn-icon {
   width: 44px;
   height: 44px;
@@ -65,24 +88,32 @@
   justify-content: center;
 }
 
+/* 아이콘 버튼 내부 SVG 크기 */
 .btn-icon svg {
   width: 20px;
   height: 20px;
 }
 
-/* ---- Input Fields ---- */
+
+/* ============================================
+   2. Input Fields — 입력 필드 컴포넌트
+   ============================================ */
+
+/* 입력 그룹 — 라벨 + 입력 필드를 묶는 컨테이너 */
 .input-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
+/* 입력 라벨 — 입력 필드 위의 설명 텍스트 */
 .input-label {
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text-secondary);
 }
 
+/* 입력 필드 — 텍스트 입력창 */
 .input-field {
   width: 100%;
   padding: var(--space-3) var(--space-4);
@@ -94,171 +125,569 @@
   transition: border-color var(--transition-fast);
 }
 
+/* 입력 필드 포커스 시 — 테두리 강조색으로 변경 */
 .input-field:focus {
   border-color: var(--color-accent);
 }
 
+/* 입력 필드 플레이스홀더 — 힌트 텍스트 색상 */
 .input-field::placeholder {
   color: var(--color-text-tertiary);
 }
 
+/* 입력 에러 메시지 — 빨간 작은 텍스트 */
 .input-error {
   font-size: var(--text-xs);
   color: var(--color-error);
 }
 
-/* ---- Card — History Card Base ---- */
-.history-card {
+
+/* ============================================
+   3. Flip Container — 3D 플립 카드
+   ============================================
+   홈 화면의 메인 카드입니다.
+   클릭하면 앞면(이미지)과 뒷면(텍스트)이 3D로 뒤집힙니다.
+
+   구조:
+     .flip-container (원근법)
+       └ .flipper (회전하는 컨테이너)
+           ├ .front (앞면)
+           └ .back (뒷면)
+*/
+
+/* 플립 컨테이너 — 3D 원근법(perspective) 설정 */
+.flip-container {
+  perspective: 2000px;                 /* 원근감 거리 (낮을수록 과장된 3D 효과) */
+  width: 100%;
+  min-width: 280px;
+  margin: 0 auto;                      /* 수평 중앙 정렬 */
+}
+
+/* 카드 앞/뒤를 감싸는 회전 컨테이너
+   transform-style: preserve-3d로 자식 요소가 3D 공간에 존재 */
+.flipper {
   position: relative;
   width: 100%;
-  max-width: 340px;
-  aspect-ratio: 3 / 4.5;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--color-bg-card-dark);
-  box-shadow: var(--shadow-card);
+  min-width: 280px;
+  max-height: 100%;                  /* 부모 높이를 초과하지 않도록 제한 */
+  min-height: 500px;
+  aspect-ratio: 3 / 5;
+  transition: transform 0.4s ease-in-out 0.05s, scale 0.2s; /* 길어진 스프링 회전 및 0.05초 딜레이 추가 */
+  transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 */
+  will-change: transform;              /* 브라우저에 GPU 가속 힌트 */
   cursor: pointer;
-  transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
-.history-card:active {
-  transform: scale(0.98);
+/* 회전 중 터치 및 클릭 완전 차단 (오조작, 버그 방지) */
+.flipper.is-flipping {
+  pointer-events: none !important;
 }
 
-.history-card-image {
-  width: 100%;
-  height: 65%;
-  object-fit: cover;
-  display: block;
+/* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */
+.flipper.flipped {
+  transform: rotateY(180deg);
 }
 
-.history-card-overlay {
+/* 카드 앞면/뒷면 공통 스타일
+   backface-visibility: hidden으로 뒷면이 보이지 않게 합니다 */
+.front, .back {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  padding: var(--space-4) var(--space-5);
-  background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
-  color: #fff;
-  z-index: 2;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;         /* 뒤집혔을 때 뒷면 숨김 */
+  box-shadow: var(--shadow-card), var(--shadow-card-hover );
+  display: flex;
+  flex-direction: column;
 }
 
-.history-card-year {
-  font-family: var(--font-display);
-  font-size: var(--text-5xl);
-  font-weight: 900;
+
+/* ── 카드 앞면 (Front) ── */
+
+/* 앞면 전체 레이아웃 — 상단 정보 + 이미지 영역 */
+.history-card-front {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;                    /* 이미지가 카드 밖으로 넘치지 않도록 */
+  background: var(--color-bg-card);
+}
+
+/* 카드 상단 영역 — 연도/날짜 + 액션 버튼 + 메타 정보 */
+.history-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch; /* 내용에 따라 높이 조절 */
+  padding: var(--space-2) 0 var(--space-2) 0; /* 상하 여백만 */
+}
+
+/* 카드 상단 왼쪽 — 연도와 날짜를 세로로 배치 */
+.card-top-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.card-detail-shortcut-btn {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.03em;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
-.history-card-date {
-  font-family: var(--font-display);
-  font-size: var(--text-6xl);
-  font-weight: 900;
+.card-detail-shortcut-btn:active {
+  transform: scale(0.97);
+  background: var(--color-bg-card-dark);
+}
+
+.card-detail-shortcut-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+[data-theme="dark"] .card-detail-shortcut-btn {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* 카드 연도 텍스트 (예: "1879") */
+.card-year {
+  font-family: var(--font-body);
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  line-height: 1;
+}
+
+/* 카드 날짜 텍스트 (예: "3. 14") — 초대형 폰트 */
+.card-date {
+  font-family: var(--font-body);
+  font-size: 3.55rem;
+  font-weight: 800;
   line-height: 0.9;
   letter-spacing: -0.04em;
+  color: var(--color-text-primary);
 }
 
-.history-card-meta {
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-5);
+/* 카드 상단 오른쪽 — 액션 버튼과 메타 정보를 아래부터 위로 세로로 배치 */
+.card-top-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* 오른쪽 정렬 */
+  justify-content: space-between;/* 컨테이너 채우기 */
+  gap: var(--space-2);
+  align-self: stretch;
+}
+
+/* 카드 액션 버튼 그룹 — 공유/북마크 아이콘을 가로로 배치 */
+.card-actions {
+  display: flex;
+  gap: var(--space-4);
+  color: var(--color-text-tertiary);
+}
+
+[data-theme="dark"] .card-actions {
+  color: var(--color-accent);
+}
+
+/* 개별 액션 버튼 — 터치 영역 확보를 위해 패딩 추가 + 마이너스 마진 */
+.card-action-btn {
+  padding: 16px;
+  margin: -16px;                       /* 패딩만큼 마이너스 마진으로 시각적 크기 유지 */
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* 액션 버튼 SVG 아이콘 크기 */
+.card-actions svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* 카드 메타 정보 — 국가, 날짜 등 작은 텍스트 */
+.card-meta {
   text-align: right;
-  color: rgba(255,255,255,0.8);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  z-index: 2;
+  font-size: 0.8em;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  line-height: 1.5;
 }
 
-.history-card-meta-count {
-  font-size: var(--text-sm);
-  font-weight: 700;
+/* 카드 이미지 감싸기 — 남은 공간을 채우는 이미지 영역 */
+.history-card-image-wrap {
+  flex: 1;                             /* 상단 영역 이후 남은 수직 공간 전부 차지 */
+  position: relative;
+  align-self: stretch;
+  overflow: hidden;                    /* 이미지가 영역 밖으로 넘치지 않도록 */
+  min-height: 0;                       /* flex 자식 min-content 블록 방지 */
 }
 
-.history-card-bottom {
+/* 카드 이미지 — 영역을 채우면서 비율 유지 */
+.history-card-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;                   /* 비율 유지하면서 빈 공간 없이 채움 */
+  user-select: none;                   /* 텍스트 선택 방지 */
+  -webkit-user-drag: none;             /* 이미지 네이티브 드래그 방지 */
+}
+
+/* 카드 이미지 테두리 오버레이 — 이미지 가장자리에 미세한 선 */
+.history-card-image-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;               /* 클릭이 이미지로 통과 */
+}
+
+/* 카드 이미지 위 큰 타이틀 오버레이 */
+.card-image-title {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: var(--space-4) var(--space-5);
-  background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+  padding: var(--space-8) var(--space-5) var(--space-5);
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
   color: #fff;
-  z-index: 2;
+  font-family: var(--font-sans);
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  word-break: keep-all;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  pointer-events: none;
 }
 
-.history-card-tag {
-  display: inline-block;
-  padding: var(--space-1) var(--space-3);
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(8px);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  margin-bottom: var(--space-2);
-  letter-spacing: 0.05em;
+
+/* ── 카드 뒷면 (Back) ── */
+
+/* 뒷면 전체 레이아웃 — 인물 이름 + 구분선 + 본문 + 날짜 */
+.history-card-back {
+  transform: rotateY(180deg);          /* 뒤집혀 있어 앞면이 보일 때는 숨겨짐 */
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
 }
 
-.history-card-figure {
+/* 뒷면 제목 — 역사 인물의 이름 */
+.back-title {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* 뒷면 구분선 — 제목과 본문 사이 수평선 */
+.back-divider {
+  border: none;
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-2) 0 var(--space-2) 0;
+}
+
+/* 뒷면 본문 — 스크롤 가능한 역사 일화 텍스트 */
+.back-body {
+  flex: 1;                             /* 남은 공간 모두 차지 */
+  overflow-y: auto;                    /* 긴 텍스트는 스크롤 (스크롤은 가능, 스크롤바만 숨김) */
   font-family: var(--font-body);
-  font-size: var(--text-lg);
-  font-weight: 600;
-  line-height: 1.3;
+  font-size: 0.98rem;
+  line-height: 1.8rem;
+  color: var(--color-text-secondary);
+  scrollbar-width: none;               /* Firefox: 스크롤바 숨김 */
+  -ms-overflow-style: none;            /* 레거시 Edge/IE */
 }
 
-/* ---- Card Mini (Collection grid) ---- */
-.history-card-mini {
+/* 카드 뒷면 스크롤바 숨김 (스크롤은 작동, 표시만 안 함) */
+.back-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* 뒷면 하단 바 — 에디터 프로필(좌) + 날짜(우) */
+.back-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-3);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
   position: relative;
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-bg-card-dark);
-  box-shadow: var(--shadow-sm);
+}
+
+/* 뒷면 날짜 — 카드 하단 우측에 표시되는 역사적 날짜 */
+.back-date {
+  font-family: var(--font-sans);
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.back-date-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+/* 에디터 프로필 아이콘 버튼 */
+.back-editor-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: transform var(--transition-fast);
+  padding: 0;
+  overflow: visible; /* 터치 영역 확장을 위해 visible 변경 */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+  position: relative;
 }
 
-.history-card-mini:active {
-  transform: scale(0.96);
+[data-theme="dark"] .back-editor-btn {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
-.history-card-mini img {
+/* 모바일 터치 접근성을 위한 광범위 투명 터치 영역 */
+.back-editor-btn::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  bottom: -12px;
+  border-radius: 50%;
+  z-index: 1; /* 터치 항상 최상단 유지 */
+}
+
+.back-editor-btn:active {
+  transform: scale(0.98);
+}
+
+/* 에디터 프로필 사진 */
+.back-editor-avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
-.history-card-mini-overlay {
+/* 에디터 프로필 사진 없을 때 폴백 아이콘 */
+.back-editor-avatar-fallback {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 에디터 한마디 말풍선 */
+.editor-comment-bubble {
+  position: absolute;
+  bottom: calc(100% + 12px); /* 버튼 바로 위에 위치 */
+  left: 0;
+  background: var(--color-bg-elevated, var(--color-bg-secondary));
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+  max-width: 400px;
+  min-width: 232px;
+  word-break: keep-all;
+  text-align: left;
+  animation: editorBubbleIn 0.25s ease;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* 말풍선 아래 꼬리 */
+.editor-comment-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 12px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--color-bg-elevated, var(--color-bg-secondary));
+}
+
+/* 에디터 이름 라벨 */
+.editor-comment-name {
+  display: block;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  margin-bottom: 2px;
+}
+
+@keyframes editorBubbleIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ============================================
+   4. Card Mini — 미니 카드 (컬렉션 그리드)
+   ============================================
+   컬렉션(아카이브) 페이지에서 사용되는 작은 카드입니다.
+   2열 그리드로 배치되며, 클릭하면 상세 페이지로 이동합니다.
+*/
+
+/* 미니 카드 — 메인 카드의 축소판 */
+.history-card-mini {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 3 / 4.8;              /* 메인 카드와 동일한 비율 */
+  transition: 200ms cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 스프링 효과 */
+}
+
+/* 미니 카드 터치 시 — 축소 + 그림자 줄어듦 */
+.history-card-mini:active {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* 미니 카드 상단 — 연도, 날짜, 메타 정보 */
+.mini-card-top {
+  padding: 0.9rem 0.6rem 0.45rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+
+/* 미니 카드 상단 왼쪽 — 연도/날짜 세로 배치 */
+.mini-top-left {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 미니 카드 연도 텍스트 */
+.mini-year {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* 미니 카드 날짜 텍스트 — 큰 숫자 */
+.mini-date {
+  font-family: var(--font-body);
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  margin-top: 2px;
+}
+
+/* 미니 카드 상단 오른쪽 — 국가 등 메타 정보 */
+.mini-top-right {
+  font-size: 0.45rem;
+  text-align: right;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+/* 미니 카드 이미지 영역 — 남은 공간을 채움 */
+.mini-card-image-wrap {
+  /* 1. Positioning */
+  flex: 1;
+  position: relative;
+  /* 2. Box Model */
+  width: auto;
+  margin: 0 0.5rem 0.5rem 0.5rem;
+  min-height: 0; /* 커다란 원본 이미지가 flex 컨테이너를 뚫고 나가는 현상 방지 */
+  /* 3. Typography */
+  /* 4. Visuals */
+  /* 5. Misc */
+}
+
+/* 미니 카드 이미지 — 영역 채우기 */
+.mini-card-image-wrap img {
+  /* 1. Positioning */
+  display: block;
+  /* 2. Box Model */
+  width: 100%;
+  height: 100%;
+  /* 3. Typography */
+  /* 4. Visuals */
+  object-fit: cover;
+  /* 5. Misc */
+}
+
+/* 미니 카드 이미지 오버레이 — 하단 그라디언트 + 인물 이름 */
+.mini-card-overlay {
+  /* 1. Positioning */
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: var(--space-2) var(--space-3);
-  background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-  color: #fff;
-}
-
-.history-card-mini-date {
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.history-card-mini-title {
-  font-size: var(--text-xs);
-  font-weight: 400;
-  opacity: 0.85;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* 2. Box Model */
+  padding: 1.5rem 0.6rem 0.6rem;
+  /* 3. Typography */
+  color: white;
+  font-size: 1rem;
+  font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  line-height: 1.2;
+  line-clamp: 2;
+  /* 4. Visuals */
+  background: linear-gradient(transparent, rgba(0,0,0,0.4));
+  /* 5. Misc */
   overflow: hidden;
-  text-overflow: ellipsis;
+  -webkit-line-clamp: 2;
 }
 
-/* Locked card */
+/* 잠긴 카드 (기능 확장을 위한 예비 요소) */
 .history-card-mini.locked {
   opacity: 0.35;
   filter: grayscale(1);
 }
 
+/* 잠긴 카드 자물쇠 아이콘 — 카드 중앙에 표시 */
 .history-card-mini.locked::after {
   content: '🔒';
   position: absolute;
@@ -268,20 +697,36 @@
   font-size: 1.5rem;
 }
 
-/* ---- Page Header ---- */
+
+/* ============================================
+   5. Page Header — 페이지 상단 헤더
+   ============================================
+   상세, 후원, 신고 등 서브 페이지의 상단 바입니다.
+   뒤로가기 버튼 + 제목으로 구성됩니다.
+*/
+
+/* 페이지 헤더 — 좌우로 요소 배치 */
 .page-header {
-  padding: var(--space-4) var(--space-5);
+  position: sticky;
+  top: env(safe-area-inset-top, 0px); /* status-bar-spacer 바로 아래 고정 */
+  height: 48px;
+  padding: 0 var(--space-4) 0 var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--color-bg-primary);
 }
 
+/* 페이지 헤더 제목 — line-height:1 및 미세 이동으로 한글 폰트 수직 중앙 정렬 완벽 보정 */
 .page-header-title {
-  font-family: var(--font-heading);
-  font-size: var(--text-xl);
-  font-weight: 700;
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1;
+  transform: translateY(1px);
 }
 
+/* 뒤로가기 버튼 — 원형 터치 영역 */
 .page-header-back {
   width: 36px;
   height: 36px;
@@ -292,22 +737,32 @@
   transition: background var(--transition-fast);
 }
 
+/* 뒤로가기 버튼 터치 시 — 배경색 표시 */
 .page-header-back:active {
   background: var(--color-bg-secondary);
 }
 
+/* 뒤로가기 버튼 아이콘 크기 */
 .page-header-back svg {
   width: 20px;
   height: 20px;
 }
 
-/* ---- Section ---- */
+
+/* ============================================
+   6. Section — 섹션 컴포넌트
+   ============================================
+   콘텐츠를 그룹으로 나누는 섹션 컨테이너입니다.
+*/
+
+/* 섹션 — 패딩이 적용된 콘텐츠 그룹 */
 .section {
-  padding: var(--space-6) var(--space-5);
+  padding: 52px var(--space-6) var(--space-8);
 }
 
+/* 섹션 제목 — 섹션 상단의 소제목 */
 .section-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-sans);
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text-secondary);
@@ -315,21 +770,31 @@
   letter-spacing: 0.02em;
 }
 
-/* ---- List Items ---- */
+
+/* ============================================
+   7. List Items — 리스트 아이템
+   ============================================
+   설정 페이지 등에서 사용되는 목록 항목입니다.
+   아이콘 + 제목/부제 + 액션(토글, 화살표) 구조입니다.
+*/
+
+/* 리스트 아이템 — 아이콘, 텍스트, 액션을 가로 배치 */
 .list-item {
   display: flex;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-divider);
   transition: background var(--transition-fast);
   cursor: pointer;
 }
 
+/* 리스트 아이템 터치 시 — 배경 하이라이트 */
 .list-item:active {
   background: var(--color-bg-secondary);
 }
 
+/* 리스트 아이콘 — 40x40 둥근 사각형 */
 .list-item-icon {
   width: 40px;
   height: 40px;
@@ -338,45 +803,71 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex-shrink: 0;                      /* 아이콘 크기 고정 */
 }
 
+.list-item-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+
+/* 리스트 콘텐츠 — 제목과 부제를 담는 영역 */
 .list-item-content {
-  flex: 1;
-  min-width: 0;
+  flex: 1;                             /* 남은 공간 차지 */
+  min-width: 0;                        /* 텍스트 말줄임 허용 */
 }
 
+/* 리스트 제목 */
 .list-item-title {
+  /* 좌측 정렬, 아이콘과 간격 유지 */
+  text-align: left;
   font-size: var(--text-base);
   font-weight: 500;
 }
 
+/* 리스트 부제목 — 작고 연한 텍스트 */
 .list-item-subtitle {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   margin-top: 2px;
 }
 
+/* 리스트 액션 — 오른쪽의 토글/화살표 등 */
 .list-item-action {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   color: var(--color-text-tertiary);
 }
 
-/* ---- Toggle Switch ---- */
+
+/* ============================================
+   8. Toggle Switch — 토글 스위치
+   ============================================
+   설정에서 켜기/끄기에 사용되는 iOS 스타일 토글입니다.
+*/
+
+/* 토글 트랙 — 가로로 긴 둥근 배경 */
 .toggle {
   position: relative;
   width: 48px;
   height: 28px;
   border-radius: var(--radius-full);
-  background: var(--color-border);
+  background: var(--color-border);     /* 꺼짐 상태: 회색 */
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
+/* 토글 활성화 — 배경 강조색 */
 .toggle.active {
-  background: var(--color-accent);
+  background: var(--color-success);
 }
 
+/* 토글 원형 핸들 — ::after 가상 요소로 생성 */
 .toggle::after {
   content: '';
   position: absolute;
@@ -387,64 +878,128 @@
   border-radius: 50%;
   background: #fff;
   transition: transform var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* 가벼운 그림자 */
 }
 
+/* 토글 활성화 시 핸들 이동 — 오른쪽으로 20px 이동 */
 .toggle.active::after {
   transform: translateX(20px);
 }
 
-/* ---- Empty State ---- */
+
+/* ============================================
+   9. Empty State — 빈 상태 화면
+   ============================================
+   데이터가 없을 때 표시되는 안내 화면입니다.
+   아이콘 + 제목 + 설명으로 구성됩니다.
+*/
+
+/* 빈 상태 컨테이너 — 가운데 정렬 */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
   padding: var(--space-16) var(--space-8);
   text-align: center;
 }
 
+/* 빈 상태 아이콘 — 반투명 큰 이모지 */
 .empty-state-icon {
   font-size: 3rem;
   margin-bottom: var(--space-4);
   opacity: 0.5;
 }
 
+/* 빈 상태 제목 */
 .empty-state-title {
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   font-weight: 600;
   margin-bottom: var(--space-2);
 }
 
+/* 빈 상태 설명 텍스트 */
 .empty-state-desc {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
-  max-width: 260px;
+  max-width: 260px;                    /* 텍스트 너비 제한 */
 }
 
-/* ---- Modal/Sheet ---- */
+
+/* ============================================
+   10. Modal / Sheet — 모달 & 바텀 시트
+   ============================================
+   화면 하단에서 올라오는 시트형 모달입니다.
+   반투명 오버레이 위에 표시됩니다.
+*/
+
+/* 모달 오버레이 — 전체 화면 반투명 배경 */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: var(--color-bg-overlay);
   z-index: var(--z-modal);
   display: flex;
-  align-items: flex-end;
+  align-items: flex-end;               /* 시트를 화면 하단에 배치 */
   justify-content: center;
   animation: fadeIn 0.2s ease;
+  touch-action: none;
 }
 
+/* 모달 시트 — 하단에서 올라오는 둥근 패널 */
 .modal-sheet {
   width: 100%;
-  max-width: 500px;
-  max-height: 85vh;
+  max-width: var(--mobile-max-width);
+  max-height: 85vh;                    /* 화면 85%까지만 차지 */
   background: var(--color-bg-elevated);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0; /* 상단만 둥글게 */
   padding: var(--space-6);
+  padding-bottom: calc(var(--space-6) + var(--safe-area-bottom));
   overflow-y: auto;
+  overscroll-behavior: contain;
   animation: slideUp 0.3s var(--transition-spring);
 }
 
+/* 알림 설정 — 풀스크린 페이지 (우측에서 슬라이드 인) */
+.notification-settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateX(100%);
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  height: 100dvh;
+  background: var(--color-bg-primary);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* touch-action: none 제거 — iOS에서 시트 내부 스크롤을 완전히 차단함.
+     배경 스크롤 방지는 JS의 touchmove 핸들러와 lockScroll()로 처리. */
+  padding-top: env(safe-area-inset-top, 0px); /* 하드코딩 48px 대신 실제 safe-area 사용 */
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-lg);
+}
+
+.notification-settings-overlay.visible {
+  transform: translateX(-50%) translateX(0);
+}
+
+.notification-settings-sheet {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y; /* 세로 스크롤 허용 */
+  padding-top: 48px; /* 헤더 높이만큼 패딩 */
+  padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+}
+
+/* 모달 핸들 바 — 시트 상단의 드래그 핸들 (장식용) */
 .modal-handle {
   width: 36px;
   height: 4px;
@@ -453,37 +1008,62 @@
   margin: 0 auto var(--space-5);
 }
 
+/* 모달 등장 애니메이션 — 페이드 인 */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* 모달 시트 등장 애니메이션 — 아래에서 위로 슬라이드 */
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
 
-/* ---- Bookmark Icon ---- */
+
+/* ============================================
+   11. Bookmark Button — 북마크 버튼
+   ============================================
+   일화를 저장할 때 사용하는 하트/북마크 아이콘입니다.
+*/
+
+/* 북마크 버튼 — 스프링 전환 효과 */
 .bookmark-btn {
   transition: transform var(--transition-spring);
 }
 
+/* 북마크 활성화 시 아이콘 — 강조색으로 채워짐 */
 .bookmark-btn.active svg {
   fill: var(--color-accent);
   stroke: var(--color-accent);
 }
 
+/* 북마크 버튼 터치 시 — 커지는 애니메이션 */
 .bookmark-btn:active {
   transform: scale(1.3);
 }
 
-/* ---- Divider ---- */
+
+/* ============================================
+   12. Divider — 구분선
+   ============================================
+   섹션 사이를 구분하는 얇은 수평선입니다.
+*/
 .divider {
   height: 1px;
   background: var(--color-divider);
   margin: var(--space-4) 0;
 }
 
-/* ---- Badge ---- */
+
+/* ============================================
+   13. Badge — 뱃지
+   ============================================
+   상태나 카테고리를 표시하는 작은 라벨입니다.
+   둥근 알약 형태로 텍스트/아이콘을 담습니다.
+*/
+
+/* 뱃지 기본 스타일 — 작은 알약 형태 */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -494,12 +1074,570 @@
   gap: var(--space-1);
 }
 
+/* 강조 뱃지 — 골드 계열 배경 */
 .badge-accent {
   background: rgba(196, 162, 101, 0.15);
   color: var(--color-accent);
 }
 
+.badge-draft {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.badge-scheduled {
+  background: rgba(20, 173, 229, 0.14);
+  color: var(--color-info);
+}
+
+.badge-archived {
+  background: var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
+/* 성공 뱃지 — 초록 계열 배경 */
 .badge-success {
   background: rgba(76, 175, 80, 0.15);
   color: var(--color-success);
 }
+
+/* ============================================
+   X. 달력 피커 (Wheel Item) 비활성화
+   ============================================ */
+.wheel-item.disabled {
+  opacity: 0.25;
+  pointer-events: none;
+  scroll-snap-align: none;
+  background-color: var(--color-divider);
+}
+
+/* ============================================
+   11. 이미지 크롭 모달 (Cropper.js)
+   ============================================
+   프로필 및 에디터 이미지 자르기용 풀스크린 오버레이
+*/
+
+.crop-modal-overlay {
+  /* 1. Positioning */
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  /* 2. Box Model */
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  height: 100dvh;
+  /* 3. Typography */
+  /* 4. Visuals */
+  background: var(--color-bg-primary);
+  /* 5. Misc */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  touch-action: none;
+}
+
+.crop-modal-header {
+  /* 1. Positioning */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 2. Box Model */
+  height: calc(60px + var(--safe-area-top));
+  padding-top: var(--safe-area-top);
+  flex-shrink: 0;
+  /* 3. Typography */
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  /* 4. Visuals */
+  border-bottom: 1px solid var(--color-divider);
+  /* 5. Misc */
+}
+
+.crop-modal-back-btn {
+  position: absolute;
+  left: var(--space-4);
+  top: calc(var(--safe-area-top) + 30px);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  padding: 0;
+}
+
+.crop-modal-body {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  flex: 1;
+  min-height: 0;
+  /* 3. Typography */
+  /* 4. Visuals */
+  background: #000;
+  /* 5. Misc */
+  overflow: hidden;
+}
+
+.crop-modal-footer {
+  /* 1. Positioning */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 2. Box Model */
+  height: 80px;
+  padding: 0 var(--space-4);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  flex-shrink: 0;
+  /* 3. Typography */
+  /* 4. Visuals */
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-bg-primary);
+  /* 5. Misc */
+}
+
+.btn-rotate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  color: var(--color-text-primary);
+}
+
+.btn-rotate svg {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-crop-confirm {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  padding: var(--space-2) var(--space-4);
+  /* 3. Typography */
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-inverse);
+  /* 4. Visuals */
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-full);
+  /* 5. Misc */
+  cursor: pointer;
+}
+
+.btn-crop-confirm:disabled {
+  opacity: 0.5;
+}
+
+/* cropperjs 라이브러리 .cropper-bg 체크무늬 이미지 재정의 */
+.cropper-bg {
+  background-image: none !important;
+  background-color: var(--color-bg-primary);
+}
+
+
+/* ============================================================
+   ===== 5월 1일 AAB 복원 — 추가 컴포넌트 스타일 =====
+   ============================================================
+   페이지 헤더 변형, 확인 다이얼로그, 알림 설정 시트,
+   위젯 테마 프리뷰 — release AAB 에서 복원.
+*/
+
+
+/* ===== 페이지 헤더 변형 (5월 1일 AAB) ===== */
+.page-header-centered {
+  text-align:center;
+  justify-content:center}
+
+.page-header-with-back {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header-centered .page-header-title,.page-header-with-back .page-header-title {
+  flex:1;
+  text-align:center;
+  min-width:0}
+
+.page-header-spacer {
+  width:36px;
+  flex-shrink:0}
+
+.page-header-actions {
+  gap:var(--space-3)}
+
+
+/* ===== 확인 다이얼로그 (5월 1일 AAB) ===== */
+
+.confirm-dialog-overlay {
+  z-index:10000;
+  opacity:0;
+  padding:var(--space-4);
+  background:#00000073;
+  justify-content:center;
+  align-items:center;
+  transition:opacity .18s;
+  display:flex;
+  position:fixed;
+  inset:0;
+  touch-action:none}
+
+.confirm-dialog-overlay.visible {
+  opacity:1}
+
+.confirm-dialog {
+  background:var(--color-bg-card);
+  color:var(--color-text-primary);
+  border-radius:var(--radius-lg);
+  width:min(320px,100%);
+  padding:var(--space-5);
+  transition:transform .18s;
+  transform:scale(.96);
+  box-shadow:0 12px 32px #0000002e}
+
+.confirm-dialog-overlay.visible .confirm-dialog {
+  transform:scale(1)}
+
+.confirm-dialog-title {
+  font-size:var(--text-md);
+  margin-bottom:var(--space-2);
+  font-weight:700}
+
+.confirm-dialog-message {
+  font-size:var(--text-sm);
+  color:var(--color-text-secondary);
+  margin-bottom:var(--space-5);
+  line-height:1.5}
+
+.confirm-dialog-line {
+  margin:0}
+
+.confirm-dialog-line+.confirm-dialog-line {
+  margin-top:var(--space-1)}
+
+.confirm-dialog-actions {
+  gap:var(--space-2);
+  justify-content:flex-end;
+  display:flex}
+
+.confirm-dialog-btn {
+  padding:var(--space-3) var(--space-4);
+  font-size:var(--text-sm);
+  border-radius:var(--radius-md);
+  border:1px solid var(--color-border);
+  background:var(--color-bg-secondary);
+  color:var(--color-text-primary);
+  cursor:pointer;
+  flex:1;
+  font-weight:600;
+  transition:background .15s}
+
+.confirm-dialog-btn:active {
+  transform:scale(.98)}
+
+.confirm-dialog-confirm {
+  background:var(--color-accent);
+  color:var(--color-text-inverse);
+  border-color:#0000}
+
+.confirm-dialog-confirm.is-danger {
+  background:var(--color-error,#d33);
+  color:var(--color-text-on-image)}
+
+
+
+/* ===== 알림 설정 시트 (5월 1일 AAB) ===== */
+
+.notification-settings-sheet .page-header {
+  margin-bottom: var(--space-4);
+}
+
+.notification-settings-icon svg {
+  width:20px;
+  height:20px}
+
+.notification-settings-list {
+  margin-bottom:var(--space-5);
+  flex-direction:column;
+  display:flex}
+
+.notification-settings-row {
+  align-items:center;
+  gap:var(--space-3);
+  min-height:96px;
+  padding:var(--space-4);
+  border-bottom:1px solid var(--color-border-light);
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"copy toggle""time time";
+  display:grid}
+
+.notification-settings-copy {
+  grid-area:copy;
+  min-width:0}
+
+.notification-settings-row-title {
+  font-size:var(--text-base);
+  color:var(--color-text-primary);
+  font-weight:600}
+
+.notification-settings-row-subtitle {
+  font-size:var(--text-sm);
+  color:var(--color-text-tertiary);
+  margin-top:2px}
+
+.notification-settings-row .toggle {
+  grid-area:toggle}
+
+.notification-settings-time-control {
+  gap:var(--space-2);
+  grid-area:time;
+  grid-template-columns:1fr 1fr 1fr;
+  width:100%;
+  min-width:0;
+  display:grid
+}
+
+.notification-settings-time-select {
+  width:100%;
+  min-width:0;
+  padding:var(--space-2);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-bg-secondary);
+  color:var(--color-text-primary);
+  font-family:var(--font-ui);
+  font-size:var(--text-sm);
+  line-height:1.2
+}
+
+.notification-settings-time-select:focus {
+  border-color:var(--color-accent);
+  outline:none
+}
+
+
+/* ===== 보기 방식 시트 — 체크마크 ===== */
+
+.view-mode-check {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent);
+  /* opacity transition 제거 — iOS WebKit에서 rapid toggle 시 opacity가
+     중간값에 고착되어 두 옵션이 동시에 선택된 것처럼 보이는 버그 방지 */
+  display: none;
+}
+
+.view-mode-option.active .view-mode-check {
+  display: block;
+}
+
+/* ===== 위젯 테마 프리뷰 (5월 1일 AAB) ===== */
+
+.widget-theme-option-group {
+  margin:0 var(--space-5) var(--space-4);
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  display:flex}
+
+.widget-theme-option {
+  align-items:center;
+  gap:var(--space-3);
+  border:2px solid var(--color-border);
+  background:var(--color-bg-secondary);
+  cursor:pointer;
+  width:100%;
+  max-width:360px;
+  color:var(--color-text-secondary);
+  border-radius:24px;
+  flex-direction:column;
+  padding:14px;
+  transition:border-color .18s,transform .18s,box-shadow .18s;
+  display:flex}
+
+.widget-theme-option.active {
+  border-color:var(--color-accent);
+  color:var(--color-text-primary);
+  box-shadow:0 0 0 3px #0000000f}
+
+.widget-theme-option:not(.active):active {
+  transform:scale(.97)}
+
+.widget-theme-preview {
+  aspect-ratio:1;
+  color:#000;
+  background:#fff;
+  border:8px solid #e2e2e2;
+  border-radius:32px;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:center;
+  width:min(312px,100%);
+  padding:32px;
+  display:flex;
+  position:relative;
+  box-shadow:0 14px 17.8px -9px #00000069}
+
+.widget-preview-top {
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  width:100%;
+  display:flex}
+
+.widget-preview-date {
+  flex-direction:column;
+  align-items:flex-start;
+  min-width:0;
+  display:flex}
+
+.widget-preview-weekday {
+  letter-spacing:.04em;
+  font-size:28px;
+  font-weight:800;
+  line-height:1}
+
+.widget-preview-day {
+  margin-top:10px;
+  font-size:76px;
+  font-weight:900;
+  line-height:.9}
+
+.widget-preview-month {
+  color:#333;
+  letter-spacing:.01em;
+  white-space:nowrap;
+  margin-top:22px;
+  font-size:20px;
+  font-weight:800;
+  line-height:1}
+
+.widget-preview-envelope {
+  color:#000;
+  flex:none;
+  justify-content:flex-end;
+  align-items:flex-start;
+  width:36px;
+  height:36px;
+  display:inline-flex;
+  position:relative}
+
+.widget-preview-envelope-icon {
+  width:34px;
+  height:34px}
+
+.widget-preview-dot {
+  background:#ff5a5f;
+  border-radius:50%;
+  width:9px;
+  height:9px;
+  position:absolute;
+  top:-5px;
+  right:-4px}
+
+.widget-preview-pen-button {
+  color:#000;
+  background:#fff;
+  border:2px solid #d8d8d8;
+  border-radius:18px;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+  height:72px;
+  display:flex}
+
+.widget-preview-pen-icon {
+  width:32px;
+  height:32px}
+
+.widget-theme-preview-light {
+  color:#000;
+  background:#fff;
+  border-color:#e2e2e2}
+
+.widget-theme-preview-dark {
+  color:#f3f3f4;
+  background:#1b1b1d;
+  border-color:#303036}
+
+.widget-theme-preview-dark .widget-preview-month {
+  color:#b7b7bc}
+
+.widget-theme-preview-dark .widget-preview-envelope,.widget-theme-preview-dark .widget-preview-pen-button {
+  color:#f3f3f4}
+
+.widget-theme-preview-dark .widget-preview-pen-button {
+  background:#242428;
+  border-color:#3a3a40}
+
+.widget-theme-sheet-options {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  padding:4px 0 16px;
+  display:grid}
+
+.widget-theme-settings-sheet .widget-theme-option {
+  border-radius:16px;
+  gap:8px;
+  max-width:none;
+  padding:10px}
+
+.widget-theme-settings-sheet .widget-theme-preview {
+  border-width:4px;
+  border-radius:20px;
+  width:min(132px,100%);
+  padding:12px;
+  box-shadow:0 10px 13px -10px #0000005c}
+
+.widget-theme-settings-sheet .widget-preview-top {
+  gap:8px}
+
+.widget-theme-settings-sheet .widget-preview-weekday {
+  font-size:13px}
+
+.widget-theme-settings-sheet .widget-preview-day {
+  margin-top:4px;
+  font-size:38px}
+
+.widget-theme-settings-sheet .widget-preview-month {
+  margin-top:10px;
+  font-size:9px}
+
+.widget-theme-settings-sheet .widget-preview-envelope {
+  width:20px;
+  height:20px}
+
+.widget-theme-settings-sheet .widget-preview-envelope-icon {
+  width:18px;
+  height:18px}
+
+.widget-theme-settings-sheet .widget-preview-dot {
+  width:5px;
+  height:5px;
+  top:-2px;
+  right:-2px}
+
+.widget-theme-settings-sheet .widget-preview-pen-button {
+  border-width:1px;
+  border-radius:10px;
+  height:30px}
+
+.widget-theme-settings-sheet .widget-preview-pen-icon {
+  width:16px;
+  height:16px}

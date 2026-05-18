@@ -1,128 +1,387 @@
-/* ============================================
-   DayStory — Story Service (Supabase)
-   ============================================ */
-import { supabase } from '../supabase.js';
-import { DEMO_STORIES } from '../data/demo.js';
+/* =====================================================================
+   stories.js — 스토리(역사 일화) 서비스
+   =====================================================================
+   Firestore의 stories 컬렉션에서 역사 일화 데이터를 가져오는 서비스입니다.
+   서버 연결이 안 될 경우 demo.js의 데모 데이터를 사용합니다 (Fallback).
+   
+   주요 함수:
+     - fetchStories()        : 발행된 전체 스토리 목록 조회
+     - fetchTodayStory()     : 오늘 날짜의 스토리 조회
+     - fetchStoryById()      : 특정 ID의 스토리 조회
+     - searchStoriesDB()     : 키워드로 스토리 검색 (로컬 필터링)
+     - (에디터 전용) CRUD 함수들
+   ===================================================================== */
 
-/* Fallback: use demo data if DB query fails or returns empty */
+import { db, storage, auth } from '../firebase.js';
+import { DEMO_STORIES } from '../data/demo.js';
+import { getLocalToday } from '../utils/date.js';
+
+/*
+ * Firestore 함수 임포트
+ * - collection : 컬렉션(테이블) 참조를 만듦
+ * - doc        : 문서(행) 참조를 만듦
+ * - query      : 조건부 쿼리를 만듦
+ * - where      : 필터 조건 (예: status == 'published')
+ * - orderBy    : 정렬 조건
+ * - limit      : 결과 개수 제한
+ * - getDocs    : 여러 문서 가져오기
+ * - getDoc     : 한 문서 가져오기
+ * - addDoc     : 새 문서 추가
+ * - updateDoc  : 문서 수정
+ * - deleteDoc  : 문서 삭제
+ * - serverTimestamp : 서버 시간 자동 입력
+ */
+import {
+  collection, doc, query, where, orderBy, limit,
+  getDocs, getDoc, addDoc, updateDoc, deleteDoc,
+  serverTimestamp
+} from 'firebase/firestore';
+
+import { ref, deleteObject } from 'firebase/storage';
+import { uploadImage as uploadImageToStorage } from './images.js';
+
+const STORIES_CACHE_TTL_MS = 60000;
+let storiesCachePromise = null;
+let storiesCacheAt = 0;
+
+export function invalidateStoriesCache() {
+  storiesCachePromise = null;
+  storiesCacheAt = 0;
+}
+
+export function warmStoriesCache() {
+  return fetchStories();
+}
+
+
+/* ─────────────────────────────────────────────
+   섹션 1: 헬퍼(도우미) 함수들
+   ───────────────────────────────────────────── */
+
+/**
+ * fallbackToDemo — DB 데이터가 비어있으면 데모 데이터를 반환합니다
+ */
 function fallbackToDemo(dbData) {
   return dbData && dbData.length > 0 ? dbData : DEMO_STORIES;
 }
 
-/* Fetch all published stories, ordered by publish_date desc */
-export async function fetchStories() {
-  const { data, error } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('status', 'published')
-    .order('publish_date', { ascending: false });
-  return fallbackToDemo(data);
+/**
+ * withTimeout — 서버 요청에 시간 제한을 겁니다 (무한 로딩 방지)
+ */
+function withTimeout(promise, ms = 5000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('시간 초과')), ms))
+  ]);
 }
 
-/* Fetch today's story */
+/**
+ * docToData — Firestore 문서를 일반 JS 객체로 변환합니다
+ * Firestore 문서에는 .id와 .data()가 따로 있어서 합쳐줘야 합니다.
+ */
+function docToData(docSnap) {
+  return { id: docSnap.id, ...docSnap.data() };
+}
+
+/**
+ * autoPublishScheduled — 발행 예정일이 오늘이거나 지난 예약 글을 자동 발행합니다
+ * 
+ * 왜 클라이언트에서 처리하나?
+ *   서버 측 크론잡(정기 실행 스크립트)이 없는 구조이므로,
+ *   앱에 접속할 때마다 "아직 scheduled인데 날짜가 지난 글"을 찾아서
+ *   자동으로 published 상태로 변경합니다.
+ * 
+ * @param {string} todayStr - 오늘 날짜 'YYYY-MM-DD' (로컬 시간 기준)
+ */
+async function autoPublishScheduled(todayStr) {
+  if (!db) return;
+  try {
+    /* scheduled 상태이면서 발행 예정일이 오늘이거나 지난 글을 검색 */
+    const q = query(
+      collection(db, 'stories'),
+      where('status', '==', 'scheduled'),
+      where('publish_date', '<=', todayStr)
+    );
+    const snapshot = await getDocs(q);
+    
+    /* 발견된 글들을 모두 published로 업데이트 */
+    const updates = snapshot.docs.map(docSnap => {
+      return updateDoc(doc(db, 'stories', docSnap.id), {
+        status: 'published',
+        published_at: new Date().toISOString(),
+        updated_at: serverTimestamp(),
+      });
+    });
+    
+    if (updates.length > 0) {
+      await Promise.all(updates);
+      console.log(`[DayStory] ${updates.length}개 예약 글 자동 발행 완료`);
+    }
+  } catch (err) {
+    /* 복합 인덱스 오류 발생 시 콘솔에 인덱스 생성 링크가 표시됩니다 */
+    console.warn('예약 발행 자동 전환 실패:', err.message);
+  }
+}
+
+
+/* ─────────────────────────────────────────────
+   섹션 2: 스토리 조회 함수 (읽기 전용)
+   ───────────────────────────────────────────── */
+
+/**
+ * fetchStories — 발행된(published) 전체 스토리를 최신순으로 가져옵니다
+ */
+async function fetchStoriesFresh() {
+  if (!db) return DEMO_STORIES;
+
+  try {
+    /* 사용자 기기의 로컬 시간 기준으로 오늘 날짜를 가져옴 (UTC가 아님!) */
+    const today = getLocalToday();
+
+    /* ★ 핵심: 예약 발행 자동 전환 — scheduled → published */
+    await autoPublishScheduled(today);
+
+    const q = query(
+      collection(db, 'stories'),
+      where('publish_date', '<=', today),
+      orderBy('publish_date', 'desc')
+    );
+    const snapshot = await withTimeout(getDocs(q));
+    /* 자바스크립트 레벨에서 published 상태만 필터링 (복합 인덱스 오류 방지) */
+    const data = snapshot.docs.map(docToData).filter(s => s.status === 'published');
+    return fallbackToDemo(data);
+  } catch (err) {
+    console.warn('스토리 목록 조회 실패, 데모 데이터 사용:', err.message);
+    return DEMO_STORIES;
+  }
+}
+
+export async function fetchStories() {
+  const now = Date.now();
+  if (storiesCachePromise && now - storiesCacheAt < STORIES_CACHE_TTL_MS) {
+    return storiesCachePromise;
+  }
+
+  storiesCacheAt = now;
+  storiesCachePromise = fetchStoriesFresh().catch((err) => {
+    invalidateStoriesCache();
+    throw err;
+  });
+  return storiesCachePromise;
+}
+
+/**
+ * fetchTodayStory — '오늘' 날짜에 해당하는 스토리를 가져옵니다
+ */
 export async function fetchTodayStory() {
-  const today = new Date().toISOString().split('T')[0];
-  const { data } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('status', 'published')
-    .eq('publish_date', today)
-    .single();
-  if (data) return data;
+  if (!db) {
+    const today = getLocalToday();
+    return DEMO_STORIES.find(s => s.publish_date === today) || DEMO_STORIES[DEMO_STORIES.length - 1];
+  }
 
-  /* Fallback: latest published */
-  const { data: latest } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('status', 'published')
-    .order('publish_date', { ascending: false })
-    .limit(1)
-    .single();
-  if (latest) return latest;
+  try {
+    /* 사용자 기기의 로컬 시간 기준 오늘 날짜 */
+    const todayStr = getLocalToday();
+    const q = query(
+      collection(db, 'stories'),
+      where('publish_date', '<=', todayStr),
+      orderBy('publish_date', 'desc'),
+      limit(5)
+    );
+    const snapshot = await withTimeout(getDocs(q), 2500);
 
-  /* Final fallback: demo */
-  const demoToday = DEMO_STORIES.find(s => s.publish_date === today);
+    /* 가져온 5개 중 가장 최신의 published 상태인 스토리를 찾음 */
+    const publishedList = snapshot.docs.map(docToData).filter(s => s.status === 'published');
+    if (publishedList.length > 0) {
+      return publishedList[0];
+    }
+  } catch (err) {
+    console.warn('오늘의 스토리 조회 실패, 데모 데이터 사용:', err.message);
+  }
+
+  /* 최종 폴백: 데모 데이터 */
+  const fallbackToday = getLocalToday();
+  const demoToday = DEMO_STORIES.find(s => s.publish_date === fallbackToday);
   return demoToday || DEMO_STORIES[DEMO_STORIES.length - 1];
 }
 
-/* Fetch story by ID */
+/**
+ * fetchStoryById — 특정 ID의 스토리를 가져옵니다 (상세 페이지용)
+ */
 export async function fetchStoryById(id) {
-  const { data, error } = await supabase
-    .from('stories')
-    .select('*, story_sources(*)')
-    .eq('id', id)
-    .single();
-  if (data) return data;
+  if (!db) return DEMO_STORIES.find(s => s.id === id) || null;
 
-  /* Fallback to demo */
+  try {
+    const docSnap = await withTimeout(getDoc(doc(db, 'stories', id)), 3000);
+    if (docSnap.exists()) return docToData(docSnap);
+  } catch (err) {
+    console.warn('스토리 상세 조회 실패:', err.message);
+  }
+
+  /* 폴백: 데모 데이터에서 찾기 */
   return DEMO_STORIES.find(s => s.id === id) || null;
 }
 
-/* Search stories */
-export async function searchStoriesDB(query) {
-  const q = `%${query}%`;
-  const { data } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('status', 'published')
-    .or(`title.ilike.${q},body.ilike.${q},figure_name.ilike.${q},country.ilike.${q}`)
-    .order('publish_date', { ascending: false });
-  if (data && data.length > 0) return data;
+/**
+ * searchStoriesDB — 키워드로 스토리를 검색합니다
+ * 
+ * Firestore는 SQL의 LIKE(부분 문자열) 검색을 지원하지 않으므로,
+ * 전체 발행 스토리를 가져와 JS에서 직접 필터링합니다.
+ * 데이터가 수백 건 이하일 때 적합한 방식입니다.
+ */
+export async function searchStoriesDB(queryStr) {
+  try {
+    const stories = await fetchStories();
+    const lowerQuery = queryStr.toLowerCase();
+    const results = stories.filter(s =>
+      s.title.toLowerCase().includes(lowerQuery) ||
+      s.body.toLowerCase().includes(lowerQuery) ||
+      s.figure_name.toLowerCase().includes(lowerQuery) ||
+      s.country.toLowerCase().includes(lowerQuery)
+    );
+    if (results.length > 0) return results;
+  } catch (err) {
+    console.warn('검색 실패, 로컬 데이터에서 검색:', err.message);
+  }
 
-  /* Fallback */
-  const lq = query.toLowerCase();
+  /* 폴백: 데모 데이터에서 검색 */
+  const lowerQuery = queryStr.toLowerCase();
   return DEMO_STORIES.filter(s =>
-    s.title.toLowerCase().includes(lq) ||
-    s.body.toLowerCase().includes(lq) ||
-    s.figure_name.toLowerCase().includes(lq) ||
-    s.country.toLowerCase().includes(lq)
+    s.title.toLowerCase().includes(lowerQuery) ||
+    s.body.toLowerCase().includes(lowerQuery) ||
+    s.figure_name.toLowerCase().includes(lowerQuery) ||
+    s.country.toLowerCase().includes(lowerQuery)
   );
 }
 
-/* ---- Editor CRUD ---- */
 
-/* Fetch all stories for editor (all statuses) */
+/* ─────────────────────────────────────────────
+   섹션 3: 에디터 전용 CRUD 함수들
+   ─────────────────────────────────────────────
+   Create(생성), Read(조회), Update(수정), Delete(삭제) */
+
+/**
+ * fetchAllStoriesEditor — 모든 스토리를 가져옵니다 (상태 무관)
+ */
 export async function fetchAllStoriesEditor() {
-  const { data, error } = await supabase
-    .from('stories')
-    .select('*')
-    .order('publish_date', { ascending: false });
-  return data || [];
+  if (!db) return [];
+
+  const q = query(
+    collection(db, 'stories'),
+    orderBy('publish_date', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(docToData);
 }
 
-/* Create story */
+/**
+ * createStory — 새 스토리를 생성합니다
+ * addDoc()은 Firestore가 자동으로 고유 ID를 만들어줍니다.
+ */
 export async function createStory(story) {
-  const { data, error } = await supabase
-    .from('stories')
-    .insert(story)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  if (!db) throw new Error('Firebase 미설정');
+
+  const docRef = await addDoc(collection(db, 'stories'), {
+    ...story,
+    created_at: serverTimestamp(),
+    updated_at: serverTimestamp(),
+  });
+  invalidateStoriesCache();
+
+  /* 생성된 문서를 다시 읽어서 반환 */
+  const docSnap = await getDoc(docRef);
+  return docToData(docSnap);
 }
 
-/* Update story */
+/**
+ * updateStory — 기존 스토리를 수정합니다
+ */
 export async function updateStory(id, updates) {
-  const { data, error } = await supabase
-    .from('stories')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  if (!db) throw new Error('Firebase 미설정');
+
+  const docRef = doc(db, 'stories', id);
+  await updateDoc(docRef, {
+    ...updates,
+    updated_at: serverTimestamp(),
+  });
+  invalidateStoriesCache();
+
+  /* 수정된 문서를 다시 읽어서 반환 */
+  const docSnap = await getDoc(docRef);
+  return docToData(docSnap);
 }
 
-/* Delete story */
+/**
+ * deleteStory — 스토리를 삭제합니다
+ */
 export async function deleteStory(id) {
-  const { error } = await supabase
-    .from('stories')
-    .delete()
-    .eq('id', id);
-  if (error) throw error;
+  if (!db) throw new Error('Firebase 미설정');
+  try {
+    const d = await getDoc(doc(db, 'stories', id));
+    if (d.exists()) {
+      const data = d.data();
+      if (data.image_url && (data.image_url.includes('firebasestorage') || data.image_url.includes('.firebasestorage.app'))) {
+        const imgRef = ref(storage, data.image_url);
+        await deleteObject(imgRef).catch(e => console.warn('Storage delete fail', e));
+      }
+    }
+  } catch(e) {
+    console.warn('deleteStory image delete skip:', e);
+  }
+  await deleteDoc(doc(db, 'stories', id));
+  invalidateStoriesCache();
 }
 
-/* Publish story */
+/**
+ * publishStory — 스토리를 "발행" 상태로 변경합니다
+ */
 export async function publishStory(id) {
-  return updateStory(id, { status: 'published', published_at: new Date().toISOString() });
+  return updateStory(id, {
+    status: 'published',
+    published_at: new Date().toISOString()
+  });
+}
+
+/**
+ * fetchStoriesWithLicense — 이미지 출처(image_license)가 있는 발행된 스토리만 가져옵니다.
+ * 날짜 기준 최신순(내림차순)으로 정렬합니다.
+ * 라이선스 페이지 전용 함수입니다.
+ */
+export async function fetchStoriesWithLicense() {
+  if (!db) {
+    /* 폴백: 데모 데이터에서 라이선스 있는 것만 필터링 */
+    return DEMO_STORIES
+      .filter(s => s.image_license && s.image_license.trim() !== '')
+      .sort((a, b) => b.publish_date.localeCompare(a.publish_date));
+  }
+
+  try {
+    const today = getLocalToday();
+    /* 발행된 전체 스토리를 날짜 내림차순으로 가져옴 (복합 인덱스 오류 방지를 위해 status 필터는 JS에서 처리) */
+    const q = query(
+      collection(db, 'stories'),
+      where('publish_date', '<=', today),
+      orderBy('publish_date', 'desc')
+    );
+    const snapshot = await withTimeout(getDocs(q));
+    
+    /* JS 레벨에서 published 상태이면서 image_license 필드가 있는 항목만 필터링 */
+    return snapshot.docs
+      .map(docToData)
+      .filter(s => s.status === 'published' && s.image_license && s.image_license.trim() !== '');
+  } catch (err) {
+    console.warn('라이선스 스토리 조회 실패:', err.message);
+    return [];
+  }
+}
+
+/**
+ * uploadImage — 이미지를 Firebase Storage에 업로드하고 URL을 반환합니다
+ */
+export async function uploadImage(file) {
+  if (!storage) throw new Error('Firebase Storage is not configured');
+  
+  const uid = auth?.currentUser?.uid || 'guest';
+  const { image_url } = await uploadImageToStorage(file, { uid, folder: 'editor_images' });
+  return image_url;
 }

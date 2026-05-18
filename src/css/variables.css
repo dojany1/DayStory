@@ -1,136 +1,192 @@
 /* ============================================
-   DayStory — Design Tokens
-   ============================================ */
+   DayStory — Design Tokens (디자인 토큰)
+   ============================================
+   이 파일은 앱 전체에서 사용되는 디자인 변수를 정의한다.
+   색상, 폰트, 간격, 그림자 등을 한 곳에서 관리하여
+   일관된 디자인을 유지한다.
+   ============================================
+*/
 
+
+/* ─────────────────────────────────────────────
+   :root — 라이트 테마 기본값
+   ─────────────────────────────────────────────
+   :root는 HTML 문서의 최상위 요소를 뜻한다.
+   여기에 선언된 변수는 앱 전체에서 var(--변수이름)으로 사용된다.
+*/
 :root {
-  /* Colors — Light Theme */
-  --color-bg-primary: #faf9f7;
-  --color-bg-secondary: #f2f0ec;
-  --color-bg-card: #ffffff;
-  --color-bg-card-dark: #1a1a1a;
-  --color-bg-elevated: #ffffff;
-  --color-bg-overlay: rgba(0, 0, 0, 0.5);
 
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #6b6b6b;
-  --color-text-tertiary: #9a9a9a;
-  --color-text-inverse: #ffffff;
-  --color-text-on-dark: #f5f5f5;
+  /* ── 라이트 테마 배경 색상 ── */
+  --color-bg-primary: #f3f2ee;           /* 더 깔끔하고 부드러온 앱 기본 배경 */
+  --color-bg-secondary: #ffffff;         /* 보조 배경 */
+  --color-bg-card: #FDF9F4;              /* 카드 배경색 */
+  --color-bg-card-dark: #F8F5F2;         /* 카드 어두운 배경 (비활성 상태 등) */
+  --color-bg-elevated: #ffffff;          /* 부유 요소 배경 */
+  --color-bg-overlay: rgba(0, 0, 0, 0.45); /* 오버레이 (대비 소폭 강화) */
 
-  --color-accent: #c4a265;
-  --color-accent-light: #ddc899;
-  --color-accent-dark: #9a7d3f;
+  /* ── 라이트 테마 텍스트 색상 ── */
+  --color-text-primary: #111111;         /* 눈이 편안한 차콜 블랙 */
+  --color-text-secondary: #636366;       /* 보조 텍스트 (iOS 스타일) */
+  --color-text-tertiary: #8e8e93;        /* 3차 텍스트 */
+  --color-text-inverse: #ffffff;         /* 반전 텍스트 */
+  --color-text-on-dark: #f5f5f7;         /* 어두운 배경 위의 밝은 텍스트 */
 
-  --color-border: #e8e6e1;
-  --color-border-light: #f0eeea;
-  --color-divider: #e8e6e1;
+  /* ── 라이트 테마 강조(액센트) 색상 ── */
+  --color-accent: #000000;               /* 주 강조색 유지 */
+  --color-accent-light: #444444;         /* 강조색 라이트 */
+  --color-accent-dark: #000000;          /* 강조색 다크 */
+  --color-accent-border: #5f5f5f;        /* 강조색 테두리 */
 
-  --color-success: #4caf50;
-  --color-warning: #ff9800;
-  --color-error: #f44336;
-  --color-info: #2196f3;
+  /* ── 라이트 테마 테두리/구분선 색상 ── */
+  --color-border: #d7d3cc;               /* 배경과 더 잘 어우러지는 테두리 */
+  --color-border-light: #f5f5f7;         /* 얇은 테두리 */
+  --color-divider: #efebe7;              /* 섹션 구분선 */
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.1);
-  --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.18);
+  /* ── 라이트 테마 상태 색상 (현대적인 시맨틱 컬러) ── */
+  --color-success: #34c759;              /* 성공 (Green) */
+  --color-warning: #ff9f0a;              /* 경고 (Orange) */
+  --color-error: #ff3b30;                /* 오류 (Red) */
+  --color-info: #14ade5;                 /* 정보 (Blue) */
+  
+  /* ── 라이트 테마 데스크톱 래퍼 ── */
+  --color-bg-desktop: #e8e8ed;   /* 데스크톱 본문 배경 (모바일 래퍼 바깥) */
+  --shadow-wrapper: none;        /* 라이트 모드에서는 래퍼 그림자 없음 */
 
-  /* Typography */
-  --font-display: 'Montserrat', 'Inter', sans-serif;
-  --font-heading: 'Inter', sans-serif;
-  --font-body: 'Noto Serif KR', serif;
-  --font-ui: 'Inter', sans-serif;
+  /* ── 그림자 (깊이감 표현) ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.2);
 
-  /* Font sizes */
-  --text-xs: 0.6875rem;    /* 11px */
-  --text-sm: 0.8125rem;    /* 13px */
-  --text-base: 0.9375rem;  /* 15px */
-  --text-lg: 1.0625rem;    /* 17px */
-  --text-xl: 1.25rem;      /* 20px */
-  --text-2xl: 1.5rem;      /* 24px */
-  --text-3xl: 2rem;        /* 32px */
-  --text-4xl: 2.5rem;      /* 40px */
-  --text-5xl: 3.5rem;      /* 56px */
-  --text-6xl: 5rem;        /* 80px */
+  /* ── 타이포그래피 (폰트 패밀리) ── */
+  --font-display: 'LINESeedKR', 'Inter', sans-serif;           /* 제목용 (산세리프로 통일) */
+  --font-heading: 'LINESeedKR', 'Inter', sans-serif;           /* 소제목용 (산세리프로 통일) */
+  --font-body: 'LINESeedKR', 'Inter', sans-serif;              /* 본문용 산세리프 */
+  --font-ui: 'LINESeedKR', 'Inter', sans-serif;                /* UI 요소용 산세리프 */
 
-  /* Spacing */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --space-20: 5rem;
+  /* ── 폰트 크기 ──
+     rem 단위: html의 font-size(16px) 기준 상대 크기 */
+  --text-xs: 0.6875rem;    /* 11px — 매우 작은 텍스트 (뱃지, 날짜) */
+  --text-sm: 0.8125rem;    /* 13px — 작은 텍스트 (보조 설명) */
+  --text-base: 0.9375rem;  /* 15px — 기본 텍스트 */
+  --text-lg: 1.0625rem;    /* 17px — 약간 큰 텍스트 */
+  --text-xl: 1.25rem;      /* 20px — 소제목 */
+  --text-2xl: 1.5rem;      /* 24px — 중제목 */
+  --text-3xl: 2rem;        /* 32px — 대제목 */
+  --text-4xl: 2.5rem;      /* 40px — 스플래시 타이틀 */
+  --text-5xl: 3.5rem;      /* 56px — 히어로 텍스트 */
+  --text-6xl: 5rem;        /* 80px — 초대형 텍스트 */
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 999px;
+  /* ── 간격 (Spacing) ──
+     일관된 여백/패딩을 위한 간격 단위 */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
 
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* ── 모서리 둥글기 (Border Radius) ── */
+  --radius-sm: 4px;        /* 약간 둥글게 */
+  --radius-md: 8px;        /* 보통 둥글게 (카드, 입력창) */
+  --radius-lg: 12px;       /* 많이 둥글게 (큰 카드) */
+  --radius-xl: 20px;       /* 아주 둥글게 (모달 시트) */
+  --radius-full: 999px;    /* 완전한 원형 (버튼, 뱃지, 토글) */
 
-  /* Z-index layers */
-  --z-base: 1;
-  --z-card: 10;
-  --z-nav: 100;
-  --z-modal: 200;
-  --z-toast: 300;
-  --z-splash: 400;
+  /* ── 트랜지션 (애니메이션 타이밍) ──
+     cubic-bezier: 부드러운 가속/감속 곡선 */
+  --transition-fast: 200ms cubic-bezier(0.16, 1, 0.3, 1);                /* 빠른 전환 (호버, 색상 변경) */
+  --transition-base: 400ms cubic-bezier(0.16, 1, 0.3, 1);                /* 기본 전환 (페이지 전환) */
+  --transition-slow: 600ms cubic-bezier(0.16, 1, 0.3, 1);                /* 느린 전환 */
+  --transition-spring: 800ms cubic-bezier(0.175, 0.885, 0.32, 1.275);    /* 스프링 효과 (튕기는 느낌) */
 
-  /* Layout */
-  --nav-height: 64px;
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  /* ── Z-index 레이어 순서 ──
+     숫자가 클수록 화면 위에 표시됩니다 */
+  --z-base: 1;       /* 기본 요소 */
+  --z-card: 10;      /* 카드 */
+  --z-nav: 100;      /* 하단 내비게이션 */
+  --z-modal: 200;    /* 모달/시트 */
+  --z-toast: 300;    /* 토스트 알림 */
+  --z-splash: 400;   /* 스플래시 화면 (가장 위) */
+
+  /* ── 레이아웃 ── */
+  --mobile-max-width: 430px;                       /* 모바일 래퍼 최대 너비 */
+  --card-max-width: 94%;                           /* 카드 최대 너비 */
+  --card-aspect-ratio: 3.1 / 4.8;                /* 카드 비율 */
+  --nav-height: 58px;                              /* 하단 내비게이션 바 높이 */
+  --safe-area-top: env(safe-area-inset-top, 0px);  /* 상단 안전 영역 (노치 대응) */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px); /* 하단 안전 영역 (홈 바 대응) */
+
 }
 
-/* Dark Theme */
+
+/* ─────────────────────────────────────────────
+   다크 테마 — dark mode
+   ─────────────────────────────────────────────
+   data-theme="dark" 속성이 <html>에 적용되면
+   아래 변수들이 라이트 테마 값을 덮어쓴다.
+*/
 [data-theme="dark"] {
-  --color-bg-primary: #0a0a0a;
-  --color-bg-secondary: #141414;
-  --color-bg-card: #1e1e1e;
-  --color-bg-card-dark: #141414;
-  --color-bg-elevated: #242424;
-  --color-bg-overlay: rgba(0, 0, 0, 0.7);
+  /* ── 다크 테마 배경 색상 (가시성 대폭 개선) ── */
+  --color-bg-primary: #1c1c1e;              /* 순수 블랙보다 눈이 편하고 가시성이 좋은 다크 챠콜 */
+  --color-bg-secondary: #323235;            /* 보조 배경 */
+  --color-bg-card: #363639;                 /* 카드 배경 (배경과 명확히 구분되도록 상향) */
+  --color-bg-card-dark: #29292b;            /* 카드 더 어두운 배경 */
+  --color-bg-elevated: #303036;             /* 부유 요소 배경 */
+  --color-bg-overlay: rgba(0, 0, 0, 0.75);
 
-  --color-text-primary: #f0eeea;
-  --color-text-secondary: #a0a0a0;
-  --color-text-tertiary: #6b6b6b;
-  --color-text-inverse: #1a1a1a;
+  /* ── 다크 테마 텍스트 색상 ── */
+  --color-text-primary: #f5f5f7;            /* 가독성 높은 소프트 화이트 */
+  --color-text-secondary: #aeaeb2;          /* 보조 텍스트 (가시성 보강) */
+  --color-text-tertiary: #636366;           /* 3차 텍스트 */
+  --color-text-inverse: #111111;            /* 반전 텍스트 */
 
-  --color-accent: #d4b06a;
-  --color-accent-light: #e6c98a;
-  --color-accent-dark: #b8944e;
+  /* ── 다크 테마 강조 색상 ── */
+  --color-accent: #ffffff;                  /* 강조색 (흰색) */
+  --color-accent-light: #cccccc;
+  --color-accent-dark: #ffffff;
+  --color-accent-border: #646269;
 
-  --color-border: #2a2a2a;
-  --color-border-light: #1e1e1e;
-  --color-divider: #2a2a2a;
+  /* ── 다크 테마 테두리 (대비 강화) ── */
+  --color-border: #3a3a3c;                  /* 카드 테두리를 더 선명하게 */
+  --color-border-light: #2c2c2e;
+  --color-divider: #313133;                 /* 구분선 */
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.5);
+  /* ── 다크 테마 그림자 ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.8);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.6);
+
+  /* ── 다크 테마 데스크톱 래퍼 ── */
+  --color-bg-desktop: #000000;
+  --shadow-wrapper: inset 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-/* Font size presets */
+
+/* ─────────────────────────────────────────────
+   폰트 크기 프리셋 - font size presets
+   ─────────────────────────────────────────────
+   사용자가 설정에서 글꼴 크기를 변경하면
+   data-font-size 속성에 따라 기본 텍스트 크기가 조정된다.
+*/
+
+/* 작은 글꼴 — 글자가 더 작아짐 */
 [data-font-size="small"] {
   --text-base: 0.8125rem;
   --text-lg: 0.9375rem;
 }
+
+/* 큰 글꼴 — 글자가 더 커짐 */
 [data-font-size="large"] {
   --text-base: 1.0625rem;
   --text-lg: 1.1875rem;

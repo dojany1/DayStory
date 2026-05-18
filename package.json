@@ -1,22 +1,38 @@
 {
   "name": "daystory",
-  "version": "0.0.0",
+  "version": "1.3.3",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run --environment jsdom",
+    "harness:auto": "node scripts/codex-harness.mjs",
+    "harness": "node scripts/codex-harness.mjs",
+    "harness:status": "node scripts/codex-harness.mjs --status",
+    "harness:commit": "node scripts/harness-commit.mjs"
   },
   "devDependencies": {
-    "vite": "^8.0.1"
+    "@capacitor/assets": "^3.0.5",
+    "jsdom": "^29.0.2",
+    "vite": "^8.0.1",
+    "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@capacitor-firebase/authentication": "^8.2.0",
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/app": "^8.1.0",
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
+    "@capacitor/device": "^8.0.2",
+    "@capacitor/ios": "^8.3.4",
+    "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
-    "@supabase/supabase-js": "^2.100.1"
+    "@revenuecat/purchases-capacitor": "^13.1.0",
+    "cropperjs": "^1.6.2",
+    "firebase": "^10.14.1"
   }
 }

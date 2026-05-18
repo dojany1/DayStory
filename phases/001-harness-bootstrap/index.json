@@ -1,0 +1,23 @@
+{
+  "phase": "001-harness-bootstrap",
+  "title": "Harness 파이프라인 end-to-end 검증",
+  "agent": "claude",
+  "status": "completed",
+  "current_step": 1,
+  "steps": [
+    {
+      "n": 1,
+      "file": "step1.md",
+      "status": "completed",
+      "summary": "build OK (vite 8), 74 tests passed (vitest 4)",
+      "error_message": null,
+      "blocked_reason": null
+    }
+  ],
+  "created_at": "2026-05-09T00:00:00+09:00",
+  "updated_at": "2026-05-09T12:39:48.057Z",
+  "tags": [
+    "meta",
+    "harness"
+  ]
+}

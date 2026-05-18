@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.daystory.app",
+      "sha256_cert_fingerprints": [
+        "94:22:68:7B:0E:25:3B:69:68:58:49:40:CB:71:31:C6:7E:88:26:2F:C3:A2:3B:4B:27:63:BE:6E:24:BD:B9:4D"
+      ]
+    }
+  }
+]

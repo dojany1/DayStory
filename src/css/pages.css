@@ -1,8 +1,37 @@
 /* ============================================
-   DayStory — Page-specific Styles
-   ============================================ */
+   DayStory — Page-specific Styles (페이지별 스타일)
+   ============================================
+   각 페이지(홈, 상세, 컬렉션, 검색, 설정 등)에
+   고유하게 적용되는 스타일을 정의한다.
 
-/* ---- Login / Signup Page ---- */
+   구성:
+     1) 로그인 / 회원가입 페이지 (auth)
+     2) 홈 페이지 (home)
+     3) 상세 페이지 (detail)
+     4) 컬렉션 페이지 (archive)
+     5) 검색 페이지 (search)
+     6) 설정 페이지 (settings)
+     7) 후원 페이지 (donate)
+     8) 신고 페이지 (report)
+     9) 에디터 페이지 (editor)
+    10) 모달 (modal)
+    11) 로딩 스피너 (loading-spinner)
+*/
+/* ============================================
+   마지막 수정 날짜 : 2026-03-31 16:11
+   ============================================
+   : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
+*/
+
+
+/* ============================================
+   1. 로그인 / 회원가입 페이지
+   ============================================
+   이메일/비밀번호 입력 폼, 소셜 로그인 버튼,
+   로고와 하단 안내 텍스트로 구성된다.
+*/
+
+/* 로그인/회원가입 페이지 전체 레이아웃 — 수직 중앙 정렬 */
 .auth-page {
   min-height: 100vh;
   min-height: 100dvh;
@@ -11,18 +40,42 @@
   justify-content: center;
   padding: var(--space-8) var(--space-6);
   background: var(--color-bg-primary);
+  position: relative;
 }
 
+/* 로그인 창 닫기 버튼 (우측 상단 고정) */
+.close-auth-btn {
+  position: absolute;
+  top: var(--space-6);
+  right: var(--space-6);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: 50%;
+  transition: background var(--transition-fast);
+  z-index: 10;
+}
+.close-auth-btn:active {
+  background: var(--color-bg-secondary);
+}
+
+/* 로고 영역 — 페이지 상단 중앙 */
 .auth-logo {
   text-align: center;
   margin-bottom: var(--space-12);
 }
 
+/* 로고 아이콘 (이모지) */
 .auth-logo-icon {
   font-size: 2.5rem;
   margin-bottom: var(--space-3);
 }
 
+/* 로고 타이틀 (예: "DayStory") */
 .auth-logo-title {
   font-family: var(--font-display);
   font-size: var(--text-3xl);
@@ -30,6 +83,7 @@
   letter-spacing: -0.02em;
 }
 
+/* 로고 부제목 (예: "매일의 역사 일화") */
 .auth-logo-subtitle {
   font-family: var(--font-body);
   font-size: var(--text-sm);
@@ -37,6 +91,7 @@
   margin-top: var(--space-1);
 }
 
+/* 로그인 폼 — 입력 필드들을 세로로 배치 */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -44,6 +99,7 @@
   margin-bottom: var(--space-6);
 }
 
+/* 구분선 ("또는") — 좌우로 선이 뻗어나가는 텍스트 */
 .auth-divider {
   display: flex;
   align-items: center;
@@ -53,6 +109,7 @@
   font-size: var(--text-sm);
 }
 
+/* 구분선 양옆의 가로선 (::before, ::after) */
 .auth-divider::before, .auth-divider::after {
   content: '';
   flex: 1;
@@ -60,6 +117,7 @@
   background: var(--color-divider);
 }
 
+/* 소셜 로그인 버튼 (Google, Apple 등) */
 .auth-social-btn {
   display: flex;
   align-items: center;
@@ -74,16 +132,19 @@
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
+/* 소셜 버튼 터치 시 — 배경 변경 + 테두리 강조 */
 .auth-social-btn:active {
   background: var(--color-bg-secondary);
   border-color: var(--color-accent);
 }
 
+/* 소셜 버튼 내 아이콘 크기 */
 .auth-social-btn svg {
   width: 20px;
   height: 20px;
 }
 
+/* 로그인 페이지 하단 안내 (예: "계정이 없으신가요? 회원가입") */
 .auth-footer {
   text-align: center;
   font-size: var(--text-sm);
@@ -91,63 +152,346 @@
   margin-top: var(--space-6);
 }
 
+/* 하단 안내 링크/버튼 — 강조색 */
 .auth-footer a, .auth-footer button {
   color: var(--color-accent);
   font-weight: 600;
 }
 
-/* ---- Home Page ---- */
-.home-page {
-  padding: var(--space-6) var(--space-5);
-}
 
-.home-greeting {
-  margin-bottom: var(--space-2);
-}
+/* ============================================
+   2. 홈 페이지 (메인 화면)
+   ============================================
+   상단 타이틀 + 주간 캘린더 바 + 3D 플립 카드로 구성된다.
+   캘린더에서 날짜를 선택하면 해당 날짜의 카드가 표시된다.
+*/
 
-.home-date {
-  font-family: var(--font-display);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--color-text-tertiary);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.home-title {
-  font-family: var(--font-heading);
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  margin-top: var(--space-1);
-}
-
-.home-card-container {
+/* 홈 페이지 전체 레이아웃 — Flex 컬럼으로 높이 100% 채움 */
+.editorstory-page {
+  padding: 0;
   display: flex;
-  justify-content: center;
-  margin: var(--space-8) 0;
-  perspective: 1000px;
+  flex-direction: column;
+  flex: 1;                           /* 상위 컨테이너에서 남은 높이를 확실히 차지 */
+  height: 100%;
+  overflow: visible;                 /* 내부 요소가 페이지 경계를 넘나들 수 있도록 허용 */
 }
 
-.home-card-wrapper {
+/* 홈 상단 헤더 — "Day Story" 타이틀 영역 (숨김 처리하여 카드 공간 확보) */
+.editorstory-header {
+  display: none;
+}
+
+/* 홈 타이틀 텍스트 */
+.editorstory-title {
+  font-family: var(--font-sans);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-accent);
+}
+
+/* ============================================
+   새로운 가로 휠 피커 컨테이너 레이아웃 (월/일)
+   ============================================ */
+.wheel-pickers-container {
+  display: flex;
+  flex-direction: column;
+  
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-card);
+
+  margin-bottom: var(--space-4);
+  gap: var(--space-1);
+}
+
+/* 페이지 전환 시 부모(.page)의 translateY(12px)를 상쇄해 휠 피커가 움직이지 않도록 고정 */
+.editorstory-page .wheel-pickers-container,
+.mystory-page .wheel-pickers-container {
+  animation: wheelPickerStatic 0.35s ease;
+}
+
+@keyframes wheelPickerStatic {
+  from { transform: translateY(-12px); }
+  to   { transform: translateY(0); }
+}
+
+/* 휠 년도 레이블 (현재 년도 표시) */
+.wheel-year-label {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+  padding-top: var(--space-1);
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.wheel-picker-wrapper {
   position: relative;
-  transition: transform var(--transition-slow);
+  height: 40px; /* 초기 50px의 80% */
 }
 
-.home-card-wrapper:hover {
-  transform: translateY(-4px);
-}
-
-.home-card-shadow {
+/* 정중앙 고정 반투명 강조 박스 */
+.wheel-selection-box {
   position: absolute;
-  bottom: -8px;
-  left: 10%;
-  right: 10%;
-  height: 20px;
-  background: radial-gradient(ellipse, rgba(0,0,0,0.15) 0%, transparent 70%);
-  filter: blur(4px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;  /* 50px -> 40px */
+  height: 32px; /* 40px -> 32px */
+  background: var(--color-bg-card-dark); /* 배경과 구분되는 컬러를 반투명처럼 사용하거나 직접 rgba 설정 가능 (현재는 테마 변수 활용) */
+  pointer-events: none; /* 클릭 방해 금지 */
+  z-index: 1;
+}
+[data-theme="dark"] .wheel-selection-box {
+  border: 1px solid var(--color-border);
 }
 
-.home-stats {
+.modern-wheel-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  height: 100%;
+  align-items: center;
+  padding: 0 calc(50% - 20px); /* 아이템 넓이 절반(20px) 여백 */
+  background-color: var(--color-bg-card);
+}
+
+.modern-wheel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-item {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+  width: 40px;   /* 50px -> 40px */
+  height: 32px;  /* 40px -> 32px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: 0.92rem; /* 1.15rem -> 0.92rem */
+  color: var(--color-text-tertiary);
+  transition: all var(--transition-fast);
+  z-index: 2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* 활성화된 휠 피커 아이템 */
+.wheel-item.active {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  transform: scale(1);
+}
+
+.wheel-item:active {
+  transform: scale(0.9);
+}
+
+/* 캘린더 날짜 아이템 — 요일 + 날짜 세로 배치 */
+.cal-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 36px;
+  width: 36px;
+  color: var(--color-text-tertiary);   /* 비활성 날짜: 연한 색 */
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+/* 활성화된(선택된) 날짜 아이템 — 요일 텍스트를 강조색으로 표시 */
+.cal-item.active {
+  color: var(--color-accent);
+}
+
+/* 선택된 날짜의 숫자 — 강조 */
+.cal-item.active .cal-date {
+  color: var(--color-accent);
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-accent-border); /* 선택된 요소에 내부 외곽선 적용 */
+}
+
+/* 날짜 아이템 터치 시 — 살짝 축소 */
+.cal-item:active {
+  transform: scale(0.9);
+}
+
+/* 선택되지 않은 월의 날짜 희미해짐 효과 */
+.cal-item.faded {
+  opacity: 0.25;
+}
+
+/* 캘린더 요일 텍스트 (예: "월", "화") */
+.cal-day {
+  font-size: 0rem;
+  font-weight: 400;
+  line-height: 100%;
+  margin-bottom: 2px;
+}
+
+/* 캘린더 날짜 숫자 — 원형 영역 안에 표시 */
+.cal-date {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  font-weight: 400;
+  line-height: 120%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10%;
+}
+
+/* 홈 카드 영역 — 남은 수직 공간을 채우며 카드를 중앙에 배치 */
+.editorstory-card-area {
+  flex: 1;
+  display: grid;
+  align-items: start;                /* ★ 상단 정렬 */
+  justify-items: center;             /* 가로 중앙 정렬 */
+  grid-template-areas: "stack";
+  grid-template-columns: 100%;       /* 가로 공간 확보 */
+  grid-template-rows: 100%;          /* 세로 공간 확보 */
+  padding: 0 var(--space-4) 0 var(--space-4);
+  position: relative;
+  z-index: 10;
+  min-height: 0;
+}
+
+/* 홈 페이지에서 카드가 가용 높이를 초과하지 않도록:
+   가로를 100%로 채우고, 넘칠 경우에만 최대 높이에 제한되도록 변경 */
+.editorstory-card-area > .flip-container {
+  grid-area: stack;
+  width: 100%;                  /* 부모의 가용 넓이(패딩 안쪽)를 끝까지 100% 채움 */
+  max-width: 390px;             /* 화면이 넓어도 카드가 지나치게 커지지 않도록 제한 */
+  min-width: 0;                 /* min-width: 280px 무시, 높이 초과시 안전하게 축소 허용 */
+  height: auto;                 /* aspect-ratio에 의해 자동 계산된 높이 사용 */
+  max-height: 100%;             /* 단, 컨테이너 높이를 넘어서지는 않게 방어. (높이가 넘치면 너비가 자동 비율 축소됨) */
+  aspect-ratio: var(--card-aspect-ratio);
+  margin: 0 auto;               /* max-width 적용 시 중앙 정렬 */
+}
+
+/* 홈 카드 내부 flipper — 비율 통제를 부모에게 일임 */
+.editorstory-card-area .flipper {
+  width: 100%;
+  height: 100%;
+}
+
+
+.empty-story-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+/* 빈 상태 카드 날짜를 표시하는 원 */
+.empty-story-day-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 1px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 2.2rem;
+  font-weight: 400;
+  color: var(--color-text-tertiary);     /* 테마 대응: 하드코딩 #c0c0c0 → 변수 */
+}
+
+/* 빈 상태 카드 제목 */
+.empty-story-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-1);
+  letter-spacing: -0.01em;
+}
+
+/* 빈 상태 카드 날짜 */
+.empty-story-date {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-tertiary);     /* 테마 대응: 하드코딩 #c0c0c0 → 변수 */
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* ── 카드 스택 전환 애니메이션 (Natural Stack Transition) ── */
+
+/* 1) 공통 항목 스타일 - 전환 중에만 활성화됨 */
+.card-stack-item {
+  grid-area: stack;
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+  aspect-ratio: var(--card-aspect-ratio);
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1), opacity 420ms ease;
+  will-change: transform, opacity;
+  pointer-events: none;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+/* 2) 다음 카드로 이동 시 (Next / Forward)
+   - 나가는 카드(Old): 왼쪽으로 슬라이드 아웃 + 살짝 축소
+   - 들어오는 카드(New): 뒤에서 앞으로 살짝 확대되며 등장
+*/
+.stack-exit-next {
+  transform: translate3d(-104%, 0, 0) scale(0.96) rotate(-2deg);
+  opacity: 0;
+  z-index: 2;
+}
+.stack-enter-next {
+  transform: translate3d(18%, 0, 0) scale(0.96);
+  opacity: 0;
+  z-index: 1;
+}
+.stack-enter-next.active {
+  transform: translate3d(0, 0, 0) scale(1);
+  opacity: 1;
+}
+
+/* 3) 이전 카드로 이동 시 (Prev / Backward)
+   - 나가는 카드(Old): 뒤로 물러나며 작아짐
+   - 들어오는 카드(New): 왼쪽 밖에서 중앙으로 덮으면서 등장
+*/
+.stack-exit-prev {
+  transform: translate3d(18%, 0, 0) scale(0.96);
+  opacity: 0;
+  z-index: 1;
+}
+.stack-enter-prev {
+  transform: translate3d(-104%, 0, 0) scale(0.96) rotate(-2deg);
+  opacity: 0;
+  z-index: 2;
+}
+.stack-enter-prev.active {
+  transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  opacity: 1;
+}
+
+
+/* ── 홈 통계 영역 (사용 시) ── */
+
+/* 통계 컨테이너 — 수치들을 가로로 배치 */
+.editorstory-stats {
   display: flex;
   justify-content: center;
   gap: var(--space-8);
@@ -155,24 +499,28 @@
   padding: var(--space-4) 0;
 }
 
-.home-stat {
+/* 개별 통계 항목 */
+.editorstory-stat {
   text-align: center;
 }
 
-.home-stat-value {
+/* 통계 숫자 값 */
+.editorstory-stat-value {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-accent);
 }
 
-.home-stat-label {
+/* 통계 라벨 (예: "총 일화", "북마크") */
+.editorstory-stat-label {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   margin-top: var(--space-1);
 }
 
-.home-recent-title {
+/* 최근 일화 섹션 제목 */
+.editorstory-recent-title {
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text-secondary);
@@ -182,39 +530,46 @@
   justify-content: space-between;
 }
 
-.home-recent-grid {
+/* 최근 일화 그리드 — 3열 배치 */
+.editorstory-recent-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
 }
 
-/* ---- Detail Page ---- */
+
+/* ============================================
+   3. 상세 페이지
+   ============================================
+   일화의 전체 내용을 보여주는 페이지이다.
+   히어로 이미지 + 본문 텍스트 + 출처 + 액션 바로 구성된다.
+*/
+
+/* 상세 페이지 전체 배경 */
 .detail-page {
   background: var(--color-bg-primary);
 }
 
+/* 상세 페이지 상단 헤더 — 스크롤 시 상단에 고정(sticky) */
 .detail-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
   background: var(--color-bg-primary);
   border-bottom: 1px solid transparent;
   transition: border-color var(--transition-fast);
 }
 
+/* 헤더 스크롤 상태 — 아래로 스크롤하면 하단 테두리 표시 */
 .detail-header.scrolled {
   border-bottom-color: var(--color-border);
 }
 
-.detail-header-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
+/* 히어로 이미지 영역 — 정사각형 비율 */
 .detail-hero {
   position: relative;
   width: 100%;
@@ -222,12 +577,14 @@
   overflow: hidden;
 }
 
+/* 히어로 이미지 — 영역 채우기 */
 .detail-hero img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+/* 히어로 하단 오버레이 — 그라디언트 + 연도/날짜 텍스트 */
 .detail-hero-overlay {
   position: absolute;
   bottom: 0;
@@ -238,6 +595,7 @@
   color: #fff;
 }
 
+/* 히어로 연도 텍스트 (예: "1879") */
 .detail-hero-year {
   font-family: var(--font-display);
   font-size: var(--text-4xl);
@@ -246,6 +604,7 @@
   letter-spacing: -0.03em;
 }
 
+/* 히어로 월/일 텍스트 (예: "03.14") — 초대형 */
 .detail-hero-monthday {
   font-family: var(--font-display);
   font-size: var(--text-6xl);
@@ -254,22 +613,32 @@
   letter-spacing: -0.04em;
 }
 
-.detail-hero-tag {
-  display: inline-block;
-  padding: var(--space-1) var(--space-3);
-  margin-top: var(--space-3);
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(8px);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  letter-spacing: 0.05em;
-}
-
+/* 상세 콘텐츠 영역 — 본문 텍스트가 들어가는 영역 */
 .detail-content {
   padding: var(--space-6) var(--space-5);
 }
 
+.detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.detail-title-row .detail-figure-name {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.detail-title-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+}
+
+/* 인물 이름 (예: "알베르트 아인슈타인") */
 .detail-figure-name {
   font-family: var(--font-heading);
   font-size: var(--text-2xl);
@@ -278,18 +647,21 @@
   line-height: 1.3;
 }
 
+/* 본문 텍스트 — 넓은 줄간격으로 가독성 확보 */
 .detail-body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.85;
   color: var(--color-text-primary);
-  word-break: keep-all;
+  word-break: keep-all;                /* 한글 단어 단위 줄바꿈 */
 }
 
+/* 본문 문단 간격 */
 .detail-body p {
   margin-bottom: var(--space-5);
 }
 
+/* 역사적 날짜 표시 — 본문 하단 오른쪽 정렬 */
 .detail-historical-date {
   text-align: right;
   font-family: var(--font-body);
@@ -300,6 +672,72 @@
   border-top: 1px solid var(--color-divider);
 }
 
+.detail-editor-note {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-secondary);
+}
+
+.detail-editor-note-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-editor-comment, #ffe16a);
+  color: #3f3200;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.detail-editor-note-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.detail-editor-avatar-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.detail-editor-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-editor-avatar-fallback {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.detail-editor-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.detail-editor-note-text {
+  margin-top: var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.75;
+  color: var(--color-text-primary);
+  word-break: keep-all;
+}
+
+/* 출처(Sources) 섹션 — 둥근 카드 형태 */
 .detail-sources {
   margin-top: var(--space-6);
   padding: var(--space-5);
@@ -307,6 +745,7 @@
   border-radius: var(--radius-lg);
 }
 
+/* 출처 섹션 제목 */
 .detail-sources-title {
   font-size: var(--text-sm);
   font-weight: 600;
@@ -314,6 +753,7 @@
   margin-bottom: var(--space-3);
 }
 
+/* 개별 출처 항목 — 아이콘 + 링크 텍스트 */
 .detail-source-item {
   display: flex;
   align-items: center;
@@ -323,6 +763,7 @@
   color: var(--color-accent);
 }
 
+/* 하단 액션 바 — 좋아요, 공유, 북마크, 신고 버튼 */
 .detail-actions-bar {
   display: flex;
   align-items: center;
@@ -332,64 +773,110 @@
   margin-top: var(--space-4);
 }
 
+/* 개별 액션 버튼 — 아이콘 + 라벨 세로 배치 */
 .detail-action-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-1);
+  padding: 8px 16px;
+  margin: -8px -16px;
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   transition: color var(--transition-fast);
 }
 
+/* 액션 버튼 SVG 아이콘 크기 */
 .detail-action-btn svg {
   width: 22px;
   height: 22px;
 }
 
+/* 활성화된 액션 버튼 — 강조색 */
 .detail-action-btn.active {
   color: var(--color-accent);
 }
 
+/* 액션 버튼 터치 시 — 살짝 확대 */
 .detail-action-btn:active {
   transform: scale(1.1);
 }
 
-/* ---- Archive / Collection Page ---- */
+
+/* ============================================
+   4. 컬렉션(아카이브) 페이지
+   ============================================
+   저장한 일화를 월별로 정리하여 그리드로 보여준다.
+   상단 탭(전체/북마크)으로 필터링할 수 있다.
+*/
+
+/* 컬렉션 페이지 전체 */
 .archive-page {
-  padding: var(--space-5);
-}
-
-.archive-tabs {
+  padding: var(--space-4) var(--space-5) var(--space-12);
   display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-5);
-  padding-bottom: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.archive-tab {
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-full);
+/* 보관함 토글 — calendar-toggle 컴포넌트 재사용. data-mode=bookmarks/received 으로 thumb 위치 결정 */
+.archive-toggle {
+  align-self: center;
+  margin-bottom: var(--space-1);
+}
+
+.archive-toggle[data-mode="received"] .calendar-toggle-thumb {
+  transform: translateX(calc(100% + 4px));
+}
+
+/* 보관함 검색바 — 표준 .search-bar 그대로 사용, margin만 조정 */
+.archive-search {
+  margin-bottom: 0;
+}
+
+/* 보관함 섹션 헤더 — 레이블 + 검색바 나란히 */
+.archive-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.archive-section-label {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  padding: 0 var(--space-2);
+  flex: auto;
+  text-align: center;
+}
+
+.archive-section-header .archive-search {
+  flex: 0 0 70%;
+  margin-bottom: 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+.archive-section-header .archive-search svg {
+  width: 15px;
+  height: 15px;
+}
+
+.archive-section-header .archive-search input {
   font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--color-text-tertiary);
-  background: transparent;
-  transition: all var(--transition-fast);
 }
 
-.archive-tab.active {
-  background: var(--color-text-primary);
-  color: var(--color-bg-primary);
-}
-
+/* 컬렉션 그리드 — 2열 배치 */
 .archive-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  width: 100%;
 }
 
+/* 월별 구분 헤더 — 그리드 전체 너비 차지 */
 .archive-month-header {
-  grid-column: 1 / -1;
+  grid-column: 1 / -1;                 /* 첫 번째~마지막 열까지 확장 */
   font-family: var(--font-display);
   font-size: var(--text-lg);
   font-weight: 700;
@@ -397,11 +884,20 @@
   color: var(--color-text-secondary);
 }
 
-/* ---- Search Page ---- */
+
+/* ============================================
+   5. 검색 페이지
+   ============================================
+   키워드로 일화를 검색하는 페이지이다.
+   검색바 + 결과 리스트로 구성된다.
+*/
+
+/* 검색 페이지 전체 */
 .search-page {
   padding: var(--space-5);
 }
 
+/* 검색 바 — 둥근 입력 필드 + 돋보기 아이콘 */
 .search-bar {
   display: flex;
   align-items: center;
@@ -414,10 +910,12 @@
   transition: border-color var(--transition-fast);
 }
 
+/* 검색 바 포커스 시 — 테두리 강조 */
 .search-bar:focus-within {
   border-color: var(--color-accent);
 }
 
+/* 검색 바 돋보기 아이콘 */
 .search-bar svg {
   width: 18px;
   height: 18px;
@@ -425,17 +923,21 @@
   flex-shrink: 0;
 }
 
+/* 검색 바 입력 필드 */
 .search-bar input {
   flex: 1;
   font-size: var(--text-base);
+
 }
 
+/* 검색 결과 리스트 — 세로로 나열 */
 .search-results {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
+/* 검색 결과 아이템 — 썸네일 + 정보를 가로 배치 */
 .search-result-item {
   display: flex;
   gap: var(--space-4);
@@ -445,10 +947,12 @@
   cursor: pointer;
 }
 
+/* 검색 결과 아이템 터치 시 — 배경 하이라이트 */
 .search-result-item:active {
   background: var(--color-bg-secondary);
 }
 
+/* 검색 결과 썸네일 — 72x72 정사각형 */
 .search-result-thumb {
   width: 72px;
   height: 72px;
@@ -457,20 +961,23 @@
   flex-shrink: 0;
 }
 
+/* 검색 결과 썸네일 이미지 */
 .search-result-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+/* 검색 결과 정보 영역 — 날짜, 제목, 요약 세로 배치 */
 .search-result-info {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 0;
+  min-width: 0;                        /* 텍스트 말줄임 허용 */
 }
 
+/* 검색 결과 날짜 */
 .search-result-date {
   font-family: var(--font-display);
   font-size: var(--text-xs);
@@ -479,70 +986,263 @@
   margin-bottom: var(--space-1);
 }
 
+/* 검색 결과 제목 — 최대 2줄 말줄임 */
 .search-result-title {
   font-size: var(--text-base);
   font-weight: 600;
   margin-bottom: var(--space-1);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+/* 검색 결과 요약 — 최대 1줄 말줄임 */
 .search-result-summary {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* ---- Settings Page ---- */
+
+/* ============================================
+   6. 설정 페이지
+   ============================================
+   테마, 폰트 크기, 계정 관리 등 앱 설정을 변경하는 페이지이다.
+   섹션별로 리스트 아이템(list-item)이 배치된다.
+*/
+
+/* 설정 페이지 전체 — 하단 여백 */
 .settings-page {
   padding-bottom: var(--space-8);
+  padding-top: 48px; /* 상단 헤더 공간 확보 */
 }
 
+.settings-user-info {
+  margin: 0 var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+}
+
+.settings-user-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+/* 프로필 아바타 랩 — 원형 배경 + 이미지 또는 SVG 아이콘을 포함하는 컨테이너 */
+.profile-avatar-wrap {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+  border-radius: 50%;
+}
+/* 프로필 아바타 이미지 또는 SVG 아이콘 */
+.profile-avatar-wrap img,
+.profile-avatar-wrap svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-wrap svg {
+  width: 28px;
+  height: 28px;
+}
+
+.settings-user-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-user-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.settings-user-email {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-user-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 var(--space-2);
+  color: var(--color-text-inverse);
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.settings-user-cta {
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+/* 설정 섹션 — 관련 설정 항목들을 묶는 그룹 */
 .settings-section {
   margin-bottom: var(--space-4);
 }
 
+
+/* 설정 섹션 제목 (예: "DISPLAY", "ACCOUNT") — 대문자 + 강조색 */
 .settings-section-title {
-  padding: var(--space-4) var(--space-5) var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-text-tertiary);
+  padding: var(--space-4) var(--space-5) 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--color-accent);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 
-/* ---- Donate Page ---- */
+/* ─────────────────────────────────────────────
+   Theme Switcher — 테마 선택 세그먼트 컨트롤
+   ───────────────────────────────────────────── */
+.theme-option-group {
+  display: flex;
+  margin: var(--space-4) var(--space-5);
+  background: var(--color-bg-card-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  gap: 4px;
+  position: relative;
+}
+
+.theme-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 2px);
+  background: transparent;
+  cursor: pointer;
+  font-size: small;
+  font-weight: 600;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  color: var(--color-text-tertiary);
+  position: relative;
+  z-index: 2;
+}
+
+.theme-option svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.theme-option:not(.lang-option) .theme-option-label {
+  display: none;
+}
+
+/* 활성화된 테마 옵션 — thumb이 뒤에서 슬라이드 */
+.theme-option.active {
+  color: #1c1c1e;
+}
+
+.theme-option:not(.active):active {
+  background: var(--color-bg-primary);
+  transform: scale(0.96);
+}
+
+/* 슬라이딩 thumb — calendar-toggle-thumb과 동일한 패턴, 3개 아이템 기준 */
+.theme-option-thumb {
+  display: block;
+  border-radius: calc(var(--radius-lg) - 2px);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
+  z-index: 1;
+  width: calc((100% - 16px) / 3);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+}
+
+.theme-option-group[data-active="1"] .theme-option-thumb {
+  transform: translateX(calc(100% + 4px));
+}
+
+.theme-option-group[data-active="2"] .theme-option-thumb {
+  transform: translateX(calc(2 * (100% + 4px)));
+}
+
+.theme-option-group--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+
+/* ============================================
+   7. 후원 페이지
+   ============================================
+   앱 개발자에게 후원할 수 있는 페이지이다.
+   아이콘 + 설명 + 금액 선택 버튼으로 구성된다.
+*/
+
+/* 후원 페이지 전체 — 중앙 정렬 */
 .donate-page {
   padding: var(--space-6) var(--space-5);
   text-align: center;
 }
 
+/* 후원 히어로 영역 — 아이콘, 제목, 설명 */
 .donate-hero {
   margin-bottom: var(--space-8);
 }
 
+/* 후원 아이콘 (예: ☕️) */
 .donate-icon {
   font-size: 3rem;
   margin-bottom: var(--space-4);
 }
 
+/* 후원 페이지 제목 */
 .donate-title {
   font-size: var(--text-2xl);
   font-weight: 700;
   margin-bottom: var(--space-2);
 }
 
+/* 후원 페이지 설명 텍스트 */
 .donate-desc {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
+/* 후원 금액 버튼 그룹 — 가로 배치 */
 .donate-amounts {
   display: flex;
   gap: var(--space-3);
@@ -550,6 +1250,7 @@
   margin: var(--space-6) 0;
 }
 
+/* 개별 금액 버튼 (예: "₩1,000") */
 .donate-amount-btn {
   flex: 1;
   max-width: 120px;
@@ -557,7 +1258,7 @@
   border-radius: var(--radius-lg);
   border: 2px solid var(--color-border);
   background: var(--color-bg-card);
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   font-weight: 700;
   text-align: center;
@@ -565,16 +1266,19 @@
   transition: all var(--transition-fast);
 }
 
+/* 선택된 금액 버튼 — 테두리 강조 + 배경 변경 */
 .donate-amount-btn.selected {
   border-color: var(--color-accent);
   background: rgba(196, 162, 101, 0.08);
   color: var(--color-accent);
 }
 
+/* 금액 버튼 터치 시 — 살짝 축소 */
 .donate-amount-btn:active {
   transform: scale(0.97);
 }
 
+/* 금액 하단 라벨 (예: "커피 한 잔") */
 .donate-amount-label {
   display: block;
   font-size: var(--text-xs);
@@ -583,11 +1287,20 @@
   margin-top: var(--space-1);
 }
 
-/* ---- Report Page ---- */
+
+/* ============================================
+   8. 신고 페이지
+   ============================================
+   부적절한 콘텐츠를 신고하는 페이지이다.
+   신고 카테고리 선택 + 상세 내용 입력으로 구성된다.
+*/
+
+/* 신고 페이지 전체 */
 .report-page {
   padding: var(--space-6) var(--space-5);
 }
 
+/* 신고 카테고리 그룹 — 라디오 버튼 목록 */
 .report-category-group {
   display: flex;
   flex-direction: column;
@@ -595,6 +1308,7 @@
   margin-bottom: var(--space-5);
 }
 
+/* 개별 신고 카테고리 — 라디오 + 텍스트를 가로 배치 */
 .report-category {
   display: flex;
   align-items: center;
@@ -606,11 +1320,13 @@
   transition: all var(--transition-fast);
 }
 
+/* 선택된 카테고리 — 테두리 강조 + 배경 변경 */
 .report-category.selected {
   border-color: var(--color-accent);
   background: rgba(196, 162, 101, 0.06);
 }
 
+/* 카테고리 라디오 버튼 (커스텀) — 원형 */
 .report-category-radio {
   width: 20px;
   height: 20px;
@@ -623,10 +1339,12 @@
   transition: all var(--transition-fast);
 }
 
+/* 선택된 라디오 — 테두리 강조색 */
 .report-category.selected .report-category-radio {
   border-color: var(--color-accent);
 }
 
+/* 선택된 라디오 내부 채움 원 */
 .report-category.selected .report-category-radio::after {
   content: '';
   width: 10px;
@@ -635,6 +1353,7 @@
   background: var(--color-accent);
 }
 
+/* 신고 상세 내용 입력 텍스트영역 */
 .report-textarea {
   width: 100%;
   min-height: 120px;
@@ -644,75 +1363,209 @@
   border-radius: var(--radius-md);
   font-size: var(--text-base);
   line-height: 1.6;
-  resize: none;
+  resize: none;                        /* 크기 조절 비활성화 */
   transition: border-color var(--transition-fast);
 }
 
+/* 텍스트영역 포커스 시 — 테두리 강조 */
 .report-textarea:focus {
   border-color: var(--color-accent);
 }
 
-/* ---- Editor Page ---- */
+
+/* ============================================
+   9. 에디터 페이지
+   ============================================
+   관리자가 일화를 추가/수정/삭제하는 페이지이다.
+   통계 + 필터 + 월간 캘린더로 구성된다.
+*/
+
+/* 에디터 페이지 전체 */
 .editor-page {
-  padding: var(--space-5);
-}
-
-.editor-stats {
+  padding: var(--space-3) var(--space-4) var(--space-6);
   display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
 }
 
+.editor-calendar-header {
+  padding-top: var(--space-2);
+}
+
+.editor-calendar-title-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* 에디터 필터 — 일반 캘린더 토글과 같은 작은 세그먼트 컨트롤 */
+.editor-stats {
+  display: inline-flex;
+  align-self: center;
+  width: min(100%, 300px);
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-secondary);
+  margin: 0;
+}
+
+/* 개별 필터 버튼 */
 .editor-stat {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-2);
   text-align: center;
-  padding: var(--space-3);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  font: inherit;
+}
+
+.editor-stat.active {
+  color: var(--color-bg-primary);
+  background: var(--color-accent);
 }
 
 .editor-stat-value {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
   font-weight: 700;
-  color: var(--color-accent);
+  color: currentColor;
+  letter-spacing: 0;
 }
 
 .editor-stat-label {
   font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
+  color: currentColor;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.editor-month-nav {
   margin-top: var(--space-1);
 }
 
-.editor-filter-bar {
+.editor-calendar-grid {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  padding: 0;
+  display: grid;
+}
+
+.editor-calendar-cell {
+  aspect-ratio: 3 / 4;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 0;
+  padding: 4px 4px 0;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
   display: flex;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-  overflow-x: auto;
+  flex-direction: column;
 }
 
-.editor-filter {
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-full);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--color-text-tertiary);
+.editor-calendar-cell:not(.editor-calendar-cell-blank):active {
+  transform: scale(.96);
+}
+
+.editor-calendar-cell-blank {
+  cursor: default;
   background: transparent;
+  border: 0;
+}
+
+.editor-calendar-cell-empty {
+  background: var(--color-bg-card);
+}
+
+.editor-calendar-stories {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  margin-top: 4px;
+}
+
+.editor-calendar-story {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.editor-calendar-thumb {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-calendar-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.editor-calendar-story-title {
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 1.15;
   white-space: nowrap;
-  transition: all var(--transition-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.editor-filter.active {
-  background: var(--color-text-primary);
-  color: var(--color-bg-primary);
+.editor-calendar-story-meta {
+  font-size: .62rem;
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.editor-calendar-story .badge {
+  width: fit-content;
+  padding: 1px 5px;
+  font-size: .58rem;
+  line-height: 1.2;
+}
+
+.editor-calendar-actions {
+  display: none;
+}
+
+/* 에디터 일화 목록 — 세로 나열 */
 .editor-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
+/* 개별 일화 아이템 — 썸네일 + 정보 + 액션 가로 배치 */
 .editor-item {
   display: flex;
   align-items: center;
@@ -723,6 +1576,7 @@
   border: 1px solid var(--color-border);
 }
 
+/* 일화 썸네일 — 56x56 정사각형 */
 .editor-item-thumb {
   width: 56px;
   height: 56px;
@@ -731,17 +1585,20 @@
   flex-shrink: 0;
 }
 
+/* 일화 썸네일 이미지 */
 .editor-item-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
+/* 일화 정보 영역 — 메타 + 제목 */
 .editor-item-info {
   flex: 1;
-  min-width: 0;
+  min-width: 0;                        /* 텍스트 말줄임 허용 */
 }
 
+/* 일화 메타 정보 (날짜, 상태 뱃지 등) */
 .editor-item-meta {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
@@ -752,6 +1609,7 @@
   flex-wrap: wrap;
 }
 
+/* 일화 제목 — 1줄 말줄임 */
 .editor-item-title {
   font-weight: 600;
   font-size: var(--text-sm);
@@ -760,68 +1618,1322 @@
   text-overflow: ellipsis;
 }
 
+/* 일화 액션 버튼 그룹 (수정, 삭제 등) */
 .editor-item-actions {
+  /* 1. Positioning */
   display: flex;
   gap: var(--space-1);
   flex-shrink: 0;
+  /* 2. Box Model */
+  /* 3. Typography */
+  /* 4. Visuals */
+  /* 5. Misc */
 }
 
-/* ---- Modal ---- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  animation: fadeIn 0.2s ease;
-}
-
-.modal-content {
-  background: var(--color-bg-primary);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  width: 100%;
-  max-width: 480px;
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: var(--space-6) var(--space-5);
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.modal-header {
+/* 액션 버튼 공통 스타일 */
+.editor-item-actions button {
+  /* 1. Positioning */
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-5);
+  justify-content: center;
+  /* 2. Box Model */
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  /* 3. Typography */
+  /* 4. Visuals */
+  background: transparent;
+  border-radius: var(--radius-sm);
+  /* 5. Misc */
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.modal-header h2 {
-  font-size: var(--text-xl);
-  font-weight: 700;
+/* 편집 아이콘 */
+.editor-edit-btn {
+  /* 3. Typography */
+  color: var(--color-text-secondary);
 }
 
+.editor-edit-btn:active {
+  /* 3. Typography */
+  color: var(--color-text-primary);
+  /* 4. Visuals */
+  background: var(--color-bg-secondary);
+}
+
+/* 삭제 아이콘 (에러/경고 컬러 적용) */
+.editor-delete-btn {
+  /* 3. Typography */
+  color: var(--color-text-tertiary);
+}
+
+.editor-delete-btn:active {
+  /* 3. Typography */
+  color: var(--color-error);
+  /* 4. Visuals */
+  background: rgba(220, 53, 69, 0.1); /* 에러 컬러의 연한 배경 */
+}
+
+
+/* ============================================
+   10. 새 일화 작성 전체 화면 탭 (관리자 전용)
+   ============================================
+   에디터에서 '+ 새 일화' 버튼 클릭 시 나타나는 전체 화면.
+*/
+
+/* 전체 화면 컨테이너 */
+.editor-new-page {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+
+  background: var(--color-bg-primary);
+
+  animation: editorFadeIn 0.25s ease-out;
+}
+
+/* 전체 화면 등장 애니메이션 — 페이드 인 */
+@keyframes editorFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 상단 헤더 (뒤로가기 + 제목) */
+.editor-new-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* 에디터 폼 영역 */
 .story-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-/* ---- Loading Spinner ---- */
+.editor-form-section {
+  padding-bottom: 6rem;
+}
+
+/* 에디터 폼: 언어 탭 (한/영/일) */
+.editor-lang-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-1);
+  flex-wrap: wrap;
+}
+
+.editor-lang-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.editor-lang-tab:active {
+  transform: scale(.97);
+}
+
+.editor-lang-tab.active {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent);
+}
+
+.editor-lang-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
+  padding: 0 var(--space-1);
+}
+
+/* ============================================
+   10-1. 미리보기 카드 영역
+   ============================================
+   홈 카드(.flip-container > .flipper)와 동일한 HTML을
+   transform: scale()로 축소하여 미리보기로 사용합니다.
+*/
+
+.editor-preview-section {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-5);
+
+  background: var(--color-bg-secondary);
+}
+
+/* 홈 카드와 동일한 .flip-container를 감싸는 스케일 래퍼 */
+.preview-scale-wrapper {
+  width: 55%;
+  min-width: 180px;
+  max-width: 240px;
+}
+
+/* 미리보기 내부에서는 홈 카드의 min-width 제한을 해제 (래퍼 폭에 맞춤) */
+.preview-scale-wrapper .flip-container {
+  width: 360px !important;
+  max-width: 360px !important;
+  zoom: 0.7;
+}
+
+/* 미리보기 카드: 글자와 패딩을 래퍼 크기에 맞게 약 55~60% 크기로 축소 */
+
+
+/* 미리보기 내부의 플립 컨테이너는 홈과 완전히 동일한 스타일을 상속받음 */
+/* .flipper의 :active 스케일을 미리보기에서는 무시 */
+.preview-scale-wrapper .flipper:active,
+.preview-scale-wrapper .flipper.flipped:active {
+  transform: none;
+}
+.preview-scale-wrapper .flipper.flipped:active {
+  transform: rotateY(180deg);
+}
+
+/* ============================================
+   10-2. 스켈레톤 UI (Skeleton UI)
+   ============================================
+*/
+
+.skeleton-card {
+  position: relative;
+
+  width: 100%;
+  aspect-ratio: var(--card-aspect-ratio);
+
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+
+  animation: pulse 1.5s infinite ease-in-out;
+  overflow: hidden;
+}
+
+@keyframes pulse {
+  0%   { opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+
+/* ============================================
+   11. 로딩 스피너
+   ============================================
+   데이터 로딩 중 표시되는 회전 원형 인디케이터이다.
+*/
+
+/* 로딩 스피너 — 회전하는 원형 테두리 */
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-accent);
+  border: 3px solid var(--color-border);         /* 회색 원 */
+  border-top-color: var(--color-accent);          /* 상단만 강조색 */
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.8s linear infinite;           /* 0.8초 주기 무한 회전 */
 }
 
+/* 스피너 회전 애니메이션 */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ============================================
+   12. 나의 일화 페이지 (My Story) 커스텀 요소
+   ============================================
+   mystory.js에서 렌더링되는 빈 카드, 삭제 버튼,
+   그리고 모서리 라운딩이 다른 일화 카드의 스타일이다.
+*/
+
+/* 빈 일화 작성하기 버튼 */
+.mystory-write-btn {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  margin-top: 30px;
+  padding: 10px 24px;
+  /* 3. Typography */
+  /* 4. Visuals */
+  border-radius: var(--radius-lg);
+  /* 5. Misc */
+}
+
+/* 나의 일화 카드 앞면 및 뒷면 디자인 재정의 */
+.mystory-flipper .front,
+.mystory-flipper .back {
+  background: var(--color-bg-card);
+  overflow: hidden;
+}
+
+/* 나의 일화 카드 날짜 년도 부분 작은 텍스트 */
+.mystory-card-year {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  /* 3. Typography */
+  font-size: var(--text-2xl);
+  /* 4. Visuals */
+  /* 5. Misc */
+}
+
+/* 나의 일화 수정 화면 삭제 버튼 */
+.mystory-form-delete-btn {
+  color: var(--color-error);
+  border-color: rgba(220, 53, 69, 0.32);
+}
+
+.mystory-form-delete-btn:active {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+/* 편집 모드의 폼 하단 인라인 액션 영역 — 우측 정렬, 내부 콘텐츠 너비 유지 */
+.mystory-form-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}
+
+/* 나의 일화 작성/편집 — 폼 영역
+   하단 floating 액션 버튼에 가리지 않도록 충분한 bottom padding 확보 */
+.mystory-form-section {
+  padding-bottom: calc(220px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 나의 일화 작성/편집 — 하단 floating 액션 영역 (저장/삭제 버튼)
+   .mobile-wrapper 너비에 맞춰 화면 가장 하단에 고정 */
+.mystory-form-actions {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  padding: var(--space-4) var(--space-5);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  z-index: 50;
+}
+
+.mystory-form-actions #ms-save-btn {
+  font-size: var(--text-md);
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+
+/* ============================================
+   13. 프로필 편집 모달
+   ============================================
+   로그인 사용자가 닉네임과 프로필 사진을
+   수정할 수 있는 풀스크린 모달이다.
+*/
+
+/* 프로필 편집 버튼 (유저 정보 섹션 우측 소형 아이콘) */
+.profile-edit-btn {
+  /* 1. Positioning */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* 2. Box Model */
+  width: 40px;
+  height: 40px;
+  /* 3. Typography */
+  color: var(--color-text-tertiary);
+  /* 4. Visuals */
+  border-radius: 50%;
+  /* 5. Misc */
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.profile-edit-btn:active {
+  background: var(--color-accent);
+  color: var(--color-bg-primary);
+}
+
+/* 프로필 편집 오버레이 (모바일 래퍼 너비에 맞춤) */
+.profile-edit-overlay {
+  /* 1. Positioning */
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 9999;
+  /* 2. Box Model */
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  height: 100dvh;
+  /* 3. Typography */
+  /* 4. Visuals */
+  background: var(--color-bg-overlay);
+  /* 5. Misc */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  touch-action: none;
+}
+
+.profile-edit-overlay.visible {
+  opacity: 1;
+}
+
+/* 프로필 편집 모달 카드 (하단에서 슬라이드 업) */
+.profile-edit-modal {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* 3. Typography */
+  /* 4. Visuals */
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  /* 5. Misc */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-edit-overlay.visible .profile-edit-modal {
+  transform: translateY(0);
+}
+
+/* 모달 헤더 */
+.profile-edit-header {
+  /* 1. Positioning */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 2. Box Model */
+  padding: var(--space-4) var(--space-5);
+  /* 3. Typography */
+  /* 4. Visuals */
+  border-bottom: 1px solid var(--color-divider);
+  /* 5. Misc */
+}
+
+/* 헤더 타이틀 */
+.profile-edit-title {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  /* 3. Typography */
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  /* 4. Visuals */
+  /* 5. Misc */
+}
+
+/* 헤더 닫기 버튼 */
+.profile-edit-close {
+  /* 1. Positioning */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 2. Box Model */
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  /* 3. Typography */
+  color: var(--color-text-secondary);
+  /* 4. Visuals */
+  background: none;
+  border: none;
+  border-radius: 50%;
+  /* 5. Misc */
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.profile-edit-close:active {
+  background: var(--color-bg-secondary);
+}
+
+/* 헤더 저장 버튼 */
+.profile-edit-save {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  padding: var(--space-2) var(--space-4);
+  /* 3. Typography */
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-bg-primary);
+  /* 4. Visuals */
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-full);
+  /* 5. Misc */
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.profile-edit-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 아바타 영역 */
+.profile-edit-avatar-section {
+  /* 1. Positioning */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 2. Box Model */
+  padding: var(--space-6) 0;
+  /* 3. Typography */
+  /* 4. Visuals */
+  /* 5. Misc */
+}
+
+/* 아바타 원형 프리뷰 */
+.profile-edit-avatar {
+  /* 1. Positioning */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 2. Box Model */
+  width: 100px;
+  height: 100px;
+  /* 3. Typography */
+  color: var(--color-text-tertiary);
+  /* 4. Visuals */
+  background: var(--color-bg-secondary);
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  /* 5. Misc */
+  overflow: hidden;
+}
+
+.profile-edit-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-edit-avatar svg {
+  width: 40px;
+  height: 40px;
+}
+
+/* 사진 변경 텍스트 버튼 */
+.profile-edit-photo-btn {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  margin-top: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  /* 3. Typography */
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-accent);
+  /* 4. Visuals */
+  background: none;
+  border: none;
+  /* 5. Misc */
+  cursor: pointer;
+}
+
+/* 닉네임 입력 필드 영역 */
+.profile-edit-field {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  padding: 0 var(--space-5) var(--space-6);
+  /* 3. Typography */
+  /* 4. Visuals */
+  /* 5. Misc */
+}
+
+/* 입력 필드 라벨 */
+.profile-edit-label {
+  /* 1. Positioning */
+  display: block;
+  /* 2. Box Model */
+  margin-bottom: var(--space-2);
+  /* 3. Typography */
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  /* 4. Visuals */
+  /* 5. Misc */
+}
+
+/* 닉네임 텍스트 인풋 */
+.profile-edit-input {
+  /* 1. Positioning */
+  display: block;
+  /* 2. Box Model */
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  /* 3. Typography */
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  /* 4. Visuals */
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  /* 5. Misc */
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.profile-edit-input:focus {
+  border-color: var(--color-accent);
+}
+
+/* 입력 힌트 */
+.profile-edit-hint {
+  /* 1. Positioning */
+  /* 2. Box Model */
+  margin-top: var(--space-1);
+  /* 3. Typography */
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  /* 4. Visuals */
+  /* 5. Misc */
+}
+
+
+/* ============================================================
+   ===== 5월 1일 AAB 복원 — 추가 페이지 스타일 =====
+   ============================================================
+   Antigravity 가 손상시키기 전 사용자가 4월 26일 이후 추가했던
+   캘린더, 설정, 디테일, 에디터, 마이스토리 빈 상태, 크롭 취소
+   버튼 스타일을 release AAB index-p6n7li6U.css 에서 복원.
+*/
+
+
+/* ===== 캘린더 페이지 (5월 1일 AAB) ===== */
+.calendar-page {
+  padding:var(--space-3) var(--space-3) var(--space-6);
+  gap:var(--space-3);
+  flex-direction:column;
+  display:flex}
+
+.calendar-header {
+  align-items:center;
+  gap:var(--space-3);
+  padding-top:var(--space-2);
+  flex-direction:column;
+  display:flex}
+
+.calendar-title {
+  font-family:var(--font-display,var(--font-sans));
+  font-size:var(--text-2xl);
+  letter-spacing:-.02em;
+  text-align:center;
+  width:100%;
+  margin:0;
+  font-weight:800}
+
+.calendar-toggle {
+  background:var(--color-bg-card-dark);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  align-self:center;
+  width:min(100%,240px);
+  padding:4px;
+  gap:4px;
+  display:inline-flex;
+  position:relative;
+}
+
+.calendar-toggle-btn {
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:var(--space-3) 0;
+  border-radius:calc(var(--radius-lg) - 2px);
+  font-family:var(--font-sans);
+  font-size:var(--text-sm);
+  color:var(--color-text-tertiary);
+  text-align:center;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:color var(--transition-fast), transform var(--transition-fast);
+  -webkit-tap-highlight-color:transparent;
+  background:0 0;
+  border:0;
+  flex:1 1 0;
+  font-weight:600;
+  position:relative;
+}
+
+.calendar-toggle-btn.active {
+  color:#1c1c1e;
+}
+
+.calendar-toggle-btn:not(.active):active {
+  background:var(--color-bg-primary);
+  transform:scale(0.96);
+}
+
+.calendar-toggle-thumb {
+  display:block;
+  border-radius:calc(var(--radius-lg) - 2px);
+  background:#ffffff;
+  box-shadow:0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
+  z-index:1;
+  width:calc((100% - 12px) / 2);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+  position:absolute;
+  top:4px;
+  bottom:4px;
+  left:4px}
+
+.calendar-toggle[data-mode=mine] .calendar-toggle-thumb {
+  transform:translateX(calc(100% + 4px))}
+
+.calendar-month-nav {
+  justify-content:center;
+  align-items:center;
+  gap:var(--space-4);
+  padding:var(--space-1) 0;
+  display:flex}
+
+.calendar-month-arrow {
+  width:36px;
+  height:36px;
+  color:var(--color-text-primary);
+  border-radius:var(--radius-full);
+  cursor:pointer;
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+  background:0 0;
+  border:0;
+  justify-content:center;
+  align-items:center;
+  display:flex}
+
+.calendar-month-arrow:active {
+  background:var(--color-bg-secondary)}
+
+.calendar-month-arrow:disabled,.calendar-month-arrow.disabled {
+  opacity:.3;
+  cursor:default;
+  pointer-events:none}
+
+.calendar-month-label {
+  text-align:center;
+  min-width:9rem;
+  font-family:var(--font-sans);
+  font-size:var(--text-lg);
+  letter-spacing:-.01em;
+  font-weight:700}
+
+.calendar-weekdays {
+  text-align:center;
+  font-size:var(--text-xs);
+  color:var(--color-text-tertiary);
+  letter-spacing:.04em;
+  grid-template-columns:repeat(7,1fr);
+  padding:0 2px;
+  font-weight:600;
+  display:grid}
+
+.calendar-weekday {
+  padding:4px 0}
+
+.calendar-weekday.sun {
+  color:var(--color-sunday)}
+
+.calendar-weekday.sat {
+  color:var(--color-saturday)}
+
+.calendar-grid {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  padding: var(--space-1);
+  display: grid;
+}
+
+.calendar-grid-loading {
+  padding:var(--space-8);
+  grid-column:1/-1;
+  justify-content:center;
+  display:flex}
+
+/* 캘린더 셀 — 배경 없이 평면, 카드가 있는 셀만 미니 이미지를 띄움 */
+.cal-cell {
+  aspect-ratio: 1 / 1.5;
+  background-color: var(--color-bg-card);
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--color-text-primary);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cal-cell:not(:disabled):active {
+  transform: scale(.96);
+}
+
+.cal-cell-blank {
+  cursor: default;
+  background: var(--color-bg-card-dark);
+  border: 0;
+  transform: scale(1);
+}
+
+.cal-cell-empty {
+  cursor: default;
+}
+
+.cal-cell-mine-write {
+  cursor: pointer;
+}
+
+.cal-cell-has-story {
+  border-color: var(--color-border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.cal-cell-future .cal-cell-day {
+  opacity: .35;
+}
+
+/* 오늘 — 셀 전체에 강조 테두리 */
+.cal-cell-today {
+  border-color: var(--color-text-secondary);
+}
+
+/* 오늘 + 미작성 + 쓰기 가능 — + 아이콘 프롬프트 */
+.cal-cell-write-prompt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+}
+
+.cal-cell-write-prompt svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-primary);
+}
+
+.cal-cell-day {
+  z-index: 2;
+  font-family: var(--font-body, var(--font-sans));
+  color: var(--color-text-primary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  min-height: var(--text-xs);
+  padding: 1px 2px 0;
+}
+
+.cal-cell.sun .cal-cell-day {
+  color: var(--color-text-primary);
+}
+
+.cal-cell.sat .cal-cell-day {
+  color: var(--color-text-primary);
+}
+
+/* 미니 이미지 — 원본 비율을 유지한 채 셀 안에 맞춤 */
+.cal-cell-peek {
+  flex: 0 0 auto;
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  background: var(--color-bg-card-dark);
+  overflow: hidden;
+  pointer-events: none;
+  position: relative;
+  display: block;
+}
+
+.cal-cell-peek-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 셀에서는 제목 텍스트를 숨김 (이미지만 표시). 접근성·검색 위해 mark up은 유지 */
+.cal-cell-peek-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 카드 상세 팝업 — 전체 화면 오버레이 + 중앙 카드 레이아웃 */
+.calendar-card-popup {
+  z-index:var(--z-modal,200);
+  padding:var(--space-5);
+  padding-top:calc(var(--space-5) + var(--safe-area-top));
+  padding-bottom:calc(var(--space-5) + var(--safe-area-bottom));
+  background:var(--color-bg-overlay);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  opacity:0;
+  pointer-events:none;
+  justify-content:center;
+  align-items:center;
+  transition:opacity .22s;
+  display:flex;
+  position:fixed;
+  inset:0;
+  touch-action:none}
+
+.calendar-card-popup.open {
+  opacity:1;
+  pointer-events:auto}
+
+.calendar-card-popup-inner {
+  align-items:center;
+  gap:var(--space-3);
+  flex-direction:column;
+  width:100%;
+  max-width:360px;
+  transition:transform .28s cubic-bezier(.16,1,.3,1);
+  display:flex;
+  position:relative;
+  transform:translateY(12px)scale(.97)}
+
+.calendar-card-popup.open .calendar-card-popup-inner {
+  transform:translateY(0)scale(1)}
+
+.calendar-card-popup-close {
+  color:#fff;
+  cursor:pointer;
+  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(6px);
+  width:36px;
+  height:36px;
+  transition:background var(--transition-fast);
+  background:#ffffff1f;
+  border:0;
+  border-radius:50%;
+  justify-content:center;
+  align-self:flex-end;
+  align-items:center;
+  display:flex
+}
+.calendar-card-popup-close:active {
+  background:#ffffff38
+}
+
+.calendar-card-popup-stage {
+  width:100%}
+
+.calendar-card-popup-stage .flip-container {
+  width:100%;
+  min-width:0;
+  aspect-ratio:var(--card-aspect-ratio)}
+
+.calendar-card-popup-stage .flipper {
+  width:100%;
+  height:100%;
+  aspect-ratio:unset}
+
+.calendar-card-popup .back-footer {
+  justify-content:flex-end}
+
+.calendar-card-popup .back-date-actions {
+  align-items:flex-end;
+  max-width:58%;
+  margin-left:auto}
+
+.calendar-card-popup .card-detail-shortcut-btn {
+  max-width:100%}
+
+.calendar-card-popup-hint {
+  font-size:var(--text-xs);
+  color:#ffffffbf;
+  letter-spacing:.02em}
+
+.cal-cell-locked-overlay {
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  z-index:3;
+  pointer-events:none}
+
+.cal-cell-peek--locked {
+  filter:grayscale(1)}
+
+/* 카드 뒷면 삭제 버튼 — 보관함 모달에서만 노출 */
+.card-delete-btn {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-secondary);
+  color: var(--color-error);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  z-index: 3;
+  transition: transform var(--transition-fast);
+}
+
+.card-delete-btn:active {
+  transform: scale(.94);
+}
+
+
+/* ── 카드 잠금 오버레이 (팝업 앞면) ── */
+.card-locked-overlay {
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.35);
+  z-index:5;
+  border-radius:inherit;
+  pointer-events:none}
+
+/* ── 수집 버튼 바 ── */
+.card-collect-bar {
+  display:flex;
+  justify-content:center;
+  padding:var(--space-2) var(--space-3) var(--space-1)}
+
+.collect-btn {
+  background:var(--color-accent);
+  color:var(--color-text-inverse);
+  border:none;
+  border-radius:var(--radius-full);
+  padding:var(--space-2) var(--space-5);
+  font-size:var(--text-sm);
+  font-weight:700;
+  cursor:pointer;
+  transition:transform 160ms ease, background 160ms ease;
+  letter-spacing:.03em}
+
+.collect-btn:active:not(:disabled) {
+  transform:scale(.95)}
+
+.collect-btn--done {
+  background:#34c759;
+  cursor:default;
+  color:#fff}
+
+.collect-btn:disabled {
+  opacity:.85}
+
+/* 수집 성공 안내는 components/toast.js 사용 (별도 애니메이션 없음) */
+
+
+/* ===== 설정 페이지 헤더 & 행 (5월 1일 AAB) ===== */
+
+.settings-main-header {
+  text-align:center;
+  padding:var(--space-4) var(--space-5) var(--space-2);
+  justify-content:center}
+
+.settings-main-header .page-header-title {
+  font-size:var(--text-2xl);
+  margin:0;
+  font-weight:800}
+
+.settings-page .page-header {
+  height:48px;
+  padding-top:0;
+  padding-bottom:0;
+  padding-left:var(--space-4);
+  padding-right:var(--space-4)}
+
+.settings-page .page-header-title {
+  margin:0;
+  line-height:1}
+
+.settings-row-danger {
+  color:var(--color-error)}
+
+.settings-row-muted {
+  color:var(--color-text-tertiary)}
+
+.settings-privacy-link {
+  margin-top: var(--space-8);
+  text-align: center;
+  margin-bottom: -12px;
+}
+
+.settings-privacy-link a {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  opacity: .8;
+  text-decoration: underline;
+}
+/* 버전 정보 텍스트 */
+.settings-version {
+  padding:var(--space-6);
+  color:var(--color-text-tertiary);
+  font-size:var(--text-xs);
+  text-align:center}
+
+.settings-subsection-title {
+  font-size:var(--text-xs);
+  color:var(--color-text-tertiary);
+  margin:var(--space-3) var(--space-5) var(--space-2);
+  letter-spacing:.04em;
+  font-weight:600}
+
+
+/* ===== 디테일 페이지 추가 (5월 1일 AAB) ===== */
+
+.detail-attribution {
+  margin-top:var(--space-6);
+  gap:var(--space-3);
+  flex-direction:column;
+  display:flex}
+
+.detail-license,.detail-sources {
+  padding:var(--space-5);
+  background:var(--color-bg-secondary);
+  border-radius:var(--radius-lg)}
+
+.detail-attribution .detail-sources {
+  margin-top:0}
+
+.detail-license-text,.detail-source-text {
+  font-size:var(--text-sm);
+  color:var(--color-text-secondary);
+  word-break:break-word;
+  line-height:1.6}
+
+.detail-source-text {
+  align-items:center;
+  gap:var(--space-3);
+  padding:var(--space-2) 0;
+  display:flex}
+
+
+/* ===== 에디터 헤더 (5월 1일 AAB) ===== */
+
+.editor-list-header {
+  padding:0}
+
+.editor-header-action {
+  border-radius:var(--radius-full);
+  background:var(--color-accent);
+  width:36px;
+  height:36px;
+  color:var(--color-text-inverse);
+  cursor:pointer;
+  transition:transform var(--transition-fast), background var(--transition-fast);
+  border:0;
+  grid-column:3;
+  justify-content:center;
+  justify-self:end;
+  align-items:center;
+  padding:0;
+  display:flex}
+
+.editor-header-action:active {
+  background:var(--color-accent-dark);
+  transform:scale(.96)}
+
+.editor-header-action svg {
+  width:20px;
+  height:20px}
+
+
+/* ===== 마이스토리 빈 상태 (5월 1일 AAB) ===== */
+
+.empty-story-content {
+  flex-direction:column;
+  align-items:center;
+  margin:auto 0;
+  display:flex}
+
+.mystory-write-icon {
+  stroke:currentColor;
+  stroke-width:2.2px;
+  flex-shrink:0;
+  width:22px;
+  height:22px;
+  display:block;
+  overflow:visible}
+
+
+/* ===== 이미지 크롭 모달 — 취소 버튼 (5월 1일 AAB) ===== */
+
+.btn-crop-cancel {
+  left:var(--space-2);
+  width:40px;
+  height:40px;
+  padding:var(--space-2);
+  color:var(--color-text-primary);
+  cursor:pointer;
+  background:0 0;
+  border:none;
+  justify-content:center;
+  align-items:center;
+  display:flex;
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%)}
+
+.btn-crop-cancel svg {
+  width:24px;
+  height:24px}
+
+
+/* ===== DOKHU의 소개 페이지 ===== */
+
+.about-page {
+  padding-bottom: var(--space-10);
+  padding-top: 48px;
+}
+
+.about-page .page-header {
+  padding: var(--space-3) var(--space-5);
+}
+
+.about-article {
+  padding: var(--space-4) var(--space-4) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  max-width: 32rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.about-article-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+.about-article-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.25;
+  text-align: center;
+  width: 100%;
+}
+
+.about-article-body p {
+  margin: 0;
+}
+
+.about-article-signature {
+  margin-top: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  width: 100%;
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════
+   보기 방식 토글 버튼
+   ══════════════════════════════════════════ */
+.view-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 38px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  color: var(--color-text-primary);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.view-toggle-btn:active {
+  transform: translateY(-50%) scale(0.88);
+  background: var(--color-bg-secondary);
+  box-shadow: none;
+}
+[data-theme="dark"] .view-toggle-btn {
+  background: var(--color-bg-card-dark, var(--color-bg-card));
+}
+
+/* ══════════════════════════════════════════
+   페이지 내 캘린더 뷰 컨테이너
+   ══════════════════════════════════════════ */
+.page-calendar-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-1) var(--space-3) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ══════════════════════════════════════════
+   뷰 전환 애니메이션
+   ══════════════════════════════════════════ */
+@keyframes viewEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes viewExit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+.view-enter { animation: viewEnter 220ms ease forwards; }
+.view-exit  { animation: viewExit  180ms ease forwards; }

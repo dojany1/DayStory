@@ -1,0 +1,23 @@
+{
+  "phase": "002-test-flow",
+  "title": "harness 새 흐름 검증",
+  "agent": "claude",
+  "status": "completed",
+  "current_step": 1,
+  "steps": [
+    {
+      "n": 1,
+      "file": "step1.md",
+      "status": "completed",
+      "summary": "npm test 74/74 통과, npm run build 성공 — 새 harness 흐름 정상 작동 확인",
+      "error_message": null,
+      "blocked_reason": null
+    }
+  ],
+  "created_at": "2026-05-09T00:00:00+09:00",
+  "updated_at": "2026-05-09T13:02:03.108Z",
+  "tags": [
+    "meta",
+    "test"
+  ]
+}

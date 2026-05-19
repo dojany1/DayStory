@@ -28,6 +28,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  OAuthProvider,
   sendPasswordResetEmail,
   signInWithCredential,
 } from 'firebase/auth';
@@ -36,14 +37,72 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
-/* Google 로그인 제공자 인스턴스 (앱 전체에서 하나만 있으면 됨) */
+/* 소셜 로그인 제공자 */
 const googleProvider = new GoogleAuthProvider();
+const appleProvider = new OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
 
+const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
 
 /* ─────────────────────────────────────────────
-   섹션 1: Google 로그인 아이콘 (SVG)
+   섹션 1: 소셜 로그인 아이콘 (SVG)
    ───────────────────────────────────────────── */
 const googleIcon = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>`;
+
+const appleIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.49-.12-1.1.42-2.24 1.054-2.99.724-.85 1.997-1.51 3.11-1.58zM20.5 17.36c-.39.9-.57 1.31-1.07 2.11-.7 1.12-1.69 2.51-2.91 2.52-1.09.01-1.37-.71-2.85-.7-1.48.01-1.79.71-2.88.7-1.22-.01-2.16-1.27-2.86-2.39-1.95-3.12-2.16-6.79-.95-8.74.86-1.39 2.21-2.21 3.48-2.21 1.29 0 2.1.71 3.17.71 1.04 0 1.67-.71 3.16-.71 1.13 0 2.33.62 3.18 1.69-2.79 1.53-2.34 5.51.53 7.02z"/></svg>`;
+
+/* ─────────────────────────────────────────────
+   섹션 1.5: 공통 헬퍼 — 프로필 upsert + 로그인 후 처리
+   ───────────────────────────────────────────── */
+async function upsertProfileAndNavigate(firebaseUser) {
+  setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
+
+  if (db) {
+    try {
+      const profileRef = doc(db, 'profiles', firebaseUser.uid);
+      const profileSnap = await getDoc(profileRef);
+      let profileData = profileSnap.exists()
+        ? profileSnap.data()
+        : { created_at: new Date().toISOString() };
+
+      const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
+      if (isAdmin && profileData.role !== 'editor') {
+        profileData.role = 'editor';
+        await setDoc(profileRef, profileData, { merge: true });
+      } else if (!profileSnap.exists()) {
+        await setDoc(profileRef, profileData);
+      }
+      setState('profile', profileData);
+    } catch (err) {
+      console.warn('소셜 로그인 - 프로필 처리 실패:', err);
+    }
+  }
+
+  document.getElementById('bottom-nav').style.display = 'flex';
+  navigate('/editorstory');
+}
+
+async function handleAppleSignIn() {
+  if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
+  try {
+    let firebaseUser = null;
+    if (Capacitor.isNativePlatform()) {
+      const result = await FirebaseAuthentication.signInWithApple({ skipNativeAuth: true });
+      const { idToken, nonce } = result.credential || {};
+      if (!idToken) throw new Error('Apple 인증 토큰을 받지 못했습니다.');
+      const credential = new OAuthProvider('apple.com').credential({ idToken, rawNonce: nonce });
+      firebaseUser = (await signInWithCredential(auth, credential)).user;
+    } else {
+      firebaseUser = (await signInWithPopup(auth, appleProvider)).user;
+    }
+    if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
+    await upsertProfileAndNavigate(firebaseUser);
+    showToast('Apple 로그인 성공!', 'success');
+  } catch (err) {
+    showToast(err.message || 'Apple 로그인 실패', 'error');
+  }
+}
 
 
 /* ─────────────────────────────────────────────
@@ -88,8 +147,14 @@ export function renderLogin() {
     <!-- 구분선 -->
     <div class="auth-divider">또는</div>
 
+    <!-- Apple 소셜 로그인 (App Store 4.8 — Google과 동등 이상 위치) -->
+    <button class="auth-social-btn auth-social-btn--apple" id="apple-login-btn">
+      ${appleIcon}
+      <span>Apple로 계속하기</span>
+    </button>
+
     <!-- Google 소셜 로그인 -->
-    <button class="auth-social-btn" id="google-login-btn">
+    <button class="auth-social-btn" id="google-login-btn" style="margin-top: var(--space-3);">
       ${googleIcon}
       <span>Google로 계속하기</span>
     </button>
@@ -167,58 +232,26 @@ export function renderLogin() {
       }
     });
 
+    /* Apple 로그인 버튼 */
+    document.getElementById('apple-login-btn')?.addEventListener('click', handleAppleSignIn);
+
     /* Google 로그인 버튼 */
     document.getElementById('google-login-btn')?.addEventListener('click', async () => {
-      if (!auth) {
-        return showToast('Firebase가 설정되지 않았습니다', 'error');
-      }
-
+      if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
       try {
         let firebaseUser = null;
-
         if (Capacitor.isNativePlatform()) {
-          /* 네이티브: skipNativeAuth로 Google credential만 받아 Web SDK로 로그인 */
           const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
           const idToken = result.credential?.idToken;
           if (!idToken) throw new Error('Google 인증 토큰을 받지 못했습니다.');
           const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
-          const userCredential = await signInWithCredential(auth, credential);
-          firebaseUser = userCredential.user;
+          firebaseUser = (await signInWithCredential(auth, credential)).user;
         } else {
-          /* 웹 환경: 기존 가상 팝업 방식 사용 */
-          const userCredential = await signInWithPopup(auth, googleProvider);
-          firebaseUser = userCredential.user;
+          firebaseUser = (await signInWithPopup(auth, googleProvider)).user;
         }
-
         if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
-
-        setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
-
-        if (db) {
-          try {
-            const profileRef = doc(db, 'profiles', firebaseUser.uid);
-            const profileSnap = await getDoc(profileRef);
-            let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
-            
-            const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
-            const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
-            
-            if (isAdmin && profileData.role !== 'editor') {
-              profileData.role = 'editor';
-              await setDoc(profileRef, profileData, { merge: true });
-            } else if (!profileSnap.exists()) {
-              await setDoc(profileRef, profileData);
-            }
-            
-            setState('profile', profileData);
-          } catch (err) {
-            console.warn('구글 로그인 - 프로필 로드 실패', err);
-          }
-        }
-
+        await upsertProfileAndNavigate(firebaseUser);
         showToast('구글 로그인 성공!', 'success');
-        document.getElementById('bottom-nav').style.display = 'flex';
-        navigate('/editorstory');
       } catch (err) {
         showToast(err.message || 'Google 로그인 실패', 'error');
       }
@@ -297,6 +330,21 @@ export function renderSignup() {
       </button>
     </form>
 
+    <!-- 구분선 -->
+    <div class="auth-divider">또는 소셜 계정으로 가입</div>
+
+    <!-- Apple 소셜 (App Store 4.8 — 더 상단 위치) -->
+    <button class="auth-social-btn auth-social-btn--apple" id="apple-signup-btn">
+      ${appleIcon}
+      <span>Apple로 계속하기</span>
+    </button>
+
+    <!-- Google 소셜 -->
+    <button class="auth-social-btn" id="google-signup-btn" style="margin-top: var(--space-3);">
+      ${googleIcon}
+      <span>Google로 계속하기</span>
+    </button>
+
     <!-- 하단 링크 -->
     <div class="auth-footer">
       <p>이미 계정이 있으신가요? <button id="goto-login">로그인</button></p>
@@ -373,6 +421,29 @@ export function renderSignup() {
 
     /* 로그인 페이지로 이동 */
     document.getElementById('goto-login')?.addEventListener('click', () => navigate('/login'));
+
+    /* 회원가입 페이지의 Apple / Google 소셜 버튼 */
+    document.getElementById('apple-signup-btn')?.addEventListener('click', handleAppleSignIn);
+    document.getElementById('google-signup-btn')?.addEventListener('click', async () => {
+      if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
+      try {
+        let firebaseUser = null;
+        if (Capacitor.isNativePlatform()) {
+          const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+          const idToken = result.credential?.idToken;
+          if (!idToken) throw new Error('Google 인증 토큰을 받지 못했습니다.');
+          const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
+          firebaseUser = (await signInWithCredential(auth, credential)).user;
+        } else {
+          firebaseUser = (await signInWithPopup(auth, googleProvider)).user;
+        }
+        if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
+        await upsertProfileAndNavigate(firebaseUser);
+        showToast('구글 로그인 성공!', 'success');
+      } catch (err) {
+        showToast(err.message || 'Google 로그인 실패', 'error');
+      }
+    });
   }, 0);
 
   return page;

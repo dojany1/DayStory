@@ -5,9 +5,13 @@ import { showConfirm } from './confirmDialog.js';
 import { bindNotificationSettingsSection, renderNotificationListItem } from './notificationSettingsSheet.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
-import { auth, db } from '../firebase.js';
+import { auth } from '../firebase.js';
 import { signOut, deleteUser } from 'firebase/auth';
-import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import {
+  purgeStorageUserData,
+  purgeFirestoreUserData,
+  reauthenticateUser,
+} from '../services/userCleanup.js';
 import { t, getCurrentLang, setLang } from '../i18n/index.js';
 import { forceRoute } from '../router.js';
 import pkg from '../../../package.json';
@@ -72,6 +76,13 @@ export function renderSettingsSections() {
         titleClass: 'settings-row-danger',
         showChevron: false,
       })}
+      ${renderSettingsRow({
+        id: 'setting-withdraw',
+        title: t('settings.row_withdraw'),
+        icon: userXIcon(),
+        titleClass: 'settings-row-danger',
+        showChevron: false,
+      })}
     </div>
     ` : ''}
 
@@ -95,6 +106,7 @@ export function bindSettingsSections(page) {
   bindRow(page, '#setting-about', () => navigate('/about'));
   bindRow(page, '#setting-contact', () => showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info'));
   bindRow(page, '#setting-logout', handleLogout);
+  bindRow(page, '#setting-withdraw', handleWithdraw);
 }
 
 function escapeText(text) {
@@ -327,7 +339,7 @@ async function handleWithdraw() {
 
   const isConfirmed = await showConfirm({
     title: '회원 탈퇴',
-    message: '정말로 회원을 탈퇴하시겠습니까?\n모든 정보(보관함, 설정 등)가 즉시 삭제되며 복구할 수 없습니다.',
+    message: '정말로 회원을 탈퇴하시겠습니까?\n계정과 모든 데이터(일화, 보관함, 업로드 사진 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
     confirmText: '탈퇴',
     cancelText: '취소',
     danger: true,
@@ -335,31 +347,18 @@ async function handleWithdraw() {
   if (!isConfirmed) return;
 
   try {
-    const user = auth.currentUser;
-    const uid = user.uid;
-
-    if (db) {
-      try {
-        await deleteDoc(doc(db, 'profiles', uid));
-        const bookmarksQuery = query(collection(db, 'bookmarks'), where('user_id', '==', uid));
-        const snapshot = await getDocs(bookmarksQuery);
-        snapshot.forEach((entry) => deleteDoc(entry.ref));
-      } catch (dbErr) {
-        console.warn('DB 데이터 삭제 실패 (일부 무시됨):', dbErr);
-      }
-    }
-
-    await deleteUser(user);
-    localStorage.removeItem(AUTH_SESSION_KEY);
-    showToast(t('toast.withdraw_done'), 'success');
-    setState('user', null);
-    setState('profile', null);
-    const nav = document.getElementById('bottom-nav');
-    if (nav) nav.style.display = 'flex';
-    navigate('/editorstory');
+    await _doWithdraw(auth.currentUser);
   } catch (err) {
-    console.error('회원 탈퇴 실패:', err);
-    if (err.code === 'auth/requires-recent-login' || err.code === 'auth/user-token-expired') {
+    if (err?.code === 'auth/requires-recent-login' || err?.code === 'auth/user-token-expired') {
+      const ok = await reauthenticateUser(auth.currentUser);
+      if (ok) {
+        try {
+          await _doWithdraw(auth.currentUser);
+          return;
+        } catch (retryErr) {
+          console.error('재인증 후 탈퇴 재시도 실패:', retryErr);
+        }
+      }
       showToast('보안 정책에 따라 다시 로그인한 뒤 탈퇴하실 수 있습니다.', 'error');
       localStorage.removeItem(AUTH_SESSION_KEY);
       setState('user', null);
@@ -368,9 +367,24 @@ async function handleWithdraw() {
       navigate('/login');
       return;
     }
-
-    showToast(err.message || '회원 탈퇴 처리 중 오류가 발생했습니다.', 'error');
+    console.error('회원 탈퇴 실패:', err);
+    showToast(err?.message || '회원 탈퇴 처리 중 오류가 발생했습니다.', 'error');
   }
+}
+
+/* Storage → Firestore → deleteUser 순서로 진행 (역순이면 권한 상실로 Storage 청소 실패) */
+async function _doWithdraw(user) {
+  const uid = user.uid;
+  await purgeStorageUserData(uid);
+  await purgeFirestoreUserData(uid);
+  await deleteUser(user);
+  localStorage.removeItem(AUTH_SESSION_KEY);
+  setState('user', null);
+  setState('profile', null);
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.style.display = 'none';
+  showToast(t('toast.withdraw_done'), 'success');
+  navigate('/login');
 }
 
 function themeLabel(theme) {

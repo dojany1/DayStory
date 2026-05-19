@@ -144,6 +144,26 @@
   height: 20px;
 }
 
+/* Apple 로그인 — Apple HIG: 검정 배경 + 흰 텍스트/아이콘 (light mode) */
+.auth-social-btn--apple {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+.auth-social-btn--apple:active {
+  background: #1a1a1a;
+  border-color: #000;
+}
+/* 다크모드: 흰 배경 + 검정 텍스트 (HIG 허용 변형) */
+[data-theme="dark"] .auth-social-btn--apple {
+  background: #fff;
+  border-color: #fff;
+  color: #000;
+}
+[data-theme="dark"] .auth-social-btn--apple:active {
+  background: #e6e6e6;
+}
+
 /* 로그인 페이지 하단 안내 (예: "계정이 없으신가요? 회원가입") */
 .auth-footer {
   text-align: center;
@@ -1917,6 +1937,51 @@
    하단 floating 액션 버튼에 가리지 않도록 충분한 bottom padding 확보 */
 .mystory-form-section {
   padding-bottom: calc(220px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 나의 일화 — 카드 이미지 업로드 영역 */
+.ms-image-upload-area {
+  width: 80%;
+  aspect-ratio: 3 / 4;
+  align-self: center;
+  border: 1px dashed var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  background: var(--color-bg-primary);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--shadow-card);
+}
+.ms-image-upload-area:active {
+  border-color: var(--color-border);
+  background: var(--color-bg-card);
+}
+.ms-image-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-3);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+.ms-image-upload-placeholder svg {
+  opacity: 0.45;
+}
+.ms-image-upload-placeholder span {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.ms-image-upload-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
 }
 
 /* 나의 일화 작성/편집 — 하단 floating 액션 영역 (저장/삭제 버튼)

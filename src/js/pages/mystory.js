@@ -20,6 +20,8 @@ import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { syncDiaryStateFromList } from '../services/widget.js';
 import { uploadImage } from '../services/images.js';
+import { pickImage, CameraPermissionError } from '../services/camera.js';
+
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderGrid, isAtCurrentMonth, WEEKDAYS } from './calendar.js';
 import { renderPageHeader, bindPageHeaderBack } from '../components/pageHeader.js';
@@ -790,14 +792,21 @@ export function renderMyStoryNew() {
         </div>
         <!-- 2. 카드 이미지 -->
         <div class="input-group">
-          <label class="input-label">카드 이미지 *</label>
           <input type="hidden" id="ms-image" />
           <input type="hidden" id="ms-image-thumb" />
-          <div style="display:flex; gap:var(--space-2);">
-            <label for="ms-image-file" class="btn btn-secondary" style="cursor:pointer; flex:1; justify-content:center; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm);">파일</label>
-            <input type="file" id="ms-image-file" accept="image/*" style="display:none;" />
-            <label for="ms-image-camera" class="btn btn-secondary" style="cursor:pointer; flex:1; justify-content:center; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm);">카메라</label>
-            <input type="file" id="ms-image-camera" accept="image/*" capture="environment" style="display:none;" />
+          <div id="ms-image-upload-area" class="ms-image-upload-area" role="button" tabindex="0" aria-label="카드 이미지 업로드">
+            <div id="ms-image-placeholder" class="ms-image-upload-placeholder">
+              <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+                <line x1="12" y1="7" x2="12" y2="12"/>
+                <line x1="9.5" y1="9.5" x2="12" y2="7"/>
+                <line x1="14.5" y1="9.5" x2="12" y2="7"/>
+              </svg>
+              <span>카드 이미지 업로드</span>
+            </div>
+            <img id="ms-image-preview" class="ms-image-upload-preview" style="display:none;" alt="카드 이미지 미리보기" />
           </div>
         </div>
         <!-- 3. 단일 제목 -->
@@ -889,6 +898,7 @@ export function renderMyStoryNew() {
         document.getElementById('ms-body').value = story.body || '';
         document.getElementById('ms-image').value = story.image_url || '';
         document.getElementById('ms-image-thumb').value = story.image_thumb_url || '';
+        updateImagePreview(story.image_url || '');
         originalSnapshot = {
           title: story.title || '',
           body: story.body || '',
@@ -1096,40 +1106,49 @@ export function renderMyStoryNew() {
         if (imageInput) imageInput.value = image_url;
         if (thumbInput) thumbInput.value = '';
         setSaveBtnDone();
+        updateImagePreview(image_url);
       } catch (error) {
         console.error('이미지 업로드 오류:', error);
         setSaveBtnReady();
         showToast('이미지 저장에 실패했습니다.', 'error');
-      } finally {
-        const fileInput = document.getElementById('ms-image-file');
-        if (fileInput) fileInput.value = '';
       }
     }
 
-    // 사진 추가 버튼 로직 (크롭)
-    document.getElementById('ms-image-file')?.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    function updateImagePreview(url) {
+      const placeholder = document.getElementById('ms-image-placeholder');
+      const preview = document.getElementById('ms-image-preview');
+      if (!placeholder || !preview) return;
+      if (url) {
+        placeholder.style.display = 'none';
+        preview.src = url;
+        preview.style.display = 'block';
+      } else {
+        placeholder.style.display = '';
+        preview.src = '';
+        preview.style.display = 'none';
+      }
+    }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        openCropModal(event.target.result, false, (blob) => {
-          processUploadBlob(blob, file.name || 'cropped_image.jpeg');
+    /* 사진 추가 — 단일 업로드 영역 클릭 → Prompt (네이티브: 카메라/갤러리 선택, 웹: 갤러리) */
+    async function handleImagePick() {
+      try {
+        const result = await pickImage();
+        if (!result) return;
+        openCropModal(result.dataUrl, false, (blob) => {
+          processUploadBlob(blob, 'image.jpeg');
         });
-      };
-      reader.readAsDataURL(file);
-    });
-
-    document.getElementById('ms-image-camera')?.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        openCropModal(event.target.result, false, (blob) => {
-          processUploadBlob(blob, file.name || 'camera_image.jpeg');
-        });
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        if (err instanceof CameraPermissionError) {
+          showToast(err.message, 'warning');
+          return;
+        }
+        showToast(err?.message || '사진을 불러올 수 없습니다.', 'error');
+      }
+    }
+    const uploadArea = document.getElementById('ms-image-upload-area');
+    uploadArea?.addEventListener('click', handleImagePick);
+    uploadArea?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleImagePick(); }
     });
 
     document.getElementById('mystory-form')?.addEventListener('submit', async (e) => {

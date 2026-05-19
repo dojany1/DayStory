@@ -138,3 +138,27 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: 총 159개 삭제(원본 변경 없음). 그룹 A 114개는 staged deletion으로 워크 트리에서 제거, 그룹 B 45개는 단순 `rm`. 커밋은 사용자 검토 후 결정.
 - 검증: 재탐색 결과 충돌 파일 0개. 샘플 원본(`src/js/pages/about.js`, `src/js/services/collection.js`, `CLAUDE.md`, `AGENTS.md`, `daystory.jks`, `upload_certificate.pem` 등 11개) 모두 보존 확인. `git status --short` staged D 114건, 비관련 변경(.jar 9건, `Package.resolved` 1건)은 이전부터 존재.
 - 후속 권장: `.gitignore`에 `* [0-9].*` 패턴 추가 또는 프로젝트를 iCloud 외부로 이동해 재발 방지(이번 작업 범위 외).
+
+## 2026-05-18 20:15 — Claude Opus 4.7
+
+- 요구사항: App Store 심사 거부 3건(4.8 Sign in with Apple 부재, 2.1(a) iPad 카메라 크래시, 5.1.1(v) 계정 삭제 옵션 부재) 통합 대응 후 1.3.4 제출 준비.
+- 구현방법:
+  - 4.8: `capacitor.config.json` providers에 `apple.com` 추가. `login.js`에 `OAuthProvider('apple.com')` import + `appleProvider`/`appleIcon` 추가, 공통 헬퍼 `upsertProfileAndRoute`/`handleAppleSignIn` 추출, `renderLogin`·`renderSignup` 양쪽에 "Apple로 계속하기" 버튼 추가(회원가입 페이지에는 Google 버튼도 함께 노출). `pages.css`에 `.auth-social-btn--apple`(검정 배경) 변형 + 다크모드 반전 추가.
+  - 2.1(a): `ios/App/App/Info.plist`에 `NSCameraUsageDescription`/`NSPhotoLibraryUsageDescription`/`NSPhotoLibraryAddUsageDescription` 추가. iPadOS 26.5는 권한 설명 누락 시 카메라 호출 즉시 강제 종료 — 단일 원인 가능성 가장 높음. 카메라 호출 자체 코드(HTML5 `<input capture>`)는 v1.4.x 백로그로 분리.
+  - 5.1.1(v): `settingsSections.js`의 `handleWithdraw` 함수는 이미 존재했으나 렌더된 UI에 진입점 미연결이 거부 원인. 로그아웃 행 옆에 `setting-withdraw` 행(`userXIcon`) 추가 + `bindSettingsSections`에 바인딩. 신설 `src/js/services/userCleanup.js`에 `purgeFirestoreUserData`(profiles + bookmarks/userStories/stories where user_id == uid, writeBatch 400 청크) / `purgeStorageUserData`(`users/{uid}/` 재귀 listAll + deleteObject) / `reauthenticateUser`(google/apple provider 분기) 구현. `handleWithdraw`를 Storage → Firestore → deleteUser 순서로 재작성하고 `auth/requires-recent-login` 시 한 번 자동 재인증 후 재시도.
+  - 버전: `package.json` 1.3.3 → 1.3.4.
+- 변경파일: `capacitor.config.json`, `ios/App/App/Info.plist`, `src/js/pages/login.js`, `src/js/components/settingsSections.js`, `src/css/pages.css`, `src/js/services/userCleanup.js`(신규), `tests/userCleanup.spec.js`(신규), `package.json`.
+- 검증: `npx vitest run tests/userCleanup.spec.js` 9/9 통과. `npm run build` 성공(dist 재생성). `npx cap sync ios/android`는 현재 셸 환경 제약으로 자동 실행 실패 — 사용자가 직접 실행 필요.
+- 후속(사용자 액션): ① Firebase Console에서 Apple provider 활성화(Service ID·Key.p8 등록). ② Apple Developer Portal에서 App ID에 "Sign in with Apple" capability 활성화. ③ Xcode → Signing & Capabilities → "Sign in with Apple" 추가. ④ `npx cap sync ios` 실행 후 Archive. ⑤ App Store Connect 회신문에 회원 탈퇴 흐름 화면 녹화 첨부.
+
+## 2026-05-18 20:38 — Claude Opus 4.7
+
+- 요구사항: 위 20:15 통합 plan을 이슈별로 분리해 Plan 1(카메라 2.1a)만 v1.3.4 제출 범위로 좁힘. Plan 2(Sign in with Apple)·Plan 3(회원 탈퇴)은 별도 plan으로 후속 처리.
+- 구현방법:
+  - 되돌리기: 사용자가 직접 `login.js`(Apple 관련), `settingsSections.js`(회원 탈퇴 UI), `pages.css`(Apple 버튼) 변경분과 `userCleanup.js`/`userCleanup.spec.js` 파일을 원복·삭제. 에이전트는 `capacitor.config.json`의 `apple.com` 항목 제거로 마무리.
+  - Plan 1: `@capacitor/camera@^8.0.0` 의존성 + `capacitor.config.json` `android.includePlugins`에 추가. `ios/App/App/Info.plist` 권한 설명 3종(`NSCameraUsageDescription`/`NSPhotoLibraryUsageDescription`/`NSPhotoLibraryAddUsageDescription`) plan 문구로 정렬. 신설 `src/js/services/camera.js`에 `pickFromCamera()` / `pickFromGallery()` / `CameraPermissionError` 노출 — 네이티브는 `Camera.getPhoto({source, resultType: DataUrl, quality: 90, correctOrientation: true})`, 웹은 hidden input file 폴백(`capture="environment"` 분기 포함). 호출처 3곳(`mystory.js`/`editor.js`/`profile.js`)을 hidden `<input type="file">` + `FileReader` 흐름에서 "보관함 / 촬영" 2-버튼으로 분리하고 `handleImagePick(source)` 헬퍼로 통일.
+  - 테스트: 신설 `tests/camera.spec.js`에 `@vitest-environment jsdom` 지시 추가, 웹 폴백·네이티브 분기·사용자 취소·권한 거부 6 케이스. 직전 로컬 실행에서 6/6 통과 확인.
+  - 버전: `package.json` 1.3.4 유지.
+- 변경파일: `capacitor.config.json`, `package.json`, `ios/App/App/Info.plist`, `src/js/services/camera.js`(신규), `tests/camera.spec.js`(신규, jsdom 환경 지시 추가), `src/js/pages/mystory.js`, `src/js/pages/editor.js`, `src/js/pages/profile.js`. (대부분 호출처 교체는 사용자가 직접 작성, 에이전트는 마지막 정합성 보강.)
+- 검증: `npx vitest run tests/camera.spec.js` 6/6 통과(jsdom). 이번 턴 후반에 셸 환경 권한 변경으로 `npm test`/`npm run build`/`npx cap sync` 자동 실행이 차단됨 — 사용자가 직접 재실행 필요.
+- 후속(사용자 액션): ① `npm test` 전체, `npm run build`, `npx cap sync ios && npx cap sync android` 실행. ② Xcode에서 iPad Air M3(iPadOS 26.5) 시뮬레이터로 mystory/editor/profile 3곳 카메라·보관함 흐름 무크래시 확인. ③ Archive → App Store Connect 업로드(1.3.4). ④ 회신문 영문 권장(plan 끝에 작성된 문구 사용). Plan 2(Apple 로그인) / Plan 3(회원 탈퇴)은 후속 plan에서 별도 처리.

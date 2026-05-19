@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.daystory.app-mergeReleaseResources-3:/values-port/values-port.xml",
+            "outputFile": "com.daystory.app-mergeReleaseResources-50:/values-port/values-port.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\ldj46\\.gradle\\caches\\8.14.3\\transforms\\c3f09e8abd8bb01c9314454bd06bb337\\transformed\\appcompat-1.7.1\\res\\values-port\\values-port.xml",
+                    "source": "/Users/dongjin/.gradle/caches/8.14.3/transforms/c3f09e8abd8bb01c9314454bd06bb337/transformed/appcompat-1.7.1/res/values-port/values-port.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

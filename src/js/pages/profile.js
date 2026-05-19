@@ -14,6 +14,7 @@ import { auth, db, storage } from '../firebase.js';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { showToast } from '../components/toast.js';
+import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import Cropper from 'cropperjs';
@@ -133,8 +134,10 @@ function openProfileEditModal() {
             : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
           }
         </div>
-        <button class="profile-edit-photo-btn" id="profile-edit-photo-btn">사진 변경</button>
-        <input type="file" id="profile-photo-input" accept="image/*" style="display:none;" />
+        <div style="display:flex; gap:var(--space-2); justify-content:center;">
+          <button class="profile-edit-photo-btn" id="profile-edit-photo-gallery">보관함</button>
+          <button class="profile-edit-photo-btn" id="profile-edit-photo-camera">촬영</button>
+        </div>
       </div>
 
       <div class="profile-edit-field">
@@ -169,26 +172,26 @@ function openProfileEditModal() {
     if (e.target === overlay) closeModal();
   });
 
-  const photoBtn = overlay.querySelector('#profile-edit-photo-btn');
-  const fileInput = overlay.querySelector('#profile-photo-input');
-  photoBtn.addEventListener('click', () => fileInput.click());
-
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      openCropperForProfile(ev.target.result, (blob) => {
+  async function handleProfilePhotoPick(source) {
+    try {
+      const result = source === 'camera' ? await pickFromCamera() : await pickFromGallery();
+      if (!result) return;
+      openCropperForProfile(result.dataUrl, (blob) => {
         croppedBlob = blob;
         const avatarEl = overlay.querySelector('#profile-edit-avatar');
         const previewUrl = URL.createObjectURL(blob);
         avatarEl.innerHTML = `<img src="${previewUrl}" />`;
       });
-    };
-    reader.readAsDataURL(file);
-    fileInput.value = '';
-  });
+    } catch (err) {
+      if (err instanceof CameraPermissionError) {
+        showToast(err.message, 'warning');
+        return;
+      }
+      showToast(err?.message || '사진을 불러올 수 없습니다.', 'error');
+    }
+  }
+  overlay.querySelector('#profile-edit-photo-gallery')?.addEventListener('click', () => handleProfilePhotoPick('gallery'));
+  overlay.querySelector('#profile-edit-photo-camera')?.addEventListener('click', () => handleProfilePhotoPick('camera'));
 
   overlay.querySelector('#profile-edit-save').addEventListener('click', async () => {
     const saveBtn = overlay.querySelector('#profile-edit-save');

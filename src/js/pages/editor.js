@@ -25,6 +25,7 @@ import {
   fetchStoryById
 } from '../services/stories.js';
 import { uploadImage } from '../services/images.js';
+import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { auth } from '../firebase.js';
 
 import Cropper from 'cropperjs';
@@ -371,10 +372,8 @@ export function renderEditorNew() {
             <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
             <input type="hidden" id="sf-image-thumb" />
             <button type="button" id="sf-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">편집</button>
-            <label for="sf-image-file" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">
-              사진 추가
-            </label>
-            <input type="file" id="sf-image-file" accept="image/*" style="display:none;" />
+            <button type="button" id="sf-image-gallery-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">보관함</button>
+            <button type="button" id="sf-image-camera-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">촬영</button>
           </div>
           <div id="sf-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">사진을 업로드하는 중입니다... ⏳</div>
         </div>
@@ -686,9 +685,7 @@ export function renderEditorNew() {
         STATUS_EL.textContent = '업로드 실패: ' + err.message;
         showToast('이미지 업로드 실패: ' + err.message, 'error');
       } finally {
-        const fileInput = document.getElementById('sf-image-file');
-        if(fileInput) fileInput.value = '';
-        setTimeout(() => { 
+        setTimeout(() => {
           if (STATUS_EL && STATUS_EL.textContent.includes('완료')) {
             STATUS_EL.style.display = 'none';
           }
@@ -696,19 +693,24 @@ export function renderEditorNew() {
       }
     }
 
-    /* 갤러리/카메라 사진 추가 버튼 */
-    document.getElementById('sf-image-file')?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        openCropModal(event.target.result, false, (blob) => {
-          processUploadBlob(blob, file.name || 'cropped_image.jpeg');
+    /* 갤러리 / 카메라 — @capacitor/camera 네이티브, 웹은 file input 폴백 */
+    async function handleEditorImagePick(source) {
+      try {
+        const result = source === 'camera' ? await pickFromCamera() : await pickFromGallery();
+        if (!result) return;
+        openCropModal(result.dataUrl, false, (blob) => {
+          processUploadBlob(blob, source === 'camera' ? 'camera_image.jpeg' : 'gallery_image.jpeg');
         });
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (err) {
+        if (err instanceof CameraPermissionError) {
+          showToast(err.message, 'warning');
+          return;
+        }
+        showToast(err?.message || '사진을 불러올 수 없습니다.', 'error');
+      }
+    }
+    document.getElementById('sf-image-gallery-btn')?.addEventListener('click', () => handleEditorImagePick('gallery'));
+    document.getElementById('sf-image-camera-btn')?.addEventListener('click', () => handleEditorImagePick('camera'));
 
     /* 할당 된 이미지 [편집] 버튼 연동 */
     document.getElementById('sf-image-edit-btn')?.addEventListener('click', async () => {

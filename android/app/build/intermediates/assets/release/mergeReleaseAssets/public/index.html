@@ -22,7 +22,7 @@
   <!-- 기본 메타 태그 -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-  <meta name="description" content="매일의 역사 일화 큐레이션 서비스 - 매일 하나의 역사 카드를 만나보세요" />
+  <meta name="description" content="매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스" />
 
   <!-- 모바일 앱 관련 메타 태그 -->
   <meta name="theme-color" content="#0a0a0a" />
@@ -32,6 +32,29 @@
   <!-- 파비콘 (브라우저 탭 아이콘) -->
   <link rel="icon" type="image/png" href="/daystory_icon_light.png" />
   <link rel="apple-touch-icon" href="/daystory_icon_light.png" />
+
+  <!-- ============================================
+       Open Graph / Twitter Card — SNS 공유 미리보기
+       ============================================
+       기본 메타 태그입니다. 카드별 동적 OG는 Cloud Functions
+       (/share/:id) 가 봇 User-Agent를 감지하면 덮어씁니다.
+  -->
+  <meta property="og:site_name" content="DayStory" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="DayStory — 오늘, 역사 속에서" />
+  <meta property="og:description" content="매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스" />
+  <meta property="og:image" content="https://daystory.app/images/og-default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:url" content="https://daystory.app/" />
+  <meta property="og:locale" content="ko_KR" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="DayStory — 오늘, 역사 속에서" />
+  <meta name="twitter:description" content="매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스" />
+  <meta name="twitter:image" content="https://daystory.app/images/og-default.png" />
+
+  <!-- 카카오톡 메시지 미리보기는 og:image 사용 (별도 태그 불필요) -->
 
   <!--
     ===== 웹 폰트 로딩 =====
@@ -72,9 +95,21 @@
     }
   </style>
 
-  <title>DayStory — 매일의 역사 일화</title>
-  <script type="module" crossorigin src="/assets/index-Dnj-AJ2M.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-C1CF5r0n.css">
+  <title>DayStory</title>
+  <script type="module" crossorigin src="/assets/index-DD1nP3bp.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/preload-helper-Dd-HcVz_.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-N3LOKtlT.js">
+  <link rel="modulepreload" crossorigin href="/assets/index.esm-D5wgknfe.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-CMykNrkF.js">
+  <link rel="modulepreload" crossorigin href="/assets/router-hybKseu2.js">
+  <link rel="modulepreload" crossorigin href="/assets/state-8PRbPWwW.js">
+  <link rel="modulepreload" crossorigin href="/assets/i18n-CAgB5cGO.js">
+  <link rel="modulepreload" crossorigin href="/assets/storyI18n-D4h3I9Tp.js">
+  <link rel="modulepreload" crossorigin href="/assets/toast-DL5HJnQ3.js">
+  <link rel="modulepreload" crossorigin href="/assets/stories-DjoDJ8Ga.js">
+  <link rel="modulepreload" crossorigin href="/assets/sanitize-DlMVmTsh.js">
+  <link rel="modulepreload" crossorigin href="/assets/scrollLock-ByagqdMz.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-mWqYhMvu.css">
 </head>
 
 <body>
@@ -94,7 +129,6 @@
       <div id="splash-screen" class="splash-screen">
         <div class="splash-content">
           <div class="splash-logo">
-            <span class="splash-icon"></span>
             <h1 class="splash-title">DayStory</h1>
             <p class="splash-subtitle">오늘, 역사 속에서</p>
           </div>
@@ -121,27 +155,35 @@
 
         <!--
           하단 내비게이션 바:
-          홈, 컬렉션, 설정 세 개의 텍스트 버튼으로 구성됩니다.
+          홈, 임시, 프로필 세 개의 버튼으로 구성됩니다.
           data-route 속성을 보고 router.js에서 해당 경로로 이동합니다.
         -->
         <nav id="bottom-nav" class="bottom-nav redesigned-nav" style="display:none;">
-          <button class="nav-item active" data-route="/home" id="nav-home" aria-label="홈">
+          <!-- 편지 탭 (오늘의 편지 = 에디터 일화) -->
+          <button class="nav-item active" data-route="/editorstory" id="nav-editorstory" aria-label="편지">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect>
+              <path d="M3.5 7.5 12 13.5 20.5 7.5"></path>
             </svg>
           </button>
-          <button class="nav-item" data-route="/archive" id="nav-archive" aria-label="컬렉션">
+
+          
+          <!-- 내 일기 탭 -->
+          <button class="nav-item" data-route="/mystory" id="nav-mystory" aria-label="내 일기">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
             </svg>
           </button>
-          <button class="nav-item" data-route="/settings" id="nav-settings" aria-label="설정">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
+          
+          <!-- 프로필 탭 -->
+          <button class="nav-item" data-route="/profile" id="nav-profile" aria-label="프로필">
+            <div class="nav-profile-img-wrap">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
           </button>
         </nav>
 
@@ -158,7 +200,7 @@
   <!--
     앱의 시작점: main.js
     type="module"은 ES6 import/export를 사용하겠다는 의미입니다.
-  -->
+  -->
 </body>
 
 </html>

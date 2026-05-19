@@ -27,7 +27,7 @@ echo "REPO_ROOT: $(pwd)"
 ls -la
 
 # 패키지 설치
-npm install --no-audit --no-fund
+npm install --no-audit --no-fund --legacy-peer-deps
 
 # 설치 결과 확인
 ls -la node_modules/@capacitor/ || echo "@capacitor 디렉터리 없음"

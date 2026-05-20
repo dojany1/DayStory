@@ -17,7 +17,7 @@ let currentToastTimer = null;
  * @param {number} duration - 표시 시간 (밀리초, 기본 2500ms = 2.5초)
  */
 
-export function showToast(message, type = 'info', duration = 2500) {
+export function showToast(message, type = 'info', duration = 4000) {
   const container = document.getElementById('toast-container');
   if (!container) return;
 

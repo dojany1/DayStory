@@ -83,6 +83,50 @@ async function upsertProfileAndNavigate(firebaseUser) {
   navigate('/editorstory');
 }
 
+async function handleGoogleSignIn(e) {
+  const btn = e?.currentTarget;
+  const spanEl = btn?.querySelector('span');
+  const originalText = spanEl?.textContent;
+  if (btn) { btn.disabled = true; if (spanEl) spanEl.textContent = '로그인 중...'; }
+
+  if (!auth) {
+    if (btn) { btn.disabled = false; if (spanEl) spanEl.textContent = originalText; }
+    return showToast('Firebase가 설정되지 않았습니다', 'error');
+  }
+
+  try {
+    let firebaseUser = null;
+    if (Capacitor.isNativePlatform()) {
+      const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true, useCredentialManager: false });
+      const idToken = result.credential?.idToken;
+      if (!idToken) throw new Error('Google 인증 토큰을 받지 못했습니다.');
+      const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
+      firebaseUser = (await signInWithCredential(auth, credential)).user;
+    } else {
+      firebaseUser = (await signInWithPopup(auth, googleProvider)).user;
+    }
+    if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
+    await upsertProfileAndNavigate(firebaseUser);
+    showToast('구글 로그인 성공!', 'success');
+  } catch (err) {
+    const msg = (err.message || '').toLowerCase();
+    console.error('[GoogleSignIn] 실패:', err.message, err.code);
+
+    if (msg.includes('sign_in_cancelled') || msg.includes('12501') || msg.includes('cancelled')
+        || err.code === 'auth/popup-closed-by-user') {
+      // 사용자 취소 — toast 없음
+    } else if (msg.includes('10:') || msg.includes('developer_error') || msg.includes('sign_in_failed')) {
+      showToast('Google 로그인에 일시적 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error');
+    } else if (msg.includes('no credentials available')) {
+      showToast('기기 설정 > 계정에서 Google 계정을 추가한 뒤 다시 시도하세요.', 'error');
+    } else {
+      showToast(err.message || 'Google 로그인 실패', 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; if (spanEl) spanEl.textContent = originalText; }
+  }
+}
+
 async function handleAppleSignIn() {
   if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
   try {
@@ -236,26 +280,7 @@ export function renderLogin() {
     document.getElementById('apple-login-btn')?.addEventListener('click', handleAppleSignIn);
 
     /* Google 로그인 버튼 */
-    document.getElementById('google-login-btn')?.addEventListener('click', async () => {
-      if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
-      try {
-        let firebaseUser = null;
-        if (Capacitor.isNativePlatform()) {
-          const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
-          const idToken = result.credential?.idToken;
-          if (!idToken) throw new Error('Google 인증 토큰을 받지 못했습니다.');
-          const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
-          firebaseUser = (await signInWithCredential(auth, credential)).user;
-        } else {
-          firebaseUser = (await signInWithPopup(auth, googleProvider)).user;
-        }
-        if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
-        await upsertProfileAndNavigate(firebaseUser);
-        showToast('구글 로그인 성공!', 'success');
-      } catch (err) {
-        showToast(err.message || 'Google 로그인 실패', 'error');
-      }
-    });
+    document.getElementById('google-login-btn')?.addEventListener('click', handleGoogleSignIn);
 
     /* 회원가입 페이지로 이동 */
     document.getElementById('goto-signup')?.addEventListener('click', () => navigate('/signup'));
@@ -424,26 +449,7 @@ export function renderSignup() {
 
     /* 회원가입 페이지의 Apple / Google 소셜 버튼 */
     document.getElementById('apple-signup-btn')?.addEventListener('click', handleAppleSignIn);
-    document.getElementById('google-signup-btn')?.addEventListener('click', async () => {
-      if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
-      try {
-        let firebaseUser = null;
-        if (Capacitor.isNativePlatform()) {
-          const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
-          const idToken = result.credential?.idToken;
-          if (!idToken) throw new Error('Google 인증 토큰을 받지 못했습니다.');
-          const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
-          firebaseUser = (await signInWithCredential(auth, credential)).user;
-        } else {
-          firebaseUser = (await signInWithPopup(auth, googleProvider)).user;
-        }
-        if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
-        await upsertProfileAndNavigate(firebaseUser);
-        showToast('구글 로그인 성공!', 'success');
-      } catch (err) {
-        showToast(err.message || 'Google 로그인 실패', 'error');
-      }
-    });
+    document.getElementById('google-signup-btn')?.addEventListener('click', handleGoogleSignIn);
   }, 0);
 
   return page;

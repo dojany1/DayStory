@@ -98,7 +98,7 @@ export async function reauthenticateUser(user) {
 
   try {
     if (Capacitor.isNativePlatform()) {
-      const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+      const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true, useCredentialManager: false });
       const idToken = result.credential?.idToken;
       if (!idToken) return false;
       const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);

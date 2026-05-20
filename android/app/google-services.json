@@ -1,0 +1,87 @@
+{
+  "project_info": {
+    "project_number": "1063822349351",
+    "project_id": "dokhu-daystory",
+    "storage_bucket": "dokhu-daystory.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1063822349351:android:4a5d2c48fed789e0e32a02",
+        "android_client_info": {
+          "package_name": "com.daystory.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1063822349351-g0r304t5c5o1r229kj0asmjg9sit9ma5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "b579a6c5c908e37ab7cfdcc2d9d1ba264249e09b"
+          }
+        },
+        {
+          "client_id": "1063822349351-j5jqhu429gmrg3ajgtclg4kbnfpmcqa3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "8945dd6acfe4b08e1259a05273fd780babc52b4d"
+          }
+        },
+        {
+          "client_id": "1063822349351-n1llrnat7j1qmv3tq64pujnna8df6rv3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "a2b9ada5aedea9d748ad7db8236b8c1ddcb1dd07"
+          }
+        },
+        {
+          "client_id": "1063822349351-rmik6dbde677mqfdrtgqaaf7cdi77if9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "dce5c99f9698d03fc9974cef84324ad919ce7842"
+          }
+        },
+        {
+          "client_id": "1063822349351-u51bab4gsnf3t2fg52pstpnas2a4m4gu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.daystory.app",
+            "certificate_hash": "bb7b9d9918f869e2fabf75c9a1928e2cece19273"
+          }
+        },
+        {
+          "client_id": "1063822349351-rnk0hgs8gg6nuae0k4ocfl4qhvcg2u2s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCy9PbZ401mepxUP4WnxdWhGS26YmFquTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1063822349351-rnk0hgs8gg6nuae0k4ocfl4qhvcg2u2s.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1063822349351-p9eqteurfjcn9bo1k50snuv8gt5l2vml.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dokhu.daystory",
+                "app_store_id": "6769716464"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

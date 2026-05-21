@@ -488,8 +488,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
           return;
         }
         showToast(res.bookmarked ? t('toast.bookmark_added') : t('toast.bookmark_removed'), 'success');
-        const svg = bookmarkBtn.querySelector('svg');
-        if (svg) svg.style.fill = res.bookmarked ? 'currentColor' : 'none';
+        bookmarkBtn.classList.toggle('active', res.bookmarked);
 
         if (res.bookmarked && !bookmarkedIds.includes(story.id)) {
           bookmarkedIds.push(story.id);
@@ -497,6 +496,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
           const idx = bookmarkedIds.indexOf(story.id);
           if (idx > -1) bookmarkedIds.splice(idx, 1);
         }
+        if (options.onBookmarkChange) options.onBookmarkChange(story.id, res.bookmarked);
       });
     }
   }
@@ -530,8 +530,8 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
                     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                   </svg>
                 </button>
-                <button class="card-action-btn" aria-label="보관함">
-                  <svg viewBox="0 0 24 24" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                <button class="card-action-btn bookmark-btn${isBookmarked ? ' active' : ''}" aria-label="보관함">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                   </svg>
                 </button>

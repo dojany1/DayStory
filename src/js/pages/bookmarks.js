@@ -102,6 +102,14 @@ async function loadCollection(page) {
       : state.bookmarks;
     renderStories(contentEl, list, 'bookmarks', (story) => onCardClick(state, story), {
       searching: Boolean(state.queryStr),
+      onToggle: (story, bookmarked) => {
+        if (!story) return;
+        if (!bookmarked) {
+          state.bookmarks = state.bookmarks.filter(s => s.id !== story.id);
+        } else if (!state.bookmarks.some(s => s.id === story.id)) {
+          state.bookmarks.push(story);
+        }
+      },
     });
   };
 
@@ -139,6 +147,15 @@ async function loadCollection(page) {
         await removeCard(stateRef, target);
         showToast(t('bookmarks.removed'), 'success');
         filterAndRender();
+      },
+      onBookmarkChange: (storyId, bookmarked) => {
+        if (!bookmarked) {
+          stateRef.bookmarks = stateRef.bookmarks.filter(s => s.id !== storyId);
+        } else if (!stateRef.bookmarks.some(s => s.id === storyId)) {
+          stateRef.bookmarks.push(story);
+        }
+        const miniBtn = document.querySelector(`.mini-bookmark-btn[data-story-id="${storyId}"]`);
+        if (miniBtn) miniBtn.classList.toggle('active', bookmarked);
       },
     });
   }
@@ -189,6 +206,17 @@ function renderStories(contentEl, list, tab, onClick, opts = {}) {
     const story = list[idx];
     card.addEventListener('click', () => onClick(story));
   });
+
+  contentEl.querySelectorAll('.mini-bookmark-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const storyId = btn.dataset.storyId;
+      const story = list.find((s) => s.id === storyId);
+      const res = await toggleBookmark(storyId);
+      btn.classList.toggle('active', res.bookmarked);
+      if (opts.onToggle) opts.onToggle(story, res.bookmarked);
+    });
+  });
 }
 
 
@@ -211,8 +239,15 @@ function renderMiniCard(story) {
           <div class="mini-date">${monthLabel}${monthLabel !== '' && dayLabel !== '' ? '. ' : ''}${dayLabel}</div>
         </div>
         <div class="mini-top-right">
-          ${escapeHtml(story.card_count || '')} ${escapeHtml(story.country || '')}<br>
-          ${dateMeta}
+          <button class="mini-bookmark-btn bookmark-btn active" data-story-id="${escapeHtml(story.id)}" aria-label="북마크">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
+          <span class="mini-top-text">
+            ${escapeHtml(story.card_count || '')} ${escapeHtml(story.country || '')}<br>
+            ${dateMeta}
+          </span>
         </div>
       </div>
       <div class="mini-card-image-wrap">

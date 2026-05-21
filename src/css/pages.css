@@ -2800,7 +2800,7 @@
 .settings-privacy-link {
   margin-top: var(--space-8);
   text-align: center;
-  margin-bottom: -12px;
+  margin-bottom: var(--space-2);
 }
 
 .settings-privacy-link a {
@@ -2811,7 +2811,6 @@
 }
 /* 버전 정보 텍스트 */
 .settings-version {
-  padding:var(--space-6);
   color:var(--color-text-tertiary);
   font-size:var(--text-xs);
   text-align:center}

@@ -606,7 +606,7 @@
   margin-top: 2px;
 }
 
-/* 미니 카드 상단 오른쪽 — 국가 등 메타 정보 */
+/* 미니 카드 상단 오른쪽 — 북마크 버튼(상단) + 국가/날짜 메타(하단) */
 .mini-top-right {
   font-size: 0.45rem;
   text-align: right;
@@ -616,8 +616,29 @@
   margin-top: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: flex-end;
   height: 100%;
+}
+
+/* 미니 북마크 버튼 */
+.mini-bookmark-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+  color: var(--color-text-secondary);
+}
+
+.mini-bookmark-btn svg {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+/* 메타 텍스트 래퍼 */
+.mini-top-text {
+  text-align: right;
 }
 
 /* 미니 카드 이미지 영역 — 남은 공간을 채움 */
@@ -1025,8 +1046,8 @@
 
 /* 북마크 활성화 시 아이콘 — 강조색으로 채워짐 */
 .bookmark-btn.active svg {
-  fill: var(--color-accent);
-  stroke: var(--color-accent);
+  fill: var(--color-text-secondary);
+  stroke: var(--color-text-secondary);
 }
 
 /* 북마크 버튼 터치 시 — 커지는 애니메이션 */

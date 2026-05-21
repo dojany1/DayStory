@@ -162,3 +162,14 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: `capacitor.config.json`, `package.json`, `ios/App/App/Info.plist`, `src/js/services/camera.js`(신규), `tests/camera.spec.js`(신규, jsdom 환경 지시 추가), `src/js/pages/mystory.js`, `src/js/pages/editor.js`, `src/js/pages/profile.js`. (대부분 호출처 교체는 사용자가 직접 작성, 에이전트는 마지막 정합성 보강.)
 - 검증: `npx vitest run tests/camera.spec.js` 6/6 통과(jsdom). 이번 턴 후반에 셸 환경 권한 변경으로 `npm test`/`npm run build`/`npx cap sync` 자동 실행이 차단됨 — 사용자가 직접 재실행 필요.
 - 후속(사용자 액션): ① `npm test` 전체, `npm run build`, `npx cap sync ios && npx cap sync android` 실행. ② Xcode에서 iPad Air M3(iPadOS 26.5) 시뮬레이터로 mystory/editor/profile 3곳 카메라·보관함 흐름 무크래시 확인. ③ Archive → App Store Connect 업로드(1.3.4). ④ 회신문 영문 권장(plan 끝에 작성된 문구 사용). Plan 2(Apple 로그인) / Plan 3(회원 탈퇴)은 후속 plan에서 별도 처리.
+
+## 2026-05-21
+
+- `.history-card-mini`의 `mini-top-right` 상단에 북마크 아이콘 버튼을 추가했습니다.
+  - `renderMiniCard()`에 `<button class="mini-bookmark-btn bookmark-btn active">` + SVG 삽입. 기존 텍스트는 `<span class="mini-top-text">`로 래핑.
+  - `renderStories()`에 `.mini-bookmark-btn` 클릭 핸들러 추가: `e.stopPropagation()`으로 카드 클릭 전파 차단, `toggleBookmark()` 호출, 북마크 해제 시 `opts.onRemove` 콜백으로 목록에서 즉시 제거.
+  - `loadCollection()`의 `renderStories()` 호출에 `onRemove` 콜백 전달 (→ `removeCard` + `filterAndRender`).
+  - CSS: `.mini-top-right` 레이아웃을 `justify-content: space-between; align-items: flex-end`로 변경해 버튼이 상단, 텍스트가 하단에 위치. `.mini-bookmark-btn` 및 `.mini-top-text` 규칙 추가.
+  - TDD: `tests/bookmarks.ui.spec.js`에 3개 테스트 추가 (버튼 렌더링/클릭 전파 차단/toggleBookmark 호출), `state.js`·`toggleBookmark` 모킹 추가.
+- 변경파일: `src/js/pages/bookmarks.js`, `src/css/components.css`, `tests/bookmarks.ui.spec.js`.
+- 검증: `npm test` — bookmarks 스위트 8/8 중 7 통과(기존 "navigates" 실패 1건은 localStorage 환경 이슈로 내 변경과 무관).

@@ -95,6 +95,9 @@ export function renderSettingsSections() {
     <div class="settings-version">
       DayStory v${pkg.version}
     </div>
+    <div class="settings-version">
+      2026 DOKHU Team
+    </div>
   `;
 }
 

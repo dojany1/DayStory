@@ -25,7 +25,7 @@
       type="MAIN"
       applicationId="com.daystory.app"
       generatedSourceFolders="build/generated/ap_generated_sources/release/out"
-      generatedResourceFolders="build/generated/res/resValues/release"
+      generatedResourceFolders="build/generated/res/processReleaseGoogleServices:build/generated/res/resValues/release"
       desugaredMethodsFiles="/Users/dongjin/.gradle/caches/8.14.3/transforms/46d336b5bec704b07cfaf2ba18f4333c/transformed/D8BackportedDesugaredMethods.txt">
   </artifact>
 </variant>

@@ -255,6 +255,20 @@ ul, ol {
   transition: opacity 0.6s ease, visibility 0.6s ease; /* 사라질 때 페이드아웃 */
 }
 
+/* 스플래시 화면 하단 — 현재 빌드 버전 표시 */
+.splash-version {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-5));
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.04em;
+  text-align: center;
+  pointer-events: none;
+}
+
 /* 스플래시 숨김 상태 — .hide 클래스 추가 시 페이드아웃 */
 .splash-screen.hide {
   opacity: 0;
@@ -359,11 +373,10 @@ ul, ol {
   width: 100%;
   max-width: var(--mobile-max-width);  /* 래퍼 너비에 맞춤 */
   height: calc(var(--nav-height) + var(--safe-area-bottom));
-  padding: var(--space-1) 0;
+  padding: var(--space-1) var(--space-8) 0; /* 상하 패딩 조정, 하단 패딩은 safe-area만큼 확보 */
   padding-bottom: calc(var(--space-1) + var(--safe-area-bottom)); /* 홈 바 영역까지 배경색 확장 */
   background: var(--color-bg-primary); /* 항상 불투명 — backdrop-filter 미지원 환경에서 뒤가 비치지 않도록 */
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
-  gap: 2px;
 }
 
 /* 내비게이션 아이템 (개별 버튼) */

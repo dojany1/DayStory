@@ -173,7 +173,6 @@ function bindThemeOptions(page) {
       btn.classList.add('active');
       btn.setAttribute('aria-pressed', 'true');
       group.dataset.active = btns.indexOf(btn);
-      showToast(t('settings.theme_changed', { label: themeLabel(selectedTheme) }), 'success');
     });
   });
 }
@@ -286,7 +285,6 @@ function openViewModeSheet(onChange = () => {}) {
       });
       btn.classList.add('active');
       btn.setAttribute('aria-checked', 'true');
-      showToast(t('settings.view_mode_changed'), 'success');
       updateViewModeSummary(document);
       onChange();
     });
@@ -343,6 +341,10 @@ async function handleWithdraw() {
     confirmText: '탈퇴',
     cancelText: '취소',
     danger: true,
+    holdDuration: 5000,
+    holdMessage: (secondsLeft) => secondsLeft > 0
+      ? `탈퇴까지 ${secondsLeft}초간 누르고 계세요...`
+      : '탈퇴를 진행합니다...',
   });
   if (!isConfirmed) return;
 

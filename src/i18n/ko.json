@@ -12,6 +12,7 @@
     "back": "뒤로",
     "next": "다음",
     "search_placeholder": "검색...",
+    "clear": "지우기",
     "load_failed_title": "데이터를 불러오지 못했습니다",
     "load_failed_desc": "네트워크 상태를 확인해주세요",
     "unknown_error": "알 수 없는 오류"
@@ -45,6 +46,7 @@
     "tab_received": "받은 카드",
     "empty_mine": "보관된 카드가 없습니다.",
     "empty_received": "아직 받은 카드가 없습니다.",
+    "empty_search": "일치하는 정보가 없습니다.",
     "empty_received_desc": "친구가 공유한 링크를 누르면 여기에 모입니다.",
     "remove_btn": "삭제",
     "remove_confirm_title": "이 카드를 삭제할까요?",

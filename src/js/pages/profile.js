@@ -116,35 +116,41 @@ function openProfileEditModal() {
   overlay.className = 'profile-edit-overlay';
 
   overlay.innerHTML = `
-    <div class="profile-edit-modal">
+    <div class="profile-edit-modal" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
       <div class="profile-edit-header">
+        <span class="profile-edit-title" id="profile-edit-title">프로필 편집</span>
         <button class="profile-edit-close" id="profile-edit-close" aria-label="닫기">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
         </button>
-        <span class="profile-edit-title">프로필 편집</span>
-        <button class="profile-edit-save" id="profile-edit-save">저장</button>
       </div>
 
-      <div class="profile-edit-avatar-section">
-        <div class="profile-edit-avatar" id="profile-edit-avatar">
-          ${currentPhoto
-            ? `<img src="${currentPhoto}" />`
-            : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
-          }
+      <div class="profile-edit-body">
+        <div class="profile-edit-avatar-section">
+          <div class="profile-edit-avatar" id="profile-edit-avatar">
+            ${currentPhoto
+              ? `<img src="${currentPhoto}" />`
+              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
+            }
+          </div>
+          <div style="display:flex; gap:var(--space-2); justify-content:center;">
+            <button class="profile-edit-photo-btn" id="profile-edit-photo-gallery">보관함</button>
+            <button class="profile-edit-photo-btn" id="profile-edit-photo-camera">촬영</button>
+          </div>
         </div>
-        <div style="display:flex; gap:var(--space-2); justify-content:center;">
-          <button class="profile-edit-photo-btn" id="profile-edit-photo-gallery">보관함</button>
-          <button class="profile-edit-photo-btn" id="profile-edit-photo-camera">촬영</button>
+
+        <div class="profile-edit-field">
+          <label class="profile-edit-label" for="profile-nickname-input">닉네임</label>
+          <input type="text" class="profile-edit-input" id="profile-nickname-input"
+                 value="${escapeHtml(currentNickname)}" maxlength="20" placeholder="닉네임을 입력하세요" />
+          <div class="profile-edit-hint">최대 20자</div>
         </div>
       </div>
 
-      <div class="profile-edit-field">
-        <label class="profile-edit-label" for="profile-nickname-input">닉네임</label>
-        <input type="text" class="profile-edit-input" id="profile-nickname-input"
-               value="${escapeHtml(currentNickname)}" maxlength="20" placeholder="닉네임을 입력하세요" />
-        <div class="profile-edit-hint">최대 20자</div>
+      <div class="profile-edit-actions">
+        <button class="profile-edit-cancel" id="profile-edit-cancel" type="button">취소</button>
+        <button class="profile-edit-save" id="profile-edit-save" type="button">저장</button>
       </div>
     </div>
   `;
@@ -159,15 +165,27 @@ function openProfileEditModal() {
       e.preventDefault();
     }
   }, { passive: false });
+  /* 휠 스크롤도 모달 외부에서는 차단 */
+  overlay.addEventListener('wheel', (e) => {
+    if (!e.target.closest('.profile-edit-modal')) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
   let croppedBlob = null;
 
   const closeModal = () => {
     overlay.classList.remove('visible');
+    document.removeEventListener('keydown', onKey);
     unlockScroll();
     setTimeout(() => overlay.remove(), 200);
   };
+  const onKey = (e) => {
+    if (e.key === 'Escape') closeModal();
+  };
+  document.addEventListener('keydown', onKey);
   overlay.querySelector('#profile-edit-close').addEventListener('click', closeModal);
+  overlay.querySelector('#profile-edit-cancel').addEventListener('click', closeModal);
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeModal();
   });

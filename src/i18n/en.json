@@ -13,6 +13,7 @@
     "back": "Back",
     "next": "Next",
     "search_placeholder": "Search...",
+    "clear": "Clear",
     "load_failed_title": "Couldn't load data",
     "load_failed_desc": "Please check your connection and try again",
     "unknown_error": "Unknown error"
@@ -46,6 +47,7 @@
     "tab_received": "Received",
     "empty_mine": "No cards archived yet.",
     "empty_received": "No received cards yet.",
+    "empty_search": "No matching results.",
     "empty_received_desc": "Cards shared by friends will appear here when you open the link.",
     "remove_btn": "Remove",
     "remove_confirm_title": "Remove this card?",

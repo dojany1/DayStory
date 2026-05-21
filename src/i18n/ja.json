@@ -13,6 +13,7 @@
     "back": "戻る",
     "next": "次へ",
     "search_placeholder": "検索...",
+    "clear": "クリア",
     "load_failed_title": "データを読み込めませんでした",
     "load_failed_desc": "ネットワーク接続を確認してください",
     "unknown_error": "不明なエラー"
@@ -46,6 +47,7 @@
     "tab_received": "もらったカード",
     "empty_mine": "保管されたカードがありません。",
     "empty_received": "まだもらったカードがありません。",
+    "empty_search": "一致する情報がありません。",
     "empty_received_desc": "友達が共有したリンクを開くとここに集まります。",
     "remove_btn": "削除",
     "remove_confirm_title": "このカードを削除しますか?",

@@ -3,7 +3,6 @@ import {
   updateNotificationSetting,
 } from '../services/notifications.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
-import { showToast } from './toast.js';
 import { t } from '../i18n/index.js';
 import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
 
@@ -127,7 +126,6 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
       const nextSettings = await updateNotificationSetting(type, { enabled: !current.enabled });
       updateRow(overlay, type, nextSettings[type]);
       updateNotificationSummary(document);
-      showToast(t('settings.notification_saved'), 'success');
       onChange();
 
       toggle.disabled = false;

@@ -55,14 +55,28 @@ const appleIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="current
 /* ─────────────────────────────────────────────
    섹션 1.5: 공통 헬퍼 — 프로필 upsert + 로그인 후 처리
    ───────────────────────────────────────────── */
+function resolveNickname(profileData, firebaseUser) {
+  const email = firebaseUser?.email || '';
+  return (
+    (profileData && profileData.nickname) ||
+    firebaseUser?.displayName ||
+    (email ? email.split('@')[0] : '') ||
+    '사용자'
+  );
+}
+
 async function upsertProfileAndNavigate(firebaseUser) {
   setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
+
+  let profileData = null;
+  let isExisting = false;
 
   if (db) {
     try {
       const profileRef = doc(db, 'profiles', firebaseUser.uid);
       const profileSnap = await getDoc(profileRef);
-      let profileData = profileSnap.exists()
+      isExisting = profileSnap.exists();
+      profileData = isExisting
         ? profileSnap.data()
         : { created_at: new Date().toISOString() };
 
@@ -70,7 +84,7 @@ async function upsertProfileAndNavigate(firebaseUser) {
       if (isAdmin && profileData.role !== 'editor') {
         profileData.role = 'editor';
         await setDoc(profileRef, profileData, { merge: true });
-      } else if (!profileSnap.exists()) {
+      } else if (!isExisting) {
         await setDoc(profileRef, profileData);
       }
       setState('profile', profileData);
@@ -81,6 +95,8 @@ async function upsertProfileAndNavigate(firebaseUser) {
 
   document.getElementById('bottom-nav').style.display = 'flex';
   navigate('/editorstory');
+
+  return { isExisting, nickname: resolveNickname(profileData, firebaseUser) };
 }
 
 async function handleGoogleSignIn(e) {
@@ -106,8 +122,8 @@ async function handleGoogleSignIn(e) {
       firebaseUser = (await signInWithPopup(auth, googleProvider)).user;
     }
     if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
-    await upsertProfileAndNavigate(firebaseUser);
-    showToast('구글 로그인 성공!', 'success');
+    const { isExisting, nickname } = await upsertProfileAndNavigate(firebaseUser);
+    showToast(isExisting ? `${nickname}님으로 로그인` : '구글 로그인 성공!', 'success');
   } catch (err) {
     const msg = (err.message || '').toLowerCase();
     console.error('[GoogleSignIn] 실패:', err.message, err.code);
@@ -141,8 +157,8 @@ async function handleAppleSignIn() {
       firebaseUser = (await signInWithPopup(auth, appleProvider)).user;
     }
     if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
-    await upsertProfileAndNavigate(firebaseUser);
-    showToast('Apple 로그인 성공!', 'success');
+    const { isExisting, nickname } = await upsertProfileAndNavigate(firebaseUser);
+    showToast(isExisting ? `${nickname}님으로 로그인` : 'Apple 로그인 성공!', 'success');
   } catch (err) {
     showToast(err.message || 'Apple 로그인 실패', 'error');
   }
@@ -252,22 +268,24 @@ export function renderLogin() {
         const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
         const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
         
+        let profileData = null;
         if (db) {
           const profileRef = doc(db, 'profiles', firebaseUser.uid);
           const profileSnap = await getDoc(profileRef);
-          let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
-          
+          profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
+
           if (isAdmin && profileData.role !== 'editor') {
             profileData.role = 'editor';
             await setDoc(profileRef, profileData, { merge: true });
           } else if (!profileSnap.exists()) {
             await setDoc(profileRef, profileData);
           }
-          
+
           setState('profile', profileData);
         }
 
-        showToast('로그인 성공!', 'success');
+        const nickname = resolveNickname(profileData, firebaseUser);
+        showToast(`${nickname}님으로 로그인`, 'success');
         document.getElementById('bottom-nav').style.display = 'flex';
         navigate('/editorstory');
       } catch (err) {

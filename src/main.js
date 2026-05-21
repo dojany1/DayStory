@@ -34,9 +34,16 @@ import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath 
 import { getState, setState, applyTheme } from './js/state.js';
 import { initI18n } from './js/i18n/index.js';
 import { auth, db } from './js/firebase.js';
+import pkg from '../package.json';
 
 /* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
 initI18n();
+
+/* 스플래시 화면 하단에 현재 빌드 버전 표시 — 사라지기 전 사용자에게 노출 */
+{
+  const versionEl = document.getElementById('splash-version');
+  if (versionEl) versionEl.textContent = `DayStory v${pkg.version}`;
+}
 
 /*
  * Firebase Auth 함수 임포트
@@ -358,10 +365,10 @@ if (Capacitor.isNativePlatform()) {
    라우팅 뎁스(Depth) 구조:
      Depth 0 : /editorstory   (에디터 일화 — 최상위, 2회 터치 시 앱 종료)
      Depth 1 : /login         (로그인 → 홈으로)
-     Depth 1 : /archive       (북마크 탭 → 홈으로)
+     Depth 1 : /bookmarks     (북마크 탭 → 홈으로)
      Depth 1 : /search        (검색 탭 → 홈으로)
      Depth 1 : /settings      (설정 탭 → 홈으로)
-     Depth 2 : /detail/:id    (카드 정보 → 북마크 탭으로)
+     Depth 2 : /detail/:id    (카드 정보 → history.back, 진입 경로 다양)
      Depth 2 : /report        (신고 → 카드 정보로, history.back 사용)
      Depth 2 : /editor        (콘텐츠 관리 → 설정으로)
      Depth 3 : (에디터 내 새 일화 작성 등은 에디터 내부에서 처리)
@@ -382,10 +389,10 @@ if (Capacitor.isNativePlatform()) {
     '/editorstory': { depth: 0, parent: null },
     '/login':       { depth: 1, parent: '/editorstory' },
     '/mystory':     { depth: 1, parent: '/editorstory' },
-    '/archive':     { depth: 1, parent: '/editorstory' },
+    '/bookmarks':   { depth: 1, parent: '/editorstory' },
     '/search':      { depth: 1, parent: '/editorstory' },
     '/settings':    { depth: 1, parent: '/editorstory' },
-    '/detail':   { depth: 2, parent: '/archive' },
+    '/detail':   { depth: 2, parent: null },          /* history.back()으로 처리 (홈/검색/북마크 등 다양한 진입 경로) */
     '/report':   { depth: 2, parent: null },       /* history.back()으로 처리 (직전 detail 페이지) */
     '/editor':   { depth: 2, parent: '/settings' },
     '/editor/new': { depth: 3, parent: '/editor' },

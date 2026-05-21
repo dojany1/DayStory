@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.daystory.app-mergeReleaseResources-50:/values-es/values-es.xml",
+            "outputFile": "com.daystory.app-mergeReleaseResources-51:/values-es/values-es.xml",
             "map": [
                 {
                     "source": "/Users/dongjin/.gradle/caches/8.14.3/transforms/d6875487bafce1953eb23daa69f32b4c/transformed/play-services-base-18.0.1/res/values-es/values.xml",

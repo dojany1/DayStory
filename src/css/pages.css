@@ -241,7 +241,6 @@
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   font-weight: 600;
-  padding-top: var(--space-1);
   letter-spacing: 0.08em;
   pointer-events: none;
 }
@@ -857,7 +856,10 @@
 .archive-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .archive-section-label {
@@ -867,14 +869,15 @@
   color: var(--color-text-secondary);
   white-space: nowrap;
   padding: 0 var(--space-2);
-  flex: auto;
-  text-align: center;
+  flex: 0 0 auto;
 }
 
 .archive-section-header .archive-search {
-  flex: 0 0 70%;
+  flex: 1 1 auto;
+  min-width: 0;
   margin-bottom: 0;
   padding: var(--space-2) var(--space-3);
+  box-sizing: border-box;
 }
 
 .archive-section-header .archive-search svg {
@@ -884,6 +887,41 @@
 
 .archive-section-header .archive-search input {
   font-size: var(--text-sm);
+}
+
+/* 검색바 우측 X 버튼 (검색어 지우기) */
+.search-bar .search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: var(--color-text-tertiary);
+  color: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.search-bar .search-clear[hidden] {
+  display: none;
+}
+
+.search-bar .search-clear:hover,
+.search-bar .search-clear:focus-visible {
+  opacity: 0.85;
+  outline: none;
+}
+
+.search-bar .search-clear svg {
+  width: 12px;
+  height: 12px;
+  color: inherit;
+  flex-shrink: 0;
 }
 
 /* 컬렉션 그리드 — 2열 배치 */
@@ -2045,99 +2083,73 @@
 }
 
 /* 프로필 편집 오버레이 (모바일 래퍼 너비에 맞춤) */
+/* 프로필 편집 다이얼로그 — 화면 중앙 배치, 키보드 가림 방지 */
 .profile-edit-overlay {
-  /* 1. Positioning */
   position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   z-index: 9999;
-  /* 2. Box Model */
-  width: 100%;
-  max-width: var(--mobile-max-width);
-  height: 100dvh;
-  /* 3. Typography */
-  /* 4. Visuals */
+  padding: var(--space-4);
   background: var(--color-bg-overlay);
-  /* 5. Misc */
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.18s ease;
   touch-action: none;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
 }
 
 .profile-edit-overlay.visible {
   opacity: 1;
 }
 
-/* 프로필 편집 모달 카드 (하단에서 슬라이드 업) */
+/* 다이얼로그 카드 — 가운데 정렬 + 스케일-인 */
 .profile-edit-modal {
-  /* 1. Positioning */
-  /* 2. Box Model */
   width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  /* 3. Typography */
-  /* 4. Visuals */
+  max-width: 360px;
+  max-height: calc(100dvh - var(--space-8));
   background: var(--color-bg-primary);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  /* 5. Misc */
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px #0000002e;
+  transform: scale(0.96);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .profile-edit-overlay.visible .profile-edit-modal {
-  transform: translateY(0);
+  transform: scale(1);
 }
 
-/* 모달 헤더 */
+/* 헤더: 제목(좌) + 닫기 X(우) */
 .profile-edit-header {
-  /* 1. Positioning */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* 2. Box Model */
-  padding: var(--space-4) var(--space-5);
-  /* 3. Typography */
-  /* 4. Visuals */
+  padding: var(--space-4) var(--space-4) var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--color-divider);
-  /* 5. Misc */
+  flex-shrink: 0;
 }
 
-/* 헤더 타이틀 */
 .profile-edit-title {
-  /* 1. Positioning */
-  /* 2. Box Model */
-  /* 3. Typography */
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--color-text-primary);
-  /* 4. Visuals */
-  /* 5. Misc */
 }
 
-/* 헤더 닫기 버튼 */
 .profile-edit-close {
-  /* 1. Positioning */
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 2. Box Model */
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  /* 3. Typography */
   color: var(--color-text-secondary);
-  /* 4. Visuals */
   background: none;
   border: none;
   border-radius: 50%;
-  /* 5. Misc */
   cursor: pointer;
   transition: background var(--transition-fast);
 }
@@ -2146,22 +2158,47 @@
   background: var(--color-bg-secondary);
 }
 
-/* 헤더 저장 버튼 */
+/* 본문 영역 — 컨텐츠가 길어지면 내부 스크롤 */
+.profile-edit-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+}
+
+/* 하단 액션 영역 — 취소 / 저장 */
+.profile-edit-actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  flex-shrink: 0;
+}
+
+.profile-edit-cancel,
 .profile-edit-save {
-  /* 1. Positioning */
-  /* 2. Box Model */
-  padding: var(--space-2) var(--space-4);
-  /* 3. Typography */
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--color-bg-primary);
-  /* 4. Visuals */
-  background: var(--color-accent);
-  border: none;
-  border-radius: var(--radius-full);
-  /* 5. Misc */
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.profile-edit-cancel {
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.profile-edit-cancel:active {
+  background: var(--color-border);
+}
+
+.profile-edit-save {
+  color: var(--color-bg-primary);
+  background: var(--color-accent);
+  border: 1px solid transparent;
 }
 
 .profile-edit-save:disabled {
@@ -2176,7 +2213,7 @@
   flex-direction: column;
   align-items: center;
   /* 2. Box Model */
-  padding: var(--space-6) 0;
+  padding: var(--space-5) 0 var(--space-4);
   /* 3. Typography */
   /* 4. Visuals */
   /* 5. Misc */
@@ -2233,7 +2270,7 @@
 .profile-edit-field {
   /* 1. Positioning */
   /* 2. Box Model */
-  padding: 0 var(--space-5) var(--space-6);
+  padding: 0 var(--space-5) var(--space-4);
   /* 3. Typography */
   /* 4. Visuals */
   /* 5. Misc */

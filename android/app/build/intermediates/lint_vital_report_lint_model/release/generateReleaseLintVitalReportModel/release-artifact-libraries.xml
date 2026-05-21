@@ -473,6 +473,19 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
+      name="com.google.android.libraries.identity.googleid:googleid:1.1.0@aar"
+      jars="/Users/dongjin/.gradle/caches/8.14.3/transforms/945f1ffc5b842ad286916bb3cee689c8/transformed/googleid-1.1.0/jars/classes.jar"
+      resolved="com.google.android.libraries.identity.googleid:googleid:1.1.0"
+      folder="/Users/dongjin/.gradle/caches/8.14.3/transforms/945f1ffc5b842ad286916bb3cee689c8/transformed/googleid-1.1.0"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
       name="androidx.credentials:credentials:1.2.0-rc01@aar"
       jars="/Users/dongjin/.gradle/caches/8.14.3/transforms/253bc04addb6a116a951d7384e78bbc0/transformed/credentials-1.2.0-rc01/jars/classes.jar"
       resolved="androidx.credentials:credentials:1.2.0-rc01"
@@ -590,10 +603,10 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
-      name="com.google.android.gms:play-services-fido:20.1.0@aar"
-      jars="/Users/dongjin/.gradle/caches/8.14.3/transforms/799c0a86e95d373415b39f324eb568c7/transformed/play-services-fido-20.1.0/jars/classes.jar"
-      resolved="com.google.android.gms:play-services-fido:20.1.0"
-      folder="/Users/dongjin/.gradle/caches/8.14.3/transforms/799c0a86e95d373415b39f324eb568c7/transformed/play-services-fido-20.1.0"
+      name="com.google.android.gms:play-services-auth-base:18.0.4@aar"
+      jars="/Users/dongjin/.gradle/caches/8.14.3/transforms/950d4f3c2dfe73eefa7b4fa6e0b5ace2/transformed/play-services-auth-base-18.0.4/jars/classes.jar"
+      resolved="com.google.android.gms:play-services-auth-base:18.0.4"
+      folder="/Users/dongjin/.gradle/caches/8.14.3/transforms/950d4f3c2dfe73eefa7b4fa6e0b5ace2/transformed/play-services-auth-base-18.0.4"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -603,10 +616,10 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
-      name="com.google.android.gms:play-services-auth-base:18.0.4@aar"
-      jars="/Users/dongjin/.gradle/caches/8.14.3/transforms/950d4f3c2dfe73eefa7b4fa6e0b5ace2/transformed/play-services-auth-base-18.0.4/jars/classes.jar"
-      resolved="com.google.android.gms:play-services-auth-base:18.0.4"
-      folder="/Users/dongjin/.gradle/caches/8.14.3/transforms/950d4f3c2dfe73eefa7b4fa6e0b5ace2/transformed/play-services-auth-base-18.0.4"
+      name="com.google.android.gms:play-services-fido:20.1.0@aar"
+      jars="/Users/dongjin/.gradle/caches/8.14.3/transforms/799c0a86e95d373415b39f324eb568c7/transformed/play-services-fido-20.1.0/jars/classes.jar"
+      resolved="com.google.android.gms:play-services-fido:20.1.0"
+      folder="/Users/dongjin/.gradle/caches/8.14.3/transforms/799c0a86e95d373415b39f324eb568c7/transformed/play-services-fido-20.1.0"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -960,19 +973,6 @@
       name="androidx.constraintlayout:constraintlayout-core:1.1.0@jar"
       jars="/Users/dongjin/.gradle/caches/modules-2/files-2.1/androidx.constraintlayout/constraintlayout-core/1.1.0/e678372aacb0e91f0ed44854a8a413fc93283050/constraintlayout-core-1.1.0.jar"
       resolved="androidx.constraintlayout:constraintlayout-core:1.1.0"/>
-  <library
-      name="com.google.android.libraries.identity.googleid:googleid:1.1.0@aar"
-      jars="/Users/dongjin/.gradle/caches/8.14.3/transforms/945f1ffc5b842ad286916bb3cee689c8/transformed/googleid-1.1.0/jars/classes.jar"
-      resolved="com.google.android.libraries.identity.googleid:googleid:1.1.0"
-      folder="/Users/dongjin/.gradle/caches/8.14.3/transforms/945f1ffc5b842ad286916bb3cee689c8/transformed/googleid-1.1.0"
-      manifest="AndroidManifest.xml"
-      resFolder="res"
-      assetsFolder="assets"
-      lintJar="lint.jar"
-      publicResources="public.txt"
-      symbolFile="R.txt"
-      externalAnnotations="annotations.zip"
-      proguardRules="proguard.txt"/>
   <library
       name="org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22@jar"
       jars="/Users/dongjin/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/1.8.22/b25c86d47d6b962b9cf0f8c3f320c8a10eea3dd1/kotlin-stdlib-jdk8-1.8.22.jar"

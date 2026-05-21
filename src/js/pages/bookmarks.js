@@ -28,6 +28,11 @@ export function renderArchiveSection() {
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
+          <button type="button" class="search-clear" id="collection-search-clear" aria-label="${t('common.clear')}" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
+            </svg>
+          </button>
         </div>
       </div>
       <div id="archive-content" class="archive-content-loading">
@@ -56,6 +61,11 @@ export function renderBookmarks() {
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
         <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
+        <button type="button" class="search-clear" id="collection-search-clear" aria-label="${t('common.clear')}" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </button>
       </div>
     </div>
     <div id="archive-content" class="archive-content-loading">
@@ -90,17 +100,35 @@ async function loadCollection(page) {
           (story.summary || '').toLowerCase().includes(state.queryStr)
         )
       : state.bookmarks;
-    renderStories(contentEl, list, 'bookmarks', (story) => onCardClick(state, story));
+    renderStories(contentEl, list, 'bookmarks', (story) => onCardClick(state, story), {
+      searching: Boolean(state.queryStr),
+    });
   };
 
   filterAndRender();
 
   /* 검색 */
   const searchInput = page.querySelector('#collection-search-input');
+  const searchClearBtn = page.querySelector('#collection-search-clear');
+  const syncClearBtn = () => {
+    if (!searchClearBtn) return;
+    searchClearBtn.hidden = !searchInput.value;
+  };
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       state.queryStr = e.target.value.trim().toLowerCase();
+      syncClearBtn();
       filterAndRender();
+    });
+  }
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', () => {
+      if (!searchInput) return;
+      searchInput.value = '';
+      state.queryStr = '';
+      syncClearBtn();
+      filterAndRender();
+      searchInput.focus();
     });
   }
 
@@ -132,19 +160,21 @@ async function removeCard(state, story) {
 }
 
 
-function renderStories(contentEl, list, tab, onClick) {
+function renderStories(contentEl, list, tab, onClick, opts = {}) {
   if (!list.length) {
     contentEl.className = '';
     contentEl.style.display = 'flex';
     contentEl.style.padding = '';
+    const title = opts.searching
+      ? t('bookmarks.empty_search')
+      : (tab === 'received' ? t('bookmarks.empty_received') : t('bookmarks.empty_mine'));
+    const desc = !opts.searching && tab === 'received'
+      ? `<div class="empty-state-desc">${t('bookmarks.empty_received_desc')}</div>`
+      : '';
     contentEl.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-title">${
-          tab === 'received' ? t('bookmarks.empty_received') : t('bookmarks.empty_mine')
-        }</div>
-        ${tab === 'received'
-          ? `<div class="empty-state-desc">${t('bookmarks.empty_received_desc')}</div>`
-          : ''}
+        <div class="empty-state-title">${title}</div>
+        ${desc}
       </div>
     `;
     return;

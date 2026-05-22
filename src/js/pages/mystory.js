@@ -13,6 +13,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { isFirebaseStorageUrl } from '../utils/storage.js';
 import { auth, storage } from '../firebase.js';
 import { ref as fsRef, getBlob } from 'firebase/storage';
 import { shareStory } from '../services/sharing.js';
@@ -938,9 +939,7 @@ export function renderMyStoryNew() {
     async function openCropModal(imageSrc, isCrossOrigin = false, callbackBlobFile) {
       let localSrc = imageSrc;
       if (isCrossOrigin) {
-        const isFirebaseUrl = imageSrc.includes('firebasestorage.googleapis.com')
-                           || imageSrc.includes('.firebasestorage.app');
-        if (!isFirebaseUrl) {
+        if (!isFirebaseStorageUrl(imageSrc)) {
           showToast('외부 이미지는 편집할 수 없습니다.\n[사진 추가]로 새 이미지를 업로드해주세요.', 'error');
           return;
         }

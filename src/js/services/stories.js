@@ -15,19 +15,8 @@
 import { db, storage, auth } from '../firebase.js';
 import { DEMO_STORIES } from '../data/demo.js';
 import { getLocalToday } from '../utils/date.js';
-
-/* Wave 4 — Firebase Storage URL host 파싱 (includes() 위양성 회피).
- * Wave 5에서 utils/storage.js 로 추출 예정. */
-function isFirebaseStorageUrl(url) {
-  if (!url || typeof url !== 'string') return false;
-  try {
-    const u = new URL(url);
-    return u.hostname === 'firebasestorage.googleapis.com'
-        || u.hostname.endsWith('.firebasestorage.app');
-  } catch {
-    return false;
-  }
-}
+import { withTimeout } from '../utils/timeout.js';
+import { isFirebaseStorageUrl } from '../utils/storage.js';
 
 /*
  * Firestore 함수 임포트
@@ -78,15 +67,7 @@ function fallbackToDemo(dbData) {
   return dbData && dbData.length > 0 ? dbData : DEMO_STORIES;
 }
 
-/**
- * withTimeout — 서버 요청에 시간 제한을 겁니다 (무한 로딩 방지)
- */
-function withTimeout(promise, ms = 5000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('시간 초과')), ms))
-  ]);
-}
+/* withTimeout 은 ../utils/timeout.js 에서 import (Wave 5 추출) */
 
 /**
  * docToData — Firestore 문서를 일반 JS 객체로 변환합니다

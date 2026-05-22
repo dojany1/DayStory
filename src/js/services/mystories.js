@@ -7,20 +7,8 @@
 import { db, storage } from '../firebase.js';
 import { collection, doc, query, where, orderBy, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
-
-/* Wave 4 — Firebase Storage URL 식별을 URL 객체 host 파싱으로 강화.
- * 기존 includes('firebasestorage') 는 attacker.com/firebasestorage/x.jpg 같은
- * 외부 URL 을 위양성(false positive) 으로 잡았다. */
-function isFirebaseStorageUrl(url) {
-  if (!url || typeof url !== 'string') return false;
-  try {
-    const u = new URL(url);
-    return u.hostname === 'firebasestorage.googleapis.com'
-        || u.hostname.endsWith('.firebasestorage.app');
-  } catch {
-    return false;
-  }
-}
+import { withTimeout } from '../utils/timeout.js';
+import { isFirebaseStorageUrl } from '../utils/storage.js';
 
 export async function fetchMyStories(uid) {
   if (!db) return [];
@@ -33,10 +21,7 @@ export async function fetchMyStories(uid) {
       orderBy('publish_date', 'desc'),
       orderBy('created_at', 'desc')
     );
-    const snap = await Promise.race([
-      getDocs(q),
-      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000))
-    ]);
+    const snap = await withTimeout(getDocs(q), 5000);
     const results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     return results;
   } catch (err) {

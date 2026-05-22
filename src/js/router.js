@@ -289,13 +289,14 @@ function updateNav(path) {
   });
 }
 
+/* Wave 5: utils/date.js 의 getLocalToday() 로 날짜 문자열은 위임하고
+ * month/day 만 router 내부에서 분해해 사용. */
+import { getLocalToday } from './utils/date.js';
+
 function getLocalTodaySelection() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth() + 1;
-  const day = today.getDate();
-  const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  return { month, day, date };
+  const date = getLocalToday();                       /* 'YYYY-MM-DD' */
+  const [year, mm, dd] = date.split('-').map(Number);
+  return { month: mm, day: dd, date };
 }
 
 

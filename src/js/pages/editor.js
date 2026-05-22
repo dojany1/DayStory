@@ -28,6 +28,7 @@ import {
 import { uploadImage } from '../services/images.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { auth } from '../firebase.js';
+import { isFirebaseStorageUrl } from '../utils/storage.js';
 
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -535,9 +536,7 @@ export function renderEditorNew() {
          Firebase Storage URL만 지원하며, 외부 이미지(Pinterest 등)는 CORS 제한으로 편집 불가. */
       let localSrc = imageSrc;
       if (isCrossOrigin) {
-        const isFirebaseUrl = imageSrc.includes('firebasestorage.googleapis.com')
-                           || imageSrc.includes('.firebasestorage.app');
-        if (!isFirebaseUrl) {
+        if (!isFirebaseStorageUrl(imageSrc)) {
           showToast('외부 이미지는 편집할 수 없습니다.\n[사진 추가]로 새 이미지를 업로드해주세요.', 'error');
           return;
         }

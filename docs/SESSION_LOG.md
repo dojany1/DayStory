@@ -272,3 +272,54 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: `src/js/router.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/js/services/mystories.js`, `src/js/services/bookmarks.js`, `src/js/services/stories.js`, `src/js/utils/sanitize.js`, `firestore.rules`(신규), `storage.rules`(신규), `firebase.json`, `tests/router_unmount.spec.js`(신규), `tests/sanitize.spec.js`(신규), `tests/bookmarks_double_tap.spec.js`(신규), `tests/mystories_uid_guard.spec.js`(신규), `tests/mystory_card_meta.ui.spec.js`, `tests/regression.bugs.spec.js`, `tests/editorstory.ui.spec.js`, `docs/SESSION_LOG.md`.
 - 검증: Wave 3 baseline 27 failed / 126 passed → Wave 4 후 27 failed / 154 passed. **회귀 0건, 새 spec 28/28 통과**(누적 +56). 첫 실행 시 mock 누락으로 5건 회귀(32 failed) 발생했으나 mock 갱신으로 해결. 27개 기존 실패는 모두 사전 존재.
 - 후속(사용자): ① **Firebase Console 에서 `firebase deploy --only firestore:rules,storage` 실행 필요** (없으면 audit P0 클라이언트 admin 부여 위험 그대로). ② SPA 메모리 누수 회복 수동 확인 — Chrome DevTools Performance > Memory 에서 editorstory ↔ mystory ↔ settings 페이지 왕복 30회 후 detached DOM 노드 누적이 더 이상 안 늘어나는지. ③ 북마크 더블탭 — `/detail/:id` 페이지에서 북마크 아이콘 0.3초 이내 연속 2회 탭 시 Firestore 에 문서 1개만 생성되는지 (콘솔에서 확인).
+
+### v1.4.0 패치 Wave 5 — 안전한 리팩토링 (중복 제거)
+
+- 요구사항: audit §6 의 🔴 큰 가치 중복 4건을 동작 변화 없이 정리. `withTimeout` (3벌) / Firebase Storage URL 식별 (4벌) / `escapeText` (3벌) / `router.getLocalTodaySelection` 의 `utils/date.js` 미사용.
+- 구현방법:
+  - **신설 `src/js/utils/timeout.js`** — `withTimeout(promise, ms=5000, message='시간 초과')`. 메시지 옵션 추가로 호출부별 다른 에러 메시지 지원.
+  - **신설 `src/js/utils/storage.js`** — `isFirebaseStorageUrl(url)`. `URL` 객체 host 파싱(`firebasestorage.googleapis.com` 또는 `*.firebasestorage.app` 끝 매칭). 이전 `includes()` 위양성(`attacker.com/firebasestorage/x.jpg`) 차단.
+  - **호출처 교체**:
+    - `src/js/services/stories.js` — 인라인 `withTimeout` + Wave 4 인라인 `isFirebaseStorageUrl` 삭제, 양쪽 utils import.
+    - `src/js/services/mystories.js` — 직접 `Promise.race` 패턴 → `withTimeout` 사용. 인라인 `isFirebaseStorageUrl` 삭제 후 utils import. **주의**: 기존 reject 메시지가 `Error('timeout')` 소문자였지만, 호출부 catch 가 메시지를 분기 조건으로 쓰지 않고 단순히 `console.warn` 후 빈 배열 반환하는 구조라 메시지 변경 영향 없음 확인.
+    - `src/js/services/bookmarks.js` — `withTimeout` 을 utils 래핑으로 변경하되 한국어 안내 메시지(`네트워크 환경이 불안정하여...`) 유지. UI 토스트로 그대로 노출되는 메시지라 보존.
+    - `src/js/pages/editor.js`, `src/js/pages/mystory.js` — 각각 `imageSrc.includes('firebasestorage...') || ...` 2벌을 `isFirebaseStorageUrl(imageSrc)` 단일 호출로 교체.
+  - **`escapeText` 통합**:
+    - `src/js/components/confirmDialog.js`, `src/js/components/settingsSections.js` — 동일 구현 8줄짜리 사설 `escapeText` 함수 삭제. `import { escapeHtml } from '../utils/sanitize.js'` 후 `const escapeText = escapeHtml;` alias 1줄로 호출부 변경 최소화.
+  - **`router.getLocalTodaySelection`**:
+    - `src/js/router.js` — `new Date()` 직접 분해하던 6줄을 `import { getLocalToday }` + `date.split('-').map(Number)` 분해로 단순화. 유틸 함수 자체는 변경 없음(`{month, day, date}` 반환 형태는 router 내부에서만 쓰이므로 유틸 인터페이스 변경 불필요).
+  - **TDD specs 신설**:
+    - `tests/timeout.utils.spec.js` — resolve/reject 정상 전파, 타임아웃, 커스텀 메시지 4 케이스.
+    - `tests/storage.utils.spec.js` — Firebase 정상 호스트 3종, 외부/위양성/null/숫자 9종 거부 = 12 케이스.
+- 변경파일: `src/js/utils/timeout.js`(신규), `src/js/utils/storage.js`(신규), `src/js/services/stories.js`, `src/js/services/mystories.js`, `src/js/services/bookmarks.js`, `src/js/pages/editor.js`, `src/js/pages/mystory.js`, `src/js/components/confirmDialog.js`, `src/js/components/settingsSections.js`, `src/js/router.js`, `tests/timeout.utils.spec.js`(신규), `tests/storage.utils.spec.js`(신규).
+- 검증: Wave 4 baseline 27 failed / 154 passed → Wave 5 후 27 failed / 170 passed. **회귀 0건, 새 spec 16/16 통과**(누적 +72).
+- 후속: 휠 피커 공통화는 plan 명시대로 손대지 않음(클로저 의존성 깊음, E2E 테스트 선행 필요).
+
+### v1.4.0 패치 Wave 6 — 카카오톡 공유 SDK (한국 시장 바이럴 루프)
+
+- 요구사항: 카카오 JavaScript SDK 를 동적 로드해 `shareToKakao(story)` 함수 제공. `VITE_KAKAO_APP_KEY` 환경 변수가 없으면 일반 공유로 graceful fallback. 코치마크는 사용자 결정으로 제외됨.
+- 구현방법:
+  - **`src/js/services/sharing.js`** 에 `shareToKakao(story)` + 내부 `loadKakaoSdk()` 동적 로더 추가:
+    - 첫 호출 시에만 `<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" async crossorigin>` 을 `document.head` 에 동적 삽입. 초기 번들 부담 0.
+    - `import.meta.env.VITE_KAKAO_APP_KEY` 가 비어 있거나 SDK 로드 실패 시 `shareStory()` 폴백 → 호출부는 항상 `{ok, via}` 반환받음.
+    - `Kakao.Share.sendDefault({ objectType:'feed', content:{title, description, imageUrl, link}, buttons:[{title:'앱에서 보기', link}] })` 호출. 카카오톡 미설치/팝업 차단 시 카카오 SDK 자체 폴백 UI가 사용자에게 표시됨.
+    - `kakaoLoadPromise` 모듈 스코프 캐시 — 중복 SDK 로드 방지.
+  - **신설 `.env.example`** — 카카오 콘솔 가이드(앱 생성 → 웹 플랫폼 도메인 등록 → JavaScript 키 복사) + Firebase env 주석 포함.
+  - **TDD spec** `tests/sharing_kakao.spec.js` — 3 케이스: ① 키 없음 → fallback. ② Kakao 글로벌 mock 시 sendDefault 호출 가능성. ③ SDK 로드 실패 → fallback. jsdom 에서 외부 CDN 실제 로드 안 되므로 fallback 경로가 기본 검증 대상.
+  - **호출처 통합은 다음 패치로 보류** — 사용자가 카카오 콘솔에서 앱 등록 + 키 발급 + `.env` 주입 완료 후, 페이지(`detail.js`/`editorstory.js`)에 카카오 공유 버튼을 시각적으로 노출할 시점에 별도 진행. 현재는 인프라만 준비.
+- 변경파일: `src/js/services/sharing.js`, `.env.example`(신규), `tests/sharing_kakao.spec.js`(신규).
+- 검증: Wave 5 baseline 27 failed / 170 passed → Wave 6 후 27 failed / 173 passed. **회귀 0건, 새 spec 3/3 통과**(누적 +75). `npm run build` 526ms 성공, `dist/` 정상 생성. 안드로이드 영향 변경 없음(SDK 는 동적 로드라 `capacitor.config.json` 무관) → `npx cap sync android` 불필요.
+- 후속(사용자): ① **카카오 개발자 콘솔에서 앱 등록 + 사이트 도메인(예: https://daystory.app) 등록 + JavaScript 키 발급**, ② 발급받은 키를 `.env` 의 `VITE_KAKAO_APP_KEY=...` 에 주입, ③ `npm run dev` 또는 빌드 후 실제 디바이스(카카오톡 앱 설치된)에서 `shareToKakao(story)` 수동 호출 테스트, ④ 그 후 페이지 UI 에 카카오 공유 버튼 노출 시점 결정 (다음 패치 후보).
+
+---
+
+## v1.4.0 패치 사이클 종합 (Wave 1~6 누적)
+
+- **새 spec 75개 추가, 회귀 0건** (Wave 0 baseline 98 passed → 173 passed). 27개 기존 실패는 모두 v1.3.5 출시 시점 사전 존재(위젯 XML/nav-icon size 등).
+- **신설 파일 15개**: tests 9 (notifications_default / auth_gate / css_tokens / router_unmount / sanitize / bookmarks_double_tap / mystories_uid_guard / timeout.utils / storage.utils / sharing_kakao) + src 4 (utils/timeout / utils/storage) + rules 2 (firestore.rules / storage.rules) + 1 (.env.example).
+- **삭제**: `src/js/pages/donate.js` (audit P0 사기 안내 제거).
+- **사용자 액션 필수**:
+  1. `firebase deploy --only firestore:rules,storage` 실행 — audit P0 admin 권한 탈취 차단.
+  2. 카카오 콘솔에서 JS 키 발급 후 `.env` 주입 — Wave 6 활성화.
+  3. 수동 QA — 비로그인 → 자동 `/login`, 라이트/다크/폰트 크기 토글, `prefers-reduced-motion` ON 시 애니메이션 무력화, 메모리 누수 회복.
+- **다음 패치 후보(v1.5)**: 카카오 공유 버튼을 페이지 UI에 노출 / `autoPublishScheduled` Cloud Function 이전 / 컬렉션 Firestore 동기화 / 햅틱(`@capacitor/haptics`) 도입 / 휠 피커 공통화(E2E 선행 후).

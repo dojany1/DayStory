@@ -18,17 +18,16 @@ import {
   collection, doc, query, where, orderBy,
   getDocs, getDoc, addDoc, deleteDoc
 } from 'firebase/firestore';
+import { withTimeout as withTimeoutBase } from '../utils/timeout.js';
 
 
 /* ─────────────────────────────────────────────
-   섹션 1: 타임아웃 헬퍼 함수
-   ───────────────────────────────────────────── */
-
-async function withTimeout(promise, ms = 8000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('네트워크 환경이 불안정하여 서버 응답이 지연되었습니다.')), ms))
-  ]);
+   섹션 1: 타임아웃 헬퍼 (Wave 5: utils/timeout.js 사용)
+   ─────────────────────────────────────────────
+   bookmarks 는 8초 + 한국어 안내 메시지로 호출 — 호출부 catch 가
+   사용자에게 그대로 노출되는 경우가 있어 메시지를 유지. */
+function withTimeout(promise, ms = 8000) {
+  return withTimeoutBase(promise, ms, '네트워크 환경이 불안정하여 서버 응답이 지연되었습니다.');
 }
 
 /* Wave 4 — 빠른 더블탭 잠금: 같은 storyId 에 대한 동시 토글을 막아

@@ -5,7 +5,11 @@ import { showConfirm } from './confirmDialog.js';
 import { bindNotificationSettingsSection, renderNotificationListItem } from './notificationSettingsSheet.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
+import { escapeHtml } from '../utils/sanitize.js';
 import { auth } from '../firebase.js';
+
+/* escapeText 는 escapeHtml alias (Wave 5 통합) */
+const escapeText = escapeHtml;
 import { signOut, deleteUser } from 'firebase/auth';
 import {
   purgeStorageUserData,
@@ -112,15 +116,7 @@ export function bindSettingsSections(page) {
   bindRow(page, '#setting-withdraw', handleWithdraw);
 }
 
-function escapeText(text) {
-  if (text == null) return '';
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
+/* escapeText 내부 구현은 utils/sanitize.js 의 escapeHtml 로 통일 (Wave 5) */
 
 function renderThemeOption(theme, label, currentTheme, icon) {
   return `

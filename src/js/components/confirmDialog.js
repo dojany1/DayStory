@@ -6,6 +6,10 @@
    ===================================================================== */
 
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
+import { escapeHtml } from '../utils/sanitize.js';
+
+/* escapeText 는 escapeHtml 의 alias — 호출부 변경 최소화 (Wave 5 통합) */
+const escapeText = escapeHtml;
 
 /**
  * showConfirm — 확인/취소 다이얼로그를 띄우고 사용자의 선택을 Promise로 반환합니다
@@ -163,12 +167,4 @@ export function showConfirm({
   });
 }
 
-function escapeText(text) {
-  if (text == null) return '';
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
+/* escapeText 내부 구현은 utils/sanitize.js 의 escapeHtml 로 통일 (Wave 5) */

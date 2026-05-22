@@ -6,6 +6,7 @@
    Cloud Functions(/share/:id) 의 동적 Open Graph HTML이 담당합니다.
 
    - shareStory(story, options) : 통합 공유 함수
+   - shareToKakao(story)        : 카카오톡 전용 공유 (Wave 6, .env: VITE_KAKAO_APP_KEY)
    - buildShareUrl(storyId)     : 공식 공유 URL 생성
    ===================================================================== */
 
@@ -85,5 +86,104 @@ export async function shareStory(story, options = {}) {
     return { ok: true, withImage: false };
   } catch {
     return { ok: false, withImage: false };
+  }
+}
+
+
+/* =====================================================================
+   Wave 6: 카카오톡 공유 (한국 시장 바이럴 루프)
+   =====================================================================
+   `VITE_KAKAO_APP_KEY` 환경 변수가 있을 때만 동작. 키가 없으면
+   조용히 일반 shareStory() 로 폴백한다. SDK 는 첫 호출 시 동적 로드
+   (초기 번들 부담 0). 카카오 콘솔에서 앱 등록 + JS 키 발급 후
+   `.env` 의 `VITE_KAKAO_APP_KEY=...` 에 주입.
+   ===================================================================== */
+
+const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js';
+let kakaoLoadPromise = null;
+
+/**
+ * loadKakaoSdk — 카카오 JS SDK 를 동적으로 로드 (최초 1회만).
+ * @returns {Promise<object>} window.Kakao 또는 reject
+ */
+function loadKakaoSdk() {
+  if (typeof window === 'undefined') return Promise.reject(new Error('Kakao SDK: no window'));
+  if (window.Kakao) return Promise.resolve(window.Kakao);
+  if (kakaoLoadPromise) return kakaoLoadPromise;
+
+  kakaoLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = KAKAO_SDK_URL;
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.onload = () => {
+      if (window.Kakao) resolve(window.Kakao);
+      else reject(new Error('Kakao SDK load: global missing'));
+    };
+    script.onerror = () => {
+      kakaoLoadPromise = null;  /* 재시도 가능하게 */
+      reject(new Error('Kakao SDK load: network'));
+    };
+    document.head.appendChild(script);
+  });
+  return kakaoLoadPromise;
+}
+
+/**
+ * shareToKakao — 카카오톡으로 카드 공유.
+ *
+ * 동작 순서:
+ *   1) VITE_KAKAO_APP_KEY 없음 → shareStory() 폴백.
+ *   2) SDK 로드 실패 → shareStory() 폴백.
+ *   3) Kakao.Share.sendDefault 호출. 카카오톡 미설치/팝업 차단 시 카카오가 자체 폴백 UI 표시.
+ *
+ * @param {object} story  - { id, figure_name, title, summary, image_url, ... }
+ * @returns {Promise<{ok:boolean, via:'kakao'|'fallback'}>}
+ */
+export async function shareToKakao(story) {
+  const appKey = import.meta.env?.VITE_KAKAO_APP_KEY;
+  if (!appKey) {
+    /* 키 없음 — 조용히 일반 공유로 폴백. 개발 환경에서 흔한 케이스. */
+    const result = await shareStory(story);
+    return { ok: result.ok, via: 'fallback' };
+  }
+
+  let Kakao;
+  try {
+    Kakao = await loadKakaoSdk();
+  } catch {
+    const result = await shareStory(story);
+    return { ok: result.ok, via: 'fallback' };
+  }
+
+  if (!Kakao.isInitialized || !Kakao.isInitialized()) {
+    try { Kakao.init(appKey); } catch { /* 이미 init 됐으면 무시 */ }
+  }
+
+  const title = story.figure_name || story.title || 'DayStory';
+  const description = (story.summary || story.body || '').toString().slice(0, 200);
+  const imageUrl = story.image_url || '';
+  const link = story.id ? buildShareUrl(story.id) : SHARE_DOMAIN;
+
+  try {
+    Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title,
+        description,
+        imageUrl,
+        link: { mobileWebUrl: link, webUrl: link },
+      },
+      buttons: [
+        {
+          title: '앱에서 보기',
+          link: { mobileWebUrl: link, webUrl: link },
+        },
+      ],
+    });
+    return { ok: true, via: 'kakao' };
+  } catch {
+    const result = await shareStory(story);
+    return { ok: result.ok, via: 'fallback' };
   }
 }

@@ -75,13 +75,13 @@ async function loadCalendar(page) {
     bookmarkedIds: [],
   };
 
-  const user = getState('user') || { id: 'guest' };
-  const uid = auth?.currentUser?.uid || user.id;
+  const user = getState('user');
+  const uid = auth?.currentUser?.uid || user?.id;
 
   try {
     const [historyStories, myStories, bookmarkedIds] = await Promise.all([
       fetchStories().catch(() => []),
-      uid && uid !== 'guest' ? fetchMyStories(uid).catch(() => []) : Promise.resolve([]),
+      uid ? fetchMyStories(uid).catch(() => []) : Promise.resolve([]),
       getBookmarkedStoryIds().catch(() => []),
     ]);
     state.historyStories = historyStories || [];
@@ -461,13 +461,6 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     if (shareBtn) {
       shareBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const user = getState('user');
-        if (user && user.id === 'guest') {
-          showToast(t('toast.login_required'), 'info');
-          close();
-          navigate('/login');
-          return;
-        }
         await shareStory(story, { kind: 'history' });
       });
     }
@@ -475,13 +468,6 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     if (bookmarkBtn) {
       bookmarkBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const user = getState('user');
-        if (user && user.id === 'guest') {
-          showToast(t('toast.login_required'), 'info');
-          close();
-          navigate('/login');
-          return;
-        }
         const res = await toggleBookmark(story.id);
         if (res.error) {
           showToast(res.error, 'error');

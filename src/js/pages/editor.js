@@ -674,7 +674,12 @@ export function renderEditorNew() {
         STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
         
         blob.name = fallbackName;
-        const uploadUid = auth?.currentUser?.uid || getState('user')?.id || 'guest';
+        const uploadUid = auth?.currentUser?.uid || getState('user')?.id;
+        if (!uploadUid) {
+          STATUS_EL.style.color = 'var(--color-error)';
+          STATUS_EL.textContent = '로그인이 필요합니다.';
+          return;
+        }
         const { image_url } = await uploadImage(blob, { uid: uploadUid, folder: 'editor_images' });
         const image_thumb_url = '';
 

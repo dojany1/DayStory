@@ -67,7 +67,7 @@ export function renderSettingsSections() {
       })}
     </div>
 
-    ${user && user.id !== 'guest' ? `
+    ${user ? `
     <div class="settings-section">
       ${renderSettingsRow({
         id: 'setting-logout',

@@ -5,7 +5,7 @@
    역할:
      1) CSS 스타일 파일들을 불러옵니다 (import)
      2) 각 페이지를 URL 경로에 연결합니다 (라우터 등록)
-     3) 로그인 없이 게스트로 바로 접속할 수 있게 설정합니다
+     3) 비로그인 사용자는 /login 으로 강제 이동 (v1.4.0 이후 게스트 모드 제거)
      4) 스플래시 화면(로딩 화면)을 보여준 뒤 앱을 시작합니다
    ===================================================================== */
 
@@ -116,27 +116,30 @@ registerRoute('/about', () => import('./js/pages/about.js').then(m => m.renderAb
 /* ─────────────────────────────────────────────
    섹션 5: 페이지 이동 전 실행되는 가드(Guard)
    ─────────────────────────────────────────────
-   현재는 로그인을 비활성화하고 게스트 모드로 동작합니다.
+   v1.4.0 이후: 로그인 필수 강제. 비로그인 사용자는 /login 으로 보냄.
+   PUBLIC_ROUTES 만 비로그인 상태에서 접근 가능.
 */
 const PUBLIC_ROUTES = ['/login', '/signup'];
 
 setBeforeNavigate((path) => {
-  /* 게스트 유저 자동 설정: 로그인한 유저가 없으면 게스트로 만듦 */
-  let user = getState('user');
-  if (!user) {
-    user = { id: 'guest', role: 'guest' };
-    setState('user', user);
-  }
+  const user = getState('user');
+  const isAuthed = !!(user && user.id);
 
   /* 하단 내비게이션 바 표시/숨김 제어 */
   const nav = document.getElementById('bottom-nav');
   if (nav) {
-    const shouldHideNav = path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings' || path === '/about' || path === '/mystory/new';
+    const shouldHideNav = !isAuthed || path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings' || path === '/about' || path === '/mystory/new';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
   }
 
+  /* 비로그인 사용자가 공개 경로 외 접근 시 → /login 강제 */
+  if (!isAuthed && !PUBLIC_ROUTES.includes(path)) {
+    navigate('/login');
+    return false;
+  }
+
   /* 이미 로그인한 유저가 로그인/회원가입 페이지 접근 시 홈으로 리다이렉트 */
-  if ((path === '/login' || path === '/signup') && user && user.id !== 'guest') {
+  if (isAuthed && PUBLIC_ROUTES.includes(path)) {
     navigate('/editorstory');
     return false;
   }
@@ -279,14 +282,19 @@ if (auth) {
         }
 
       } else {
-        /* 로그아웃 상태: 게스트로 전환 */
-        setState('user', { id: 'guest', role: 'guest' });
+        /* 로그아웃 상태: user/profile 클리어 후 /login 으로 강제 이동.
+           가드(setBeforeNavigate)에서도 한 번 더 막지만, 인증 상태 변경 직후
+           바로 /login 으로 보내야 빈 화면이 노출되지 않는다. */
+        setState('user', null);
         setState('profile', null);
 
-        /* 
-         * 로그인 페이지 접근을 방해하지 않도록
-         * 이전처럼 무조건 navigate('/editorstory')를 하지 않습니다.
-         */
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.style.display = 'none';
+
+        const currentHash = window.location.hash;
+        if (currentHash !== '#/login' && currentHash !== '#/signup') {
+          navigate('/login');
+        }
       }
     } catch (err) {
       console.warn('인증 상태 변경 중 오류:', err);
@@ -310,9 +318,9 @@ async function initApp() {
   /* 2) DOM 트리가 모두 로드되었음을 표시 */
   isDomReady = true;
 
-  /* 3) Firebase가 설정되지 않은 경우 게스트 모드 적용 및 즉시 준비 완료 표시 */
+  /* 3) Firebase가 설정되지 않은 경우 — 로그인 자체 불가. user는 null 유지, /login 가드가 처리 */
   if (!auth) {
-    setState('user', { id: 'guest', role: 'guest' });
+    setState('user', null);
     isAuthReady = true;
   }
   
@@ -351,12 +359,7 @@ if (Capacitor.isNativePlatform()) {
     .then((launch) => queueOrRouteWidgetDeepLink(launch?.url))
     .catch((err) => console.warn('위젯 딥링크 확인 실패:', err));
 
-  /* foreground 복귀 시 구독 상태 재동기화 (다른 기기에서 취소했을 가능성 등) */
-  App.addListener('appStateChange', ({ isActive }) => {
-    if (isActive) {
-      syncSubscriptionState().catch(() => {});
-    }
-  });
+  /* (v1.4.0 정리) RevenueCat 미연결로 syncSubscriptionState 호출 제거 — ReferenceError 잔존 방지 */
 }
 
 /* ─────────────────────────────────────────────

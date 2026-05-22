@@ -7,8 +7,9 @@ function makeStorageSafeName(name = 'daystory-image') {
   return String(name).replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'daystory-image';
 }
 
-export async function uploadImage(file, { uid = 'guest', folder = 'editor_images' } = {}) {
+export async function uploadImage(file, { uid, folder = 'editor_images' } = {}) {
   if (!storage) throw new Error('Firebase Storage missing');
+  if (!uid) throw new Error('uploadImage: uid is required (login enforced)');
   const safeName = makeStorageSafeName(file?.name || 'daystory-image');
   const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${safeName}`;
   const storageRef = ref(storage, `users/${uid}/${folder}/${fileName}`);

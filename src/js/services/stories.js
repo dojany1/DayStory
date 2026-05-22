@@ -380,8 +380,9 @@ export async function fetchStoriesWithLicense() {
  */
 export async function uploadImage(file) {
   if (!storage) throw new Error('Firebase Storage is not configured');
-  
-  const uid = auth?.currentUser?.uid || 'guest';
+
+  const uid = auth?.currentUser?.uid;
+  if (!uid) throw new Error('로그인이 필요합니다');
   const { image_url } = await uploadImageToStorage(file, { uid, folder: 'editor_images' });
   return image_url;
 }

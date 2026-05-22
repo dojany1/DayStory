@@ -42,13 +42,7 @@ async function withTimeout(promise, ms = 8000) {
 export async function isBookmarked(storyId) {
   try {
     const user = getState('user');
-    if (!user) return false;
-
-    /* 게스트 유저는 localStorage 사용 */
-    if (user.id === 'guest') {
-      const saved = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
-      return saved.includes(storyId);
-    }
+    if (!user || !user.id) return false;
 
     if (!db) return false;
 
@@ -70,20 +64,7 @@ export async function isBookmarked(storyId) {
 export async function toggleBookmark(storyId) {
   try {
     const user = getState('user');
-    if (!user) return { bookmarked: false };
-
-    /* 게스트 모드: localStorage 처리 (기존과 동일) */
-    if (user.id === 'guest') {
-      const saved = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
-      if (saved.includes(storyId)) {
-        localStorage.setItem('guest_bookmarks', JSON.stringify(saved.filter(id => id !== storyId)));
-        return { bookmarked: false };
-      } else {
-        saved.push(storyId);
-        localStorage.setItem('guest_bookmarks', JSON.stringify(saved));
-        return { bookmarked: true };
-      }
-    }
+    if (!user || !user.id) return { bookmarked: false };
 
     if (!db) return { bookmarked: false };
 
@@ -126,11 +107,7 @@ export async function toggleBookmark(storyId) {
 export async function getBookmarkedStoryIds() {
   try {
     const user = getState('user');
-    if (!user) return [];
-
-    if (user.id === 'guest') {
-      return JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
-    }
+    if (!user || !user.id) return [];
 
     if (!db) return [];
 
@@ -155,38 +132,27 @@ export async function getBookmarkedStoryIds() {
 export async function getBookmarkedStories() {
   try {
     const user = getState('user');
-    if (!user) return [];
-
-    let storyIds = [];
-
-    if (user.id === 'guest') {
-      const savedIds = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
-      storyIds = [...new Set(savedIds)];
-      if (storyIds.length === 0) return [];
-    } else {
-      if (!db) return [];
-
-      /* 1단계: 북마크 ID 목록 조회 (복합 인덱스 방지를 위해 JS에서 정렬) */
-      const q = query(
-        collection(db, 'bookmarks'),
-        where('user_id', '==', user.id)
-      );
-      const snapshot = await withTimeout(getDocs(q));
-
-      if (snapshot.empty) return [];
-      
-      /* created_at 기준으로 로컬에서 내림차순 정렬 후 story_id 만 추출 */
-      const docsData = snapshot.docs.map(d => d.data());
-      docsData.sort((a, b) => {
-        const timeA = a.created_at ? (a.created_at.toMillis ? a.created_at.toMillis() : new Date(a.created_at).getTime()) : 0;
-        const timeB = b.created_at ? (b.created_at.toMillis ? b.created_at.toMillis() : new Date(b.created_at).getTime()) : 0;
-        return timeB - timeA;
-      });
-      /* 중복 북마크 방지: 동일한 story_id가 중복 저장된 경우를 대비해 Set으로 고유값만 추출 */
-      storyIds = [...new Set(docsData.map(d => d.story_id))];
-    }
-
+    if (!user || !user.id) return [];
     if (!db) return [];
+
+    /* 1단계: 북마크 ID 목록 조회 (복합 인덱스 방지를 위해 JS에서 정렬) */
+    const q = query(
+      collection(db, 'bookmarks'),
+      where('user_id', '==', user.id)
+    );
+    const snapshot = await withTimeout(getDocs(q));
+
+    if (snapshot.empty) return [];
+
+    /* created_at 기준으로 로컬에서 내림차순 정렬 후 story_id 만 추출 */
+    const docsData = snapshot.docs.map(d => d.data());
+    docsData.sort((a, b) => {
+      const timeA = a.created_at ? (a.created_at.toMillis ? a.created_at.toMillis() : new Date(a.created_at).getTime()) : 0;
+      const timeB = b.created_at ? (b.created_at.toMillis ? b.created_at.toMillis() : new Date(b.created_at).getTime()) : 0;
+      return timeB - timeA;
+    });
+    /* 중복 북마크 방지: 동일한 story_id가 중복 저장된 경우를 대비해 Set으로 고유값만 추출 */
+    const storyIds = [...new Set(docsData.map(d => d.story_id))];
 
     /* 2단계: 각 스토리 문서를 개별 조회 (Firestore는 'in' 쿼리로 최대 30개 지원) */
     const storySnapshots = await Promise.allSettled(
@@ -213,12 +179,7 @@ export async function getBookmarkedStories() {
 export async function getBookmarkCount() {
   try {
     const user = getState('user');
-    if (!user) return 0;
-
-    if (user.id === 'guest') {
-      const saved = JSON.parse(localStorage.getItem('guest_bookmarks') || '[]');
-      return saved.length;
-    }
+    if (!user || !user.id) return 0;
 
     if (!db) return 0;
 

@@ -195,3 +195,22 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: `src/js/pages/donate.js`(삭제), `src/css/pages.css`, `src/js/pages/editor.js`, `src/js/services/notifications.js`, `tests/notifications_default.spec.js`(신규), `docs/CODE_MAP.md`, `docs/ARCHITECTURE.md`, `docs/PRD.md`, `docs/SESSION_LOG.md`.
 - 검증: `npm test` 전후 baseline 비교 — baseline 27 failed / 98 passed → 변경 후 27 failed / 103 passed. **회귀 0건, 새 spec 5/5 통과.** 27개 기존 실패는 모두 사전 존재(위젯 XML 누락, nav-icon size 변경, regression.bugs 등 v1.3.5 출시 시점 상태). `npm run build` 미실행(이번 wave에서 build 영향 변경 없음, Wave 2 종료 후 cap sync 와 함께 한 번에).
 - 후속: Wave 2(게스트 모드 완전 제거 + 로그인 강제) 진입 전 사용자 확인 권장.
+
+### v1.4.0 패치 Wave 2 — 게스트 모드 완전 제거 + 로그인 필수 강제
+
+- 요구사항: 앱 진입 시 비로그인 사용자는 무조건 `/login` 으로 보냄. 코드 전체에서 `'guest'` 분기를 삭제하고, 기존 localStorage 게스트 데이터(`guest_bookmarks` 등)는 자연 소멸로 처리(마이그레이션 안 함). audit P0 4건(게스트 북마크 머지 부재 / Storage `users/guest/` 폴백 / `fetchMyStories(undefined)` 위험 / 클라이언트 admin 부여)이 동시에 해결됨.
+- 구현방법:
+  - **main.js**: `setBeforeNavigate` 가드를 "user 없으면 PUBLIC_ROUTES(/login,/signup) 외 모두 차단 후 `/login` 강제 navigate" 로 재작성. 로그아웃 분기에서 `setState('user', null)` 후 직접 `/login` navigate. `if (!auth)` 분기도 `setState('user', null)` 로. `onAuthStateChanged` 의 else 가지에서 게스트 폴백 제거. 미정의 `syncSubscriptionState()` 죽은 호출도 같이 제거(잠재 ReferenceError).
+  - **bookmarks.js** (서비스 핵심): `isBookmarked` / `toggleBookmark` / `getBookmarkedStoryIds` / `getBookmarkedStories` / `getBookmarkCount` 5개 함수에서 `user.id === 'guest'` localStorage 분기 7곳 삭제. user 없으면 즉시 빈 값 반환 (Firestore 호출 가드).
+  - **images.js**: `uploadImage` 의 `uid = 'guest'` 기본값 제거 → `uid` 필수 인자로, 누락 시 throw. `users/guest/` 업로드 경로 차단.
+  - **stories.js**: `uploadImage` 의 `auth.currentUser?.uid || 'guest'` 폴백 제거 → uid 없으면 `로그인이 필요합니다` throw.
+  - **calendar.js / editorstory.js**: 공유·북마크 버튼의 게스트 분기(`if (user.id === 'guest') { showToast(login_required); navigate('/login'); return; }`) 제거. 라우터 가드에서 이미 차단되므로 페이지 내부에서는 user 가 항상 존재한다고 가정. 게스트 폴백(`|| { id: 'guest' }`) 도 삭제.
+  - **mystory.js**: `checkAuth()` / `renderMyStoryNew()` 게스트 분기 3곳을 `if (!uid)` 로 단순화 (라우터 가드에서 이미 막힘, 안전망만 유지). `uploadUid = uid || 'guest'` → `if (!uid)` 가드.
+  - **editor.js**: `uploadUid` 게스트 폴백 제거, `uid` 누락 시 업로드 거부.
+  - **profile.js**: 사용자 정보 카드의 게스트 분기(`user.id !== 'guest'`) 제거 → user 가 항상 있는 단일 경로. "로그인/회원가입 하러 가기" CTA + `#goto-login-btn` 핸들러 삭제. `openProfileEditModal` 가드는 `!user.id` 체크로 통일.
+  - **settingsSections.js**: 로그아웃/회원탈퇴 섹션 조건 `user && user.id !== 'guest'` → `user` 로 단순화.
+  - **login.js**: 상단 주석에서 "현재는 게스트 모드로 동작" 문구를 "v1.4.0 이후 로그인 필수 강제" 로 갱신.
+  - **TDD**: `tests/auth_gate.spec.js` 신설(7 케이스) — `getState('user')` 가 `null` 일 때 bookmarks 5개 함수가 모두 Firestore 호출 없이 빈 값 반환, 레거시 `guest_bookmarks` localStorage 잔존 데이터 무시, 로그인 사용자는 Firestore 경로 정상 진입.
+- 변경파일: `src/main.js`, `src/js/services/bookmarks.js`, `src/js/services/images.js`, `src/js/services/stories.js`, `src/js/pages/calendar.js`, `src/js/pages/editor.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/js/pages/profile.js`, `src/js/pages/login.js`, `src/js/components/settingsSections.js`, `tests/auth_gate.spec.js`(신규), `docs/SESSION_LOG.md`.
+- 검증: `npm test` baseline 27 failed / 98 passed → Wave 2 후 27 failed / 110 passed. **회귀 0건, 새 spec 7/7 통과** (Wave 1 누적 5 + Wave 2 7 = +12). 코드 전체 grep으로 `guest`/`isGuest`/`'guest'` 0건 잔존 확인. `npm run build` 와 `npx cap sync android` 는 Wave 5 종료 후 일괄 실행 권장.
+- 후속(사용자): ① 게스트로 사용해 온 기존 사용자에게 영향 — 앱 업데이트 후 첫 진입에서 로그인 화면 노출, 이전 localStorage 북마크/수집 기록은 표시되지 않음 (자연 소멸). ② 안드로이드 위젯의 "오늘의 편지" 클릭 시 비로그인이면 `/login` 으로 진입 — 정상 동작 확인 필요. ③ Wave 3(디자인 토큰 + 접근성) 진입 전 수동 QA 권장: 새 브라우저에서 비로그인 → 모든 경로 `/login` 강제, 로그인 후 정상 진입.

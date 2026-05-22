@@ -42,9 +42,9 @@ export function renderProfile() {
   page.innerHTML = `
     ${profileHeader}
 
-    <!-- 사용자 정보 카드 -->
+    <!-- 사용자 정보 카드 (로그인 강제 이후 user 는 항상 존재) -->
     <div class="settings-user-info">
-      ${user && user.id !== 'guest' ? `
+      ${user ? `
         <div class="settings-user-row">
           <div class="profile-avatar-wrap">
             ${(profile && profile.photoURL) || user.photoURL
@@ -66,28 +66,14 @@ export function renderProfile() {
             </svg>
           </button>
         </div>
-      ` : `
-        <div class="settings-user-row">
-          <div class="profile-avatar-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          </div>
-          <div class="settings-user-meta">
-            <div class="settings-user-name">게스트 모드</div>
-            <div class="settings-user-email">로그인하고 기록을 저장하세요</div>
-          </div>
-        </div>
-        <button id="goto-login-btn" class="btn btn-primary settings-user-cta">
-          로그인 / 회원가입 하러 가기
-        </button>
-      `}
+      ` : ''}
     </div>
 
     ${renderArchiveSection()}
   `;
 
-  /* 페이지 고유 동작: 프로필 편집, 로그인 이동, 설정 이동 */
+  /* 페이지 고유 동작: 프로필 편집, 설정 이동 */
   setTimeout(() => {
-    page.querySelector('#goto-login-btn')?.addEventListener('click', () => navigate('/login'));
     page.querySelector('#profile-edit-btn')?.addEventListener('click', () => openProfileEditModal());
     page.querySelector('#goto-settings-btn')?.addEventListener('click', () => navigate('/settings'));
   }, 0);
@@ -105,7 +91,7 @@ export function renderProfile() {
 function openProfileEditModal() {
   const user = getState('user');
   const profile = getState('profile') || {};
-  if (!user || user.id === 'guest') return;
+  if (!user || !user.id) return;
 
   if (document.querySelector('.profile-edit-overlay')) return;
 

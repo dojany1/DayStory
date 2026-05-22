@@ -654,12 +654,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   if (shareBtn) {
     shareBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const user = getState('user');
-      if (user && user.id === 'guest') {
-        showToast(t('toast.login_required'), 'info');
-        navigate('/login');
-        return;
-      }
       await shareStory(story, { kind: 'history' });
     });
   }
@@ -667,12 +661,6 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
   if (bookmarkBtn) {
     bookmarkBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const user = getState('user');
-      if (user && user.id === 'guest') {
-        showToast(t('toast.login_required'), 'info');
-        navigate('/login');
-        return;
-      }
       const res = await toggleBookmark(story.id);
       if (res.error) {
         showToast(res.error, 'error');

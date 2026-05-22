@@ -124,9 +124,9 @@ async function loadMyStoryData(page) {
   /* 새 페이지 진입 시 swipe commit 가드 리셋 (세션 1 #2). */
   lastSwipeCommitAt = 0;
   try {
-    const user = getState('user') || { id: 'guest' };
+    const user = getState('user');
     // Firebase Auth의 실제 UID를 우선 사용 (Firestore 보안 규칙의 request.auth.uid와 일치해야 함)
-    const uid = auth?.currentUser?.uid || user.id;
+    const uid = auth?.currentUser?.uid || user?.id;
     const allStories = await fetchMyStories(uid);
     void syncDiaryStateFromList(allStories);
 
@@ -528,7 +528,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
   const checkAuth = () => {
     const userObj = getState('user') || {};
     const uid = auth?.currentUser?.uid || userObj.id;
-    if (!uid || uid === 'guest') {
+    if (!uid) {
       showToast('로그인이 필요한 서비스입니다.', 'error');
       location.hash = '#/login'; // 로그인 페이지로 이동
       return false;
@@ -755,10 +755,10 @@ export function renderMyStoryNew() {
   const page = document.createElement('div');
   page.className = 'mystory-new-page page';
 
-  /* ---- 로그인/비회원 체크 ---- */
+  /* ---- 로그인/비회원 체크 (라우터 가드에서 이미 막혀야 하지만 안전망) ---- */
   const userObj = getState('user') || {};
   const uid = auth?.currentUser?.uid || userObj.id;
-  if (!uid || uid === 'guest') {
+  if (!uid) {
     page.innerHTML = `
       ${renderPageHeader({ title: '권한 없음', backLabel: '뒤로' })}
       <div class="empty-state" style="padding-top: 100px;">
@@ -1097,9 +1097,12 @@ export function renderMyStoryNew() {
 
       try {
         setSaveBtnUploading();
-        const uploadUid = uid || 'guest';
+        if (!uid) {
+          showToast('로그인이 필요합니다.', 'error');
+          return;
+        }
         blob.name = fallbackName;
-        const { image_url } = await uploadImage(blob, { uid: uploadUid, folder: 'diary' });
+        const { image_url } = await uploadImage(blob, { uid, folder: 'diary' });
 
         const imageInput = document.getElementById('ms-image');
         const thumbInput = document.getElementById('ms-image-thumb');

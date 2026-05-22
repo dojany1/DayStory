@@ -173,3 +173,11 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - TDD: `tests/bookmarks.ui.spec.js`에 3개 테스트 추가 (버튼 렌더링/클릭 전파 차단/toggleBookmark 호출), `state.js`·`toggleBookmark` 모킹 추가.
 - 변경파일: `src/js/pages/bookmarks.js`, `src/css/components.css`, `tests/bookmarks.ui.spec.js`.
 - 검증: `npm test` — bookmarks 스위트 8/8 중 7 통과(기존 "navigates" 실패 1건은 localStorage 환경 이슈로 내 변경과 무관).
+
+## 2026-05-22
+
+- 출시 후 첫 종합 감사를 6개 에이전트(critical-reviewer / qa-tester / ui-designer / user-researcher / product-planner / refactor-specialist) 사이클로 진행했습니다. 코드는 수정하지 않은 read-only audit.
+- 결과를 `docs/audit/2026-05-22/SUMMARY.md` 단일 파일에 7개 섹션으로 통합했습니다 — 코드/QA/UI/사용자/제품/리팩토링/종합 결론(P0·P1·P2 액션 표).
+- 핵심 발견: ① `router.setOnUnmount` 가 CLAUDE.md 규칙에는 있는데 실재하지 않음, ② RevenueCat 설치만 되고 미연결로 수익 0, ③ `donate.js` placeholder 결제 안내가 출시 빌드에 잔존(스토어 기만 리스크), ④ 클라이언트가 자기 자신에게 `role='editor'` 부여 — Firestore Rules 콘솔 검증 필요, ⑤ `prefers-reduced-motion` 글로벌 부재, ⑥ 게스트→로그인 시 북마크 머지 부재, ⑦ `withTimeout`·Firebase URL 판별·`escapeHtml` 중복.
+- 변경파일: `docs/audit/2026-05-22/SUMMARY.md`(신규), `docs/SESSION_LOG.md`.
+- 검증: read-only 감사이므로 빌드/테스트 실행 없음. 다음 재감사 권장 시점은 P0/P1 처리 후 v1.4.0 출시 직전.

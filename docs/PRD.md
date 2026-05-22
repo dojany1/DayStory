@@ -52,6 +52,6 @@
 ## Known Limitations
 
 - **`/editor` 라우터 가드** — 관리자 권한 검사가 페이지 렌더 시점에서만 일어나며 `router.beforeNavigate` 단계에 강제되지 않는다. Firestore 보안 규칙으로 서버 측 보호 필요.
-- **페이지 cleanup** — 13개 페이지 중 일부만 `setOnUnmount`로 리스너를 정리한다. SPA 메모리 누수 가능성. 자세한 목록은 [_archive/CODE_MAP.md](./_archive/CODE_MAP.md) "Known Issues" 참조 (※ v1.4.0 Wave 4 에서 `setOnUnmount` 실 구현 완료, 일부 이슈는 해소됨).
+- **페이지 cleanup** — 13개 페이지 중 일부만 `setOnUnmount`로 리스너를 정리한다. SPA 메모리 누수 가능성. 자세한 목록은 [\_archive/CODE_MAP.md](./_archive/CODE_MAP.md) "Known Issues" 참조 (※ v1.4.0 Wave 4 에서 `setOnUnmount` 실 구현 완료, 일부 이슈는 해소됨).
 
 > 후원(donate) 페이지는 2026-05-22 v1.4.0 작업에서 완전 제거됨 (UI placeholder 상태로 출시되어 사용자 기만 리스크가 있었음). RevenueCat npm 의존성은 향후 사용 가능성을 위해 유지.

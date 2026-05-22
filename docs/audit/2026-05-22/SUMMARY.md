@@ -122,7 +122,7 @@
 
 ### PRD 갭 5선
 
-- **GAP-1. 튜토리얼 완전 삭제 (PRD 명시 — 코드 없음)**: [docs/CODE_MAP.md:69](../../CODE_MAP.md#L69) "튜토리얼 투어는 2026-05-07 작업에서 제거됨." 신규 사용자 온보딩 공백.
+- **GAP-1. 튜토리얼 완전 삭제 (PRD 명시 — 코드 없음)**: [docs/_archive/CODE_MAP.md:69](../../_archive/CODE_MAP.md#L69) "튜토리얼 투어는 2026-05-07 작업에서 제거됨." 신규 사용자 온보딩 공백.
 - **GAP-2. RevenueCat 설치만, 런타임 미연결**: [package.json:36](../../../package.json#L36) `@revenuecat/purchases-capacitor` 의존성 있으나 [src/main.js](../../../src/main.js)·[src/js/services/](../../../src/js/services/) 어디에도 Purchases SDK 초기화 없음. `capacitor.config.json includePlugins` 에서도 테스트 배포용으로 제외됨([docs/SESSION_LOG.md:72](../../SESSION_LOG.md#L72)).
 - **GAP-3. collection 시스템이 localStorage만**: [src/js/services/collection.js](../../../src/js/services/collection.js) — 디바이스 교체 시 수집 내역 증발. 구독자/어드민 bypass 분기는 있으나 RevenueCat 미연결로 무력.
 - **GAP-4. report.js 신고 데이터 어디에도 저장 안 됨**: [src/js/pages/report.js:85](../../../src/js/pages/report.js#L85) `showToast('신고가 접수되었습니다')` 뒤 Firestore/이메일/Analytics 저장 코드 없음.

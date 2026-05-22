@@ -15,7 +15,7 @@ import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { shareStory } from '../services/sharing.js';
 import { getState } from '../state.js';
-import { navigate } from '../router.js';
+import { navigate, setOnUnmount } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
@@ -631,14 +631,17 @@ function bindCardEvents(flipContainer, story, bookmarkedIds) {
     handleStart(e.clientX, e.clientY, false);
   });
 
-  if (window._editorStoryMouseMove) window.removeEventListener('mousemove', window._editorStoryMouseMove);
-  if (window._editorStoryMouseUp)   window.removeEventListener('mouseup',   window._editorStoryMouseUp);
+  /* 데스크톱 마우스 드래그용 — 로컬 변수에 보관하고 setOnUnmount 로 정리 (Wave 4: 글로벌 슬롯 제거) */
+  const onMouseMove = (e) => { if (!isMouseDown) return; handleMove(e.clientX, e.clientY); };
+  const onMouseUp   = (e) => { if (!isMouseDown) return; isMouseDown = false; handleEnd(e.clientX, e.clientY); };
 
-  window._editorStoryMouseMove = (e) => { if (!isMouseDown) return; handleMove(e.clientX, e.clientY); };
-  window._editorStoryMouseUp   = (e) => { if (!isMouseDown) return; isMouseDown = false; handleEnd(e.clientX, e.clientY); };
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup',   onMouseUp);
 
-  window.addEventListener('mousemove', window._editorStoryMouseMove);
-  window.addEventListener('mouseup',   window._editorStoryMouseUp);
+  setOnUnmount(() => {
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup',   onMouseUp);
+  });
 
   const detailBtn = flipContainer.querySelector('.card-detail-shortcut-btn');
   const shareBtn = flipContainer.querySelector('.card-action-btn[aria-label="공유"]');

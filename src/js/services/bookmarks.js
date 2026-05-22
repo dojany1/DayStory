@@ -31,6 +31,10 @@ async function withTimeout(promise, ms = 8000) {
   ]);
 }
 
+/* Wave 4 — 빠른 더블탭 잠금: 같은 storyId 에 대한 동시 토글을 막아
+ * Firestore 에 중복 북마크 문서가 생성되는 것을 방지한다. */
+const inFlightToggles = new Set();
+
 
 /* ─────────────────────────────────────────────
    섹션 2: 북마크 확인 / 토글
@@ -62,10 +66,14 @@ export async function isBookmarked(storyId) {
  * toggleBookmark — 북마크를 추가하거나 제거합니다
  */
 export async function toggleBookmark(storyId) {
-  try {
-    const user = getState('user');
-    if (!user || !user.id) return { bookmarked: false };
+  const user = getState('user');
+  if (!user || !user.id) return { bookmarked: false };
 
+  /* Wave 4 — 같은 storyId 에 대한 빠른 더블탭 차단 */
+  if (inFlightToggles.has(storyId)) return { bookmarked: false };
+  inFlightToggles.add(storyId);
+
+  try {
     if (!db) return { bookmarked: false };
 
     /* 이미 북마크했는지 확인 */
@@ -93,6 +101,8 @@ export async function toggleBookmark(storyId) {
   } catch (err) {
     console.error('Bookmark Error:', err);
     return { bookmarked: false, error: err.message || '북마크 처리 중 오류가 발생했습니다.' };
+  } finally {
+    inFlightToggles.delete(storyId);
   }
 }
 

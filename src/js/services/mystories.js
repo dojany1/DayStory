@@ -8,9 +8,24 @@ import { db, storage } from '../firebase.js';
 import { collection, doc, query, where, orderBy, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 
+/* Wave 4 — Firebase Storage URL 식별을 URL 객체 host 파싱으로 강화.
+ * 기존 includes('firebasestorage') 는 attacker.com/firebasestorage/x.jpg 같은
+ * 외부 URL 을 위양성(false positive) 으로 잡았다. */
+function isFirebaseStorageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const u = new URL(url);
+    return u.hostname === 'firebasestorage.googleapis.com'
+        || u.hostname.endsWith('.firebasestorage.app');
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchMyStories(uid) {
   if (!db) return [];
-  
+  if (!uid) return [];  /* Wave 4 가드: undefined/null/'' 시 전체 컬렉션 스캔 위험 차단 */
+
   try {
     const q = query(
       collection(db, 'userStories'),
@@ -77,7 +92,7 @@ export async function deleteMyStory(id) {
     const d = await getDoc(doc(db, 'userStories', id));
     if (d.exists()) {
       const data = d.data();
-      if (data.image_url && (data.image_url.includes('firebasestorage') || data.image_url.includes('.firebasestorage.app'))) {
+      if (isFirebaseStorageUrl(data.image_url)) {
         const imgRef = ref(storage, data.image_url);
         await deleteObject(imgRef).catch(e => console.warn('Storage delete fail', e));
       }

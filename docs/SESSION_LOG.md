@@ -243,3 +243,32 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: `src/css/variables.css`, `src/css/base.css`, `src/css/pages.css`, `src/css/components.css`, `tests/css_tokens.spec.js`(신규), `docs/SESSION_LOG.md`.
 - 검증: Wave 2 baseline 27 failed / 110 passed → Wave 3 후 27 failed / 126 passed. **회귀 0건, 새 spec 16/16 통과** (누적 +28). 27개 기존 실패는 모두 사전 존재.
 - 후속(사용자): ① 수동 시각 점검 권장 — 라이트/다크 토글, 폰트 크기 small/large 전환(이전엔 base와 lg만 반응했으나 이제 xs~2xl 전부 반응), 캘린더의 "역사 ↔ 나의 일화" 토글 활성 상태의 텍스트 가독성, 디테일 페이지의 에디터 코멘트 라벨 다크모드 대비. ② OS 접근성에서 "동작 줄이기" 켜고 카드 플립/페이지 전환이 즉시 결과 상태로만 바뀌는지. ③ 안드로이드 구 WebView 디바이스에서 confirmDialog 의 "길게 눌러 확정" 상태 배경이 정상 표시되는지.
+
+### v1.4.0 패치 Wave 4 — 안정성 핵심 (setOnUnmount + 가드 + Firebase Rules)
+
+- 요구사항: audit P0 4건 일괄 — ① CLAUDE.md 규칙에 명시됐으나 코드에 존재하지 않던 `router.setOnUnmount(fn)` 실제 구현 → 글로벌 `window._editorStoryMouseMove`/`_myStoryMouseMove` 패턴 제거. ② `fetchMyStories(undefined)` 전체 컬렉션 스캔 위험 차단. ③ 북마크 빠른 더블탭 시 Firestore 중복 문서 방지. ④ Firebase Storage URL 식별을 `includes()` 위양성에서 host 파싱으로 강화. ⑤ `sanitizeUrl` 화이트리스트 패턴으로 강화. ⑥ Firebase Security Rules 파일을 레포에 코드화(클라이언트 admin 부여 차단, `users/{uid}` 본인만 업로드, 파일 크기/MIME 제한).
+- 구현방법:
+  - **router.setOnUnmount(fn) 신설** ([src/js/router.js](../src/js/router.js)): 페이지 핸들러가 호출하면 다음 navigate 시 `container.innerHTML=''` 이전에 fn 실행. fn 이 throw 해도 라우팅 계속(try/catch 보호). 매 페이지 진입마다 새로 등록되며 자동 누적되지 않음. 404 분기에서도 cleanup 실행.
+  - **글로벌 mouse 리스너 패턴 제거**:
+    - `src/js/pages/editorstory.js:634-641` — `window._editorStoryMouseMove`/`_editorStoryMouseUp` 글로벌 슬롯 패턴 삭제, 로컬 const `onMouseMove`/`onMouseUp` + `setOnUnmount(() => window.removeEventListener(...))` 로 교체.
+    - `src/js/pages/mystory.js:712-727` — 동일 패턴 적용.
+    - 두 파일 모두 `router.js` 에서 `setOnUnmount` import 추가.
+  - **services 가드**:
+    - `src/js/services/mystories.js:fetchMyStories` — uid 가 undefined/null/'' 면 즉시 빈 배열 반환. Firestore SDK 가 `where('uid','==',undefined)` 처리 시 SDK 버전에 따라 전체 스캔 가능성 차단.
+    - `src/js/services/bookmarks.js:toggleBookmark` — 모듈 스코프 `inFlightToggles: Set<storyId>` 도입. 같은 storyId 에 대한 동시 호출은 두 번째부터 즉시 `{bookmarked:false}` 반환. `finally` 에서 해제.
+    - `src/js/services/mystories.js:deleteMyStory`, `src/js/services/stories.js:deleteStory` — `image_url.includes('firebasestorage') || .includes('.firebasestorage.app')` 위양성 패턴을 새 `isFirebaseStorageUrl(url)` 헬퍼(URL 객체 host 파싱)로 교체. `firebasestorage.googleapis.com` 또는 `*.firebasestorage.app` host만 허용. attacker.com/firebasestorage/x.jpg 같은 URL 의도적 식별 차단.
+  - **sanitize.js URL 화이트리스트** ([src/js/utils/sanitize.js](../src/js/utils/sanitize.js)): 기존 `javascript:`/`data:` 만 차단하던 패턴을 화이트리스트(`http`/`https`/`mailto`/`tel` 만 허용) 로 전환. 공백/탭/개행/제어 문자(` -`)로 우회한 `java\tscript:` 변형도 normalize 후 차단. 상대 경로(`/path`, `./rel`, `#anchor`)는 스킴 미존재 시 통과.
+  - **Firebase Security Rules 파일 신설**:
+    - 신설 `firestore.rules` — 핵심: ① `profiles/{uid}` write 시 `role` 필드는 변경 불가(`resource.data.role == request.resource.data.role`), 신규 create 시 `role != 'editor'` (클라이언트 admin 승격 차단, audit P0). ② `stories/{id}` read 는 published 만 일반 사용자 / 어드민은 모든 status. write 는 어드민만. ③ `userStories`, `bookmarks` 는 본인만. ④ `reports` 는 인증 사용자 누구나 create, read/update/delete 는 어드민. ⑤ 그 외 경로 기본 거부.
+    - 신설 `storage.rules` — 핵심: `users/{userId}/{folder=**}` 에 `request.auth.uid == userId` 이고 파일 크기 < 10MB 이고 contentType `image/*` 일 때만 write. `users/guest/{**}` 명시적 거부(Wave 2 동기화). 그 외 경로 기본 거부.
+    - `firebase.json` 에 `firestore.rules` / `storage.rules` 경로 등록.
+    - **배포는 사용자가 별도로 `firebase deploy --only firestore:rules,storage` 실행 필요** (CLI 권한 이슈로 자동 배포 안 함).
+  - **TDD specs 신설** (4개):
+    - `tests/router_unmount.spec.js` — `setOnUnmount` export 존재, throw 보호 검증.
+    - `tests/sanitize.spec.js` — 안전 URL 7종 통과, 위험 URL 9종(tab/newline 우회 포함) 차단, null/undefined/'' 처리, escapeHtml 회귀.
+    - `tests/bookmarks_double_tap.spec.js` — 같은 storyId 동시 호출 시 `addDoc` 1회만, 다른 storyId 동시는 각각 정상.
+    - `tests/mystories_uid_guard.spec.js` — uid undefined/null/'' 시 Firestore 호출 없이 빈 배열, 정상 uid 만 진입.
+  - **기존 spec mock 갱신** (회귀 방지): `tests/mystory_card_meta.ui.spec.js`, `tests/regression.bugs.spec.js`, `tests/editorstory.ui.spec.js` 의 `vi.mock('../src/js/router.js')` 정의에 `setOnUnmount: vi.fn()` 추가. 안 추가하면 mystory/editorstory 가 setOnUnmount import 시 vitest 에서 "No export defined" 에러.
+- 변경파일: `src/js/router.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/js/services/mystories.js`, `src/js/services/bookmarks.js`, `src/js/services/stories.js`, `src/js/utils/sanitize.js`, `firestore.rules`(신규), `storage.rules`(신규), `firebase.json`, `tests/router_unmount.spec.js`(신규), `tests/sanitize.spec.js`(신규), `tests/bookmarks_double_tap.spec.js`(신규), `tests/mystories_uid_guard.spec.js`(신규), `tests/mystory_card_meta.ui.spec.js`, `tests/regression.bugs.spec.js`, `tests/editorstory.ui.spec.js`, `docs/SESSION_LOG.md`.
+- 검증: Wave 3 baseline 27 failed / 126 passed → Wave 4 후 27 failed / 154 passed. **회귀 0건, 새 spec 28/28 통과**(누적 +56). 첫 실행 시 mock 누락으로 5건 회귀(32 failed) 발생했으나 mock 갱신으로 해결. 27개 기존 실패는 모두 사전 존재.
+- 후속(사용자): ① **Firebase Console 에서 `firebase deploy --only firestore:rules,storage` 실행 필요** (없으면 audit P0 클라이언트 admin 부여 위험 그대로). ② SPA 메모리 누수 회복 수동 확인 — Chrome DevTools Performance > Memory 에서 editorstory ↔ mystory ↔ settings 페이지 왕복 30회 후 detached DOM 노드 누적이 더 이상 안 늘어나는지. ③ 북마크 더블탭 — `/detail/:id` 페이지에서 북마크 아이콘 0.3초 이내 연속 2회 탭 시 Firestore 에 문서 1개만 생성되는지 (콘솔에서 확인).

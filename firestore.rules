@@ -1,0 +1,81 @@
+rules_version = '2';
+
+// DayStory Firestore Security Rules — v1.4.0 (Wave 4)
+// =====================================================================
+// 핵심 원칙:
+//   1) 모든 read/write 는 로그인 필수 (게스트 모드 제거, Wave 2).
+//   2) profile.role 은 사용자가 직접 바꿀 수 없다 (클라이언트 admin 부여 차단, audit P0).
+//   3) 사용자 일기/북마크는 본인만 read/write.
+//   4) stories(역사 카드)는 모두 read 가능, write 는 어드민(role == 'editor') 만.
+//
+// 배포: firebase deploy --only firestore:rules
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- 헬퍼 ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'editor';
+    }
+
+    // ---------- profiles/{uid} ----------
+    // 본인만 read/write. 단, role 필드는 변경 불가 (클라이언트가 자기 자신을 editor 로 승격 차단).
+    match /profiles/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid)
+                    && (!('role' in request.resource.data) || request.resource.data.role != 'editor');
+      allow update: if isOwner(uid)
+                    && (
+                      // role 미존재 → 미존재 유지 OK
+                      (!('role' in resource.data) && !('role' in request.resource.data))
+                      // role 존재 → 같은 값만 유지 가능 (사용자가 직접 못 바꿈)
+                      || (resource.data.role == request.resource.data.role)
+                    );
+      allow delete: if isOwner(uid);
+    }
+
+    // ---------- stories/{id} — 역사 카드 ----------
+    match /stories/{id} {
+      // 발행된 카드는 로그인 사용자 누구나 read.
+      // 어드민은 모든 status 의 카드 read.
+      allow read: if isAdmin()
+                  || (isSignedIn() && resource.data.status == 'published');
+      // 작성/수정/삭제는 어드민만.
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---------- userStories/{id} — 내 일기 ----------
+    match /userStories/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---------- bookmarks/{id} ----------
+    match /bookmarks/{id} {
+      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.user_id == request.auth.uid;
+    }
+
+    // ---------- reports/{id} — 오류 신고 (Wave 2 에서 페이지는 유지) ----------
+    match /reports/{id} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---------- 그 외 모든 경로는 기본 거부 ----------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

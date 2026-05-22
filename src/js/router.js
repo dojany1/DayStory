@@ -33,6 +33,11 @@ let targetRoute = null;
 /** beforeNavigateHook: 페이지 이동 전에 실행할 함수 (인증 체크 등) */
 let beforeNavigateHook = null;
 
+/** onUnmountHook: 현재 페이지를 떠날 때 호출할 cleanup 함수 (리스너 해제 등).
+ * 페이지 렌더 함수가 setOnUnmount(fn) 으로 등록하면 다음 라우트로 이동하기 직전에 실행된다.
+ * SPA 메모리 누수를 막는 핵심 훅. */
+let onUnmountHook = null;
+
 
 /* ─────────────────────────────────────────────
    섹션 2: 라우트 등록 및 네비게이션 함수
@@ -63,6 +68,40 @@ export function registerRoute(path, handler) {
  */
 export function setBeforeNavigate(fn) {
   beforeNavigateHook = fn;
+}
+
+/**
+ * setOnUnmount — 현재 페이지가 떠날 때 한 번 실행될 cleanup 함수를 등록합니다.
+ * @param {Function|null} fn  cleanup 함수 (또는 null 로 해제)
+ *
+ * 사용 예시:
+ *   export function renderMyPage() {
+ *     const onMove = (e) => { ... };
+ *     window.addEventListener('mousemove', onMove);
+ *     setOnUnmount(() => window.removeEventListener('mousemove', onMove));
+ *     return pageElement;
+ *   }
+ *
+ * 동작:
+ *   - 다음 라우트로 이동 시 (handleRoute 에서 container 를 비우기 직전)
+ *     fn() 이 호출되고 hook 은 null 로 리셋된다.
+ *   - 매 페이지 진입마다 새로 등록해야 한다 (자동 누적되지 않음).
+ *   - fn 이 throw 해도 라우팅은 계속 진행된다 (try/catch).
+ */
+export function setOnUnmount(fn) {
+  onUnmountHook = (typeof fn === 'function') ? fn : null;
+}
+
+/* 내부 전용: 라우터가 떠날 때 호출. fn 이 throw 해도 라우팅 중단 안 함. */
+function runOnUnmount() {
+  if (!onUnmountHook) return;
+  const hook = onUnmountHook;
+  onUnmountHook = null;
+  try {
+    hook();
+  } catch (err) {
+    console.warn('setOnUnmount cleanup 실패:', err);
+  }
 }
 
 /**
@@ -207,7 +246,10 @@ async function handleRoute() {
     /* 4) 렌더링 대기 도중 사용자가 다른 페이지를 눌렀을 가능성 체크 */
     if (path !== getCurrentPath() || path !== targetRoute) return;
 
-    /* 5) 이제서야 기존 페이지 내용 제거 및 교체 */
+    /* 5) 이전 페이지의 unmount cleanup 실행 (window/document 리스너 정리 등) */
+    runOnUnmount();
+
+    /* 6) 이제서야 기존 페이지 내용 제거 및 교체 */
     container.innerHTML = '';
     currentRoute = path;
     targetRoute = null;
@@ -218,7 +260,8 @@ async function handleRoute() {
       container.appendChild(pageElement);
     }
   } else {
-    /* 일치하는 페이지가 없으면 404 표시 */
+    /* 일치하는 페이지가 없으면 unmount 후 404 표시 */
+    runOnUnmount();
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">🔍</div>

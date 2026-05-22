@@ -39,6 +39,7 @@ const {
 vi.mock('../src/js/router.js', () => ({
   navigate: navigateMock,
   getParams: getParamsMock,
+  setOnUnmount: vi.fn(),
 }));
 
 vi.mock('../src/js/state.js', () => ({

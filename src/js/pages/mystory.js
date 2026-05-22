@@ -5,7 +5,7 @@
    홈 화면의 일화 카드와 디자인 일관성을 유지하기 위해 원본 카드 뷰를 사용합니다.
    ===================================================================== */
 
-import { navigate, getParams } from '../router.js';
+import { navigate, getParams, setOnUnmount } from '../router.js';
 import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
@@ -709,22 +709,25 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     handleStart(e.clientX, e.clientY, isBody);
   });
 
-  if (window._myStoryMouseMove) window.removeEventListener('mousemove', window._myStoryMouseMove);
-  if (window._myStoryMouseUp) window.removeEventListener('mouseup', window._myStoryMouseUp);
-
-  window._myStoryMouseMove = (e) => {
+  /* 데스크톱 마우스 드래그용 — 로컬 변수 + setOnUnmount (Wave 4: 글로벌 슬롯 제거) */
+  const onMouseMove = (e) => {
     if (!isMouseDown) return;
     handleMove(e.clientX, e.clientY);
   };
 
-  window._myStoryMouseUp = (e) => {
+  const onMouseUp = (e) => {
     if (!isMouseDown) return;
     isMouseDown = false;
     handleEnd(e.clientX, e.clientY);
   };
 
-  window.addEventListener('mousemove', window._myStoryMouseMove);
-  window.addEventListener('mouseup', window._myStoryMouseUp);
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
+
+  setOnUnmount(() => {
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+  });
 
   flipper.addEventListener('click', async (e) => {
     /* 기본 체크: 일화가 없거나, 버튼을 클릭했거나, 스와이프 중이면 무시 */

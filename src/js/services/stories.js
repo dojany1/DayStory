@@ -16,6 +16,19 @@ import { db, storage, auth } from '../firebase.js';
 import { DEMO_STORIES } from '../data/demo.js';
 import { getLocalToday } from '../utils/date.js';
 
+/* Wave 4 — Firebase Storage URL host 파싱 (includes() 위양성 회피).
+ * Wave 5에서 utils/storage.js 로 추출 예정. */
+function isFirebaseStorageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const u = new URL(url);
+    return u.hostname === 'firebasestorage.googleapis.com'
+        || u.hostname.endsWith('.firebasestorage.app');
+  } catch {
+    return false;
+  }
+}
+
 /*
  * Firestore 함수 임포트
  * - collection : 컬렉션(테이블) 참조를 만듦
@@ -320,7 +333,7 @@ export async function deleteStory(id) {
     const d = await getDoc(doc(db, 'stories', id));
     if (d.exists()) {
       const data = d.data();
-      if (data.image_url && (data.image_url.includes('firebasestorage') || data.image_url.includes('.firebasestorage.app'))) {
+      if (isFirebaseStorageUrl(data.image_url)) {
         const imgRef = ref(storage, data.image_url);
         await deleteObject(imgRef).catch(e => console.warn('Storage delete fail', e));
       }

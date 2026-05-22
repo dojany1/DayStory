@@ -40,6 +40,7 @@ vi.mock('../src/js/state.js', () => ({
 
 vi.mock('../src/js/router.js', () => ({
   navigate: navigateMock,
+  setOnUnmount: vi.fn(),
 }));
 
 vi.mock('@capacitor/share', () => ({

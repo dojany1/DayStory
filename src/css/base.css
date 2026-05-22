@@ -35,6 +35,31 @@ html {
   scroll-behavior: smooth;             /* 스크롤 시 부드럽게 이동 */
 }
 
+
+/* ─────────────────────────────────────────────
+   접근성: prefers-reduced-motion 글로벌 무력화
+   ─────────────────────────────────────────────
+   사용자가 OS 설정에서 "동작 줄이기" 를 켰으면
+   모든 애니메이션/트랜지션/스크롤 부드러움을 거의 0으로 줄여
+   멀미/현기증 민감 사용자(WCAG 2.3.3 기준) 를 보호합니다.
+   카드 플립 등은 즉시 결과 상태로만 전환됩니다.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+}
+
 /* body — 페이지 전체 기본 스타일
    데스크톱에서 앱을 중앙에 배치하기 위해 flex 사용 */
 body {

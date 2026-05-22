@@ -30,6 +30,12 @@
   --color-text-tertiary: #8e8e93;        /* 3차 텍스트 */
   --color-text-inverse: #ffffff;         /* 반전 텍스트 */
   --color-text-on-dark: #f5f5f7;         /* 어두운 배경 위의 밝은 텍스트 */
+  --color-text-on-image: #ffffff;        /* 이미지 위 텍스트 (라이트/다크 동일) */
+  --color-text-on-light-segment: #1c1c1e;/* 라이트 thumb 위 텍스트 (테마 토글 활성 등) */
+
+  /* ── 에디터 코멘트 노란 배경 + 그 위 짙은 텍스트 (라이트 다크 분기) ── */
+  --color-editor-comment: #ffe16a;
+  --color-text-on-editor-comment: #3f3200;
 
   /* ── 라이트 테마 강조(액센트) 색상 ── */
   --color-accent: #000000;               /* 주 강조색 유지 */
@@ -65,12 +71,14 @@
   --font-heading: 'LINESeedKR', 'Inter', sans-serif;           /* 소제목용 (산세리프로 통일) */
   --font-body: 'LINESeedKR', 'Inter', sans-serif;              /* 본문용 산세리프 */
   --font-ui: 'LINESeedKR', 'Inter', sans-serif;                /* UI 요소용 산세리프 */
+  --font-sans: 'LINESeedKR', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; /* 일반 산세리프 (15곳에서 참조하던 누락 토큰) */
 
   /* ── 폰트 크기 ──
      rem 단위: html의 font-size(16px) 기준 상대 크기 */
   --text-xs: 0.6875rem;    /* 11px — 매우 작은 텍스트 (뱃지, 날짜) */
   --text-sm: 0.8125rem;    /* 13px — 작은 텍스트 (보조 설명) */
   --text-base: 0.9375rem;  /* 15px — 기본 텍스트 */
+  --text-md: 1rem;         /* 16px — text-base와 text-lg 사이 (다이얼로그 제목 등) */
   --text-lg: 1.0625rem;    /* 17px — 약간 큰 텍스트 */
   --text-xl: 1.25rem;      /* 20px — 소제목 */
   --text-2xl: 1.5rem;      /* 24px — 중제목 */
@@ -108,13 +116,16 @@
   --transition-spring: 800ms cubic-bezier(0.175, 0.885, 0.32, 1.275);    /* 스프링 효과 (튕기는 느낌) */
 
   /* ── Z-index 레이어 순서 ──
-     숫자가 클수록 화면 위에 표시됩니다 */
-  --z-base: 1;       /* 기본 요소 */
-  --z-card: 10;      /* 카드 */
-  --z-nav: 100;      /* 하단 내비게이션 */
-  --z-modal: 200;    /* 모달/시트 */
-  --z-toast: 300;    /* 토스트 알림 */
-  --z-splash: 400;   /* 스플래시 화면 (가장 위) */
+     숫자가 클수록 화면 위에 표시됩니다.
+     overlay/modal-system 은 confirmDialog/profile-edit/crop-modal 처럼
+     기존 모달보다 더 위에 떠야 하는 풀스크린 시트용으로, modal 보다 한 단계 위. */
+  --z-base: 1;          /* 기본 요소 */
+  --z-card: 10;         /* 카드 */
+  --z-nav: 100;         /* 하단 내비게이션 */
+  --z-modal: 200;       /* 모달/시트 */
+  --z-toast: 300;       /* 토스트 알림 */
+  --z-splash: 400;      /* 스플래시 화면 */
+  --z-overlay: 500;     /* 풀스크린 오버레이 (confirm/profile-edit/crop-modal) — 가장 위 */
 
   /* ── 레이아웃 ── */
   --mobile-max-width: 430px;                       /* 모바일 래퍼 최대 너비 */
@@ -147,6 +158,11 @@
   --color-text-secondary: #aeaeb2;          /* 보조 텍스트 (가시성 보강) */
   --color-text-tertiary: #636366;           /* 3차 텍스트 */
   --color-text-inverse: #111111;            /* 반전 텍스트 */
+  /* on-image / on-light-segment 는 라이트와 동일 (다크모드에서도 thumb은 흰 배경 유지) */
+
+  /* ── 다크 테마 에디터 코멘트 (배경은 동일한 노란색 유지, 텍스트도 동일한 짙은 갈색) ── */
+  --color-editor-comment: #f5d34a;          /* 다크모드에서 채도 약간 낮춤 */
+  --color-text-on-editor-comment: #2a2200;  /* 다크모드 노란 배경 위 더 진한 텍스트 */
 
   /* ── 다크 테마 강조 색상 ── */
   --color-accent: #ffffff;                  /* 강조색 (흰색) */
@@ -180,14 +196,24 @@
    data-font-size 속성에 따라 기본 텍스트 크기가 조정된다.
 */
 
-/* 작은 글꼴 — 글자가 더 작아짐 */
+/* 작은 글꼴 — 글자가 더 작아짐 (전체 스케일 함께 줄임) */
 [data-font-size="small"] {
-  --text-base: 0.8125rem;
-  --text-lg: 0.9375rem;
+  --text-xs: 0.625rem;     /* 10px */
+  --text-sm: 0.75rem;      /* 12px */
+  --text-base: 0.8125rem;  /* 13px */
+  --text-md: 0.875rem;     /* 14px */
+  --text-lg: 0.9375rem;    /* 15px */
+  --text-xl: 1.125rem;     /* 18px */
+  --text-2xl: 1.375rem;    /* 22px */
 }
 
-/* 큰 글꼴 — 글자가 더 커짐 */
+/* 큰 글꼴 — 글자가 더 커짐 (전체 스케일 함께 키움) */
 [data-font-size="large"] {
-  --text-base: 1.0625rem;
-  --text-lg: 1.1875rem;
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1.0625rem;  /* 17px */
+  --text-md: 1.125rem;     /* 18px */
+  --text-lg: 1.1875rem;    /* 19px */
+  --text-xl: 1.375rem;     /* 22px */
+  --text-2xl: 1.625rem;    /* 26px */
 }

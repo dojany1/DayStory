@@ -214,3 +214,32 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: `src/main.js`, `src/js/services/bookmarks.js`, `src/js/services/images.js`, `src/js/services/stories.js`, `src/js/pages/calendar.js`, `src/js/pages/editor.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/js/pages/profile.js`, `src/js/pages/login.js`, `src/js/components/settingsSections.js`, `tests/auth_gate.spec.js`(신규), `docs/SESSION_LOG.md`.
 - 검증: `npm test` baseline 27 failed / 98 passed → Wave 2 후 27 failed / 110 passed. **회귀 0건, 새 spec 7/7 통과** (Wave 1 누적 5 + Wave 2 7 = +12). 코드 전체 grep으로 `guest`/`isGuest`/`'guest'` 0건 잔존 확인. `npm run build` 와 `npx cap sync android` 는 Wave 5 종료 후 일괄 실행 권장.
 - 후속(사용자): ① 게스트로 사용해 온 기존 사용자에게 영향 — 앱 업데이트 후 첫 진입에서 로그인 화면 노출, 이전 localStorage 북마크/수집 기록은 표시되지 않음 (자연 소멸). ② 안드로이드 위젯의 "오늘의 편지" 클릭 시 비로그인이면 `/login` 으로 진입 — 정상 동작 확인 필요. ③ Wave 3(디자인 토큰 + 접근성) 진입 전 수동 QA 권장: 새 브라우저에서 비로그인 → 모든 경로 `/login` 강제, 로그인 후 정상 진입.
+
+### v1.4.0 패치 Wave 3 — 디자인 토큰 보강 + 접근성
+
+- 요구사항: audit §3 P0/P1 일괄 — variables.css 누락 토큰(`--font-sans` 등 4개) 보강, `prefers-reduced-motion` 글로벌 블록 부재 해결(WCAG 2.3.3), 하드코딩 색상(`#3f3200`, `#1c1c1e`, `#34c759`) 토큰 교체, z-index magic number(`100000`, `10000`, `9999`) 토큰화, `.page-header-back` 터치 영역 36px → 44px 확장(WCAG 2.5.5), `color-mix()` 구 WebView fallback.
+- 구현방법:
+  - **variables.css 토큰 추가** (라이트 + 다크 분기):
+    - `--font-sans`: 15곳에서 참조되던 미정의 토큰. LINESeedKR → Inter → system-ui → -apple-system → Segoe UI 폴백 체인.
+    - `--text-md`: text-base와 text-lg 사이 (1rem). 다이얼로그 제목 등에서 참조.
+    - `--color-text-on-image`: 이미지 위 텍스트 (라이트/다크 동일 #ffffff).
+    - `--color-editor-comment` + `--color-text-on-editor-comment`: 노란 코멘트 배경 + 짙은 갈색 텍스트. 다크모드에서 채도 약간 낮춤(#f5d34a) + 텍스트 더 진하게(#2a2200).
+    - `--color-text-on-light-segment`: 라이트 thumb(흰 배경) 위 짙은 텍스트(#1c1c1e). 테마/캘린더 토글 활성 상태에서 사용.
+    - `--z-overlay: 500`: 풀스크린 모달용. z-modal(200) / z-toast(300) / z-splash(400) 보다 위.
+    - `data-font-size="small"`/`"large"` 프리셋이 기존 `--text-base`/`--text-lg` 2개만 재정의하던 것을 `--text-xs`/`--text-sm`/`--text-md`/`--text-xl`/`--text-2xl` 까지 5개 추가 재정의. 사용자 폰트 크기 설정이 전체 스케일에 일관 적용.
+  - **base.css 접근성**: `@media (prefers-reduced-motion: reduce)` 글로벌 블록 추가. 모든 요소의 animation/transition duration 을 0.01ms로, scroll-behavior 를 auto로 강제. 멀미/현기증 민감 사용자 보호.
+  - **pages.css 하드코딩 교체**:
+    - `.detail-editor-note-label` 의 `color:#3f3200` → `var(--color-text-on-editor-comment)`, `background:#ffe16a` → `var(--color-editor-comment)` (fallback 제거).
+    - `.theme-option.active` 의 `color:#1c1c1e` → `var(--color-text-on-light-segment)`.
+    - `.calendar-toggle-btn.active` 동일 패턴.
+    - `.collect-btn--done` 의 `background:#34c759` → `var(--color-success)`, `color:#fff` → `var(--color-text-on-image)`.
+    - `.profile-edit-overlay` 의 `z-index:9999` → `var(--z-overlay)`.
+  - **components.css 정리**:
+    - `.crop-modal-overlay` `z-index:100000` → `var(--z-overlay)`.
+    - `.confirm-dialog-overlay` `z-index:10000` → `var(--z-overlay)`.
+    - `.page-header-back` (36px) — 시각 크기 유지, `::before { inset: -4px }` 로 hit area를 44px+로 확장 (WCAG 2.5.5).
+    - `.confirm-dialog-status` 의 `color-mix()` 앞에 `rgba(255,59,48,0.1)` fallback 1줄 추가 (Safari 15.4↓ / Android WebView 105↓ 대응).
+  - **TDD**: `tests/css_tokens.spec.js` 신설(16 케이스) — 토큰 존재성(8), prefers-reduced-motion 글로벌(2), 하드코딩 hex 제거 + 터치 영역 확장 + z-index 토큰화(6) 검증. 파일 텍스트 매칭 기반(jsdom의 :root 변수 해석 부정확성 회피).
+- 변경파일: `src/css/variables.css`, `src/css/base.css`, `src/css/pages.css`, `src/css/components.css`, `tests/css_tokens.spec.js`(신규), `docs/SESSION_LOG.md`.
+- 검증: Wave 2 baseline 27 failed / 110 passed → Wave 3 후 27 failed / 126 passed. **회귀 0건, 새 spec 16/16 통과** (누적 +28). 27개 기존 실패는 모두 사전 존재.
+- 후속(사용자): ① 수동 시각 점검 권장 — 라이트/다크 토글, 폰트 크기 small/large 전환(이전엔 base와 lg만 반응했으나 이제 xs~2xl 전부 반응), 캘린더의 "역사 ↔ 나의 일화" 토글 활성 상태의 텍스트 가독성, 디테일 페이지의 에디터 코멘트 라벨 다크모드 대비. ② OS 접근성에서 "동작 줄이기" 켜고 카드 플립/페이지 전환이 즉시 결과 상태로만 바뀌는지. ③ 안드로이드 구 WebView 디바이스에서 confirmDialog 의 "길게 눌러 확정" 상태 배경이 정상 표시되는지.

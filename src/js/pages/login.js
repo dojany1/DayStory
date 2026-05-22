@@ -36,6 +36,9 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import pkg from '../../../package.json';
+
+const PRIVACY_URL = 'https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link';
 
 /* 소셜 로그인 제공자 */
 const googleProvider = new GoogleAuthProvider();
@@ -174,17 +177,10 @@ export function renderLogin() {
   page.className = 'auth-page page';
 
   page.innerHTML = `
-    <!-- 닫기 버튼 -->
-    <button id="close-login-btn" class="close-auth-btn" aria-label="닫기">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 6L6 18M6 6l12 12"/>
-      </svg>
-    </button>
-
     <!-- 로고 영역 -->
     <div class="auth-logo" style="margin-bottom: var(--space-6);">
       <h1 class="auth-logo-title" style="margin: 0;">DayStory</h1>
-      <p class="auth-logo-subtitle" style="margin-top: 5px;">매일의 역사 일화</p>
+      <p class="auth-logo-subtitle" style="margin-top: 5px;">매일 만나는 역사 카드</p>
     </div>
 
     <!-- 로그인 폼 -->
@@ -222,18 +218,20 @@ export function renderLogin() {
     <!-- 하단 링크 -->
     <div class="auth-footer">
       <p>계정이 없으신가요? <button id="goto-signup">회원가입</button></p>
-      <p style="margin-top:var(--space-2)"><button id="forgot-pw">비밀번호를 잊으셨나요?</button></p>
+      <p style="margin-top:var(--space-2)">
+
+    <!-- 버전 정보 -->
+    <div class="auth-version-block">
+      <div class="settings-privacy-link">
+        <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">개인정보처리방침</a>
+      </div>
+      <div class="settings-version">DayStory v${pkg.version}</div>
+      <div class="settings-version">2026 DOKHU Team</div>
     </div>
   `;
 
   /* ---- 이벤트 리스너 연결 ---- */
   setTimeout(() => {
-    /* 닫기 버튼 */
-    document.getElementById('close-login-btn')?.addEventListener('click', () => {
-      document.getElementById('bottom-nav').style.display = 'flex';
-      navigate('/editorstory');
-    });
-
     /* 로그인 폼 제출 처리 */
     const form = document.getElementById('login-form');
     form?.addEventListener('submit', async (e) => {
@@ -341,7 +339,7 @@ export function renderSignup() {
     <!-- 로고 영역 -->
     <div class="auth-logo" style="margin-bottom: var(--space-6);">
       <h1 class="auth-logo-title" style="margin: 0;">회원가입</h1>
-      <p class="auth-logo-subtitle" style="margin-top: 5px;">매일 새로운 역사 카드를 만나보세요</p>
+      <p class="auth-logo-subtitle" style="margin-top: 5px;">매일 만나는 역사 카드</p>
     </div>
 
     <!-- 회원가입 폼 -->
@@ -391,6 +389,15 @@ export function renderSignup() {
     <!-- 하단 링크 -->
     <div class="auth-footer">
       <p>이미 계정이 있으신가요? <button id="goto-login">로그인</button></p>
+    </div>
+
+    <!-- 버전 정보 -->
+    <div class="auth-version-block">
+      <div class="settings-privacy-link">
+        <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">개인정보처리방침</a>
+      </div>
+      <div class="settings-version">DayStory v${pkg.version}</div>
+      <div class="settings-version">2026 DOKHU Team</div>
     </div>
   `;
 

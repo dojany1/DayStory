@@ -65,6 +65,7 @@
 /* 로고 영역 — 페이지 상단 중앙 */
 .auth-logo {
   text-align: center;
+  margin-top: var(--space-6); /* 상단 여백을 줄여서 시각적으로 중앙에 오도록 조정 */
   margin-bottom: var(--space-12);
 }
 
@@ -169,6 +170,11 @@
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   margin-top: var(--space-6);
+}
+
+.auth-version-block {
+  margin-top: auto;
+  padding-top: var(--space-6);
 }
 
 /* 하단 안내 링크/버튼 — 강조색 */

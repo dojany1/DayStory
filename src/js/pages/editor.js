@@ -15,6 +15,7 @@
 
 import { navigate, setBeforeNavigate } from '../router.js';
 import { showToast } from '../components/toast.js';
+import { showConfirm } from '../components/confirmDialog.js';
 import { getState } from '../state.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
@@ -408,9 +409,15 @@ export function renderEditorNew() {
   window.addEventListener('beforeunload', blockClose);
 
   // 라우터 이동 방지 (SPA) & 하드웨어 뒤로가기
-  setBeforeNavigate((targetPath) => {
+  setBeforeNavigate(async (targetPath) => {
     if (!saving && unsavedChanges) {
-      const confirmLeave = window.confirm("저장되지 않은 정보가 있습니다. 정말 나가시겠습니까?");
+      const confirmLeave = await showConfirm({
+        title: '저장되지 않은 정보가 있습니다',
+        message: '정말 나가시겠습니까?',
+        confirmText: '나가기',
+        cancelText: '계속 작성',
+        danger: true,
+      });
       if (!confirmLeave) return false;
     }
     // 페이지 벗어날 때 리스너 제거

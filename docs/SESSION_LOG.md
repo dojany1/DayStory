@@ -181,3 +181,17 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 핵심 발견: ① `router.setOnUnmount` 가 CLAUDE.md 규칙에는 있는데 실재하지 않음, ② RevenueCat 설치만 되고 미연결로 수익 0, ③ `donate.js` placeholder 결제 안내가 출시 빌드에 잔존(스토어 기만 리스크), ④ 클라이언트가 자기 자신에게 `role='editor'` 부여 — Firestore Rules 콘솔 검증 필요, ⑤ `prefers-reduced-motion` 글로벌 부재, ⑥ 게스트→로그인 시 북마크 머지 부재, ⑦ `withTimeout`·Firebase URL 판별·`escapeHtml` 중복.
 - 변경파일: `docs/audit/2026-05-22/SUMMARY.md`(신규), `docs/SESSION_LOG.md`.
 - 검증: read-only 감사이므로 빌드/테스트 실행 없음. 다음 재감사 권장 시점은 P0/P1 처리 후 v1.4.0 출시 직전.
+- 추가 작업(같은 날, 사용자 결정 반영): `docs/audit/2026-05-22/한장요약.md`(바이브코더 톤 요약), `docs/audit/2026-05-22/할일.md`(사용자 결정 6개 반영한 v1.4.0 패치 6-Wave 액션 리스트) 신규 작성.
+
+### v1.4.0 패치 Wave 1 — 결제 제거 + window.confirm 교체 + 알림 기본값 ON
+
+- 요구사항: audit P0 중 즉시 처리 가능한 항목 묶음. donate placeholder 제거 / `editor.js`의 브라우저 `window.confirm()` 잔존을 `confirmDialog`로 교체 / 일기 알림 기본값을 신규 사용자에게 ON으로 (기존 저장 설정은 유지).
+- 구현방법:
+  - **donate 제거**: `src/js/pages/donate.js` 파일 삭제. main.js 라우터에는 이미 등록 없었음(죽은 페이지). `src/css/pages.css`의 `.donate-*` 섹션(80여 줄) + 구성 목차의 "7) 후원 페이지" 라인 삭제.
+  - **window.confirm 교체**: `src/js/pages/editor.js:411-420` — `setBeforeNavigate` 콜백을 async로 만들고 `showConfirm({title, message, confirmText:'나가기', cancelText:'계속 작성', danger:true})` 사용. `confirmDialog.js` import 추가. 모바일 웹뷰 라이프사이클 깨짐 리스크 제거.
+  - **알림 기본값 ON**: `src/js/services/notifications.js:8` `diary.enabled: false → true`. 추가로 `normalizeNotificationSetting()` 이 `value === undefined`일 때 `enabled: Boolean(fallback.enabled)` 를 반환하도록 수정 — 기존엔 `Boolean(undefined?.enabled) = false`라 DEFAULT만 바꿔도 신규 사용자에게 적용 안 되던 버그.
+  - **TDD**: `tests/notifications_default.spec.js` 신설(5 케이스) — 신규 사용자 diary ON, editor OFF 유지, 기존 저장된 OFF/ON 그대로 유지, diary 누락 시 fallback ON.
+  - **문서**: `docs/CODE_MAP.md`의 `/donate` 라우트 행 + Known Issues D 행 제거. `docs/ARCHITECTURE.md`의 코드 트리에서 donate 제거. `docs/PRD.md` Known Limitations의 donate 항목을 v1.4.0 제거 안내로 교체.
+- 변경파일: `src/js/pages/donate.js`(삭제), `src/css/pages.css`, `src/js/pages/editor.js`, `src/js/services/notifications.js`, `tests/notifications_default.spec.js`(신규), `docs/CODE_MAP.md`, `docs/ARCHITECTURE.md`, `docs/PRD.md`, `docs/SESSION_LOG.md`.
+- 검증: `npm test` 전후 baseline 비교 — baseline 27 failed / 98 passed → 변경 후 27 failed / 103 passed. **회귀 0건, 새 spec 5/5 통과.** 27개 기존 실패는 모두 사전 존재(위젯 XML 누락, nav-icon size 변경, regression.bugs 등 v1.3.5 출시 시점 상태). `npm run build` 미실행(이번 wave에서 build 영향 변경 없음, Wave 2 종료 후 cap sync 와 함께 한 번에).
+- 후속: Wave 2(게스트 모드 완전 제거 + 로그인 강제) 진입 전 사용자 확인 권장.

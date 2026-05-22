@@ -13,8 +13,7 @@ DayStory-test/
 │   │   ├── pages/          # 라우트별 화면 (1 파일 = 1 화면)
 │   │   │   editorstory.js  ·  mystory.js  ·  calendar.js  ·  bookmarks.js
 │   │   │   profile.js      ·  settings.js ·  editor.js    ·  detail.js
-│   │   │   login.js        ·  search.js   ·  donate.js    ·  report.js
-│   │   │   license.js
+│   │   │   login.js        ·  search.js   ·  report.js    ·  license.js
 │   │   ├── components/     # 재사용 UI 조각
 │   │   │   confirmDialog.js · notificationSettingsSheet.js
 │   │   │   settingsSections.js · toast.js · widgetThemePreview.js

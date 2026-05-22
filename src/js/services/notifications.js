@@ -5,7 +5,7 @@ import { showToast } from '../components/toast.js';
 const STORAGE_KEY = 'ds_notification_settings_v1';
 
 const DEFAULT_SETTINGS = {
-  diary: { enabled: false, time: '12:00' },
+  diary: { enabled: true, time: '12:00' },
   editor: { enabled: false, time: '12:00' },
 };
 
@@ -299,6 +299,9 @@ function saveSettings(settings) {
 }
 
 function normalizeNotificationSetting(value, fallback) {
+  if (value === undefined || value === null) {
+    return { enabled: Boolean(fallback.enabled), time: fallback.time };
+  }
   return {
     enabled: Boolean(value?.enabled),
     time: isValidTime(value?.time) ? value.time : fallback.time,

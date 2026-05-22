@@ -46,7 +46,6 @@ src/js/services/*  ← Firestore / Storage / Capacitor 추상화
 | `/editor` | editor.js | **관리자 전용** 콘텐츠 목록 (필터/편집/삭제) | services/stories |
 | `/editor/new` | editor.js | **관리자 전용** 카드 작성/수정 폼 (실시간 미리보기) | services/stories, cropperjs |
 | `/license` | license.js | 이미지 라이선스 출처 페이지 | services/stories |
-| `/donate` | donate.js | 후원 페이지 (UI placeholder, IAP 미연동) | components/toast |
 | `/report` | report.js | 오류 신고 페이지 | components/toast |
 | `/login` `/signup` | login.js | 이메일/Google 로그인 + 회원가입 | firebase auth |
 
@@ -361,7 +360,6 @@ registerNotificationActionNavigation(navigate)에서 등록한 리스너
 | **A** | `/editor` 라우터 가드가 `setBeforeNavigate`에 등록되어 있지 않다. 비관리자가 직접 hash로 `/editor`를 입력하면 페이지가 렌더되며 메시지로만 차단된다. | 보안: 클라이언트 우회 가능. 단, Firestore 쓰기는 별도 보안 규칙으로 막아야 함. 현재 Firestore rules 미검증. | (1) router의 `setBeforeNavigate`에 admin 검사 추가 (2) Firestore `stories` 컬렉션 write rule을 `request.auth.token.role == 'editor'`로 잠그기 |
 | **B** | 13개 페이지 중 일부(특히 `editorstory.js` 정도만 일관되게)만 `setOnUnmount`로 리스너를 정리한다. SPA 특성상 떠난 페이지의 `window`/`document` 이벤트 리스너가 누적된다. | 메모리 누수, 잘못된 핸들러 호출 (모바일 웹뷰에서 두드러짐) | 각 페이지 검토 → `window.addEventListener` / `Capacitor` 리스너 등록한 곳 전부 `setOnUnmount` 추가 |
 | **C** | Firestore 타임아웃이 service별로 제각각. `stories`는 5000/2500/3000ms, `bookmarks`는 8000ms, `mystories`는 5000ms, `notifications`는 없음. | 사용자 경험 일관성 부족. 느린 네트워크에서 어떤 service는 빨리 폴백, 어떤 service는 영원히 대기. | 공통 타임아웃 헬퍼 (`utils/withTimeout.js`) 도입 후 표준화 (5000ms 권장). |
-| **D** | `donate.js`는 UI placeholder. 토스트만 띄우고 IAP 연동 없음. PRD.md "Known Limitations"에 기록됨. | 후원 기능 비활성. | Google Play Billing / 외부 결제 SDK 연동 필요 |
 | **E** | `editor.js` (~860줄), `mystory.js` (~940줄), `editorstory.js` (~820줄), `pages.css` (~2800줄) 큰 파일. | 가독성/병합 충돌. 사용자가 "구조 변경 금지"를 명시해서 분리는 미실행. | 후일 페이지 단위로 list/form/detail 분리 검토 |
 | **F** | `editorstory.js`와 `mystory.js`에 휠 피커 초기화 로직이 거의 동일하게 중복. | DRY 위반. | `utils/wheelPicker.js`로 추출 (단, 새 utility 파일 추가는 큰 구조 변경에 해당하므로 별도 합의 필요) |
 

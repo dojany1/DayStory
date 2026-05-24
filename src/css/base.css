@@ -187,8 +187,8 @@ ul, ol {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* 상태바 여백 — bottom-nav와 대칭: position:fixed로 status bar 영역을 항상 bg-primary로 덮음 */
@@ -426,7 +426,7 @@ ul, ol {
 
 /* 리디자인된 내비게이션의 아이템 — 더 넓은 터치 영역 및 사이즈 확보 */
 .bottom-nav.redesigned-nav .nav-item {
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-3) var(--space-8);
   justify-content: center;
   width: auto;
   height: auto;
@@ -434,16 +434,15 @@ ul, ol {
 
 /* 리디자인된 내비게이션의 아이콘 */
 .bottom-nav.redesigned-nav .nav-icon {
-  width: 26px;
-  height: 26px;
-  stroke-width: 1.8;
+  width: 28px;
+  height: 28px;
+  stroke-width: 2px;
 }
 
 /* 내비게이션 활성화 아이콘 */
 .bottom-nav.redesigned-nav .nav-item.active .nav-icon {
-  color: var(--color-text-primary);
-  stroke-width: 1.85;
-  transform: scale(1.05);
+  color: var(--color-accent);
+  stroke-width: 2px;
 }
 
 /* 프로필 버튼 아바타 전용 래퍼: 다른 아이콘들과 정확히 동일한 사이즈(28x28) 유지 */

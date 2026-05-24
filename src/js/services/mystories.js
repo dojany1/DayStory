@@ -10,24 +10,42 @@ import { ref, deleteObject } from 'firebase/storage';
 import { withTimeout } from '../utils/timeout.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
 
+/* ─── myStories in-memory 캐시 ─── */
+const MYSTORIES_CACHE_TTL_MS = 60_000; // 60초
+const myStoriesCache = new Map(); // uid -> { promise, cachedAt }
+
+export function invalidateMyStoriesCache(uid) {
+  if (uid) myStoriesCache.delete(uid);
+  else myStoriesCache.clear();
+}
+
 export async function fetchMyStories(uid) {
   if (!db) return [];
   if (!uid) return [];  /* Wave 4 가드: undefined/null/'' 시 전체 컬렉션 스캔 위험 차단 */
 
-  try {
-    const q = query(
-      collection(db, 'userStories'),
-      where('uid', '==', uid),
-      orderBy('publish_date', 'desc'),
-      orderBy('created_at', 'desc')
-    );
-    const snap = await withTimeout(getDocs(q), 5000);
-    const results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    return results;
-  } catch (err) {
-    console.warn('fetchMyStories 에러:', err);
-    return [];
-  }
+  const now = Date.now();
+  const cached = myStoriesCache.get(uid);
+  if (cached && now - cached.cachedAt < MYSTORIES_CACHE_TTL_MS) return cached.promise;
+
+  const promise = (async () => {
+    try {
+      const q = query(
+        collection(db, 'userStories'),
+        where('uid', '==', uid),
+        orderBy('publish_date', 'desc'),
+        orderBy('created_at', 'desc')
+      );
+      const snap = await withTimeout(getDocs(q), 5000);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      myStoriesCache.delete(uid); // 실패 시 캐시 항목 제거
+      console.warn('fetchMyStories 에러:', err);
+      return [];
+    }
+  })();
+
+  myStoriesCache.set(uid, { promise, cachedAt: now });
+  return promise;
 }
 
 export async function fetchMyStoryById(id, uid) {
@@ -55,6 +73,7 @@ export async function createMyStory(data) {
     created_at: serverTimestamp(),
     updated_at: serverTimestamp()
   });
+  invalidateMyStoriesCache(data.uid);
 }
 
 export async function updateMyStory(id, data) {
@@ -66,6 +85,7 @@ export async function updateMyStory(id, data) {
     ...data,
     updated_at: serverTimestamp()
   });
+  invalidateMyStoriesCache(data.uid);
 }
 
 export async function deleteMyStory(id) {
@@ -73,10 +93,12 @@ export async function deleteMyStory(id) {
     console.log('[DB Mock] deleteMyStory:', id);
     return;
   }
+  let uid;
   try {
     const d = await getDoc(doc(db, 'userStories', id));
     if (d.exists()) {
       const data = d.data();
+      uid = data.uid;
       if (isFirebaseStorageUrl(data.image_url)) {
         const imgRef = ref(storage, data.image_url);
         await deleteObject(imgRef).catch(e => console.warn('Storage delete fail', e));
@@ -86,5 +108,6 @@ export async function deleteMyStory(id) {
     console.warn('deleteMyStory image delete skip:', e);
   }
   await deleteDoc(doc(db, 'userStories', id));
+  invalidateMyStoriesCache(uid);
 }
 

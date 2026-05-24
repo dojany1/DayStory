@@ -34,6 +34,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@revenuecat/purchases-capacitor": "^13.1.0",
     "cropperjs": "^1.6.2",
-    "firebase": "^10.14.1"
+    "firebase": "^10.14.1",
+    "swiper": "^11.2.10"
   }
 }

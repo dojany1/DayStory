@@ -176,17 +176,28 @@ describe('Editor Story comment styles', () => {
     expect(search).toMatch(/story\.image_url/);
   });
 
-  it('Given card stack motion, when source is inspected, then transitions should use the shared settle timing and GPU-friendly transforms', () => {
+  it('Given card swipe motion, when source is inspected, then Swiper.js should drive transitions through the shared cardSwiper utility', () => {
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
     const myStory = readFileSync(resolve(process.cwd(), 'src/js/pages/mystory.js'), 'utf8');
+    const cardSwiper = readFileSync(resolve(process.cwd(), 'src/js/utils/cardSwiper.js'), 'utf8');
     const pagesCss = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
 
-    expect(editorStory).toMatch(/CARD_STACK_SETTLE_MS\s*=\s*560/);
-    expect(myStory).toMatch(/CARD_STACK_SETTLE_MS\s*=\s*560/);
-    expect(editorStory).toMatch(/SWIPE_DRAG_RESPONSE\s*=\s*0\.62/);
-    expect(myStory).toMatch(/SWIPE_DRAG_RESPONSE\s*=\s*0\.62/);
-    expect(pagesCss).toMatch(/transform\s+520ms/);
-    expect(pagesCss).toMatch(/translate3d/);
+    /* 두 페이지가 공통 cardSwiper 유틸을 사용해야 한다 (제스처 일관성). */
+    expect(editorStory).toMatch(/createCardSwiper/);
+    expect(myStory).toMatch(/createCardSwiper/);
+
+    /* Swiper Virtual로 양옆 1장씩만 렌더 (메모리/이미지 비용 절감). */
+    expect(cardSwiper).toMatch(/Virtual/);
+    expect(cardSwiper).toMatch(/addSlidesBefore:\s*1/);
+    expect(cardSwiper).toMatch(/addSlidesAfter:\s*1/);
+
+    /* 카드 스와이퍼 컨테이너는 수직 스크롤을 보존해야 한다. */
+    expect(pagesCss).toMatch(/\.card-swiper/);
+    expect(pagesCss).toMatch(/touch-action:\s*pan-y/);
+
+    /* 레거시 stack-enter/exit 스타일은 제거되어야 한다 (Swiper가 슬라이드 전환을 담당). */
+    expect(pagesCss).not.toMatch(/\.stack-enter-next/);
+    expect(pagesCss).not.toMatch(/\.stack-exit-next/);
   });
 
 

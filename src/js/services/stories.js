@@ -42,7 +42,7 @@ import {
 import { ref, deleteObject } from 'firebase/storage';
 import { uploadImage as uploadImageToStorage } from './images.js';
 
-const STORIES_CACHE_TTL_MS = 60000;
+const STORIES_CACHE_TTL_MS = 300_000; // 5분 (역사 데이터는 자주 변경되지 않음)
 let storiesCachePromise = null;
 let storiesCacheAt = 0;
 

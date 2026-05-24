@@ -9,6 +9,9 @@
    ===================================================================== */
 
 import { getBookmarkedStories, toggleBookmark } from '../services/bookmarks.js';
+import { fetchMyStories } from '../services/mystories.js';
+import { getState } from '../state.js';
+import { navigate } from '../router.js';
 
 import { openCardPopup } from './calendar.js';
 import { escapeHtml } from '../utils/sanitize.js';
@@ -21,20 +24,7 @@ import { showToast } from '../components/toast.js';
 export function renderArchiveSection() {
   return `
     <div class="archive-page">
-      <div class="archive-section-header">
-        <span class="archive-section-label">${t('bookmarks.section_label')}</span>
-        <div class="search-bar archive-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
-          <button type="button" class="search-clear" id="collection-search-clear" aria-label="${t('common.clear')}" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
-            </svg>
-          </button>
-        </div>
-      </div>
+      ${renderArchiveHeader()}
       <div id="archive-content" class="archive-content-loading">
         <div class="loading-spinner"></div>
       </div>
@@ -54,20 +44,7 @@ export function renderBookmarks() {
     <div class="page-header page-header-centered">
       <h1 class="page-header-title">${t('bookmarks.title')}</h1>
     </div>
-    <div class="archive-section-header">
-      <span class="archive-section-label">${t('bookmarks.section_label')}</span>
-      <div class="search-bar archive-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
-        <button type="button" class="search-clear" id="collection-search-clear" aria-label="${t('common.clear')}" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
-          </svg>
-        </button>
-      </div>
-    </div>
+    ${renderArchiveHeader()}
     <div id="archive-content" class="archive-content-loading">
       <div class="loading-spinner"></div>
     </div>
@@ -81,47 +58,90 @@ export function renderBookmarks() {
 async function loadCollection(page) {
   const contentEl = page.querySelector('#archive-content');
 
-  const bookmarkStoriesRaw = await getBookmarkedStories().catch(() => []);
+  const user = getState('user');
+  const [bookmarkStoriesRaw, myStoriesRaw] = await Promise.all([
+    getBookmarkedStories().catch(() => []),
+    user?.id ? fetchMyStories(user.id).catch(() => []) : Promise.resolve([]),
+  ]);
+
   const bookmarkStories = (bookmarkStoriesRaw || []).map(localizedStory);
   bookmarkStories.sort((a, b) =>
     String(b.publish_date || '').localeCompare(String(a.publish_date || ''))
   );
 
+  const myStories = (myStoriesRaw || []);
+  myStories.sort((a, b) =>
+    String(b.publish_date || '').localeCompare(String(a.publish_date || ''))
+  );
+
   const state = {
     bookmarks: bookmarkStories,
+    myStories,
+    activeTab: 'history', // 'history' | 'mine'
     queryStr: '',
   };
 
   const filterAndRender = () => {
+    const source = state.activeTab === 'history' ? state.bookmarks : state.myStories;
     const list = state.queryStr
-      ? state.bookmarks.filter(story =>
-          (story.figure_name || '').toLowerCase().includes(state.queryStr) ||
-          (story.country || '').toLowerCase().includes(state.queryStr) ||
-          (story.summary || '').toLowerCase().includes(state.queryStr)
+      ? source.filter(story =>
+          state.activeTab === 'history'
+            ? (story.figure_name || '').toLowerCase().includes(state.queryStr) ||
+              (story.country || '').toLowerCase().includes(state.queryStr) ||
+              (story.summary || '').toLowerCase().includes(state.queryStr)
+            : (story.title || '').toLowerCase().includes(state.queryStr) ||
+              (story.body || '').toLowerCase().includes(state.queryStr)
         )
-      : state.bookmarks;
-    renderStories(contentEl, list, 'bookmarks', (story) => onCardClick(state, story), {
-      searching: Boolean(state.queryStr),
-      onToggle: (story, bookmarked) => {
-        if (!story) return;
-        if (!bookmarked) {
-          state.bookmarks = state.bookmarks.filter(s => s.id !== story.id);
-        } else if (!state.bookmarks.some(s => s.id === story.id)) {
-          state.bookmarks.push(story);
-        }
-      },
-    });
+      : source;
+
+    renderStories(
+      contentEl,
+      list,
+      state.activeTab,
+      (story) => state.activeTab === 'history' ? onCardClick(state, story) : navigate('/mystory'),
+      {
+        searching: Boolean(state.queryStr),
+        onToggle: state.activeTab === 'history'
+          ? (story, bookmarked) => {
+              if (!story) return;
+              if (!bookmarked) {
+                state.bookmarks = state.bookmarks.filter(s => s.id !== story.id);
+              } else if (!state.bookmarks.some(s => s.id === story.id)) {
+                state.bookmarks.push(story);
+              }
+            }
+          : undefined,
+      }
+    );
   };
 
   filterAndRender();
 
+  /* 탭 토글 */
+  const toggleEl = page.querySelector('.archive-toggle');
+  page.querySelectorAll('.archive-toggle .calendar-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      if (tab === state.activeTab) return;
+      state.activeTab = tab;
+      state.queryStr = '';
+      const searchInput = page.querySelector('#collection-search-input');
+      if (searchInput) searchInput.value = '';
+      syncClearBtn();
+      page.querySelectorAll('.archive-toggle .calendar-toggle-btn')
+        .forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      if (toggleEl) toggleEl.dataset.mode = tab;
+      filterAndRender();
+    });
+  });
+
   /* 검색 */
   const searchInput = page.querySelector('#collection-search-input');
   const searchClearBtn = page.querySelector('#collection-search-clear');
-  const syncClearBtn = () => {
+  function syncClearBtn() {
     if (!searchClearBtn) return;
-    searchClearBtn.hidden = !searchInput.value;
-  };
+    searchClearBtn.hidden = !searchInput?.value;
+  }
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       state.queryStr = e.target.value.trim().toLowerCase();
@@ -184,14 +204,12 @@ function renderStories(contentEl, list, tab, onClick, opts = {}) {
     contentEl.style.padding = '';
     const title = opts.searching
       ? t('bookmarks.empty_search')
-      : (tab === 'received' ? t('bookmarks.empty_received') : t('bookmarks.empty_mine'));
-    const desc = !opts.searching && tab === 'received'
-      ? `<div class="empty-state-desc">${t('bookmarks.empty_received_desc')}</div>`
-      : '';
+      : tab === 'mine'
+        ? '아직 작성한 일화가 없습니다'
+        : t('bookmarks.empty_mine');
     contentEl.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-title">${title}</div>
-        ${desc}
       </div>
     `;
     return;
@@ -200,7 +218,9 @@ function renderStories(contentEl, list, tab, onClick, opts = {}) {
   contentEl.className = 'archive-grid';
   contentEl.style.display = '';
   contentEl.style.padding = '';
-  contentEl.innerHTML = list.map(story => renderMiniCard(story)).join('');
+  contentEl.innerHTML = list.map(
+    story => tab === 'mine' ? renderMyMiniCard(story) : renderMiniCard(story)
+  ).join('');
 
   contentEl.querySelectorAll('.history-card-mini').forEach((card, idx) => {
     const story = list[idx];
@@ -217,6 +237,36 @@ function renderStories(contentEl, list, tab, onClick, opts = {}) {
       if (opts.onToggle) opts.onToggle(story, res.bookmarked);
     });
   });
+}
+
+
+function renderArchiveHeader() {
+  const historyLabel = t('calendar.tab_history');
+
+  return `
+    <div class="archive-section-header">
+      <div class="calendar-toggle archive-toggle" data-mode="history">
+        <button type="button" class="calendar-toggle-btn active" data-tab="history" aria-label="${escapeHtml(historyLabel)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
+        <button type="button" class="calendar-toggle-btn" data-tab="mine">나의 일화</button>
+        <span class="calendar-toggle-thumb" aria-hidden="true"></span>
+      </div>
+      <div class="search-bar archive-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="collection-search-input" placeholder="${t('common.search_placeholder')}" autocomplete="off" />
+        <button type="button" class="search-clear" id="collection-search-clear" aria-label="${t('common.clear')}" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 
@@ -255,6 +305,31 @@ function renderMiniCard(story) {
         <div class="mini-card-overlay">
           ${escapeHtml(story.figure_name || '')}
         </div>
+      </div>
+    </div>
+  `;
+}
+
+
+function renderMyMiniCard(story) {
+  const dateStr = story.publish_date || '';
+  const [year = '', month = '', day = ''] = dateStr.split('-');
+  const imgSrc = escapeHtml(story.image_url || story.image_thumb_url || '');
+
+  return `
+    <div class="history-card-mini my-story-mini" data-story-id="${escapeHtml(story.id || '')}">
+      <div class="mini-card-top">
+        <div class="mini-top-left">
+          <div class="mini-date">${month}. ${day}</div>
+        </div>
+        <span class="mini-top-text">${escapeHtml(year)}</span>
+      </div>
+      <div class="mini-card-image-wrap">
+        ${imgSrc
+          ? `<img src="${imgSrc}" alt="" loading="lazy" decoding="async" />`
+          : `<div class="mini-card-no-image"></div>`
+        }
+        <div class="mini-card-overlay">${escapeHtml(story.title || '')}</div>
       </div>
     </div>
   `;

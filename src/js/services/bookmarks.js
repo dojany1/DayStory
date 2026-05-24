@@ -19,6 +19,7 @@ import {
   getDocs, getDoc, addDoc, deleteDoc
 } from 'firebase/firestore';
 import { withTimeout as withTimeoutBase } from '../utils/timeout.js';
+import { fetchStories } from './stories.js';
 
 
 /* ─────────────────────────────────────────────
@@ -33,6 +34,14 @@ function withTimeout(promise, ms = 8000) {
 /* Wave 4 — 빠른 더블탭 잠금: 같은 storyId 에 대한 동시 토글을 막아
  * Firestore 에 중복 북마크 문서가 생성되는 것을 방지한다. */
 const inFlightToggles = new Set();
+
+/* ─── bookmarkedStoryIds in-memory 캐시 ─── */
+const BOOKMARK_IDS_CACHE_TTL_MS = 60_000; // 60초
+let bookmarkIdsCache = null; // { userId, promise, cachedAt }
+
+export function invalidateBookmarksCache() {
+  bookmarkIdsCache = null;
+}
 
 
 /* ─────────────────────────────────────────────
@@ -102,6 +111,7 @@ export async function toggleBookmark(storyId) {
     return { bookmarked: false, error: err.message || '북마크 처리 중 오류가 발생했습니다.' };
   } finally {
     inFlightToggles.delete(storyId);
+    invalidateBookmarksCache(); // 토글 후 캐시 무효화
   }
 }
 
@@ -114,29 +124,37 @@ export async function toggleBookmark(storyId) {
  * getBookmarkedStoryIds — 북마크된 모든 스토리의 ID만 가져옵니다
  */
 export async function getBookmarkedStoryIds() {
-  try {
-    const user = getState('user');
-    if (!user || !user.id) return [];
+  const user = getState('user');
+  if (!user || !user.id || !db) return [];
 
-    if (!db) return [];
-
-    const q = query(
-      collection(db, 'bookmarks'),
-      where('user_id', '==', user.id)
-    );
-    const snapshot = await withTimeout(getDocs(q));
-    return snapshot.docs.map(d => d.data().story_id);
-  } catch {
-    return [];
+  const now = Date.now();
+  if (bookmarkIdsCache?.userId === user.id && now - bookmarkIdsCache.cachedAt < BOOKMARK_IDS_CACHE_TTL_MS) {
+    return bookmarkIdsCache.promise;
   }
+
+  const promise = (async () => {
+    try {
+      const q = query(
+        collection(db, 'bookmarks'),
+        where('user_id', '==', user.id)
+      );
+      const snapshot = await withTimeout(getDocs(q));
+      return snapshot.docs.map(d => d.data().story_id);
+    } catch {
+      bookmarkIdsCache = null; // 실패 시 캐시 항목 제거
+      return [];
+    }
+  })();
+
+  bookmarkIdsCache = { userId: user.id, promise, cachedAt: now };
+  return promise;
 }
 
 /**
  * getBookmarkedStories — 북마크된 스토리의 전체 데이터를 가져옵니다
  *
- * 2단계 조회:
- *   1단계: bookmarks 컬렉션에서 story_id 목록 조회
- *   2단계: stories 컬렉션에서 해당 ID들의 전체 데이터 조회
+ * 1단계: 북마크 ID 목록 조회 (60초 캐시)
+ * 2단계: fetchStories() 5분 캐시에서 우선 조회 → 없는 ID만 Firestore 개별 조회
  */
 export async function getBookmarkedStories() {
   try {
@@ -163,7 +181,14 @@ export async function getBookmarkedStories() {
     /* 중복 북마크 방지: 동일한 story_id가 중복 저장된 경우를 대비해 Set으로 고유값만 추출 */
     const storyIds = [...new Set(docsData.map(d => d.story_id))];
 
-    /* 2단계: 각 스토리 문서를 개별 조회 (Firestore는 'in' 쿼리로 최대 30개 지원) */
+    /* 2단계: fetchStories() 캐시에서 우선 조회 — Firestore 개별 요청 없이 즉시 반환 */
+    const cachedStories = await fetchStories().catch(() => null);
+    if (cachedStories && cachedStories.length > 0) {
+      const storyMap = new Map(cachedStories.map(s => [s.id, s]));
+      return storyIds.map(id => storyMap.get(id)).filter(Boolean);
+    }
+
+    /* 캐시 미스 폴백: 각 스토리 문서 개별 조회 */
     const storySnapshots = await Promise.allSettled(
       storyIds.map((sid) => withTimeout(getDoc(doc(db, 'stories', sid))))
     );

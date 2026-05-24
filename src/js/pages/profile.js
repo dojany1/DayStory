@@ -32,12 +32,29 @@ export function renderProfile() {
   const user = getState('user');
   const profile = getState('profile');
 
+  const isAdmin = profile && profile.role === 'editor';
+
+  const adminBtn = isAdmin
+    ? '<button type="button" id="goto-editor-btn" class="page-header-back" aria-label="콘텐츠 관리">'
+      + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"/>'
+      + '<path d="M14.487 7.858A1 1 0 0 1 14 7V2"/>'
+      + '<path d="M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516"/>'
+      + '<path d="M8 18h1"/>'
+      + '</svg></button>'
+    : '';
+
   const gearBtn = '<button type="button" id="goto-settings-btn" class="page-header-back" aria-label="설정">'
     + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
     + '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>'
     + '<circle cx="12" cy="12" r="3"/>'
     + '</svg></button>';
-  const profileHeader = renderPageHeader({ title: '프로필', icon: 'none', rightAction: gearBtn });
+
+  const rightAction = isAdmin
+    ? `<div class="page-header-actions" style="display:flex;align-items:center;">${adminBtn}${gearBtn}</div>`
+    : gearBtn;
+
+  const profileHeader = renderPageHeader({ title: '프로필', icon: 'none', rightAction });
 
   page.innerHTML = `
     ${profileHeader}
@@ -76,6 +93,7 @@ export function renderProfile() {
   setTimeout(() => {
     page.querySelector('#profile-edit-btn')?.addEventListener('click', () => openProfileEditModal());
     page.querySelector('#goto-settings-btn')?.addEventListener('click', () => navigate('/settings'));
+    page.querySelector('#goto-editor-btn')?.addEventListener('click', () => navigate('/editor'));
   }, 0);
 
   initArchiveSection(page);

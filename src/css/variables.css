@@ -20,7 +20,7 @@
   --color-bg-primary: #F9F8F6;           /* 더 깔끔하고 부드러온 앱 기본 배경 */
   --color-bg-secondary: #FCFCFC;         /* 보조 배경 */
   --color-bg-card: #FDFDFD;              /* 카드 배경색 */
-  --color-bg-card-dark: #ECECEC;         /* 카드 어두운 배경 (비활성 상태 등) */
+  --color-bg-card-dark: #F2F0EF;         /* 카드 어두운 배경 (비활성 상태 등) */
   --color-bg-elevated: #ffffff;          /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.45); /* 오버레이 (대비 소폭 강화) */
 
@@ -63,7 +63,7 @@
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12);
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 6px 30px rgba(0, 0, 0, 0.12);
   --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.2);
 
   /* ── 타이포그래피 (폰트 패밀리) ── */

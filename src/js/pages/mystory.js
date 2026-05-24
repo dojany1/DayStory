@@ -3,6 +3,8 @@
    =====================================================================
    사용자가 자신의 이야기를 확인하고 추가/수정하는 페이지입니다.
    홈 화면의 일화 카드와 디자인 일관성을 유지하기 위해 원본 카드 뷰를 사용합니다.
+
+   좌우 스와이프는 Swiper.js 11 기반으로 통합되었습니다 (2026-05-24).
    ===================================================================== */
 
 import { navigate, getParams, setOnUnmount } from '../router.js';
@@ -26,17 +28,12 @@ import { pickImage, CameraPermissionError } from '../services/camera.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderGrid, isAtCurrentMonth, WEEKDAYS } from './calendar.js';
 import { renderPageHeader, bindPageHeaderBack } from '../components/pageHeader.js';
+import { createCardSwiper } from '../utils/cardSwiper.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
 const ICON_CALENDAR_MY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7v10"/><path d="M6 5v14"/><rect width="12" height="18" x="10" y="3" rx="2"/></svg>`;
 const ICON_CARD_MY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>`;
-
-/* 스와이프 commit 가드 — bindCardEvents 가 카드 재렌더로 다시 호출돼도
-   짧은 시간 내 두 번째 commit이 발생하지 않도록 모듈 스코프에 둔다 (세션 1 #2). */
-let lastSwipeCommitAt = 0;
-const SWIPE_COMMIT_GUARD_MS = 1500;
-const CARD_STACK_SETTLE_MS = 560;
 
 function getMyStoryAuthorNickname(story = {}) {
   const profile = getState('profile') || {};
@@ -58,7 +55,7 @@ function getMyStoryAuthorNickname(story = {}) {
 }
 
 /* ─────────────────────────────────────────────
-   섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커)
+   섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커 + Swiper)
    ───────────────────────────────────────────── */
 export function renderMyStory() {
   const page = document.createElement('div');
@@ -84,10 +81,10 @@ export function renderMyStory() {
       </div>
     </div>
 
-    <!-- 카드 렌더링 영역 (editorstory.js와 동일한 구조) -->
+    <!-- 카드 렌더링 영역 (Swiper) -->
     <div class="editorstory-card-area" id="mystory-card-area">
-      <div style="display:flex;justify-content:center;padding:var(--space-8);width:100%;">
-        <div class="loading-spinner"></div>
+      <div class="swiper card-swiper" id="mystory-card-swiper">
+        <div class="swiper-wrapper"></div>
       </div>
     </div>
 
@@ -122,8 +119,6 @@ export function renderMyStory() {
 }
 
 async function loadMyStoryData(page) {
-  /* 새 페이지 진입 시 swipe commit 가드 리셋 (세션 1 #2). */
-  lastSwipeCommitAt = 0;
   try {
     const user = getState('user');
     // Firebase Auth의 실제 UID를 우선 사용 (Firestore 보안 규칙의 request.auth.uid와 일치해야 함)
@@ -135,20 +130,16 @@ async function loadMyStoryData(page) {
     const params = getParams();
     const now = new Date();
     const localTodayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    
+
     const [rtY, rtM, rtD] = localTodayStr.split('-');
     const realToday = new Date(parseInt(rtY), parseInt(rtM)-1, parseInt(rtD));
-    
+
     // URL 파라미터 > 오늘 순서로 초기 날짜 결정
     const targetDateStr = params.date || localTodayStr;
-    const [tY, tM, tD] = targetDateStr.split('-');
-    const targetDate = new Date(parseInt(tY), parseInt(tM)-1, parseInt(tD));
-    
-    let latestPathDate = targetDate;
 
     const monthElement = page.querySelector('#mystory-month-scroll');
     const calendarElement = page.querySelector('#mystory-calendar');
-    const cardArea = page.querySelector('#mystory-card-area');
+    const swiperEl = page.querySelector('#mystory-card-swiper');
 
     const currentYear = realToday.getFullYear();
     const currentMonth = realToday.getMonth() + 1;
@@ -164,19 +155,34 @@ async function loadMyStoryData(page) {
       }).join('');
     }
 
-    /* 일 휠: 1월 1일 ~ 오늘까지 평면 리스트 */
-    if (calendarElement) {
-      const items = [];
-      for (let m = 1; m <= currentMonth; m++) {
-        const lastDay = m === currentMonth ? currentDate : new Date(currentYear, m, 0).getDate();
-        for (let d = 1; d <= lastDay; d++) {
-          const mm = String(m).padStart(2, '0');
-          const dd = String(d).padStart(2, '0');
-          items.push(`<div class="wheel-item" data-date="${currentYear}-${mm}-${dd}" data-month="${m}" data-day="${d}">${d}</div>`);
-        }
+    /* 일 휠 + Swiper 슬라이드 데이터를 같은 인덱스로 생성 */
+    const dateItems = [];
+    for (let m = 1; m <= currentMonth; m++) {
+      const lastDay = m === currentMonth ? currentDate : new Date(currentYear, m, 0).getDate();
+      for (let d = 1; d <= lastDay; d++) {
+        const mm = String(m).padStart(2, '0');
+        const dd = String(d).padStart(2, '0');
+        dateItems.push({ iso: `${currentYear}-${mm}-${dd}`, month: m, day: d });
       }
-      calendarElement.innerHTML = items.join('');
     }
+
+    if (calendarElement) {
+      calendarElement.innerHTML = dateItems.map(({ iso, month, day }) =>
+        `<div class="wheel-item" data-date="${iso}" data-month="${month}" data-day="${day}">${day}</div>`
+      ).join('');
+    }
+
+    /* 날짜 → 일화 매핑 */
+    const dateToStory = new Map();
+    for (const s of allStories) {
+      if (s?.publish_date) dateToStory.set(s.publish_date, s);
+    }
+
+    /* Swiper 슬라이드 데이터 */
+    const slides = dateItems.map(({ iso }) => ({ iso, story: dateToStory.get(iso) || null }));
+
+    /* 초기 인덱스: targetDateStr */
+    const initialIdx = Math.max(0, dateItems.findIndex(d => d.iso === targetDateStr));
 
     function getActiveItem(scrollArea) {
       const boxCenter = scrollArea.getBoundingClientRect().left + scrollArea.offsetWidth / 2;
@@ -201,42 +207,55 @@ async function loadMyStoryData(page) {
       monthElement.scrollTo({ left: t, behavior: 'smooth' });
     }
 
-    function updateWheelSelection(forceInstant = false) {
-      let centerDay;
-      if (forceInstant) {
-        centerDay = calendarElement.querySelector('.wheel-item.active');
-      } else {
-        centerDay = getActiveItem(calendarElement);
-        if (centerDay) {
-          calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-          centerDay.classList.add('active');
-        }
-      }
-      if (!centerDay) return;
-
-      syncMonthWheel(parseInt(centerDay.dataset.month, 10));
-
-      const isoDate = centerDay.dataset.date;
-      const newDate = new Date(currentYear, parseInt(centerDay.dataset.month, 10) - 1, parseInt(centerDay.dataset.day, 10));
-      if (latestPathDate && latestPathDate.getTime() === newDate.getTime()) return;
-
-      const storyForDate = allStories.find(s => s.publish_date === isoDate);
-      const direction = newDate > latestPathDate ? 'next' : 'prev';
-      latestPathDate = newDate;
-      renderCardToArea(cardArea, storyForDate || null, newDate, isoDate, direction, allStories);
+    function activateDayWheelByIndex(idx) {
+      const items = calendarElement.querySelectorAll('.wheel-item');
+      items.forEach(el => el.classList.remove('active'));
+      const target = items[idx];
+      if (!target) return;
+      target.classList.add('active');
+      const month = parseInt(target.dataset.month, 10);
+      syncMonthWheel(month);
+      const t = target.offsetLeft - calendarElement.offsetWidth / 2 + target.offsetWidth / 2;
+      calendarElement.scrollTo({ left: t, behavior: 'smooth' });
     }
 
-    /* 일 휠 스크롤 디바운스 */
+    /* ── Swiper 인스턴스 생성 ── */
+    let swiper = null;
+
+    swiper = createCardSwiper(swiperEl, {
+      slides,
+      initialSlide: initialIdx,
+      renderSlide: (slide) => buildMyStorySlideHTML(slide.story, slide.iso),
+      onSlideActive: (idx) => {
+        activateDayWheelByIndex(idx);
+      },
+      onSlideMounted: (slideEl, slide) => {
+        const flipContainer = slideEl.querySelector('.flip-container');
+        if (!flipContainer) return;
+        bindMyStoryCardEvents(flipContainer, slide.story, slide.iso);
+      },
+    });
+
+    setOnUnmount(() => {
+      if (swiper && !swiper.destroyed) swiper.destroy(true, true);
+    });
+
+    /* 일 휠 스크롤 디바운스 — 사용자가 일 휠을 직접 스크롤하면 Swiper도 이동 */
     let scrollTimeout;
     const onDayScrollEnd = () => {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
-        updateWheelSelection(false);
+        const centerDay = getActiveItem(calendarElement);
+        if (!centerDay) return;
+        const targetIso = centerDay.dataset.date;
+        const targetIdx = slides.findIndex(s => s.iso === targetIso);
+        if (targetIdx < 0 || targetIdx === swiper.activeIndex) return;
+        swiper.slideTo(targetIdx, 320);
       }, 150);
     };
     calendarElement.addEventListener('scroll', onDayScrollEnd, { passive: true });
 
-    /* 월 휠 스크롤 디바운스 — 중앙 월로 일 휠을 점프 */
+    /* 월 휠 스크롤 디바운스 */
     let monthScrollTimeout;
     const onMonthScrollEnd = () => {
       if (currentView !== 'card') return;
@@ -256,34 +275,27 @@ async function loadMyStoryData(page) {
     };
     monthElement.addEventListener('scroll', onMonthScrollEnd, { passive: true });
 
-    /* 월 휠 클릭: 해당 월의 첫날(또는 오늘)로 일 휠 점프 */
+    /* 월 휠 클릭 */
     const onMonthClick = (item) => {
       if (item.classList.contains('disabled')) return;
       const m = parseInt(item.dataset.month, 10);
       const dd = m === currentMonth ? String(currentDate).padStart(2, '0') : '01';
-      const targetDateStr2 = `${currentYear}-${String(m).padStart(2, '0')}-${dd}`;
-      const targetDayEl = calendarElement.querySelector(`.wheel-item[data-date="${targetDateStr2}"]`);
-      if (!targetDayEl) return;
-      calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-      targetDayEl.classList.add('active');
+      const targetIso = `${currentYear}-${String(m).padStart(2, '0')}-${dd}`;
+      const targetIdx = slides.findIndex(s => s.iso === targetIso);
+      if (targetIdx < 0) return;
       monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
       item.classList.add('active');
-      clearTimeout(scrollTimeout);
-      const dayScroll = targetDayEl.offsetLeft - calendarElement.offsetWidth / 2 + targetDayEl.offsetWidth / 2;
-      calendarElement.scrollTo({ left: dayScroll, behavior: 'smooth' });
       const monthScroll = item.offsetLeft - monthElement.offsetWidth / 2 + item.offsetWidth / 2;
       monthElement.scrollTo({ left: monthScroll, behavior: 'smooth' });
-      updateWheelSelection(true);
+      swiper.slideTo(targetIdx, 320);
     };
 
     /* 일 휠 클릭 */
     const onDayClick = (item) => {
-      calendarElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-      item.classList.add('active');
-      clearTimeout(scrollTimeout);
-      updateWheelSelection(true);
-      const t = item.offsetLeft - calendarElement.offsetWidth / 2 + item.offsetWidth / 2;
-      calendarElement.scrollTo({ left: t, behavior: 'smooth' });
+      const targetIso = item.dataset.date;
+      const targetIdx = slides.findIndex(s => s.iso === targetIso);
+      if (targetIdx < 0) return;
+      swiper.slideTo(targetIdx, 320);
     };
 
     monthElement.querySelectorAll('.wheel-item').forEach(item =>
@@ -293,28 +305,12 @@ async function loadMyStoryData(page) {
       item.addEventListener('click', () => onDayClick(item))
     );
 
-    /* 초기 위치: targetDate — rAF로 레이아웃 완료 후 실행 */
+    /* 초기 휠 위치 보정 */
     setTimeout(() => {
       requestAnimationFrame(() => {
-        const initStr = targetDateStr;
-        const initDayEl = calendarElement.querySelector(`.wheel-item[data-date="${initStr}"]`);
-        const initMonth = targetDate.getMonth() + 1;
-        const initMonthEl = monthElement.querySelector(`.wheel-item[data-month="${initMonth}"]`);
-        if (initDayEl) {
-          initDayEl.classList.add('active');
-          if (!dayPicker.hidden) {
-            calendarElement.scrollLeft = initDayEl.offsetLeft - calendarElement.offsetWidth / 2 + initDayEl.offsetWidth / 2;
-          }
-        }
-        if (initMonthEl) {
-          initMonthEl.classList.add('active');
-          monthElement.scrollLeft = initMonthEl.offsetLeft - monthElement.offsetWidth / 2 + initMonthEl.offsetWidth / 2;
-        }
+        activateDayWheelByIndex(initialIdx);
       });
     }, 0);
-
-    const initialStory = allStories.find(s => s.publish_date === targetDateStr);
-    renderCardToArea(cardArea, initialStory || null, targetDate, targetDateStr, null, allStories);
 
     /* ── 보기 방식 토글 (카드 ↔ 캘린더) ── */
     const calState = {
@@ -328,6 +324,7 @@ async function loadMyStoryData(page) {
 
     const toggleBtn = page.querySelector('#mystory-view-toggle');
     const dayPicker = page.querySelector('#mystory-day-picker');
+    const cardArea = page.querySelector('#mystory-card-area');
     const calView   = page.querySelector('#mystory-cal-view');
     let currentView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
 
@@ -360,7 +357,7 @@ async function loadMyStoryData(page) {
           if (activeDay) {
             calendarElement.scrollLeft = activeDay.offsetLeft - calendarElement.offsetWidth / 2 + activeDay.offsetWidth / 2;
           }
-          updateWheelSelection(true);
+          swiper?.update();
           cardArea.classList.add('view-enter');
           setTimeout(() => cardArea.classList.remove('view-enter'), 250);
         });
@@ -409,48 +406,48 @@ async function loadMyStoryData(page) {
   }
 }
 
-function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null, allStories) {
-  if (!cardArea) return;
-  const allCards = Array.from(cardArea.querySelectorAll('.flip-container'));
-  const oldCard = allCards.pop() || null;
-  allCards.forEach(c => c.remove());
 
+/* ─────────────────────────────────────────────
+   섹션 1-2: 슬라이드 HTML 빌더 (Swiper Virtual용)
+   ───────────────────────────────────────────── */
+
+function buildMyStorySlideHTML(story, isoDateStr) {
+  const [yStr, mStr, dStr] = isoDateStr.split('-');
+  const dateObj = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, parseInt(dStr, 10));
   const month = dateObj.getMonth() + 1;
   const day = dateObj.getDate();
   const displayYear = dateObj.getFullYear();
 
-  const newCard = document.createElement('div');
-  newCard.className = 'flip-container';
-  newCard.id = `card-${Date.now()}`;
-
   if (!story) {
     const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     const formattedDate = `${monthNames[dateObj.getMonth()]} ${day}, ${displayYear}`;
-
-    newCard.innerHTML = `
-      <div class="flipper mystory-flipper">
-        <div class="front history-card-front empty-story-card">
-          <div class="empty-story-day-circle">${day}</div>
-          <div class="empty-story-title">이 날의 기록이 없습니다.</div>
-          <div class="empty-story-date">${formattedDate}</div>
-          
-          <button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
-            + 나의 일화 쓰기
-          </button>
+    return `
+      <div class="flip-container">
+        <div class="flipper mystory-flipper">
+          <div class="front history-card-front empty-story-card">
+            <div class="empty-story-day-circle">${day}</div>
+            <div class="empty-story-title">이 날의 기록이 없습니다.</div>
+            <div class="empty-story-date">${formattedDate}</div>
+            <button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
+              + 나의 일화 쓰기
+            </button>
+          </div>
         </div>
       </div>
     `;
-  } else {
-    const [storyYearRaw, storyMonthRaw, storyDayRaw] = String(story.publish_date || isoDateStr).split('-');
-    const storyYear = parseInt(storyYearRaw, 10) || displayYear;
-    const storyMonth = parseInt(storyMonthRaw, 10) || month;
-    const storyDay = parseInt(storyDayRaw, 10) || day;
-    const imageUrl = story.image_url || '';
-    const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
-    const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
-    const authorNickname = getMyStoryAuthorNickname(story);
+  }
 
-    newCard.innerHTML = `
+  const [storyYearRaw, storyMonthRaw, storyDayRaw] = String(story.publish_date || isoDateStr).split('-');
+  const storyYear = parseInt(storyYearRaw, 10) || displayYear;
+  const storyMonth = parseInt(storyMonthRaw, 10) || month;
+  const storyDay = parseInt(storyDayRaw, 10) || day;
+  const imageUrl = story.image_url || '';
+  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
+  const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
+  const authorNickname = getMyStoryAuthorNickname(story);
+
+  return `
+    <div class="flip-container">
       <div class="flipper mystory-flipper">
         <!-- 앞면 -->
         <div class="front history-card-front">
@@ -492,36 +489,35 @@ function renderCardToArea(cardArea, story, dateObj, isoDateStr, direction = null
           </div>
         </div>
       </div>
-    `;
-  }
-
-  if (!direction || !oldCard) {
-    cardArea.innerHTML = '';
-    cardArea.appendChild(newCard);
-    bindCardEvents(newCard, story, dateObj, allStories);
-    return;
-  }
-
-  oldCard.classList.add('card-stack-item', `stack-exit-${direction}`);
-  newCard.classList.add('card-stack-item', `stack-enter-${direction}`);
-  cardArea.appendChild(newCard);
-  void newCard.offsetWidth;
-  newCard.classList.add('active');
-
-  const onAnimationEnd = () => {
-    if (oldCard.parentNode) oldCard.remove();
-    newCard.classList.remove('card-stack-item', `stack-enter-${direction}`, 'active');
-    bindCardEvents(newCard, story, dateObj, allStories);
-  };
-  newCard.addEventListener('transitionend', onAnimationEnd, { once: true });
-  setTimeout(() => { if (newCard.classList.contains('card-stack-item')) onAnimationEnd(); }, CARD_STACK_SETTLE_MS);
+    </div>
+  `;
 }
 
-function bindCardEvents(flipContainer, story, dateObj, allStories) {
+
+/* ─────────────────────────────────────────────
+   섹션 1-3: 카드 이벤트 (플립 + 액션 버튼)
+   ───────────────────────────────────────────── */
+
+function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
   const flipper = flipContainer.querySelector('.flipper');
   if (!flipper) return;
 
-  /* 상단 액션 버튼 이벤트 (mystory 전용) */
+  /* 중복 바인딩 방지 */
+  if (flipContainer.dataset.bound === '1') return;
+  flipContainer.dataset.bound = '1';
+
+  /* 이미지 fade-in */
+  flipContainer.querySelectorAll('.history-card-image-wrap img').forEach(img => {
+    img.classList.add('card-img-fade');
+    if (img.complete && img.naturalWidth > 0) {
+      img.classList.add('img-loaded');
+    } else {
+      img.addEventListener('load',  () => img.classList.add('img-loaded'), { once: true });
+      img.addEventListener('error', () => img.classList.add('img-loaded'), { once: true });
+    }
+  });
+
+  /* 상단 액션 버튼 (mystory 전용) */
   const writeBtn = flipContainer.querySelector('.mystory-write-btn');
   const shareBtn = flipContainer.querySelector('.share-my-story-btn');
   const editBtn = flipContainer.querySelector('.edit-my-story-btn');
@@ -531,7 +527,7 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     const uid = auth?.currentUser?.uid || userObj.id;
     if (!uid) {
       showToast('로그인이 필요한 서비스입니다.', 'error');
-      location.hash = '#/login'; // 로그인 페이지로 이동
+      location.hash = '#/login';
       return false;
     }
     return true;
@@ -561,196 +557,18 @@ function bindCardEvents(flipContainer, story, dateObj, allStories) {
     });
   }
 
-  /* ─────────────────────────────────────────────
-     카드 뒤집기 및 스와이프 로직 (editorstory.js와 상동)
-     ───────────────────────────────────────────── */
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let isSwiping = false;
-  let swipeAxis = null;
-  let isAnimating = false;
-  let isBackBodyScroll = false;
-  let lastTouchInputAt = 0;
-  const SWIPE_THRESHOLD = 64;
-  const SWIPE_DRAG_RESPONSE = 0.62;
-  const SWIPE_RETURN_MS = 220;
-  const SYNTHETIC_MOUSE_IGNORE_MS = 650;
-
-  /* ── back-body 탭 vs 스크롤 구분용 변수 ── */
-  let tapStartTime = 0;
-  let tapStartX = 0;
-  let tapStartY = 0;
-  let touchStartTarget = null;
-
-  const handleStart = (x, y, isBody = false) => {
-    if (isAnimating || flipper.classList.contains('is-flipping')) return;
-    
-    touchStartX = x;
-    touchStartY = y;
-    isSwiping = false;
-    swipeAxis = null;
-    isBackBodyScroll = isBody;
-
-    tapStartTime = Date.now();
-    tapStartX = x;
-    tapStartY = y;
-  };
-
-  const handleMove = async (x, y, isTouch = false) => {
-    if (isAnimating) return;
-    
-    const diffX = x - touchStartX;
-    const diffY = y - touchStartY;
-
-    if (Math.abs(diffX) > 15 || Math.abs(diffY) > 15) {
-      touchStartTarget = null;
-    }
-
-    if (!swipeAxis) {
-      if (Math.abs(diffX) < 15 && Math.abs(diffY) < 15) return;
-      swipeAxis = Math.abs(diffX) > Math.abs(diffY) ? 'x' : 'y';
-    }
-
-    if (swipeAxis === 'y') return;
-
-    if (!isSwiping) {
-      flipper.style.transition = 'none';
-      isSwiping = true;
-    }
-
-    const isFlipped = flipper.classList.contains('flipped');
-    const baseTransform = isFlipped ? 'rotateY(180deg)' : '';
-
-    if (swipeAxis === 'x') {
-      const moveX = diffX * SWIPE_DRAG_RESPONSE;
-      flipper.style.transform = `translateX(${moveX}px) ${baseTransform}`;
-    }
-  };
-
-  const handleEnd = async (x, y) => {
-    if (!isSwiping || isAnimating) return;
-    isAnimating = true;
-
-    const diffX = x - touchStartX;
-    flipper.style.transition = `transform ${SWIPE_RETURN_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`;
-    flipper.classList.add('is-flipping');
-
-    if (swipeAxis === 'x' && Math.abs(diffX) > SWIPE_THRESHOLD) {
-      if (isBackBodyScroll) {
-        flipper.style.transform = '';
-        setTimeout(() => { flipper.style.transition = ''; flipper.classList.remove('is-flipping'); isSwiping = false; isAnimating = false; }, SWIPE_RETURN_MS);
-        return;
-      }
-      /* 세션 1 #2: 짧은 시간 내 두 번째 commit 차단 */
-      if (Date.now() - lastSwipeCommitAt >= SWIPE_COMMIT_GUARD_MS) {
-        lastSwipeCommitAt = Date.now();
-
-        const offset = diffX < 0 ? 1 : -1;
-        const dayWrapper = document.getElementById('mystory-calendar');
-        if (dayWrapper) {
-          const items = Array.from(dayWrapper.querySelectorAll('.wheel-item'));
-          const activeIdx = items.findIndex(el => el.classList.contains('active'));
-          const candidate = items[activeIdx + offset];
-          if (candidate) candidate.click();
-        }
-      }
-    }
-    flipper.style.transform = '';
-
-    setTimeout(() => {
-      flipper.style.transition = '';
-      flipper.classList.remove('is-flipping');
-      isSwiping = false;
-      isAnimating = false;
-    }, SWIPE_RETURN_MS);
-  };
-
-  flipper.addEventListener('touchstart', (e) => {
-    lastTouchInputAt = Date.now();
-    const isBody = !!e.target.closest('.back-body');
-    touchStartTarget = e.target;
-    handleStart(e.touches[0].clientX, e.touches[0].clientY, isBody);
-  }, { passive: true });
-
-  flipper.addEventListener('touchmove', (e) => {
-    handleMove(e.touches[0].clientX, e.touches[0].clientY, true);
-    if (isSwiping) e.preventDefault();
-  }, { passive: false });
-
-  flipper.addEventListener('touchend', async (e) => {
-    lastTouchInputAt = Date.now();
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-
-    if (touchStartTarget && touchStartTarget.closest('.back-body') && !isSwiping) {
-      const tapDuration = Date.now() - tapStartTime;
-      const tapDiffX = Math.abs(endX - tapStartX);
-      const tapDiffY = Math.abs(endY - tapStartY);
-
-      if (tapDuration <= 400 && tapDiffX <= 20 && tapDiffY <= 20) {
-        if (!story) return;
-        if (flipper.classList.contains('is-flipping')) return;
-
-        flipper.classList.add('is-flipping');
-        flipper.classList.toggle('flipped');
-        setTimeout(() => { flipper.classList.remove('is-flipping'); }, 400);
-        return; 
-      }
-    }
-    handleEnd(endX, endY);
-  });
-
-  let isMouseDown = false;
-  flipper.addEventListener('mousedown', (e) => {
-    if (Date.now() - lastTouchInputAt < SYNTHETIC_MOUSE_IGNORE_MS) return;
-    if (e.target.closest('button')) return;
-    const isBody = !!e.target.closest('.back-body');
-    if (isBody) return;
-    isMouseDown = true;
-    handleStart(e.clientX, e.clientY, isBody);
-  });
-
-  /* 데스크톱 마우스 드래그용 — 로컬 변수 + setOnUnmount (Wave 4: 글로벌 슬롯 제거) */
-  const onMouseMove = (e) => {
-    if (!isMouseDown) return;
-    handleMove(e.clientX, e.clientY);
-  };
-
-  const onMouseUp = (e) => {
-    if (!isMouseDown) return;
-    isMouseDown = false;
-    handleEnd(e.clientX, e.clientY);
-  };
-
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
-
-  setOnUnmount(() => {
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-  });
-
-  flipper.addEventListener('click', async (e) => {
-    /* 기본 체크: 일화가 없거나, 버튼을 클릭했거나, 스와이프 중이면 무시 */
+  /* 카드 클릭 → 플립 (Swiper의 preventClicks 동작이 스와이프 직후 click을 자동 차단) */
+  flipper.addEventListener('click', (e) => {
     if (!story) return;
     if (e.target.closest('button')) return;
-    if (isSwiping) return;
-
-    /* back-body 영역: 터치 기반 탭은 touchend에서 이미 처리했으므로, 
-       터치 입력(pointerType === 'touch')인 경우만 click 핸들러에서 차단합니다. 
-       마우스 클릭은 여기서 정상 처리됩니다. */
-    if (e.pointerType === 'touch' && e.target.closest('.back-body')) return;
-    
     if (flipper.classList.contains('is-flipping')) return;
+
     flipper.classList.add('is-flipping');
-    
     flipper.classList.toggle('flipped');
-    
-    setTimeout(() => {
-      flipper.classList.remove('is-flipping');
-    }, 400);
+    setTimeout(() => flipper.classList.remove('is-flipping'), 400);
   });
 }
+
 
 /* ─────────────────────────────────────────────
    섹션 2: 나의 일화 폼 (렌더링 & 제출)
@@ -959,7 +777,7 @@ export function renderMyStoryNew() {
 
       const overlay = document.createElement('div');
       overlay.className = 'crop-modal-overlay';
-      
+
       overlay.innerHTML = `
         <div class="crop-modal-header">
           <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="닫기">
@@ -1049,7 +867,7 @@ export function renderMyStoryNew() {
             btn.disabled = false;
             return;
           }
-          
+
           overlay.style.opacity = '0';
           unlockScroll();
           setTimeout(() => {

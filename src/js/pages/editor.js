@@ -370,9 +370,9 @@ export function renderEditorNew() {
         <!-- 5. 이미지 업로드/URL -->
         <div class="input-group">
           <label class="input-label">이미지 업로드 및 URL</label>
-          <div style="display:flex; gap:var(--space-2); align-items:center;">
-            <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" style="flex:1;" />
-            <input type="hidden" id="sf-image-thumb" />
+          <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" />
+          <input type="hidden" id="sf-image-thumb" />
+          <div style="display:flex; gap:var(--space-2); margin-top:var(--space-2);">
             <button type="button" id="sf-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">편집</button>
             <button type="button" id="sf-image-gallery-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">보관함</button>
             <button type="button" id="sf-image-camera-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">촬영</button>

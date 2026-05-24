@@ -352,3 +352,83 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 변경파일: `firestore.indexes.json`(신규), `firebase.json`, `src/js/services/stories.js`, `tests/stories-fallback.spec.js`.
 - 검증: `npx vitest run tests/stories-fallback.spec.js` 15/15 통과. 전체 회귀 0건 유지(51 failed / 150 passed, 직전 patch 와 동일). `npm run build` 121ms 성공.
 - 사용자 액션 필수: ① Firebase 콘솔에서 두 인덱스 생성 링크 클릭 → "Create index" → 5~10분 대기 (또는 `firebase deploy --only firestore:indexes` 1회). 인덱스 활성화되면 stories 컬렉션의 published 카드가 정상 표시됨. ② `firebase deploy --only firestore:rules,storage` 가 라이브에 배포됐는지 확인 (audit P0 admin 권한 탈취 차단).
+
+## 2026-05-24 — Claude Sonnet 4.6
+
+- 요구사항: 탭/페이지 전환 시 이전 페이지의 스크롤 위치가 새 페이지에 그대로 이어지는 버그 수정. 예: `/profile`을 아래로 스크롤 후 ⚙ 설정 진입 시 `/settings`가 하단부터 표시됨.
+- 원인 분석: 해시(#) 기반 SPA 라우팅에서 `hashchange` 이벤트 발생 시 Chrome / Android WebView의 자동 스크롤 복원(Scroll Restoration)이 `#page-container`의 이전 scrollTop을 비동기적으로 복원 → 라우터의 `container.scrollTop = 0`(line 276)을 덮어씌움. 추가로 동일 탭 재클릭 시 `window.scrollTo(0, 0)` 호출이 실제 스크롤 컨테이너(`#page-container`)가 아닌 window를 대상으로 해 효과 없던 버그도 함께 수정.
+- 구현방법:
+  - **`initRouter()`**: `history.scrollRestoration = 'manual'` 추가 → 브라우저 자동 스크롤 복원 비활성화. SPA에서 라우터가 직접 관리하도록.
+  - **`handleRoute()`**: 기존 `container.scrollTop = 0` 뒤에 `requestAnimationFrame(() => { container.scrollTop = 0; })` 추가 → WebView 구버전 대비 비동기 복원 방어.
+  - **동일 탭 재클릭 핸들러(line 379)**: `window.scrollTo({ top:0, behavior:'smooth' })` → `document.getElementById('page-container').scrollTo({ top:0, behavior:'smooth' })` — 올바른 컨테이너 대상.
+- 변경파일: `src/js/router.js`.
+- 검증: `npm test` — 51 failed / 150 passed, 직전 베이스라인과 동일, 회귀 0건. 수동 테스트 필요: profile 스크롤 후 settings 진입 시 최상단 확인 / 동일 탭 재탭 시 smooth scroll 동작 확인.
+
+## 2026-05-24 후속 — 탭 전환 로딩 최적화 (Keep-Alive DOM 캐시 + 데이터 캐시 확장)
+
+- 요구사항: 탭(editorstory ↔ mystory) 이동마다 페이지가 새로 로딩되고 이미지가 늦게 뜨는 문제 해결.
+- 원인 분석: `router.js`의 `container.innerHTML = ''`가 매번 전체 DOM을 파괴 → Firestore 재쿼리(1~2초) + 이미지 재렌더링 발생. myStories, bookmarks에 캐시 없음.
+- 구현방법:
+  - **`src/js/router.js`**: `PAGE_DOM_CACHE` Map + `KEEP_ALIVE_ROUTES = ['/editorstory', '/mystory']` 추가. `handleRoute()`에서 KEEP_ALIVE 경로 이탈 시 `container.removeChild` + 캐시 저장(cleanup 함수 포함), 재진입 시 `appendChild`로 즉시 복원. `forceRoute()`는 캐시 폐기 후 재렌더. `invalidatePageCache()` export.
+  - **`src/js/services/mystories.js`**: 60초 UID별 in-memory Promise 캐시 추가. `createMyStory`, `updateMyStory`, `deleteMyStory` 후 `invalidateMyStoriesCache()` 호출.
+  - **`src/js/services/bookmarks.js`**: 60초 in-memory 캐시 for `getBookmarkedStoryIds()`. `toggleBookmark()` finally에서 `invalidateBookmarksCache()` 호출.
+  - **`src/js/services/stories.js`**: `STORIES_CACHE_TTL_MS` 60초 → 5분.
+  - **`src/css/components.css`**: `.card-img-fade` / `.img-loaded` 이미지 fade-in 스타일 추가.
+  - **`src/js/pages/editorstory.js`, `mystory.js`**: 카드 innerHTML 설정 후 `img.onload` → `.img-loaded` 클래스 추가(opacity 0→1).
+- 변경파일: `src/js/router.js`, `src/js/services/mystories.js`, `src/js/services/bookmarks.js`, `src/js/services/stories.js`, `src/css/components.css`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`.
+- 검증: `npm test` — 36 failed / 13 passed, 변경 전 베이스라인과 동일, 회귀 0건.
+
+### 2026-05-24 후속 — 스크롤 버그 근본 원인 수정 (CSS 레이아웃)
+
+- 배경: 위 router.js 변경 적용 후 사용자가 "최상단부터 뜨지 않음. 여전히 스크롤이 동기화됨" 재현 보고. router.js 패치가 효과 없었음.
+- 근본 원인: `.app-container { min-height: 100dvh }` 는 flex 컨테이너에 *definite height*를 부여하지 않음. CSS 명세상 `flex: 1` 이 자식을 제한된 높이로 묶으려면 부모에 `height` (확정 값) 가 있어야 함. `min-height`만으로는 불가 → `#page-container { flex: 1; overflow-y: auto }` 가 실제 스크롤 컨테이너로 동작하지 않고 콘텐츠 높이만큼 무한 팽창 → **window 레벨 스크롤** 발생. `container.scrollTop = 0` 은 window를 스크롤 중일 때 완전히 무의미. `#bottom-nav`·`.status-bar-spacer`는 모두 `position:fixed` 라 flex flow 에서 제외 — `.app-container`의 flex 자식은 `#page-container` 하나뿐.
+- 구현방법: **`src/css/base.css`** — `.app-container` 를 `min-height: 100vh; min-height: 100dvh;` → `height: 100vh; height: 100dvh;` 로 변경. 이로써 `#page-container`에 `100dvh` 확정 높이가 주어지고 `overflow-y: auto` 가 실제 활성화됨. 콘텐츠는 window 가 아닌 `#page-container` 안에서 스크롤. 기존 router.js 3개 변경(`scrollRestoration='manual'` / rAF 안전망 / `container.scrollTo` 재클릭)은 모두 이 CSS 기반 위에서 올바르게 동작.
+- 변경파일: `src/css/base.css`.
+- 검증: `npx vitest run tests/stories-fallback.spec.js` 15/15 통과. 51 failed / 150 passed 동일, 회귀 0건. 수동 테스트 필요: profile 스크롤 후 settings 진입 → 최상단 확인.
+
+### 2026-05-24 후속 — 프로필 헤더에 관리자 전용 콘텐츠 관리 버튼 추가
+
+- 요구사항: 관리자(role==='editor') 계정에 한해, 프로필 페이지 헤더 우상단 설정(기어) 버튼 좌측에 콘텐츠 관리(`/editorstory`) 이동 버튼 추가.
+- 구현방법: **`src/js/pages/profile.js`** — `isAdmin` 조건 추가. 관리자일 때 연필 아이콘(`#goto-editor-btn`)을 기어 버튼 좌측에 flex 컨테이너(`page-header-actions`)로 나란히 배치. 비관리자는 기어 버튼만 기존과 동일. `setTimeout` 블록에 `#goto-editor-btn` 클릭 핸들러(`navigate('/editorstory')`) 추가.
+- 변경파일: `src/js/pages/profile.js`.
+
+### 2026-05-24 후속 — editor-new-page 레이아웃 버그 수정
+
+- 요구사항: 일화 수정/작성 페이지(`editor-new-page`)의 노치 safe area 미적용, 좌우 스크롤 발생, 이미지 버튼 row 오버플로 수정.
+- 근본 원인: `.editor-new-page { position: absolute; inset: 0 }`이 `position: absolute`로 부모의 `padding-top`을 무시하고 화면 최상단부터 덮어씌움 → 노치 침범. `overflow-x: hidden` 없어 부모 클리핑 미적용 → 좌우 스크롤. 이미지 input + 버튼 3개가 한 flex row → 좁은 화면 오버플로.
+- 구현방법:
+  - **`src/css/pages.css`** — `.editor-new-page`에 `overflow-x: hidden`, `padding-top: env(safe-area-inset-top, 0px)`, `scroll-padding-top: calc(safe-area + 52px)` 추가.
+  - **`src/css/pages.css`** — `.editor-new-header { top: 0 }` → `top: env(safe-area-inset-top, 0px)` 변경(sticky 노치 보정).
+  - **`src/js/pages/editor.js`** — 이미지 input과 버튼 그룹(`편집`, `보관함`, `촬영`)을 두 줄로 분리해 flex 오버플로 제거.
+- 변경파일: `src/css/pages.css`, `src/js/pages/editor.js`.
+
+### 2026-05-24 후속 — 나의 일화 데이터 미표시 원인 진단 및 인덱스 추가
+
+- 요구사항: 사용자가 v1.4.0 배포 후 기존에 작성한 나의 일화 데이터가 사라진 것으로 보고. 면밀히 검토하여 원인 파악.
+- 근본 원인: `fetchMyStories`가 `where('uid') + orderBy('publish_date') + orderBy('created_at')` 복합 인덱스 필수 쿼리를 사용하는데, v1.4.0에서 새로 추가된 `firestore.indexes.json`에 `stories` 컬렉션 인덱스만 정의되어 있고 `userStories` 인덱스가 누락됨. Firestore가 `failed-precondition` 에러를 던지지만 [src/js/services/mystories.js:40-44](src/js/services/mystories.js#L40-L44)의 catch 블록이 조용히 `return []`로 폴백 → UI에 카드 0개로 표시. 데이터 자체는 Firestore에서 삭제되지 않음 (v1.4.0에 삭제·마이그레이션 코드 없음 확인).
+- 구현방법: **`firestore.indexes.json`** — `userStories` 컬렉션의 복합 인덱스(`uid ASC + publish_date DESC + created_at DESC`)를 추가. 사용자는 Firebase Console의 자동 생성 링크로 즉시 복구 가능(1~5분); 영구 보존을 위해 `firebase deploy --only firestore:indexes` 배포 필요.
+- 변경파일: `firestore.indexes.json`.
+- 검증: Firebase Console > Firestore > Indexes에서 `userStories` 인덱스 Enabled 상태 확인 후 앱 새로고침 → `/mystory` 페이지에서 카드 정상 표시 여부 확인.
+
+## 2026-05-25
+
+### 카드 좌우 스와이프 Swiper.js 11 도입 (editorstory + mystory)
+
+- 요구사항: 카드 좌우 스와이프가 뻑뻑하고 빠른 연속 스와이프가 "씹히는" 문제 해결. 목표는 iPhone 사진 앱 같은 빠르고 쫀득한 한-장씩 넘김(snap, 관성, 하드웨어 가속).
+- 근본 원인 (7가지): ① `SWIPE_COMMIT_GUARD_MS = 1500ms`로 연속 입력 차단, ② `.flipper` 한 요소가 `translateX`(스와이프)+`rotateY`(플립)을 동시에 받아 transform 충돌, ③ 매 touchmove에서 `style.transform` 동기 조작(rAF 미사용), ④ `transition: 'none'` ↔ `transition: '...'` 토글 반복으로 레이아웃 재계산, ⑤ 스택 애니메이션(520ms) vs 스와이프 반환(220ms) 시간 불일치, ⑥ 휠 `candidate.click()` 시뮬레이션 우회 경로로 카드 DOM 통째 교체, ⑦ `getCenterItem`의 반복 `getBoundingClientRect`로 레이아웃 스래싱.
+- 구현방법:
+  - **`src/js/utils/cardSwiper.js`** (신규) — Swiper 11 + Virtual 모듈 래퍼. `slidesPerView:1, slidesPerGroup:1, threshold:5, longSwipesRatio:0.2, speed:320, resistance:0.85, touchAngle:45, cssMode:false`로 iPhone 갤러리 느낌 + 한 장씩 snap + 수직 스크롤 보존. Virtual `addSlidesBefore/After:1`로 양옆 1장만 실제 DOM(메모리 효율).
+  - **`src/js/pages/editorstory.js`** — 모듈 스코프 `lastSwipeCommitAt`/`SWIPE_COMMIT_GUARD_MS`/`CARD_STACK_SETTLE_MS` 제거, 함수 스코프 스와이프 상태(`isAnimating`/`isSwiping`/`swipeAxis`/`touchStartX/Y`)·`handleStart/handleMove/handleEnd` 전부 제거, touch/mouse 이벤트 리스너 제거. 일/월 휠과 Swiper 양방향 동기화(`swiper.slideTo(idx, 320)`). `renderCard` → `buildSlideHTML`(순수 HTML 문자열)로 분리. `bindCardEvents` → `bindFlipCardEvents`로 축소(공유/북마크/디테일/플립/에디터 한마디만).
+  - **`src/js/pages/mystory.js`** — editorstory와 동일 패턴. `renderCardToArea` → `buildMyStorySlideHTML`. `bindCardEvents` → `bindMyStoryCardEvents`(쓰기/수정/공유/플립). `renderMyStoryNew`(폼 페이지)는 변경 없음.
+  - **`src/css/pages.css`** — `.card-stack-item`, `.stack-enter-*`, `.stack-exit-*` 전체 블록 제거. `.card-swiper`(`touch-action:pan-y; overscroll-behavior-x:contain`)와 `.card-swiper .swiper-slide`(`will-change:transform; backface-visibility:hidden`) 추가.
+  - **`tests/editorstory.ui.spec.js`** — "card stack motion" 정적 검증 테스트를 "card swipe motion" Swiper 검증으로 업데이트(레거시 stack-enter/exit 부재 + cardSwiper 사용 + touch-action 확인).
+  - **`package.json`** — `swiper@^11.2.10` 추가.
+- 변경파일: `package.json`, `package-lock.json`, `src/js/utils/cardSwiper.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/css/pages.css`, `tests/editorstory.ui.spec.js`.
+- 검증: `npm run build` 성공 (mystory 청크 25.34KB gzip 7.91KB, swiper 번들 통합). `npm test` 51 failed / 150 passed — 회귀 0건(베이스라인과 정확히 동일, 사전 실패는 모두 별도 환경/iOS 의존성 관련). 수동 검증 필요: `npm run dev` → `/editorstory` `/mystory`에서 좌우 스와이프 한 장씩 부드럽게 넘어가는지, 절반 끌고 놓으면 가까운 쪽으로 snap, 빠른 연속 스와이프 모두 인식, 카드 본문 수직 스크롤 보존, back-body 탭 플립 정상.
+
+### 2026-05-25 02:02 — Codex
+
+- 요구사항: 보관함 `calendar-toggle archive-toggle` 내부 좌측 `역사 일화` 항목의 표시 텍스트를 제거하고 북마크 아이콘으로 대체.
+- 구현방법: `renderArchiveHeader()`의 history 탭 버튼을 텍스트 없는 SVG 북마크 아이콘으로 변경하고, `aria-label`에 번역된 `역사 일화` 접근성 이름을 유지. `.archive-toggle .calendar-toggle-btn svg` 크기를 토큰 기반으로 고정. 보관함 토글 history 항목이 아이콘만 렌더링되는지 Vitest 회귀 테스트 추가.
+- 변경파일: `src/js/pages/bookmarks.js`, `src/css/pages.css`, `tests/bookmarks.ui.spec.js`, `docs/SESSION_LOG.md`.
+- 검증: `npm test -- tests/bookmarks.ui.spec.js` 12/12 통과. `npm run build` 성공. `npm test`는 기존 작업 트리/환경 이슈로 34 failed / 15 passed 상태(대표: iOS RevenueCat checkout 테스트 import, Node 26 localStorage 미제공, 기존 widget/static 기대값 불일치).

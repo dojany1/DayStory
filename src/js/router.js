@@ -38,6 +38,12 @@ let beforeNavigateHook = null;
  * SPA 메모리 누수를 막는 핵심 훅. */
 let onUnmountHook = null;
 
+/* Keep-Alive DOM 캐시: 탭 이동 시 DOM을 파괴하지 않고 메모리에 보존해 즉시 복원한다.
+ * route -> { node: HTMLElement, savedAt: number, cleanup: Function|null } */
+const PAGE_DOM_CACHE = new Map();
+const PAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5분
+const KEEP_ALIVE_ROUTES = new Set(['/editorstory', '/mystory']);
+
 
 /* ─────────────────────────────────────────────
    섹션 2: 라우트 등록 및 네비게이션 함수
@@ -239,18 +245,60 @@ async function handleRoute() {
   const match = matchRoute(path);
   const container = document.getElementById('page-container');
 
-  if (match) {
+  /* Keep-Alive 캐시 확인 */
+  const isTargetKeepAlive = KEEP_ALIVE_ROUTES.has(path);
+  const isCurrentKeepAlive = KEEP_ALIVE_ROUTES.has(currentRoute);
+  const targetCached = isTargetKeepAlive ? PAGE_DOM_CACHE.get(path) : null;
+  const isCacheValid = targetCached && (Date.now() - targetCached.savedAt < PAGE_CACHE_TTL_MS);
+
+  /* 만료된 캐시가 있으면 cleanup 실행 후 제거 */
+  if (isTargetKeepAlive && targetCached && !isCacheValid) {
+    try { targetCached.cleanup?.(); } catch(e) {}
+    PAGE_DOM_CACHE.delete(path);
+  }
+
+  if (isCacheValid) {
+    /* ── FAST PATH: 캐시된 DOM 즉시 재연결 ── */
+    /* 현재 페이지 처리 */
+    if (isCurrentKeepAlive) {
+      const currentNode = container.firstElementChild;
+      if (currentNode) {
+        container.removeChild(currentNode);
+        PAGE_DOM_CACHE.set(currentRoute, { node: currentNode, savedAt: Date.now(), cleanup: onUnmountHook });
+        onUnmountHook = null;
+      }
+    } else {
+      runOnUnmount();
+      container.innerHTML = '';
+    }
+
+    container.appendChild(targetCached.node);
+    onUnmountHook = targetCached.cleanup ?? null; // cleanup 복원
+    currentRoute = path;
+    targetRoute = null;
+
+  } else if (match) {
+    /* ── NORMAL PATH: 새 페이지 렌더링 ── */
+
     /* 3) 새 페이지 렌더링 호출 (컨테이너를 비우기 전에 미리 실행하여 Flicker 방지) */
     const pageElement = await match.handler(match.params);
 
     /* 4) 렌더링 대기 도중 사용자가 다른 페이지를 눌렀을 가능성 체크 */
     if (path !== getCurrentPath() || path !== targetRoute) return;
 
-    /* 5) 이전 페이지의 unmount cleanup 실행 (window/document 리스너 정리 등) */
-    runOnUnmount();
+    /* 5) 현재 페이지 처리: Keep-Alive면 캐시 저장, 아니면 cleanup 실행 */
+    if (isCurrentKeepAlive) {
+      const currentNode = container.firstElementChild;
+      if (currentNode) {
+        container.removeChild(currentNode);
+        PAGE_DOM_CACHE.set(currentRoute, { node: currentNode, savedAt: Date.now(), cleanup: onUnmountHook });
+        onUnmountHook = null;
+      }
+    } else {
+      runOnUnmount();
+      container.innerHTML = '';
+    }
 
-    /* 6) 이제서야 기존 페이지 내용 제거 및 교체 */
-    container.innerHTML = '';
     currentRoute = path;
     targetRoute = null;
 
@@ -274,6 +322,7 @@ async function handleRoute() {
   /* 6) 하단 내비게이션 바의 활성 항목 업데이트 및 스크롤 최상단 */
   updateNav(path);
   container.scrollTop = 0;
+  requestAnimationFrame(() => { container.scrollTop = 0; }); // WebView 구버전 비동기 복원 방어
 }
 
 
@@ -313,6 +362,11 @@ function getLocalTodaySelection() {
  *   3) 현재 URL에 맞는 초기 페이지 표시
  */
 export function initRouter() {
+  /* SPA가 직접 스크롤을 관리하므로 브라우저 자동 복원을 끔.
+     끄지 않으면 hashchange 시 WebView가 #page-container의 이전 scrollTop을
+     비동기로 복원해 라우터의 동기 reset을 덮어씌운다. */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
   /* URL 해시가 바뀔 때마다 handleRoute 실행 */
   window.addEventListener('hashchange', handleRoute);
 
@@ -369,7 +423,8 @@ export function initRouter() {
 
       // 이미 같은 경로: 페이지 최상단으로 스크롤
       if (route === currentPath) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const cont = document.getElementById('page-container');
+        if (cont) cont.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
       navigate(route);
@@ -389,6 +444,30 @@ export function initRouter() {
  * 같은 페이지에서 새로고침 효과가 필요할 때 사용합니다
  */
 export function forceRoute() {
+  /* 강제 새로고침 시 현재 경로의 DOM 캐시 폐기 */
+  if (PAGE_DOM_CACHE.has(currentRoute)) {
+    const evicted = PAGE_DOM_CACHE.get(currentRoute);
+    try { evicted.cleanup?.(); } catch(e) {}
+    PAGE_DOM_CACHE.delete(currentRoute);
+  }
   currentRoute = null;
   handleRoute();
+}
+
+/**
+ * invalidatePageCache — 특정 경로(또는 전체)의 Keep-Alive DOM 캐시를 무효화합니다.
+ * CRUD 작업 후 해당 탭을 강제 새로고침해야 할 때 호출합니다.
+ * @param {string} [route] - 무효화할 경로. 생략 시 전체 캐시 삭제.
+ */
+export function invalidatePageCache(route) {
+  if (!route) {
+    PAGE_DOM_CACHE.forEach(entry => { try { entry.cleanup?.(); } catch(e) {} });
+    PAGE_DOM_CACHE.clear();
+    return;
+  }
+  const entry = PAGE_DOM_CACHE.get(route);
+  if (entry) {
+    try { entry.cleanup?.(); } catch(e) {}
+    PAGE_DOM_CACHE.delete(route);
+  }
 }

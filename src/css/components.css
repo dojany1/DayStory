@@ -556,7 +556,7 @@
   width: 100%;
   overflow: hidden;
   background: var(--color-bg-card);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   display: flex;
@@ -820,7 +820,6 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -828,9 +827,9 @@
 }
 
 .list-item-icon svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 2;
+  width: 24px;
+  height: 24px;
+  stroke-width: 2px;
 }
 
 /* 리스트 콘텐츠 — 제목과 부제를 담는 영역 */
@@ -1705,3 +1704,12 @@
 .widget-theme-settings-sheet .widget-preview-pen-icon {
   width:16px;
   height:16px}
+
+/* ── 카드 이미지 Fade-in ── */
+.card-img-fade {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.card-img-fade.img-loaded {
+  opacity: 1;
+}

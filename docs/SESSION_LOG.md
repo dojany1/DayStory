@@ -439,3 +439,11 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 구현방법: `renderArchiveHeader()`의 history 탭 SVG를 `fill="currentColor"`로 변경해 활성 탭 색상과 동일하게 내부가 채워지도록 조정. 보관함 UI 테스트도 채움 속성을 검증하도록 갱신.
 - 변경파일: `src/js/pages/bookmarks.js`, `tests/bookmarks.ui.spec.js`, `docs/SESSION_LOG.md`.
 - 검증: `npm test -- tests/bookmarks.ui.spec.js` 12/12 통과. `npm run build` 성공. `npm test`는 기존 환경/정적 기대값 이슈로 34 failed / 15 passed 상태.
+
+### Swiper.js 재진단 및 수정 (2026-05-25 03:09)
+
+- **요구사항**: 사용자 보고 버그 3가지 — ① 두 카드가 나란히 보임(overflow 미작동), ② 카드 검정화면(Virtual DOM 타이밍), ③ 휠 피커 wrong day(초기화 경쟁).
+- **진단**: Explore 에이전트를 통해 근본 원인 파악 — ① `.editorstory-page { overflow: visible }` 이 `.swiper { overflow: hidden }` 을 시각적으로 무력화, ② Virtual `addSlidesBefore:1` 설정에서 DOM 렌더 대기 중 빈 슬라이드 노출, ③ `on.init onSlideActive` 호출 + `setTimeout/rAF activateDayWheelByIndex` 이중 호출로 스크롤 snap 위치 경쟁.
+- **수정**: 두 가지 변경 — ① `.editorstory-page { overflow: hidden }` (pages.css L200), ② 초기 휠 이중 동기화 코드 제거하고 cardSwiper on.init 에서만 처리 (editorstory.js L305-310 삭제). mystory.js 는 초기화 로직이 더 단순해 영향 없을 가능성.
+- **변경파일**: `src/css/pages.css`, `src/js/pages/editorstory.js`.
+- **검증**: `npm test` 51 failed / 151 passed (baseline 51/150 대비 +1 통과, 회귀 0건).

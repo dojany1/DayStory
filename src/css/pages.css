@@ -374,16 +374,18 @@
   border-radius: 10%;
 }
 
-/* 홈 카드 영역 — 남은 수직 공간을 채우며 카드를 중앙에 배치 */
+/* 홈 카드 영역 — 남은 수직 공간을 채우며 카드를 중앙에 배치.
+   위아래 padding 으로 카드 box-shadow 표시 공간 확보. 휠 피커는 opaque
+   background 를 가져 카드 그림자가 그 영역에 그려져도 가려지므로 별도 여백 필요. */
 .editorstory-card-area {
   flex: 1;
   display: grid;
-  align-items: start;                /* ★ 상단 정렬 */
+  align-items: center;               /* 위아래 padding 안에서 중앙 정렬 */
   justify-items: center;             /* 가로 중앙 정렬 */
   grid-template-areas: "stack";
   grid-template-columns: 100%;       /* 가로 공간 확보 */
   grid-template-rows: 100%;          /* 세로 공간 확보 */
-  padding: 0 var(--space-4) 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);  /* 위아래 12px = 카드 그림자 공간 */
   position: relative;
   z-index: 10;
   min-height: 0;

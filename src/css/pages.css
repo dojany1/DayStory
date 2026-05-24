@@ -458,6 +458,10 @@
   touch-action: pan-y;
   /* 양 끝에서 부모로 가로 스크롤 전파 방지 */
   overscroll-behavior-x: contain;
+  /* swiper.css 의 .swiper { overflow:hidden } 를 override.
+     카드 box-shadow 가 보이도록 visible 로. 인접 슬라이드 clip 은 부모
+     .editorstory-page { overflow:hidden } 가 담당. */
+  overflow: visible;
 }
 
 /* 슬라이드 박스 — Swiper 가 inline style 로 width 를 부여한다.

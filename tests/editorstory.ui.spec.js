@@ -186,10 +186,12 @@ describe('Editor Story comment styles', () => {
     expect(editorStory).toMatch(/createCardSwiper/);
     expect(myStory).toMatch(/createCardSwiper/);
 
-    /* Swiper Virtual로 양옆 1장씩만 렌더 (메모리/이미지 비용 절감). */
-    expect(cardSwiper).toMatch(/Virtual/);
-    expect(cardSwiper).toMatch(/addSlidesBefore:\s*1/);
-    expect(cardSwiper).toMatch(/addSlidesAfter:\s*1/);
+    /* Swiper 11 기반. Virtual 모듈은 슬라이드 누적 이슈로 제거됨 → 사전 생성 패턴. */
+    expect(cardSwiper).toMatch(/import Swiper from 'swiper'/);
+    expect(cardSwiper).toMatch(/spaceBetween:\s*16/);
+    /* 두 페이지가 swiper-wrapper 에 슬라이드를 사전 생성해야 한다. */
+    expect(editorStory).toMatch(/swiper-wrapper/);
+    expect(myStory).toMatch(/swiper-wrapper/);
 
     /* 카드 스와이퍼 컨테이너는 수직 스크롤을 보존해야 한다. */
     expect(pagesCss).toMatch(/\.card-swiper/);

@@ -206,22 +206,34 @@ async function loadEditorStoryData(page) {
       dayEl.scrollTo({ left: t, behavior: 'smooth' });
     }
 
+    /* ── Swiper 슬라이드 사전 생성 ── */
+    /* Virtual 모듈 미사용. 150장 이하 슬라이드는 사전에 모두 DOM 에 넣고,
+       이미지는 loading="lazy" 로 가시 슬라이드만 네트워크 로드. */
+    const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
+    if (wrapperEl) {
+      wrapperEl.innerHTML = slides
+        .map((slide) => `<div class="swiper-slide">${buildSlideHTML(slide.story, slide.iso)}</div>`)
+        .join('');
+    }
+
     /* ── Swiper 인스턴스 생성 ── */
     let swiper = null;
-    let isProgrammaticSlide = false; // 휠 클릭/스크롤로 인한 slideTo 인지 사용자 스와이프인지 구분
 
     swiper = createCardSwiper(swiperEl, {
-      slides,
+      slideCount: slides.length,
       initialSlide: initialIdx,
-      renderSlide: (slide) => buildSlideHTML(slide.story, slide.iso),
       onSlideActive: (idx) => {
         /* 슬라이드 변경 → 일/월 휠 동기화 */
         activateDayWheelByIndex(idx);
       },
-      onSlideMounted: (slideEl, slide) => {
+      onSlideReady: (idx) => {
+        /* 활성 슬라이드의 이벤트(플립/공유/북마크/상세) 바인딩 */
+        const slideEl = swiperEl.querySelector('.swiper-slide-active');
+        if (!slideEl) return;
         const flipContainer = slideEl.querySelector('.flip-container');
         if (!flipContainer) return;
-        const story = slide.story ? localizedStory(slide.story) : null;
+        const slide = slides[idx];
+        const story = slide?.story ? localizedStory(slide.story) : null;
         bindFlipCardEvents(flipContainer, story, bookmarkedIds);
       },
     });
@@ -240,9 +252,7 @@ async function loadEditorStoryData(page) {
         const targetIso = centerDay.dataset.date;
         const targetIdx = slides.findIndex(s => s.iso === targetIso);
         if (targetIdx < 0 || targetIdx === swiper.activeIndex) return;
-        isProgrammaticSlide = true;
         swiper.slideTo(targetIdx, 320);
-        isProgrammaticSlide = false;
       }, 150);
     };
     dayEl.addEventListener('scroll', onDayScrollEnd, { passive: true });
@@ -279,9 +289,7 @@ async function loadEditorStoryData(page) {
       item.classList.add('active');
       const monthScroll = item.offsetLeft - monthEl.offsetWidth / 2 + item.offsetWidth / 2;
       monthEl.scrollTo({ left: monthScroll, behavior: 'smooth' });
-      isProgrammaticSlide = true;
       swiper.slideTo(targetIdx, 320);
-      isProgrammaticSlide = false;
     };
 
     /* 일 휠 클릭: 해당 날짜로 Swiper 이동 */
@@ -289,9 +297,7 @@ async function loadEditorStoryData(page) {
       const targetIso = item.dataset.date;
       const targetIdx = slides.findIndex(s => s.iso === targetIso);
       if (targetIdx < 0) return;
-      isProgrammaticSlide = true;
       swiper.slideTo(targetIdx, 320);
-      isProgrammaticSlide = false;
     };
 
     monthEl.querySelectorAll('.wheel-item').forEach(item =>
@@ -476,7 +482,7 @@ function buildSlideHTML(rawStory, isoDate) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" width="320" height="400" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
           </div>
         </div>

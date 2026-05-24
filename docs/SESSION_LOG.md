@@ -447,3 +447,16 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **수정**: 두 가지 변경 — ① `.editorstory-page { overflow: hidden }` (pages.css L200), ② 초기 휠 이중 동기화 코드 제거하고 cardSwiper on.init 에서만 처리 (editorstory.js L305-310 삭제). mystory.js 는 초기화 로직이 더 단순해 영향 없을 가능성.
 - **변경파일**: `src/css/pages.css`, `src/js/pages/editorstory.js`.
 - **검증**: `npm test` 51 failed / 151 passed (baseline 51/150 대비 +1 통과, 회귀 0건).
+
+### Swiper Virtual 제거 + 카드 간격 추가 (2026-05-25 03:24)
+
+- **요구사항**: 사용자가 DOM 개발자도구 스크린샷 첨부 — Swiper Virtual 이 슬라이드를 DOM 에서 제거 않고 누적시킴 (인덱스 1, 2, 12-33, 57-61, 108-119, 139-142 등 비연속 잔재). 카드 간 간격 없음. 휠 피커와 카드 위치 불일치.
+- **진단**: Virtual 모듈의 `cache: true` 가 슬라이드 HTML 캐시뿐 아니라 DOM 노드까지 누적시키는 동작. `addSlidesBefore: 1, addSlidesAfter: 1` 설정에도 불구하고 사용자가 스와이프할 때마다 새 슬라이드가 추가되고 이전 슬라이드는 제거되지 않음.
+- **해결책**: Virtual 모듈 완전 제거. ~150장 슬라이드는 메모리 부담이 크지 않으므로 사전 생성하고 이미지는 `loading="lazy"` 로 가시 슬라이드만 네트워크 로드.
+- **구현방법**:
+  - **cardSwiper.js**: `import { Virtual }` / `'swiper/css/virtual'` / `modules: [Virtual]` / `virtual: {...}` 옵션 모두 제거. `slides`/`renderSlide`/`onSlideMounted` 인터페이스를 `slideCount`/`onSlideReady` 로 단순화 (활성 슬라이드 이벤트 바인딩만 책임). `spaceBetween: 16` 추가하여 카드 사이 16px 간격.
+  - **editorstory.js / mystory.js**: `createCardSwiper` 호출 전에 `wrapperEl.innerHTML = slides.map(s => '<div class="swiper-slide">' + buildSlideHTML(...) + '</div>').join('')` 로 모든 슬라이드 사전 생성. `onSlideReady` 콜백에서 활성 슬라이드의 flip/share/bookmark/detail 이벤트 바인딩. `isProgrammaticSlide` 미사용 플래그 제거.
+  - **이미지 lazy**: `buildSlideHTML` / `buildMyStorySlideHTML` 의 `<img>` 에서 `loading="eager"` → `loading="lazy"`. 가시 슬라이드만 네트워크 로드 보장.
+  - **테스트 갱신**: `tests/editorstory.ui.spec.js` 의 "card swipe motion" 케이스에서 `Virtual`/`addSlidesBefore:1`/`addSlidesAfter:1` 검증을 `import Swiper from 'swiper'`/`spaceBetween:16`/`swiper-wrapper` 사전 생성 검증으로 교체.
+- **변경파일**: `src/js/utils/cardSwiper.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `tests/editorstory.ui.spec.js`.
+- **검증**: `npm test` 51 failed / 151 passed (baseline 동일, 회귀 0건). `npm run build` 175ms 성공.

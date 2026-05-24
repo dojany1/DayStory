@@ -1,49 +1,48 @@
 /* =====================================================================
-   cardSwiper.js — 카드 좌우 스와이프 공통 유틸 (Swiper.js 11 기반)
+   cardSwiper.js — 카드 좌우 스와이프 공통 유틸 (Swiper.js 11)
    =====================================================================
    editorstory / mystory 두 페이지가 동일한 한-장씩 넘김 + snap + 관성
    인터랙션을 공유한다. iPhone 사진 앱 같은 빠르고 쫀득한 느낌이 목표.
 
+   ⚠️ Virtual 모듈을 사용하지 않는다. Virtual 은 cache 옵션과 결합되어
+   슬라이드를 DOM 에서 제거하지 않고 누적시키는 동작이 확인됐다
+   (DOM 에 1, 2, 12-33, 57-61, 108-119, 139-142 등 비연속 잔재).
+   ~150장 슬라이드는 메모리/렌더 부담이 크지 않으므로 전부 사전 생성하고,
+   이미지는 loading="lazy" 로 처리해 가시 슬라이드만 네트워크 로드한다.
+
    - slidesPerView: 1, slidesPerGroup: 1 → 한 번에 한 장만
+   - spaceBetween: 16 → 카드 사이 시각적 간격
    - threshold 5px + longSwipesRatio 0.2 → 짧은 스와이프로도 다음 카드
    - resistance 0.85 → 양 끝에서 부드럽게 늘어났다 돌아옴
    - touchAngle 45 → 수직 스크롤(카드 본문 등)과 충돌 방지
-   - Virtual 모듈 → 양옆 1장씩만 실제 렌더 (메모리/이미지 비용 절감)
    ===================================================================== */
 
 import Swiper from 'swiper';
-import { Virtual } from 'swiper/modules';
 import 'swiper/css';
-import 'swiper/css/virtual';
 
 /**
  * createCardSwiper — 카드 좌우 스와이프 인스턴스 생성
  * @param {HTMLElement} container - .swiper 요소
  * @param {Object} options
- * @param {Array} options.slides - 슬라이드 데이터 배열 (각 요소는 renderSlide에 전달됨)
- * @param {(data: any, index: number) => string} options.renderSlide
- *        - 슬라이드 1장의 내부 HTML 문자열을 반환. .swiper-slide 래퍼는 Swiper가 자동 부여.
- * @param {(index: number, data: any) => void} [options.onSlideActive]
- *        - 활성 슬라이드가 변경됐을 때 호출 (휠 동기화, 이벤트 바인딩 등에 사용)
- * @param {(slideEl: HTMLElement, data: any, index: number) => void} [options.onSlideMounted]
- *        - Virtual이 새 슬라이드 DOM을 만들 때마다 호출 (이벤트 바인딩 지점)
+ * @param {number} options.slideCount - 전체 슬라이드 개수 (이미 .swiper-wrapper 안에 .swiper-slide 들이 모두 들어있다는 전제)
+ * @param {(index: number) => void} [options.onSlideActive]
+ *        - 활성 슬라이드가 변경됐을 때 호출
+ * @param {(index: number) => void} [options.onSlideReady]
+ *        - init 직후 활성 슬라이드에 대해 호출 (이벤트 바인딩 지점)
  * @param {number} [options.initialSlide=0]
  * @returns {Swiper}
  */
 export function createCardSwiper(container, {
-  slides,
-  renderSlide,
+  slideCount,
   onSlideActive,
-  onSlideMounted,
+  onSlideReady,
   initialSlide = 0,
 }) {
   const swiper = new Swiper(container, {
-    modules: [Virtual],
-
     /* ── 한 장씩 ── */
     slidesPerView: 1,
     slidesPerGroup: 1,
-    spaceBetween: 0,
+    spaceBetween: 16,
     centeredSlides: false,
 
     /* ── iPhone 사진 앱 느낌 ── */
@@ -63,48 +62,25 @@ export function createCardSwiper(container, {
     preventClicks: false,
     preventClicksPropagation: false,
 
-    /* ── 하드웨어 가속 (Swiper 11은 translate3d 기본) ── */
+    /* ── 하드웨어 가속 ── */
     watchSlidesProgress: true,
     cssMode: false,
-
-    /* ── 메모리 효율: 양옆 1장씩만 ── */
-    virtual: {
-      slides,
-      renderSlide,
-      addSlidesBefore: 1,
-      addSlidesAfter: 1,
-      cache: true,
-    },
 
     initialSlide,
 
     on: {
       init(sw) {
-        onSlideActive?.(sw.activeIndex, slides[sw.activeIndex]);
-        notifyMountedForActive(sw, slides, onSlideMounted);
+        onSlideActive?.(sw.activeIndex);
+        onSlideReady?.(sw.activeIndex);
       },
       slideChange(sw) {
-        /* 드래그 도중 실시간 휠 동기화 */
-        onSlideActive?.(sw.activeIndex, slides[sw.activeIndex]);
+        onSlideActive?.(sw.activeIndex);
       },
       slideChangeTransitionEnd(sw) {
-        /* Virtual DOM 이 안정된 뒤 이벤트 바인딩 */
-        notifyMountedForActive(sw, slides, onSlideMounted);
+        onSlideReady?.(sw.activeIndex);
       },
     },
   });
 
   return swiper;
-}
-
-/* 활성 슬라이드 DOM이 준비되면 mount 콜백 호출.
-   Virtual 모드에서 sw.slides 는 렌더된 2–3개 요소만 보유하므로
-   sw.slides[activeIndex] 는 항상 undefined. 클래스 셀렉터로 탐색한다. */
-function notifyMountedForActive(sw, slides, onSlideMounted) {
-  if (!onSlideMounted) return;
-  requestAnimationFrame(() => {
-    const activeSlideEl = sw.el.querySelector('.swiper-slide-active');
-    const idx = sw.activeIndex;
-    if (activeSlideEl) onSlideMounted(activeSlideEl, slides[idx], idx);
-  });
 }

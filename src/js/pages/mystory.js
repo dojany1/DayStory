@@ -219,20 +219,31 @@ async function loadMyStoryData(page) {
       calendarElement.scrollTo({ left: t, behavior: 'smooth' });
     }
 
+    /* ── Swiper 슬라이드 사전 생성 ── */
+    /* Virtual 모듈 미사용. 전체 슬라이드를 사전에 DOM 에 넣고, 이미지는 lazy 로딩. */
+    const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
+    if (wrapperEl) {
+      wrapperEl.innerHTML = slides
+        .map((slide) => `<div class="swiper-slide">${buildMyStorySlideHTML(slide.story, slide.iso)}</div>`)
+        .join('');
+    }
+
     /* ── Swiper 인스턴스 생성 ── */
     let swiper = null;
 
     swiper = createCardSwiper(swiperEl, {
-      slides,
+      slideCount: slides.length,
       initialSlide: initialIdx,
-      renderSlide: (slide) => buildMyStorySlideHTML(slide.story, slide.iso),
       onSlideActive: (idx) => {
         activateDayWheelByIndex(idx);
       },
-      onSlideMounted: (slideEl, slide) => {
+      onSlideReady: (idx) => {
+        const slideEl = swiperEl.querySelector('.swiper-slide-active');
+        if (!slideEl) return;
         const flipContainer = slideEl.querySelector('.flip-container');
         if (!flipContainer) return;
-        bindMyStoryCardEvents(flipContainer, slide.story, slide.iso);
+        const slide = slides[idx];
+        bindMyStoryCardEvents(flipContainer, slide?.story, slide?.iso);
       },
     });
 
@@ -305,12 +316,7 @@ async function loadMyStoryData(page) {
       item.addEventListener('click', () => onDayClick(item))
     );
 
-    /* 초기 휠 위치 보정 */
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        activateDayWheelByIndex(initialIdx);
-      });
-    }, 0);
+    /* 초기 휠 위치는 createCardSwiper 의 on.init → onSlideActive 에서 이미 처리됨. */
 
     /* ── 보기 방식 토글 (카드 ↔ 캘린더) ── */
     const calState = {
@@ -475,7 +481,7 @@ function buildMyStorySlideHTML(story, isoDateStr) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.title)}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
+            <img ${imageAttrs} alt="${escapeHtml(story.title)}" loading="lazy" decoding="async" width="320" height="400" draggable="false" />
             <div class="card-image-title">${escapeHtml(story.title)}</div>
           </div>
         </div>

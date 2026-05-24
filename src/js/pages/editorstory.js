@@ -301,13 +301,9 @@ async function loadEditorStoryData(page) {
       item.addEventListener('click', () => onDayClick(item))
     );
 
-    /* 초기 휠 위치 보정 (rAF로 레이아웃 완료 후) */
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        activateDayWheelByIndex(initialIdx);
-        void markLetterRead();
-      });
-    }, 0);
+    /* 초기 휠 위치는 createCardSwiper의 on.init → onSlideActive 에서 이미 처리됨.
+       추가 동기화는 스크롤 위치 경쟁을 유발하므로 제거. */
+    void markLetterRead();
 
     /* ── 보기 방식 토글 (카드 ↔ 캘린더) ── */
     const calState = {

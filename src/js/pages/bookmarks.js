@@ -251,7 +251,7 @@ function renderArchiveHeader() {
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
-        <button type="button" class="calendar-toggle-btn" data-tab="mine">나의 일화</button>
+        <button type="button" class="calendar-toggle-btn" data-tab="mine">나의 카드</button>
         <span class="calendar-toggle-thumb" aria-hidden="true"></span>
       </div>
       <div class="search-bar archive-search">

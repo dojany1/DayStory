@@ -288,11 +288,6 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   overlay.className = 'calendar-card-popup';
   overlay.innerHTML = `
     <div class="calendar-card-popup-inner">
-      <button type="button" class="calendar-card-popup-close" aria-label="닫기">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
       <div class="calendar-card-popup-stage">
         ${mode === 'history'
           ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected, { showDeleteBtn: !!options.onRemove })
@@ -312,10 +307,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 240);
   };
 
-  overlay.querySelector('.calendar-card-popup-close').addEventListener('click', (e) => {
-    e.stopPropagation();
-    close();
-  });
+
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay || e.target.classList.contains('calendar-card-popup-inner')) close();
   });

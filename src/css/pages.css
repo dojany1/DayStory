@@ -198,7 +198,7 @@
   flex-direction: column;
   flex: 1;                           /* 상위 컨테이너에서 남은 높이를 확실히 차지 */
   height: 100%;
-  overflow: visible;                 /* 내부 요소가 페이지 경계를 넘나들 수 있도록 허용 */
+  overflow: hidden;                  /* Swiper overflow:hidden 이 동작하려면 부모도 hidden 필요 */
 }
 
 /* 홈 상단 헤더 — "Day Story" 타이틀 영역 (숨김 처리하여 카드 공간 확보) */
@@ -813,7 +813,7 @@
 
 /* 컬렉션 페이지 전체 */
 .archive-page {
-  padding: var(--space-4) var(--space-5) var(--space-12);
+  padding: var(--space-4) var(--space-4) 82px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -912,6 +912,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
   width: 100%;
+  padding-bottom: var(--space-8);
 }
 
 /* 월별 구분 헤더 — 그리드 전체 너비 차지 */
@@ -1065,10 +1066,8 @@
 
 .settings-user-info {
   margin: 0 var(--space-5);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-secondary);
+  padding: var(--space-4)var(--space-2);
+  
 }
 
 .settings-user-row {
@@ -2268,7 +2267,7 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:var(--space-3) 0;
+  padding:var(--space-2) 0;
   border-radius:calc(var(--radius-lg) - 2px);
   font-family:var(--font-sans);
   font-size:var(--text-sm);
@@ -2883,28 +2882,23 @@
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 46px;
-  height: 38px;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-accent-border);
+  width: 52px;
+  height: 42px;
+  background: var(--color-accent-dark);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  color: var(--color-text-primary);
+  color: var(--color-text-inverse);
   -webkit-tap-highlight-color: transparent;
   transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 .view-toggle-btn:active {
   transform: translateY(-50%) scale(0.88);
-  background: var(--color-bg-secondary);
-  box-shadow: none;
-}
-[data-theme="dark"] .view-toggle-btn {
-  background: var(--color-bg-card-dark, var(--color-bg-card));
+  background: var(--color-accent-light);
 }
 
 /* ══════════════════════════════════════════

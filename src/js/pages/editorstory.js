@@ -112,6 +112,18 @@ async function loadEditorStoryData(page) {
       getBookmarkedStoryIds(),
     ]);
 
+    /* 발행된 카드가 한 장도 없을 때: 빈 상태 메시지로 종료 */
+    if (!todayStory) {
+      page.innerHTML = `
+        <div class="editorstory-header"><h1 class="editorstory-title">Day Story</h1></div>
+        <div class="empty-state">
+          <div class="empty-state-title">아직 발행된 카드가 없어요</div>
+          <div class="empty-state-desc">곧 첫 카드가 도착할 거예요</div>
+        </div>
+      `;
+      return;
+    }
+
     const today = new Date(todayStory.publish_date + 'T00:00:00');
     const historyStories = allStories || [];
     bulkCollect([todayStory, ...historyStories].map((s) => s?.id).filter(Boolean));

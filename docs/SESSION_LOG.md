@@ -323,3 +323,32 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   2. 카카오 콘솔에서 JS 키 발급 후 `.env` 주입 — Wave 6 활성화.
   3. 수동 QA — 비로그인 → 자동 `/login`, 라이트/다크/폰트 크기 토글, `prefers-reduced-motion` ON 시 애니메이션 무력화, 메모리 누수 회복.
 - **다음 패치 후보(v1.5)**: 카카오 공유 버튼을 페이지 UI에 노출 / `autoPublishScheduled` Cloud Function 이전 / 컬렉션 Firestore 동기화 / 햅틱(`@capacitor/haptics`) 도입 / 휠 피커 공통화(E2E 선행 후).
+
+---
+
+## 2026-05-24 01:11 — Claude (Opus 4.7)
+
+- 요구사항: **관리자 외 모든 계정에 5개 더미 카드(리처드 1세 · 에펠탑 · 반 고흐 · 콜로세움 · 뉴턴)가 노출되는 P0 버그** 수정. 사용자 결정: demo 폴백 완전 제거 + 빈 상태 UI + 회귀 테스트.
+- 원인 분석: Wave 4 도입 `firestore.rules` 가 일반 사용자에게 `status == 'published'` 문서만 read 허용하는데, `src/js/services/stories.js` 쿼리에는 status 필터가 없어 DB에 `draft/scheduled` 문서가 한 건이라도 있으면 권한 거부로 전체 쿼리 실패 → catch 블록의 `return DEMO_STORIES` 가 5개 더미를 일반 사용자에게 노출. 관리자는 `isAdmin()` 가드 통과로 모든 status 문서 read 가능해 폴백 미트리거 → 비대칭 발생.
+- 구현방법:
+  - **`src/js/services/stories.js`** — `DEMO_STORIES` import 제거, `fallbackToDemo()` 헬퍼 삭제. 5개 함수(`fetchStoriesFresh`/`fetchTodayStory`/`fetchStoryById`/`searchStoriesDB`/`fetchStoriesWithLicense`) 의 모든 demo 폴백 경로를 빈 결과(`[]`/`null`) 로 변경. `fetchStoriesFresh`/`fetchTodayStory`/`fetchStoriesWithLicense` 쿼리에 `where('status','==','published')` 추가하여 보안 룰과 일치.
+  - **`src/js/data/demo.js`** — 파일 + 빈 폴더 삭제.
+  - **`src/js/pages/editorstory.js`** — `loadEditorStoryData` 에 `todayStory == null` 가드 추가. 빈 상태 메시지(`아직 발행된 카드가 없어요 / 곧 첫 카드가 도착할 거예요`) 렌더 후 early return.
+  - **`src/js/pages/search.js`** — 초기 로딩 시 `allStories.length === 0` 이면 기존 `#search-empty` 요소 텍스트를 빈 상태 메시지로 갱신해 표시. (detail.js / license.js 는 기존 빈 상태 UI 재사용으로 변경 불요.)
+  - **TDD spec** `tests/stories-fallback.spec.js`(신규) — 3 시나리오 × 5 함수 = 15 케이스. ① Firestore 권한 거부(`PERMISSION_DENIED` reject) → 모두 빈 결과. ② Firestore 빈 응답(`docs: []`) → 모두 빈 결과. ③ 정상 published 응답 → 그대로 통과. 모든 케이스에 `assertNoDemoLeak()` 으로 "리처드/에펠/고흐/콜로세움/뉴턴" 미포함 검증.
+  - **`docs/audit/2026-05-22/할일.md`** — 상단에 `🔴 긴급 P0 — 더미 데이터 노출 (2026-05-24 처리)` 섹션 추가. 증상·원인·조치 3 bullet.
+- 변경파일: `src/js/services/stories.js`, `src/js/pages/editorstory.js`, `src/js/pages/search.js`, `src/js/data/demo.js`(삭제), `tests/stories-fallback.spec.js`(신규), `docs/audit/2026-05-22/할일.md`.
+- 검증: baseline 58 failed / 143 passed → 51 failed / 150 passed. **회귀 0건, 새 spec 15/15 통과**. `npm run build` 154ms 성공, demo.js 미참조 import 오류 없음. 안드로이드 영향 변경 없음 → `npx cap sync android` 불필요.
+- 후속(다음 패치 후보): ① i18n 키(`home.empty_stories_*`) 추가해 영/일 번역 채우기. ② `fetchStoriesFresh` 의 복합 인덱스(`status` + `publish_date`) 가 Firestore 콘솔에 자동 생성됐는지 첫 실행 시 콘솔 로그 확인. ③ audit P1 #8(autoPublishScheduled Cloud Function 이전) — 일반 사용자 권한으로는 `updateDoc` 호출 자체가 실패해 무의미하므로 빨리 옮기는 게 좋음.
+
+### 2026-05-24 01:26 후속 — 인덱스 코드 관리 + autoPublish admin 가드 (Claude)
+
+- 배경: 위 패치 적용 후 사용자가 dev 서버에서 확인. 더미는 사라졌으나 카드가 비어 보임. 브라우저 콘솔에 ① `오늘의 스토리/스토리 목록 조회 실패: The query requires an index. You can create it here: ...` 두 건(새 쿼리가 status+publish_date 복합 인덱스를 요구하나 미생성), ② `예약 발행 자동 전환 실패: Missing or insufficient permissions` (일반 사용자가 `autoPublishScheduled` 호출 시 `updateDoc` 거부 — 보안 룰 정상 동작) 발생.
+- 구현방법:
+  - **`firestore.indexes.json`(신규)** — `stories` 컬렉션 [`status` ASC + `publish_date` DESC] 복합 인덱스 1개 정의. `fetchStoriesFresh` 와 `fetchTodayStory` 두 쿼리가 동일 인덱스로 모두 커버됨.
+  - **`firebase.json`** — `"firestore"` 블록에 `"indexes": "firestore.indexes.json"` 경로 추가. 다음 패치부터 `firebase deploy --only firestore:indexes` 로 인덱스도 CI 가능.
+  - **`src/js/services/stories.js`** — `autoPublishScheduled()` 시작점에 `getState('profile')?.role === 'editor'` 가드 추가. 일반 사용자는 호출 자체를 건너뛰어 보안 룰 거부 경고로부터 콘솔 청소. 관리자만 정상 실행. `import { getState } from '../state.js'` 추가.
+  - **`tests/stories-fallback.spec.js`** — `state.js` 모듈 mock 추가(stories.js → state.js → 모듈 로드 시점 `localStorage` 호출이 vitest 4 환경에서 폭발하던 것 차단). `getState` 가 null 반환하도록 가짜 mock — 기존 admin 가드 흐름이 그대로 통과.
+- 변경파일: `firestore.indexes.json`(신규), `firebase.json`, `src/js/services/stories.js`, `tests/stories-fallback.spec.js`.
+- 검증: `npx vitest run tests/stories-fallback.spec.js` 15/15 통과. 전체 회귀 0건 유지(51 failed / 150 passed, 직전 patch 와 동일). `npm run build` 121ms 성공.
+- 사용자 액션 필수: ① Firebase 콘솔에서 두 인덱스 생성 링크 클릭 → "Create index" → 5~10분 대기 (또는 `firebase deploy --only firestore:indexes` 1회). 인덱스 활성화되면 stories 컬렉션의 published 카드가 정상 표시됨. ② `firebase deploy --only firestore:rules,storage` 가 라이브에 배포됐는지 확인 (audit P0 admin 권한 탈취 차단).

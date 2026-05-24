@@ -2,8 +2,8 @@
    stories.js — 스토리(역사 일화) 서비스
    =====================================================================
    Firestore의 stories 컬렉션에서 역사 일화 데이터를 가져오는 서비스입니다.
-   서버 연결이 안 될 경우 demo.js의 데모 데이터를 사용합니다 (Fallback).
-   
+   조회에 실패하면 빈 결과를 반환한다(데모/더미 폴백 없음).
+
    주요 함수:
      - fetchStories()        : 발행된 전체 스토리 목록 조회
      - fetchTodayStory()     : 오늘 날짜의 스토리 조회
@@ -13,10 +13,10 @@
    ===================================================================== */
 
 import { db, storage, auth } from '../firebase.js';
-import { DEMO_STORIES } from '../data/demo.js';
 import { getLocalToday } from '../utils/date.js';
 import { withTimeout } from '../utils/timeout.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
+import { getState } from '../state.js';
 
 /*
  * Firestore 함수 임포트
@@ -60,13 +60,6 @@ export function warmStoriesCache() {
    섹션 1: 헬퍼(도우미) 함수들
    ───────────────────────────────────────────── */
 
-/**
- * fallbackToDemo — DB 데이터가 비어있으면 데모 데이터를 반환합니다
- */
-function fallbackToDemo(dbData) {
-  return dbData && dbData.length > 0 ? dbData : DEMO_STORIES;
-}
-
 /* withTimeout 은 ../utils/timeout.js 에서 import (Wave 5 추출) */
 
 /**
@@ -89,6 +82,9 @@ function docToData(docSnap) {
  */
 async function autoPublishScheduled(todayStr) {
   if (!db) return;
+  /* 관리자만 write 가능. 일반 사용자가 호출하면 보안 룰이 거부하므로 미리 컷. */
+  const profile = getState('profile');
+  if (!profile || profile.role !== 'editor') return;
   try {
     /* scheduled 상태이면서 발행 예정일이 오늘이거나 지난 글을 검색 */
     const q = query(
@@ -124,9 +120,12 @@ async function autoPublishScheduled(todayStr) {
 
 /**
  * fetchStories — 발행된(published) 전체 스토리를 최신순으로 가져옵니다
+ *
+ * 일반 사용자의 보안 룰은 status == 'published' 문서만 read 허용.
+ * 쿼리에 status 필터를 명시해야 비-published 문서로 인한 권한 거부를 피할 수 있다.
  */
 async function fetchStoriesFresh() {
-  if (!db) return DEMO_STORIES;
+  if (!db) return [];
 
   try {
     /* 사용자 기기의 로컬 시간 기준으로 오늘 날짜를 가져옴 (UTC가 아님!) */
@@ -137,16 +136,15 @@ async function fetchStoriesFresh() {
 
     const q = query(
       collection(db, 'stories'),
+      where('status', '==', 'published'),
       where('publish_date', '<=', today),
       orderBy('publish_date', 'desc')
     );
     const snapshot = await withTimeout(getDocs(q));
-    /* 자바스크립트 레벨에서 published 상태만 필터링 (복합 인덱스 오류 방지) */
-    const data = snapshot.docs.map(docToData).filter(s => s.status === 'published');
-    return fallbackToDemo(data);
+    return snapshot.docs.map(docToData);
   } catch (err) {
-    console.warn('스토리 목록 조회 실패, 데모 데이터 사용:', err.message);
-    return DEMO_STORIES;
+    console.warn('스토리 목록 조회 실패:', err.message);
+    return [];
   }
 }
 
@@ -166,44 +164,34 @@ export async function fetchStories() {
 
 /**
  * fetchTodayStory — '오늘' 날짜에 해당하는 스토리를 가져옵니다
+ * 결과가 없거나 조회 실패면 null. 페이지에서 빈 상태 UI를 표시한다.
  */
 export async function fetchTodayStory() {
-  if (!db) {
-    const today = getLocalToday();
-    return DEMO_STORIES.find(s => s.publish_date === today) || DEMO_STORIES[DEMO_STORIES.length - 1];
-  }
+  if (!db) return null;
 
   try {
-    /* 사용자 기기의 로컬 시간 기준 오늘 날짜 */
     const todayStr = getLocalToday();
     const q = query(
       collection(db, 'stories'),
+      where('status', '==', 'published'),
       where('publish_date', '<=', todayStr),
       orderBy('publish_date', 'desc'),
-      limit(5)
+      limit(1)
     );
     const snapshot = await withTimeout(getDocs(q), 2500);
-
-    /* 가져온 5개 중 가장 최신의 published 상태인 스토리를 찾음 */
-    const publishedList = snapshot.docs.map(docToData).filter(s => s.status === 'published');
-    if (publishedList.length > 0) {
-      return publishedList[0];
-    }
+    const docs = snapshot.docs.map(docToData);
+    return docs[0] || null;
   } catch (err) {
-    console.warn('오늘의 스토리 조회 실패, 데모 데이터 사용:', err.message);
+    console.warn('오늘의 스토리 조회 실패:', err.message);
+    return null;
   }
-
-  /* 최종 폴백: 데모 데이터 */
-  const fallbackToday = getLocalToday();
-  const demoToday = DEMO_STORIES.find(s => s.publish_date === fallbackToday);
-  return demoToday || DEMO_STORIES[DEMO_STORIES.length - 1];
 }
 
 /**
  * fetchStoryById — 특정 ID의 스토리를 가져옵니다 (상세 페이지용)
  */
 export async function fetchStoryById(id) {
-  if (!db) return DEMO_STORIES.find(s => s.id === id) || null;
+  if (!db) return null;
 
   try {
     const docSnap = await withTimeout(getDoc(doc(db, 'stories', id)), 3000);
@@ -211,9 +199,7 @@ export async function fetchStoryById(id) {
   } catch (err) {
     console.warn('스토리 상세 조회 실패:', err.message);
   }
-
-  /* 폴백: 데모 데이터에서 찾기 */
-  return DEMO_STORIES.find(s => s.id === id) || null;
+  return null;
 }
 
 /**
@@ -227,25 +213,16 @@ export async function searchStoriesDB(queryStr) {
   try {
     const stories = await fetchStories();
     const lowerQuery = queryStr.toLowerCase();
-    const results = stories.filter(s =>
+    return stories.filter(s =>
       s.title.toLowerCase().includes(lowerQuery) ||
       s.body.toLowerCase().includes(lowerQuery) ||
       s.figure_name.toLowerCase().includes(lowerQuery) ||
       s.country.toLowerCase().includes(lowerQuery)
     );
-    if (results.length > 0) return results;
   } catch (err) {
-    console.warn('검색 실패, 로컬 데이터에서 검색:', err.message);
+    console.warn('검색 실패:', err.message);
+    return [];
   }
-
-  /* 폴백: 데모 데이터에서 검색 */
-  const lowerQuery = queryStr.toLowerCase();
-  return DEMO_STORIES.filter(s =>
-    s.title.toLowerCase().includes(lowerQuery) ||
-    s.body.toLowerCase().includes(lowerQuery) ||
-    s.figure_name.toLowerCase().includes(lowerQuery) ||
-    s.country.toLowerCase().includes(lowerQuery)
-  );
 }
 
 
@@ -342,27 +319,20 @@ export async function publishStory(id) {
  * 라이선스 페이지 전용 함수입니다.
  */
 export async function fetchStoriesWithLicense() {
-  if (!db) {
-    /* 폴백: 데모 데이터에서 라이선스 있는 것만 필터링 */
-    return DEMO_STORIES
-      .filter(s => s.image_license && s.image_license.trim() !== '')
-      .sort((a, b) => b.publish_date.localeCompare(a.publish_date));
-  }
+  if (!db) return [];
 
   try {
     const today = getLocalToday();
-    /* 발행된 전체 스토리를 날짜 내림차순으로 가져옴 (복합 인덱스 오류 방지를 위해 status 필터는 JS에서 처리) */
     const q = query(
       collection(db, 'stories'),
+      where('status', '==', 'published'),
       where('publish_date', '<=', today),
       orderBy('publish_date', 'desc')
     );
     const snapshot = await withTimeout(getDocs(q));
-    
-    /* JS 레벨에서 published 상태이면서 image_license 필드가 있는 항목만 필터링 */
     return snapshot.docs
       .map(docToData)
-      .filter(s => s.status === 'published' && s.image_license && s.image_license.trim() !== '');
+      .filter(s => s.image_license && s.image_license.trim() !== '');
   } catch (err) {
     console.warn('라이선스 스토리 조회 실패:', err.message);
     return [];

@@ -17,10 +17,10 @@
 :root {
 
   /* ── 라이트 테마 배경 색상 ── */
-  --color-bg-primary: #f3f2ee;           /* 더 깔끔하고 부드러온 앱 기본 배경 */
-  --color-bg-secondary: #ffffff;         /* 보조 배경 */
-  --color-bg-card: #FDF9F4;              /* 카드 배경색 */
-  --color-bg-card-dark: #F8F5F2;         /* 카드 어두운 배경 (비활성 상태 등) */
+  --color-bg-primary: #F9F8F6;           /* 더 깔끔하고 부드러온 앱 기본 배경 */
+  --color-bg-secondary: #FCFCFC;         /* 보조 배경 */
+  --color-bg-card: #FDFDFD;              /* 카드 배경색 */
+  --color-bg-card-dark: #ECECEC;         /* 카드 어두운 배경 (비활성 상태 등) */
   --color-bg-elevated: #ffffff;          /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.45); /* 오버레이 (대비 소폭 강화) */
 

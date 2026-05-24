@@ -63,10 +63,19 @@ export function renderSearch() {
   (async () => {
     const allStories = await fetchStories();
     const resultsEl = document.getElementById('search-results');
-    if (resultsEl) {
-      resultsEl.innerHTML = allStories.map(story => renderSearchItem(story)).join('');
-      bindSearchItemClicks();
+    const emptyEl = document.getElementById('search-empty');
+    if (!resultsEl) return;
+    if (allStories.length === 0) {
+      resultsEl.style.display = 'none';
+      if (emptyEl) {
+        emptyEl.querySelector('.empty-state-title').textContent = '아직 발행된 카드가 없어요';
+        emptyEl.querySelector('.empty-state-desc').textContent = '곧 첫 카드가 도착할 거예요';
+        emptyEl.style.display = 'flex';
+      }
+      return;
     }
+    resultsEl.innerHTML = allStories.map(story => renderSearchItem(story)).join('');
+    bindSearchItemClicks();
   })();
 
   /* ---- 검색 입력 이벤트 (디바운스 적용) ---- */

@@ -22,6 +22,7 @@ import { t } from '../i18n/index.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
 import { renderGrid, isAtCurrentMonth, WEEKDAYS } from './calendar.js';
 import { createCardSwiper } from '../utils/cardSwiper.js';
+import { getLocalToday } from '../utils/date.js';
 
 const FLIP_DURATION_MS = 400;
 
@@ -119,7 +120,12 @@ async function loadEditorStoryData(page) {
       return;
     }
 
-    const today = new Date(todayStory.publish_date + 'T00:00:00');
+    /* today 는 시스템(로컬) 오늘 기준으로 통일.
+       mystory 페이지와 일관성 + DB 상태(autoPublish 누락 등)에 영향받지 않음.
+       오늘 카드가 없으면 빈 슬라이드로 표시. */
+    const localTodayStr = getLocalToday();
+    const [tY, tM, tD] = localTodayStr.split('-');
+    const today = new Date(parseInt(tY), parseInt(tM) - 1, parseInt(tD));
     const historyStories = allStories || [];
     bulkCollect([todayStory, ...historyStories].map((s) => s?.id).filter(Boolean));
 

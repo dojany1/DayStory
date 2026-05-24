@@ -42,7 +42,11 @@ let onUnmountHook = null;
  * route -> { node: HTMLElement, savedAt: number, cleanup: Function|null } */
 const PAGE_DOM_CACHE = new Map();
 const PAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5분
-const KEEP_ALIVE_ROUTES = new Set(['/editorstory', '/mystory']);
+/* Keep-Alive 비활성 — editorstory/mystory 는 Swiper.js 인스턴스를 유지하는데
+   DOM detach → attach 과정에서 Swiper 의 transform 이 reset 되어
+   휠/카드가 1월 1일(activeIndex 0) 로 보이는 버그가 발생. 매번 새 마운트로 안정성 확보.
+   (fetchStories 는 storiesCachePromise 로 캐싱되어 네트워크 비용 미미.) */
+const KEEP_ALIVE_ROUTES = new Set();
 
 
 /* ─────────────────────────────────────────────

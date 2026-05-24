@@ -450,7 +450,6 @@
 .card-swiper {
   grid-area: stack;
   width: 100%;
-  max-width: 390px;
   min-width: 0;
   /* aspect-ratio 로 height 자동 계산. max-height 로 부모 영역 초과 방지. */
   aspect-ratio: var(--card-aspect-ratio);

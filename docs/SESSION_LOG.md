@@ -460,3 +460,21 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - **테스트 갱신**: `tests/editorstory.ui.spec.js` 의 "card swipe motion" 케이스에서 `Virtual`/`addSlidesBefore:1`/`addSlidesAfter:1` 검증을 `import Swiper from 'swiper'`/`spaceBetween:16`/`swiper-wrapper` 사전 생성 검증으로 교체.
 - **변경파일**: `src/js/utils/cardSwiper.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `tests/editorstory.ui.spec.js`.
 - **검증**: `npm test` 51 failed / 151 passed (baseline 동일, 회귀 0건). `npm run build` 175ms 성공.
+
+### 카드 그림자/회전 swiper 박스 밖 표현 (2026-05-25 04:05)
+
+- **요구사항**: 사용자 보고 — 카드 좌우 그림자는 보이지만 위아래는 잘림. 카드 뒤집기가 swiper 박스 안에 갇힌 듯 답답함. 크롬 DevTools 로 `.swiper { overflow:hidden }` 제거 시 완전히 해결됨 확인.
+- **진단**: ① `.front`/`.back` 의 box-shadow가 부모 `.flipper` 의 `transform-style:preserve-3d` + `will-change:transform` GPU 합성 레이어 격리로 영역 밖 확산 안 됨. ② `.wheel-pickers-container` opaque background 가 카드 위쪽 그림자 가림. ③ swiper.css 의 `.swiper { overflow:hidden }` 가 카드 box-shadow + flip 회전을 박스 안에 가둠. ④ 이전 `.card-swiper { overflow:visible }` 단독 셀렉터는 swiper.css 와 specificity 동률(0,1,0)이라 cascade 순서로 결과 불확실.
+- **해결**:
+  - box-shadow를 3D 컨텍스트 밖 `.flip-container` 로 이동 (perspective는 stacking context 미생성). `.card-swiper .swiper-slide .front/.back` 의 box-shadow 는 중복 방지로 제거.
+  - `.editorstory-card-area` padding `0 16px` → `12px 16px`, `align-items: start` → `center` 로 카드 위아래 그림자 표시 공간 확보.
+  - `.swiper.card-swiper { overflow: visible }` 복합 셀렉터(0,2,0)로 cascade 무관 무조건 이김. 인접 슬라이드 clip 은 부모 `.editorstory-page { overflow:hidden }` 담당.
+- **변경파일**: `src/css/pages.css`.
+- **검증**: `npm test` 51 failed / 151 passed (회귀 없음). `npm run build` 153ms 성공.
+
+### v1.4.0 빌드 + Capacitor sync (2026-05-25 04:10)
+
+- **요구사항**: 사용자가 새 안드로이드/iOS 빌드 배포 준비 요청. 버전 명/버전 코드(versionCode 22) 그대로 유지 결정.
+- **구현방법**: `npm run build` 후 `npx cap sync android` + `npx cap sync ios` 실행. Android 8 plugin / iOS 9 plugin (RevenueCat 포함) 인식 완료. 변경 산출물은 `android/app/src/main/assets/public/index.html`.
+- **변경파일**: `android/app/src/main/assets/public/index.html` (Capacitor sync 결과).
+- **검증**: Android sync 0.062s, iOS sync 0.05s 모두 성공. 사용자는 Android Studio / Xcode 에서 각각 release 빌드/Archive 후 스토어 업로드 진행.

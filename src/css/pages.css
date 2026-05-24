@@ -191,8 +191,11 @@
    캘린더에서 날짜를 선택하면 해당 날짜의 카드가 표시된다.
 */
 
-/* 홈 페이지 전체 레이아웃 — Flex 컬럼으로 높이 100% 채움 */
-.editorstory-page {
+/* 홈/나의 일화 페이지 전체 레이아웃 — Flex 컬럼으로 높이 100% 채움.
+   두 페이지 모두 .editorstory-card-area + .card-swiper 동일 구조 공유하므로
+   동일한 flex 컨테이너 레이아웃 필요. */
+.editorstory-page,
+.mystory-page {
   padding: 0;
   display: flex;
   flex-direction: column;

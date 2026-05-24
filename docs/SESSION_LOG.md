@@ -485,3 +485,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: Vanilla JS 프로젝트에 맞춰 React용이 아닌 `lucide` 패키지를 설치. 기존 `@capacitor-firebase/authentication`/`firebase` peer 충돌 때문에 일반 `npm install lucide`는 실패하여, 현재 의존성 조합을 유지하는 `npm install lucide --legacy-peer-deps`로 `package.json`과 `package-lock.json`에 `lucide@1.16.0` 추가.
 - **변경파일**: `package.json`, `package-lock.json`, `docs/SESSION_LOG.md`.
 - **검증**: `npm list lucide`에서 `lucide@1.16.0` 확인. `npm run build` 성공. `npm test`는 기존 환경/정적 기대값 이슈로 34 failed / 15 passed, 51 failed / 151 passed 상태.
+
+### 2026-05-25 05:08 — Codex
+
+- **요구사항**: 프로필 페이지의 `나의 카드` 토글에서 `history-card-mini my-story-mini` 항목 탭 시 `/mystory` 이동 대신 기존 `calendar-card-popup`으로 해당 나의 카드 표시.
+- **구현방법**: `initArchiveSection(page, options)`에 `myStoryClickMode` 옵션을 추가하고 기본값은 `navigate`로 유지. `profile.js`에서만 `{ myStoryClickMode: 'popup' }`을 전달해 프로필의 나의 카드 클릭이 `openCardPopup(story, 'mine', [], {})`를 호출하도록 분기. `/bookmarks` 기본 동작은 기존 `/mystory` 이동 유지.
+- **변경파일**: `src/js/pages/bookmarks.js`, `src/js/pages/profile.js`, `tests/bookmarks.ui.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `npm test -- tests/bookmarks.ui.spec.js` 14/14 통과. `npm run build` 성공. `npm test`는 기존 환경/정적 기대값 이슈로 34 failed / 15 passed, 51 failed / 153 passed 상태.

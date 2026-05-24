@@ -32,8 +32,12 @@ export function renderArchiveSection() {
   `;
 }
 
-export function initArchiveSection(page) {
-  loadCollection(page);
+const DEFAULT_ARCHIVE_OPTIONS = {
+  myStoryClickMode: 'navigate',
+};
+
+export function initArchiveSection(page, options = {}) {
+  loadCollection(page, { ...DEFAULT_ARCHIVE_OPTIONS, ...options });
 }
 
 export function renderBookmarks() {
@@ -55,7 +59,7 @@ export function renderBookmarks() {
 }
 
 
-async function loadCollection(page) {
+async function loadCollection(page, options = DEFAULT_ARCHIVE_OPTIONS) {
   const contentEl = page.querySelector('#archive-content');
 
   const user = getState('user');
@@ -98,7 +102,17 @@ async function loadCollection(page) {
       contentEl,
       list,
       state.activeTab,
-      (story) => state.activeTab === 'history' ? onCardClick(state, story) : navigate('/mystory'),
+      (story) => {
+        if (state.activeTab === 'history') {
+          onCardClick(state, story);
+          return;
+        }
+        if (options.myStoryClickMode === 'popup') {
+          openCardPopup(story, 'mine', [], {});
+          return;
+        }
+        navigate('/mystory');
+      },
       {
         searching: Boolean(state.queryStr),
         onToggle: state.activeTab === 'history'

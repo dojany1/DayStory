@@ -2,12 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   navigateMock,
+  getStateMock,
   getBookmarkedStoriesMock,
+  fetchMyStoriesMock,
   toggleBookmarkMock,
   openCardPopupMock,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
+  getStateMock: vi.fn(),
   getBookmarkedStoriesMock: vi.fn(),
+  fetchMyStoriesMock: vi.fn(),
   toggleBookmarkMock: vi.fn(),
   openCardPopupMock: vi.fn(),
 }));
@@ -18,10 +22,14 @@ vi.mock('../src/js/router.js', () => ({
 }));
 
 vi.mock('../src/js/state.js', () => ({
-  getState: vi.fn((key) => ({ theme: 'system', fontSize: 'medium', lang: null }[key] ?? null)),
+  getState: getStateMock,
   setState: vi.fn(),
   subscribe: vi.fn(),
   applyTheme: vi.fn(),
+}));
+
+vi.mock('../src/js/services/mystories.js', () => ({
+  fetchMyStories: fetchMyStoriesMock,
 }));
 
 vi.mock('../src/js/services/bookmarks.js', () => ({
@@ -33,7 +41,7 @@ vi.mock('../src/js/pages/calendar.js', () => ({
   openCardPopup: openCardPopupMock,
 }));
 
-const { renderBookmarks } = await import('../src/js/pages/bookmarks.js');
+const { initArchiveSection, renderArchiveSection, renderBookmarks } = await import('../src/js/pages/bookmarks.js');
 
 function flush() {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
@@ -53,11 +61,36 @@ function makeStory(id, overrides = {}) {
   };
 }
 
+function makeMyStory(id, overrides = {}) {
+  return {
+    id,
+    publish_date: '2026-05-25',
+    title: `My Story ${id}`,
+    body: `Body ${id}`,
+    image_url: `https://example.com/my-${id}.png`,
+    ...overrides,
+  };
+}
+
+function mockBaseState(overrides = {}) {
+  getStateMock.mockImplementation((key) => ({
+    theme: 'system',
+    fontSize: 'medium',
+    lang: null,
+    user: null,
+    ...overrides,
+  }[key] ?? null));
+}
+
 describe('Bookmarks page', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     navigateMock.mockReset();
+    getStateMock.mockReset();
+    mockBaseState();
     getBookmarkedStoriesMock.mockReset();
+    fetchMyStoriesMock.mockReset();
+    fetchMyStoriesMock.mockResolvedValue([]);
     toggleBookmarkMock.mockReset();
     openCardPopupMock.mockReset();
   });
@@ -135,6 +168,61 @@ describe('Bookmarks page', () => {
     const emptyState = page.querySelector('.empty-state');
     expect(emptyState).not.toBeNull();
     expect(emptyState?.textContent || '').toContain('보관된 카드가 없습니다');
+  });
+
+  it('Given the default archive section, when a my-story mini card is clicked, then it keeps navigating to my story', async () => {
+    mockBaseState({ user: { id: 'user-1' } });
+    getBookmarkedStoriesMock.mockResolvedValue([]);
+    fetchMyStoriesMock.mockResolvedValue([makeMyStory('mine-default')]);
+
+    const page = renderBookmarks();
+    document.body.appendChild(page);
+    await flush();
+
+    page.querySelector('.archive-toggle .calendar-toggle-btn[data-tab="mine"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const card = page.querySelector('.history-card-mini.my-story-mini');
+    expect(card).not.toBeNull();
+
+    card?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(navigateMock).toHaveBeenCalledWith('/mystory');
+    expect(openCardPopupMock).not.toHaveBeenCalledWith(
+      expect.any(Object),
+      'mine',
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it('Given profile archive popup mode, when a my-story mini card is clicked, then it opens the calendar card popup', async () => {
+    const myStory = makeMyStory('mine-popup');
+    mockBaseState({ user: { id: 'user-1' } });
+    getBookmarkedStoriesMock.mockResolvedValue([]);
+    fetchMyStoriesMock.mockResolvedValue([myStory]);
+
+    const page = document.createElement('div');
+    page.innerHTML = renderArchiveSection();
+    initArchiveSection(page, { myStoryClickMode: 'popup' });
+    document.body.appendChild(page);
+    await flush();
+
+    page.querySelector('.archive-toggle .calendar-toggle-btn[data-tab="mine"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const card = page.querySelector('.history-card-mini.my-story-mini');
+    expect(card).not.toBeNull();
+
+    card?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(openCardPopupMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'mine-popup' }),
+      'mine',
+      [],
+      expect.any(Object),
+    );
+    expect(navigateMock).not.toHaveBeenCalledWith('/mystory');
   });
 
   it('Given the archive toggle history item, when the page renders, then it should show a filled bookmark icon without visible text', () => {

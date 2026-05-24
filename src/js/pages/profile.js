@@ -96,7 +96,7 @@ export function renderProfile() {
     page.querySelector('#goto-editor-btn')?.addEventListener('click', () => navigate('/editor'));
   }, 0);
 
-  initArchiveSection(page);
+  initArchiveSection(page, { myStoryClickMode: 'popup' });
 
   return page;
 }

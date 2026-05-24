@@ -35,6 +35,7 @@
     "@revenuecat/purchases-capacitor": "^13.1.0",
     "cropperjs": "^1.6.2",
     "firebase": "^10.14.1",
+    "lucide": "^1.16.0",
     "swiper": "^11.2.10"
   }
 }

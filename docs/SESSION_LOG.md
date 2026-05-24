@@ -478,3 +478,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: `npm run build` 후 `npx cap sync android` + `npx cap sync ios` 실행. Android 8 plugin / iOS 9 plugin (RevenueCat 포함) 인식 완료. 변경 산출물은 `android/app/src/main/assets/public/index.html`.
 - **변경파일**: `android/app/src/main/assets/public/index.html` (Capacitor sync 결과).
 - **검증**: Android sync 0.062s, iOS sync 0.05s 모두 성공. 사용자는 Android Studio / Xcode 에서 각각 release 빌드/Archive 후 스토어 업로드 진행.
+
+### 2026-05-25 05:03 — Codex
+
+- **요구사항**: 루시드 아이콘 패키지 설치.
+- **구현방법**: Vanilla JS 프로젝트에 맞춰 React용이 아닌 `lucide` 패키지를 설치. 기존 `@capacitor-firebase/authentication`/`firebase` peer 충돌 때문에 일반 `npm install lucide`는 실패하여, 현재 의존성 조합을 유지하는 `npm install lucide --legacy-peer-deps`로 `package.json`과 `package-lock.json`에 `lucide@1.16.0` 추가.
+- **변경파일**: `package.json`, `package-lock.json`, `docs/SESSION_LOG.md`.
+- **검증**: `npm list lucide`에서 `lucide@1.16.0` 확인. `npm run build` 성공. `npm test`는 기존 환경/정적 기대값 이슈로 34 failed / 15 passed, 51 failed / 151 passed 상태.

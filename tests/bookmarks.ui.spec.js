@@ -137,16 +137,18 @@ describe('Bookmarks page', () => {
     expect(emptyState?.textContent || '').toContain('보관된 카드가 없습니다');
   });
 
-  it('Given the archive toggle history item, when the page renders, then it should show a bookmark icon without visible text', () => {
+  it('Given the archive toggle history item, when the page renders, then it should show a filled bookmark icon without visible text', () => {
     getBookmarkedStoriesMock.mockResolvedValue([]);
 
     const page = renderBookmarks();
     const historyTab = page.querySelector('.archive-toggle .calendar-toggle-btn[data-tab="history"]');
+    const icon = historyTab?.querySelector('svg');
 
     expect(historyTab).not.toBeNull();
     expect(historyTab?.textContent?.trim()).toBe('');
     expect(historyTab?.getAttribute('aria-label')).toBe('역사 일화');
-    expect(historyTab?.querySelector('svg path')).not.toBeNull();
+    expect(icon?.getAttribute('fill')).toBe('currentColor');
+    expect(icon?.querySelector('path')).not.toBeNull();
   });
 
   it('mini-top-right 최상단에 북마크 버튼이 active 상태로 렌더링된다', async () => {

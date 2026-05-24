@@ -432,3 +432,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - 구현방법: `renderArchiveHeader()`의 history 탭 버튼을 텍스트 없는 SVG 북마크 아이콘으로 변경하고, `aria-label`에 번역된 `역사 일화` 접근성 이름을 유지. `.archive-toggle .calendar-toggle-btn svg` 크기를 토큰 기반으로 고정. 보관함 토글 history 항목이 아이콘만 렌더링되는지 Vitest 회귀 테스트 추가.
 - 변경파일: `src/js/pages/bookmarks.js`, `src/css/pages.css`, `tests/bookmarks.ui.spec.js`, `docs/SESSION_LOG.md`.
 - 검증: `npm test -- tests/bookmarks.ui.spec.js` 12/12 통과. `npm run build` 성공. `npm test`는 기존 작업 트리/환경 이슈로 34 failed / 15 passed 상태(대표: iOS RevenueCat checkout 테스트 import, Node 26 localStorage 미제공, 기존 widget/static 기대값 불일치).
+
+### 2026-05-25 02:07 — Codex
+
+- 요구사항: 보관함 토글 좌측 북마크 아이콘을 외곽선이 아닌 내부 색상 채움 형태로 표시.
+- 구현방법: `renderArchiveHeader()`의 history 탭 SVG를 `fill="currentColor"`로 변경해 활성 탭 색상과 동일하게 내부가 채워지도록 조정. 보관함 UI 테스트도 채움 속성을 검증하도록 갱신.
+- 변경파일: `src/js/pages/bookmarks.js`, `tests/bookmarks.ui.spec.js`, `docs/SESSION_LOG.md`.
+- 검증: `npm test -- tests/bookmarks.ui.spec.js` 12/12 통과. `npm run build` 성공. `npm test`는 기존 환경/정적 기대값 이슈로 34 failed / 15 passed 상태.

@@ -462,6 +462,16 @@
   overscroll-behavior-x: contain;
 }
 
+/* swiper.css 의 .swiper { overflow:hidden } 을 확실히 override.
+   .card-swiper 단독 셀렉터(0,1,0)는 swiper.css 의 .swiper(0,1,0)와 specificity 가
+   같아 cascade 순서로 결과가 바뀔 수 있다. .swiper.card-swiper 복합 셀렉터(0,2,0)
+   로 무조건 이기게 한다. 카드 box-shadow 와 flip 회전이 swiper 박스 밖으로
+   자연스럽게 표현됨. 인접 슬라이드 clip 은 부모 .editorstory-page { overflow:hidden }
+   가 담당. */
+.swiper.card-swiper {
+  overflow: visible;
+}
+
 /* 슬라이드 박스 — Swiper 가 inline style 로 width 를 부여한다.
    height 만 부모 wrapper 의 100% 로 잡아주면 된다. */
 .card-swiper .swiper-slide {

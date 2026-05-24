@@ -70,6 +70,12 @@ export function createCardSwiper(container, {
 
     on: {
       init(sw) {
+        /* Swiper 가 SPA 페이지 전환 직후 initialSlide 를 0 으로 무시하는 사례 방어.
+           wrapper innerHTML 을 동적으로 채운 직후 init 되는 타이밍에 가끔 발생함.
+           runCallbacks: false 로 slideChange 무한 루프도 차단. */
+        if (initialSlide > 0 && sw.activeIndex !== initialSlide) {
+          sw.slideTo(initialSlide, 0, false);
+        }
         onSlideActive?.(sw.activeIndex);
         onSlideReady?.(sw.activeIndex);
       },

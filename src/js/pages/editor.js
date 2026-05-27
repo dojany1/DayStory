@@ -982,8 +982,7 @@ export function renderEditorNew() {
               </div>
               <div class="back-footer">
                 <button class="back-editor-btn" type="button" title="에디터 한마디" style="${editorComment && editorComment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
-                  <img src="${escapeHTML(editorPhotoURL)}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-                  <span class="back-editor-avatar-fallback" style="display:none">✍️</span>
+                  <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
                 </button>
                 <div class="back-date-actions">
                   <div class="back-date">${histYear}년 ${month}월 ${day}일</div>

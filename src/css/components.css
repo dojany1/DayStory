@@ -172,15 +172,24 @@
   max-height: 100%;                  /* 부모 높이를 초과하지 않도록 제한 */
   min-height: 500px;
   aspect-ratio: 3 / 5;
-  transition: transform 0.4s ease-in-out 0.05s, scale 0.2s; /* 길어진 스프링 회전 및 0.05초 딜레이 추가 */
-  transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 */
-  will-change: transform;              /* 브라우저에 GPU 가속 힌트 */
+  /* transform transition 은 .is-flipping 클래스 활성 동안만 적용 (아래 별도 rule).
+     이전엔 base 에 항상 활성이라 Swiper 의 wrapper translate3d 와 충돌해
+     iOS GPU 컴포지터가 두 애니메이션 동시 합성 → WebContent process 살해.
+     scale 만 가벼운 hover/active 효과로 유지. */
+  transition: scale 0.2s;
+  transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 (flip 동작에 필수) */
+  /* GPU promotion 힌트는 의도적으로 제외 (iOS WKWebView 의 GPU process 살해 회피).
+     pages.css 의 .swiper-slide-active/-next/-prev .flipper 셀렉터로 가시 슬라이드에만 부여. */
   cursor: pointer;
+  box-shadow: var(--shadow-card);
 }
 
-/* 회전 중 터치 및 클릭 완전 차단 (오조작, 버그 방지) */
+/* 회전 중 터치 및 클릭 완전 차단 + transform transition 활성화
+   (JS flip handler 가 toggle('flipped') 직전에 add('is-flipping'),
+   FLIP_DURATION_MS 후 remove → swipe 시점엔 is-flipping 없으므로 충돌 차단) */
 .flipper.is-flipping {
   pointer-events: none !important;
+  transition: transform 0.4s ease-in-out 0.05s, scale 0.2s;
 }
 
 /* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */
@@ -343,6 +352,8 @@
   object-fit: cover;                   /* 비율 유지하면서 빈 공간 없이 채움 */
   user-select: none;                   /* 텍스트 선택 방지 */
   -webkit-user-drag: none;             /* 이미지 네이티브 드래그 방지 */
+  /* 비율 유지 4:3 */
+  aspect-ratio: 4 / 3;
 }
 
 /* 카드 이미지 테두리 오버레이 — 이미지 가장자리에 미세한 선 */

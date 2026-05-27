@@ -35,7 +35,8 @@ export async function fetchMyStories(uid) {
         orderBy('publish_date', 'desc'),
         orderBy('created_at', 'desc')
       );
-      const snap = await withTimeout(getDocs(q), 5000);
+      /* 12000ms — iOS GPU 부하 + 사용자 일화 다수 조회를 충분히 커버 */
+      const snap = await withTimeout(getDocs(q), 12000);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err) {
       myStoriesCache.delete(uid); // 실패 시 캐시 항목 제거

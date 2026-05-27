@@ -178,7 +178,8 @@ export async function fetchTodayStory() {
       orderBy('publish_date', 'desc'),
       limit(1)
     );
-    const snapshot = await withTimeout(getDocs(q), 2500);
+    /* 8000ms — iOS GPU thrashing 시 5초로는 부족 */
+    const snapshot = await withTimeout(getDocs(q), 8000);
     const docs = snapshot.docs.map(docToData);
     return docs[0] || null;
   } catch (err) {
@@ -194,7 +195,8 @@ export async function fetchStoryById(id) {
   if (!db) return null;
 
   try {
-    const docSnap = await withTimeout(getDoc(doc(db, 'stories', id)), 3000);
+    /* 8000ms — 모바일 환경 안정성 강화 */
+    const docSnap = await withTimeout(getDoc(doc(db, 'stories', id)), 8000);
     if (docSnap.exists()) return docToData(docSnap);
   } catch (err) {
     console.warn('스토리 상세 조회 실패:', err.message);

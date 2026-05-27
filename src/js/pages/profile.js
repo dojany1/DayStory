@@ -17,6 +17,7 @@ import { showToast } from '../components/toast.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
+import { isWebpUrl } from '../utils/storage.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -64,10 +65,14 @@ export function renderProfile() {
       ${user ? `
         <div class="settings-user-row">
           <div class="profile-avatar-wrap">
-            ${(profile && profile.photoURL) || user.photoURL
-              ? `<img src="${(profile && profile.photoURL) || user.photoURL}" alt="" />`
-              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
-            }
+            ${(() => {
+              /* WebP avatar 는 iOS WKWebView 크래시 유발 → fallback SVG. */
+              const rawUrl = (profile && profile.photoURL) || user.photoURL;
+              const safeUrl = rawUrl && !isWebpUrl(rawUrl) ? rawUrl : '';
+              return safeUrl
+                ? `<img src="${escapeHtml(safeUrl)}" alt="" />`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+            })()}
           </div>
           <div class="settings-user-meta">
             <div class="settings-user-name">
@@ -234,8 +239,10 @@ function openProfileEditModal() {
 
       if (croppedBlob) {
         const timestamp = Date.now();
-        const storageRef = ref(storage, `users/${uid}/diary/profile_avatar_${timestamp}.webp`);
-        await uploadBytes(storageRef, croppedBlob);
+        /* JPEG 사용: iOS WKWebView 의 WebP 디코더가 canvas-toBlob 결과를
+           처리 못해 WebContent process 가 crash 하는 사례 발견. */
+        const storageRef = ref(storage, `users/${uid}/diary/profile_avatar_${timestamp}.jpg`);
+        await uploadBytes(storageRef, croppedBlob, { contentType: 'image/jpeg' });
         const downloadURL = await getDownloadURL(storageRef);
         updateData.photoURL = downloadURL;
       }
@@ -342,6 +349,6 @@ function openCropperForProfile(imageSrc, onConfirm) {
       cropper.destroy();
       cropOverlay.style.opacity = '0';
       setTimeout(() => cropOverlay.remove(), 300);
-    }, 'image/webp', 0.85);
+    }, 'image/jpeg', 0.85);
   });
 }

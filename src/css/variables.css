@@ -128,7 +128,7 @@
   --z-overlay: 500;     /* 풀스크린 오버레이 (confirm/profile-edit/crop-modal) — 가장 위 */
 
   /* ── 레이아웃 ── */
-  --mobile-max-width: 624px;                      /* 모바일 래퍼 최대 너비 */
+  --mobile-max-width: 768px;                      /* 모바일 래퍼 최대 너비 */
   --card-max-width: 94%;                          /* 카드 최대 너비 */
   --card-aspect-ratio: 3.1 / 4.8;                 /* 카드 비율 */
   --nav-height: 58px;                             /* 하단 내비게이션 바 높이 */

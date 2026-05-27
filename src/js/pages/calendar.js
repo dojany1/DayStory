@@ -485,7 +485,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
   const isBookmarked = !!(story.id && bookmarkedIds.includes(story.id));
   const editorComment = story.editor_comment || '';
-  const editorPhotoURL = (story.editor && story.editor.photoURL) || '';
+  /* 에디터 아바타는 항상 로컬 PNG 사용 (iOS WKWebView 의 WebP 디코더 crash 회피). */
   const editorName = (story.editor && story.editor.displayName) || 'DayStory';
   const editorBtnHidden = !editorComment.trim();
   const imageUrl = story.image_url || '';
@@ -540,9 +540,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
           <div class="back-body">${bodyHtml}</div>
           <div class="back-footer">
             <button class="back-editor-btn" type="button" title="에디터 한마디" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
-              ${editorPhotoURL
-                ? `<img src="${escapeHtml(editorPhotoURL)}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
-                : '<span class="back-editor-avatar-fallback">✍️</span>'}
+              <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
               <div class="back-date">${escapeHtml(story.historical_year || year)}년 ${month}월 ${day}일</div>

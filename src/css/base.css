@@ -398,7 +398,7 @@ ul, ol {
   width: 100%;
   max-width: var(--mobile-max-width);  /* 래퍼 너비에 맞춤 */
   height: calc(var(--nav-height) + var(--safe-area-bottom));
-  padding: var(--space-1) var(--space-8) 0; /* 상하 패딩 조정, 하단 패딩은 safe-area만큼 확보 */
+  padding: var(--space-2) var(--space-8) 0; /* 상하 패딩 조정, 하단 패딩은 safe-area만큼 확보 */
   padding-bottom: calc(var(--space-1) + var(--safe-area-bottom)); /* 홈 바 영역까지 배경색 확장 */
   background: var(--color-bg-primary); /* 항상 불투명 — backdrop-filter 미지원 환경에서 뒤가 비치지 않도록 */
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */

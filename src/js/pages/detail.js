@@ -168,7 +168,7 @@ async function loadDetail(page, storyId) {
     .join('');
   const editorComment = (story.editor_comment || (story.editor && story.editor.comment) || '').trim();
   const editorName = ((story.editor && story.editor.displayName) || 'DayStory').trim() || 'DayStory';
-  const editorAvatar = (story.editor && story.editor.photoURL) || '';
+  /* 에디터 아바타는 항상 로컬 PNG 사용 (iOS WKWebView 의 WebP 디코더 crash 회피). */
   const editorCommentHtml = escapeHtml(editorComment).replace(/\n/g, '<br />');
   const historicalMetaHtml = [story.historical_date, story.country]
     .map(value => String(value ?? '').trim())
@@ -225,9 +225,7 @@ async function loadDetail(page, storyId) {
         <section class="detail-editor-note" aria-label="에디터의 말">
           <div class="detail-editor-note-header">
             <div class="detail-editor-avatar-wrap">
-              ${editorAvatar
-                ? `<img class="detail-editor-avatar" src="${escapeHtml(editorAvatar)}" alt="${escapeHtml(editorName)}" loading="lazy" decoding="async" />`
-                : `<span class="detail-editor-avatar-fallback" aria-hidden="true">D</span>`}
+              <img class="detail-editor-avatar" src="/assets/editor_profile.png" alt="${escapeHtml(editorName)}" loading="lazy" decoding="async" />
             </div>
             <div class="detail-editor-name">${escapeHtml(editorName)}</div>
           </div>

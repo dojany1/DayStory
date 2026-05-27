@@ -14,7 +14,7 @@ import { toggleBookmark, getBookmarkedStoryIds } from '../services/bookmarks.js'
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { shareStory } from '../services/sharing.js';
-import { getState } from '../state.js';
+import { getState, setState } from '../state.js';
 import { navigate, setOnUnmount } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
 import { localizedStory } from '../utils/storyI18n.js';
@@ -25,6 +25,14 @@ import { createCardSwiper } from '../utils/cardSwiper.js';
 import { getLocalToday } from '../utils/date.js';
 
 const FLIP_DURATION_MS = 400;
+
+/* iOS WKWebView WebP 디코더 crash 의 부분 방어 (완전 차단 불가능).
+   legacy historical .webp image_url 도 src 그대로 부여하고, 디코드 실패 시
+   onerror 가 fallback PNG 로 swap. iOS WebKit 의 OS-level crash 는 onerror
+   발화 이전이라 막을 수 없으나, 잡을 수 있는 케이스는 잡는다.
+   onerror=null 로 fallback 이 다시 실패해도 무한 루프 차단. */
+const FALLBACK_IMG = '/assets/editor_profile.png';
+const IMG_ONERROR = `this.onerror=null;this.src='${FALLBACK_IMG}';this.classList.add('img-fallback');`;
 
 const ICON_CALENDAR = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7v10"/><path d="M6 5v14"/><rect width="12" height="18" x="10" y="3" rx="2"/></svg>`;
 const ICON_CARD = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>`;
@@ -102,10 +110,20 @@ export function renderEditorStory() {
 
 async function loadEditorStoryData(page) {
   try {
-    const [allStories, todayStory, bookmarkedIds] = await Promise.all([
+    /* 북마크는 시각 렌더에 비필수 → critical path 에서 분리.
+       실패해도 빈 배열로 시작, 늦게 도착하면 활성 슬라이드 아이콘만 갱신.
+       이전에는 셋 중 하나라도 reject 하면 전체 카드가 안 보였음. */
+    let bookmarkedIds = [];
+    const bookmarksPromise = getBookmarkedStoryIds()
+      .then((ids) => { bookmarkedIds = ids; return ids; })
+      .catch((e) => {
+        console.warn('북마크 조회 실패(렌더는 계속):', e?.message || e);
+        return [];
+      });
+
+    const [allStories, todayStory] = await Promise.all([
       fetchStories(),
       fetchTodayStory(),
-      getBookmarkedStoryIds(),
     ]);
 
     /* 발행된 카드가 한 장도 없을 때: 빈 상태 메시지로 종료 */
@@ -173,9 +191,12 @@ async function loadEditorStoryData(page) {
     /* Swiper용 슬라이드 데이터: 각 날짜에 대해 {iso, story} */
     const slides = dateItems.map(({ iso }) => ({ iso, story: dateToStory.get(iso) || null }));
 
-    /* 초기 인덱스: 오늘 날짜 위치 */
+    /* 초기 날짜: 마지막 방문 날짜(메모리) → 오늘 → 0 (January 1 방어) */
     const todayIso = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
-    const initialIdx = Math.max(0, dateItems.findIndex(d => d.iso === todayIso));
+    const storedDate = getState('lastEditorStoryDate');
+    let initialIdx = storedDate ? dateItems.findIndex(d => d.iso === storedDate) : -1;
+    if (initialIdx < 0) initialIdx = dateItems.findIndex(d => d.iso === todayIso);
+    initialIdx = Math.max(0, initialIdx);
 
     function getCenterItem(scrollArea) {
       const boxCenter = scrollArea.getBoundingClientRect().left + scrollArea.offsetWidth / 2;
@@ -189,7 +210,7 @@ async function loadEditorStoryData(page) {
       return closest;
     }
 
-    function syncMonthWheel(dayMonth) {
+    function syncMonthWheel(dayMonth, instant = false) {
       const activeMonthEl = monthEl.querySelector('.wheel-item.active');
       if (activeMonthEl && parseInt(activeMonthEl.dataset.month, 10) === dayMonth) return;
       const targetMonthEl = monthEl.querySelector(`.wheel-item[data-month="${dayMonth}"]`);
@@ -197,55 +218,118 @@ async function loadEditorStoryData(page) {
       monthEl.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
       targetMonthEl.classList.add('active');
       const t = targetMonthEl.offsetLeft - monthEl.offsetWidth / 2 + targetMonthEl.offsetWidth / 2;
-      monthEl.scrollTo({ left: t, behavior: 'smooth' });
+      /* instant=true: 초기 진입 시 smooth 우회 (iOS scrollTo 미적용 회피 + "즉시 표시") */
+      if (instant) monthEl.scrollLeft = t;
+      else monthEl.scrollTo({ left: t, behavior: 'smooth' });
     }
 
-    function activateDayWheelByIndex(idx) {
+    function activateDayWheelByIndex(idx, instant = false) {
       const items = dayEl.querySelectorAll('.wheel-item');
       items.forEach(el => el.classList.remove('active'));
       const target = items[idx];
       if (!target) return;
       target.classList.add('active');
       const month = parseInt(target.dataset.month, 10);
-      syncMonthWheel(month);
+      syncMonthWheel(month, instant);
       const t = target.offsetLeft - dayEl.offsetWidth / 2 + target.offsetWidth / 2;
-      dayEl.scrollTo({ left: t, behavior: 'smooth' });
+      if (instant) dayEl.scrollLeft = t;
+      else dayEl.scrollTo({ left: t, behavior: 'smooth' });
     }
 
-    /* ── Swiper 슬라이드 사전 생성 ── */
-    /* Virtual 모듈 미사용. 150장 이하 슬라이드는 사전에 모두 DOM 에 넣고,
-       이미지는 loading="lazy" 로 가시 슬라이드만 네트워크 로드. */
-    const wrapperEl = swiperEl.querySelector('.swiper-wrapper');
-    if (wrapperEl) {
-      wrapperEl.innerHTML = slides
-        .map((slide) => `<div class="swiper-slide">${buildSlideHTML(slide.story, slide.iso)}</div>`)
-        .join('');
-    }
+    /* ── Swiper Virtual 모드 ──
+       150개 사전 빌드 대신 Virtual 이 데이터 배열과 renderSlide 콜백을 받아
+       가시 슬라이드 ±2 (총 5개) 만 DOM 에 유지. iOS WKWebView 의 GPU 컴포지터가
+       동시에 처리하는 .flipper 3D 컨텍스트 수가 ~150 → ~5 로 감소. */
 
-    /* ── Swiper 인스턴스 생성 ── */
+    /* ── 보기 방식 상태(카드 ↔ 캘린더) — Swiper 생성 전에 결정해야 lazy init 가능 ── */
+    const calState = {
+      mode: 'history',
+      year: currentYear,
+      month: today.getMonth(),
+      historyStories,
+      myStories: [],
+      bookmarkedIds,
+    };
+
+    const toggleBtn = page.querySelector('#editorstory-view-toggle');
+    const dayPicker = page.querySelector('#editorstory-day-picker');
+    const cardArea = page.querySelector('#editorstory-card-area');
+    const calView   = page.querySelector('#editorstory-cal-view');
+    let currentView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
+
+    /* ── Swiper 인스턴스 lazy 생성 ──
+       hidden container(cardArea.hidden=true) 위에서 Swiper 를 init 하면
+       getBoundingClientRect 가 0×0 → slidesGrid 가 0 → initialSlide 가 anchor 되지 못해
+       activeIndex 0(1월 1일) 에 stuck + iOS 카드 표시 불가가 발생.
+       cardArea 가 실제로 보일 때(offsetParent !== null) 만 createCardSwiper 호출.
+       calendar view 진입 시에는 toggle 핸들러가 처음 ensureSwiper() 호출. */
     let swiper = null;
+    const ensureSwiper = () => {
+      if (swiper) return swiper;
+      if (swiperEl.offsetParent === null) return null;
+      swiper = createCardSwiper(swiperEl, {
+        slides,
+        /* Swiper Virtual 은 renderSlide 의 outermost 요소를 그대로 slide DOM 으로 사용한다
+           (virtual.mjs:45 — tempDOM.children[0]). 따라서 .swiper-slide 래퍼가 outermost 여야
+           Swiper 의 layout/transform 이 정상 적용됨. buildSlideHTML 은 .flip-container 부터
+           시작하므로 명시적으로 래핑한다. */
+        renderSlide: (slide) => `<div class="swiper-slide">${buildSlideHTML(slide.story, slide.iso)}</div>`,
+        initialSlide: initialIdx,
+        onSlideActive: (idx) => {
+          /* 슬라이드 변경 → 마지막 방문 날짜 저장 + 일/월 휠 동기화 */
+          setState('lastEditorStoryDate', slides[idx]?.iso ?? null);
+          activateDayWheelByIndex(idx);
+        },
+        onSlideReady: (idx) => {
+          /* 활성 슬라이드의 이벤트(플립/공유/북마크/상세) 바인딩 */
+          const slideEl = swiperEl.querySelector('.swiper-slide-active');
+          if (!slideEl) return;
+          const flipContainer = slideEl.querySelector('.flip-container');
+          if (!flipContainer) return;
+          const slide = slides[idx];
+          const story = slide?.story ? localizedStory(slide.story) : null;
+          bindFlipCardEvents(flipContainer, story, bookmarkedIds);
+        },
+      });
+      return swiper;
+    };
 
-    swiper = createCardSwiper(swiperEl, {
-      slideCount: slides.length,
-      initialSlide: initialIdx,
-      onSlideActive: (idx) => {
-        /* 슬라이드 변경 → 일/월 휠 동기화 */
-        activateDayWheelByIndex(idx);
-      },
-      onSlideReady: (idx) => {
-        /* 활성 슬라이드의 이벤트(플립/공유/북마크/상세) 바인딩 */
-        const slideEl = swiperEl.querySelector('.swiper-slide-active');
-        if (!slideEl) return;
-        const flipContainer = slideEl.querySelector('.flip-container');
-        if (!flipContainer) return;
-        const slide = slides[idx];
-        const story = slide?.story ? localizedStory(slide.story) : null;
-        bindFlipCardEvents(flipContainer, story, bookmarkedIds);
-      },
-    });
+    /* card view 진입 시 DOM 삽입 이후 첫 프레임에 생성.
+       iOS WKWebView 는 SPA 전환 직후 첫 rAF 에서도 offsetParent 가 일시 null 일 수 있으므로
+       ensureSwiper() 가 null 이면 다음 rAF 에서 재시도 (최대 8회, 약 130ms).
+       휠 선스크롤은 instant 모드로 매 시도마다 즉시 정확한 위치에 표시 (1월 1일 flash 방지). */
+    if (currentView !== 'calendar') {
+      let attempts = 0;
+      const MAX_ATTEMPTS = 8;
+      const tryInit = () => {
+        activateDayWheelByIndex(initialIdx, true);
+        const sw = ensureSwiper();
+        if (sw) {
+          requestAnimationFrame(() => sw.update());
+          return;
+        }
+        if (++attempts < MAX_ATTEMPTS) requestAnimationFrame(tryInit);
+      };
+      requestAnimationFrame(tryInit);
+    }
 
     setOnUnmount(() => {
       if (swiper && !swiper.destroyed) swiper.destroy(true, true);
+    });
+
+    /* 북마크가 critical path 보다 늦게 도착한 경우 — 활성 슬라이드의 아이콘만 다시 칠함.
+       전체 슬라이드를 재렌더링하지 않음 (DOM thrash 방지). */
+    bookmarksPromise.then((ids) => {
+      const sw = swiper;
+      if (!sw || sw.destroyed) return;
+      const slide = slides[sw.activeIndex];
+      const story = slide?.story;
+      if (!story?.id) return;
+      const activeSlideEl = swiperEl.querySelector('.swiper-slide-active');
+      const bookmarkIcon = activeSlideEl?.querySelector('.card-action-btn[aria-label="보관함"] svg');
+      if (bookmarkIcon && ids.includes(story.id)) {
+        bookmarkIcon.setAttribute('fill', 'currentColor');
+      }
     });
 
     /* 일 휠 스크롤 디바운스 — 사용자가 일 휠을 직접 스크롤하면 active를 중앙 아이템으로 옮기고 Swiper도 이동 */
@@ -257,8 +341,9 @@ async function loadEditorStoryData(page) {
         if (!centerDay) return;
         const targetIso = centerDay.dataset.date;
         const targetIdx = slides.findIndex(s => s.iso === targetIso);
-        if (targetIdx < 0 || targetIdx === swiper.activeIndex) return;
-        swiper.slideTo(targetIdx, 320);
+        const sw = ensureSwiper();
+        if (!sw || targetIdx < 0 || targetIdx === sw.activeIndex) return;
+        sw.slideTo(targetIdx, 320);
       }, 150);
     };
     dayEl.addEventListener('scroll', onDayScrollEnd, { passive: true });
@@ -295,7 +380,8 @@ async function loadEditorStoryData(page) {
       item.classList.add('active');
       const monthScroll = item.offsetLeft - monthEl.offsetWidth / 2 + item.offsetWidth / 2;
       monthEl.scrollTo({ left: monthScroll, behavior: 'smooth' });
-      swiper.slideTo(targetIdx, 320);
+      const sw = ensureSwiper();
+      if (sw) sw.slideTo(targetIdx, 320);
     };
 
     /* 일 휠 클릭: 해당 날짜로 Swiper 이동 */
@@ -303,7 +389,8 @@ async function loadEditorStoryData(page) {
       const targetIso = item.dataset.date;
       const targetIdx = slides.findIndex(s => s.iso === targetIso);
       if (targetIdx < 0) return;
-      swiper.slideTo(targetIdx, 320);
+      const sw = ensureSwiper();
+      if (sw) sw.slideTo(targetIdx, 320);
     };
 
     monthEl.querySelectorAll('.wheel-item').forEach(item =>
@@ -316,22 +403,6 @@ async function loadEditorStoryData(page) {
     /* 초기 휠 위치는 createCardSwiper의 on.init → onSlideActive 에서 이미 처리됨.
        추가 동기화는 스크롤 위치 경쟁을 유발하므로 제거. */
     void markLetterRead();
-
-    /* ── 보기 방식 토글 (카드 ↔ 캘린더) ── */
-    const calState = {
-      mode: 'history',
-      year: currentYear,
-      month: today.getMonth(),
-      historyStories,
-      myStories: [],
-      bookmarkedIds,
-    };
-
-    const toggleBtn = page.querySelector('#editorstory-view-toggle');
-    const dayPicker = page.querySelector('#editorstory-day-picker');
-    const cardArea = page.querySelector('#editorstory-card-area');
-    const calView   = page.querySelector('#editorstory-cal-view');
-    let currentView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
 
     if (currentView === 'calendar') {
       renderGrid(page, calState, today);
@@ -362,8 +433,12 @@ async function loadEditorStoryData(page) {
           if (activeDay) {
             dayEl.scrollLeft = activeDay.offsetLeft - dayEl.offsetWidth / 2 + activeDay.offsetWidth / 2;
           }
-          /* hidden 상태에서 Swiper가 사이즈를 못 잡았을 수 있으므로 갱신 */
-          swiper?.update();
+          /* 최초 카드 보기 진입이면 여기서 Swiper 생성. 이미 있으면 update() 로 재측정.
+             iOS WKWebView 는 hidden=false 직후 reflow 가 한 프레임 늦으므로 double rAF. */
+          const sw = ensureSwiper();
+          if (sw) {
+            requestAnimationFrame(() => sw.update());
+          }
           cardArea.classList.add('view-enter');
           setTimeout(() => cardArea.classList.remove('view-enter'), 250);
         });
@@ -455,8 +530,10 @@ function buildSlideHTML(rawStory, isoDate) {
     `;
   }
 
-  const imageUrl = story.image_url || '';
-  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
+  /* story.image_url 을 항상 그대로 부여 (legacy .webp 포함).
+     이전엔 isWebpUrl 차단으로 모든 historical 카드가 fallback 으로 보이는 버그 발생.
+     디코드 실패는 onerror 가 fallback 으로 swap — 운 좋게 잡히면 복구. */
+  const imageSrc = story.image_url || FALLBACK_IMG;
 
   return `
     <div class="flip-container">
@@ -488,7 +565,7 @@ function buildSlideHTML(rawStory, isoDate) {
             </div>
           </div>
           <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" width="320" height="400" draggable="false" />
+            <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(story.figure_name)}" loading="lazy" decoding="async" width="320" height="400" draggable="false" onerror="${IMG_ONERROR}" />
             <div class="card-image-title">${escapeHtml(story.figure_name)}</div>
           </div>
         </div>
@@ -500,9 +577,7 @@ function buildSlideHTML(rawStory, isoDate) {
           </div>
           <div class="back-footer">
             <button class="back-editor-btn" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${story.editor_comment && story.editor_comment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
-              ${story.editor && story.editor.photoURL
-                ? `<img src="${escapeHtml(story.editor.photoURL)}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><span class="back-editor-avatar-fallback" style="display:none">✍️</span>`
-                : '<span class="back-editor-avatar-fallback">✍️</span>'}
+              <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
               <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>

@@ -23,8 +23,38 @@ import { collect, isCollected, canCollect, bulkCollect } from '../services/colle
 import { renderGrid, isAtCurrentMonth, WEEKDAYS } from './calendar.js';
 import { createCardSwiper } from '../utils/cardSwiper.js';
 import { getLocalToday } from '../utils/date.js';
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 const FLIP_DURATION_MS = 400;
+
+/* 카드 로딩 스켈레톤 제거 — 페이드 아웃 후 DOM 에서 제거 (밑에 깔린 실제 카드가 드러남) */
+function hideCardSkeleton(page) {
+  const sk = page.querySelector('#editorstory-card-skeleton');
+  if (!sk) return;
+  sk.classList.add('is-hiding');
+  setTimeout(() => sk.remove(), 300);
+}
+
+const LS_EDITOR_NOTES_KEY = 'readEditorNotes';
+
+function getReadEditorNotes() {
+  try { return JSON.parse(localStorage.getItem(LS_EDITOR_NOTES_KEY) || '[]'); } catch { return []; }
+}
+
+function isEditorNoteRead(storyId) {
+  if (!storyId) return true;
+  return getReadEditorNotes().includes(storyId);
+}
+
+function markEditorNoteRead(storyId) {
+  if (!storyId) return;
+  const list = getReadEditorNotes();
+  if (!list.includes(storyId)) {
+    list.push(storyId);
+    try { localStorage.setItem(LS_EDITOR_NOTES_KEY, JSON.stringify(list)); } catch { /* noop */ }
+  }
+}
 
 /* iOS WKWebView WebP 디코더 crash 의 부분 방어 (완전 차단 불가능).
    legacy historical .webp image_url 도 src 그대로 부여하고, 디코드 실패 시
@@ -71,6 +101,7 @@ export function renderEditorStory() {
       <div class="swiper card-swiper" id="editorstory-card-swiper">
         <div class="swiper-wrapper"></div>
       </div>
+      <div class="skeleton-card" id="editorstory-card-skeleton" aria-hidden="true"></div>
     </div>
 
     <div class="page-calendar-view" id="editorstory-cal-view" hidden>
@@ -291,6 +322,7 @@ async function loadEditorStoryData(page) {
           bindFlipCardEvents(flipContainer, story, bookmarkedIds);
         },
       });
+      hideCardSkeleton(page);
       return swiper;
     };
 
@@ -576,7 +608,7 @@ function buildSlideHTML(rawStory, isoDate) {
             ${(story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('')}
           </div>
           <div class="back-footer">
-            <button class="back-editor-btn" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${story.editor_comment && story.editor_comment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
+            <button class="back-editor-btn${story.editor_comment && story.editor_comment.trim() !== '' && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${story.editor_comment && story.editor_comment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
               <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
@@ -749,6 +781,16 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
       bubble.appendChild(document.createTextNode(comment));
       editorBtn.appendChild(bubble);
       bindOutsideBubbleDismiss();
+
+      if (Capacitor.isNativePlatform()) {
+        Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      }
+
+      const storyId = editorBtn.dataset.storyId;
+      if (storyId) {
+        markEditorNoteRead(storyId);
+        editorBtn.classList.remove('unread');
+      }
     };
 
     editorBtn.addEventListener('click', showBubble);

@@ -550,6 +550,13 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **변경파일**: `src/js/pages/mystory.js`, `tests/swiper_lazy_init.spec.js`.
 - **검증**: `npm test -- tests/swiper_lazy_init.spec.js` 26/26 통과 (기존 21 + 신규 5). `npm test -- tests/ios_gpu_webp_guard.spec.js` 31/31 통과 (회귀 없음). `npm run build` 152ms 성공. 수동 검증 (사용자): (a) mystory 진입 → 오늘 날짜 카드 표시 (Cold Start), (b) 카드 스와이프 → 다른 탭 이동 → mystory 재진입 → 마지막 본 날짜 카드 표시 (Warm Navigation), (c) 앱 재시작 후 mystory 진입 → 오늘 날짜 카드 표시.
 
+### 2026-05-27 15:20 — Claude Sonnet 4.6
+
+- **요구사항**: 카드 뒷면 에디터 여담 버튼(`.back-editor-btn`)에 안 읽음(Unread) 뱃지 기능 추가. 사용자가 해당 카드의 여담을 읽지 않았으면 빨간 Dot 뱃지를 표시하고, 버튼 클릭 시 말풍선 표시와 동시에 뱃지가 즉시 사라지도록 구현.
+- **구현방법**: (1) localStorage `readEditorNotes` 배열에 읽은 story_id 저장. (2) `isEditorNoteRead(storyId)` / `markEditorNoteRead(storyId)` 유틸 함수를 `editorstory.js`·`calendar.js` 양쪽에 추가. (3) 두 파일의 `back-editor-btn` HTML 템플릿에 `story.id` 가 있고 여담 텍스트가 있으며 미읽음이면 `.unread` 클래스 조건부 삽입, `data-story-id` 속성 추가. (4) 클릭 핸들러(`showBubble` / `showEditorBubble`)에서 말풍선 생성 직후 `markEditorNoteRead` 호출 + `classList.remove('unread')` 로 즉시 뱃지 제거. (5) `components.css`에 `.back-editor-btn.unread::after` 규칙 추가 — `position: absolute; top: 1px; right: 1px;` 빨간 9px dot, 2s ease 페이드 전환.
+- **변경파일**: `src/css/components.css`, `src/js/pages/editorstory.js`, `src/js/pages/calendar.js`.
+- **검증**: `npm run build` 199ms 성공 (빌드 오류 없음).
+
 ### 2026-05-27 14:52 — Claude Opus 4.7
 
 - **요구사항**: 위 14:04 패치(mystory 전용) 실기 테스트 후 3가지 잔존/추가 요구사항. (1) editorstory 에도 동일한 날짜 저장 구조 적용 (mystory 에만 적용됐음). (2) iOS 에서만 mystory 카드가 여전히 1월 1일 표시 — 직전 단일 rAF + smooth scroll 패턴이 iOS WKWebView 첫 프레임 layout 미완료 시점에서 부족. (3) 양쪽 페이지 모두 화면 로드 시 휠 피커가 "스르륵" 움직이는 smooth scroll 없이 저장된 날짜에 즉시 표시.
@@ -557,3 +564,68 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: 3가지 통합. **A. 휠 instant 옵션**: `syncMonthWheel(dayMonth, instant=false)` + `activateDayWheelByIndex(idx, instant=false)` 시그니처 확장 (양쪽 페이지). `instant=true` 면 `scrollLeft = t` 직접 할당 (smooth 우회), 기본값 false 면 기존 `scrollTo({behavior:'smooth'})` 유지 → 사용자 인터랙션(클릭/스와이프/slideChange)은 smooth 그대로. **B. ensureSwiper retry pattern**: 초기 init 블록을 `tryInit` 재귀 rAF 로 교체 (양쪽 페이지). 매 시도마다 `activateDayWheelByIndex(initialIdx, true)` 즉시 호출 + `ensureSwiper()` 시도, null 이면 `requestAnimationFrame(tryInit)` 재시도 (최대 8회 ≈ 130ms). iOS layout reflow 지연 흡수 + 늦게 완료돼도 휠은 즉시 정확 위치. **C. editorstory 날짜 저장**: `setState` import 추가, `initialIdx = getState('lastEditorStoryDate') → todayIso → 0` fallback 체인, `onSlideActive` 에 `setState('lastEditorStoryDate', slides[idx]?.iso ?? null)` 추가. mystory(`lastMyStoryDate`) 와 별도 키 사용 → 두 페이지 독립적으로 마지막 방문 날짜 기억. **테스트**: `tests/swiper_lazy_init.spec.js` 에 editorstory Date persistence 4개 + 양쪽 retry 패턴 2개 + 휠 instant 8개 신규 케이스 추가.
 - **변경파일**: `src/js/pages/mystory.js`, `src/js/pages/editorstory.js`, `tests/swiper_lazy_init.spec.js`.
 - **검증**: `npm test -- tests/swiper_lazy_init.spec.js tests/ios_gpu_webp_guard.spec.js` 72/72 통과 (기존 57 + 신규 15). `npm run build` 209ms 성공. 수동 검증 (사용자, iOS + Web): (a) editorstory 스와이프 → 다른 탭 → 재진입 시 마지막 본 카드 표시, (b) iOS mystory 진입 시 1월 1일 stuck 사라짐, (c) 양쪽 페이지 진입 시 휠이 smooth 없이 저장 날짜에 즉시 표시, (d) 카드 스와이프/휠 클릭 시 휠 이동은 smooth 유지 (회귀 없음), (e) Cold Start → 오늘 날짜 표시.
+
+### 2026-05-27 15:35 — Claude Sonnet 4.6
+
+- **요구사항**: 카드 뒷면 에디터 여담 아이콘(`.back-editor-btn`)을 눌렀을 때 햅틱 피드백 추가.
+- **구현방법**: `@capacitor/haptics`(^8.0.2) 신규 설치. `editorstory.js`·`calendar.js` 양쪽의 여담 말풍선 표시 핸들러(`showBubble`/`showEditorBubble`)에서 말풍선 생성 직후 `Haptics.impact({ style: ImpactStyle.Light })` 호출. `Capacitor.isNativePlatform()` 가드로 웹에서는 미실행, `.catch(() => {})` 로 플러그인 미존재/실패 무시. 이미 열린 말풍선을 닫을 때는 피드백 없음.
+- **변경파일**: `package.json`, `src/js/pages/editorstory.js`, `src/js/pages/calendar.js`.
+- **검증**: `npm run build` 성공. `npx cap sync android` 완료 (플러그인 등록 확인).
+
+### 2026-05-27 15:50 — Claude Sonnet 4.6
+
+- **요구사항**: 에디터 일화·나의 일화 페이지의 카드 콘텐츠(`.editorstory-card-area`)가 데이터 로딩 중일 때 `flip-container` 크기의 스켈레톤 UI 표시.
+- **구현방법**: 기존 `.skeleton-card`(pulse 애니메이션, `var(--card-aspect-ratio)`) 재사용. (1) `pages.css` 에 `.editorstory-card-area > .skeleton-card` 규칙 추가 — `grid-area: stack` + `max-height: 100%` + `margin: 0 auto` 로 `.card-swiper` 와 동일 sizing 부여해 카드와 정확히 겹침. 페이드 아웃용 `.skeleton-card.is-hiding`(animation 해제 + opacity 0 + transition 0.3s) 추가. (2) 두 페이지 카드 영역 HTML 에 `<div class="skeleton-card" id="...-card-skeleton">` 를 swiper 다음 형제(최상단 stacking)로 삽입 — 마운트 즉시 표시. (3) 두 페이지에 `hideCardSkeleton(page)` 모듈 함수 추가, `ensureSwiper()` 가 `createCardSwiper()` 직후 1회 호출 → `.is-hiding` 부여 후 300ms 뒤 `remove()`. 데이터 fetch 동안 스켈레톤 노출 → swiper 생성(첫 슬라이드 렌더 완료) 시점에 페이드 아웃. 빈 상태/에러 분기는 `page.innerHTML` 교체로 자동 제거, 캘린더 초기 뷰는 카드 영역 `hidden` 이라 미노출.
+- **변경파일**: `src/css/pages.css`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`.
+- **검증**: `npm run build` 142ms 성공. `tests/swiper_lazy_init.spec.js`·`tests/css_tokens.spec.js` 통과, 회귀 없음 (editorstory.ui.spec.js 의 기존 실패 15건은 baseline 에서도 동일 — 이번 변경과 무관). 한계: 스켈레톤은 로딩 중에만 잠깐 보이는 transient UI 라 실기 육안 검증은 미수행 (CSS sizing 을 `.card-swiper` 와 동일하게 맞춰 위치·크기 일치 보장).
+
+### 2026-05-27 18:55 — Claude Opus 4.7
+
+- **요구사항**: 신규 앱 버전 출시 시 부팅 1회 업데이트 안내 바텀시트. (1) 현재 버전 = Capacitor `App.getInfo()`, (2) 최신 버전 = Firebase Remote Config `latest_version`, (3) SemVer 비교(`1.3.5 < 1.3.6`)로 다를 때만 노출, (4) '지금 업데이트(스토어 이동)' / '다음에 하기' 버튼, (5) Firebase 통신 실패 시에도 앱 정상 동작 (try-catch + 비동기).
+- **구현방법**: TDD — `tests/version.spec.js` (SemVer 비교 9 케이스) 먼저 작성 → Red 확인 → `src/js/utils/version.js` 구현 (`compareVersions`/`isUpdateAvailable`, leading `v` 제거 + pre-release suffix 무시 + 누락 segment=0 + 무의미값 가드) Green. 신규 파일 4개: (1) `src/js/services/remoteConfig.js` — `firebase/remote-config` dynamic import 로 부팅 critical path 분리, `fetchAndActivate` 결과 promise 캐싱(중복 fetch 차단), `minimumFetchIntervalMillis=1h` + `fetchTimeoutMillis=5s` + `defaultConfig` 설정, `fetchLatestAppVersion()`/`fetchStoreUrls()` 노출. (2) `src/js/components/updateSheet.js` — 기존 `.modal-overlay` + `.modal-sheet` 디자인 토큰 재사용, 자체 모달 (브라우저 `confirm()` 금지 규칙 준수), `lockScroll`/`unlockScroll`, ESC + 배경 탭 = '다음에 하기', `escapeHtml`로 버전 문자열 sanitize, `.is-closing` 페이드아웃 → Promise<'update'\|'later'> 반환. (3) `src/js/services/appUpdate.js` — orchestrator. `getCurrentInstalledVersion()` 네이티브=App.getInfo / 웹=package.json fallback, `Capacitor.getPlatform()` 기반 스토어 URL 결정 (Android=Play Store `com.daystory.app` 폴백, iOS=Remote Config `ios_store_url` 우선·없으면 App Store 검색 폴백), 세션 가드(`hasCheckedThisSession`)로 부팅 1회만 실행, 모든 단계 try-catch. `window.open(url, '_system')` 으로 외부 스토어 진입. (4) `src/css/components.css` 에 `.update-sheet-*` 스타일 — 아이콘 원, 버전 행, 액션 버튼 + `.is-closing` 페이드/슬라이드아웃 (모든 색·간격은 var(--*) 토큰만 사용). `main.js`: `checkForAppUpdate` import + `checkAndStartApp()` 라우터 시작 직후 `void checkForAppUpdate()` 로 fire-and-forget 호출.
+- **변경파일**: `src/js/utils/version.js`, `src/js/services/remoteConfig.js`, `src/js/services/appUpdate.js`, `src/js/components/updateSheet.js`, `src/css/components.css`, `src/main.js`, `tests/version.spec.js`.
+- **검증**: `npx vitest run tests/version.spec.js` 9/9 통과. `npx vitest run tests/sanitize.spec.js tests/date.utils.spec.js tests/storage.utils.spec.js tests/timeout.utils.spec.js tests/version.spec.js` 47/47 통과 (무관 유틸 회귀 없음). `npm run build` 200ms 성공. 전체 `npx vitest run` 71/285 fail 은 baseline 의 기존 실패(위젯/북마크/콘텐츠매니저 등 무관 영역) — 이번 변경과 무관 (제가 새로 추가한 테스트 9건은 전부 green). 한계: 실제 Firebase Remote Config 콘솔에서 `latest_version` 키 설정 + 네이티브 빌드 후 시트 렌더링 육안 확인은 사용자가 진행해야 함. iOS App Store 의 정식 numeric URL 은 Remote Config 의 `ios_store_url` 로 주입 필요 (없으면 검색 폴백).
+
+### 2026-05-27 19:25 — Claude Opus 4.7
+
+- **요구사항**: 업데이트 안내 바텀시트(`.update-sheet`)의 두 가지 UX 버그 수정. (1) 시트가 화면에 final 위치로 잠깐 노출된 뒤 등장 애니메이션이 시작되는 flash. (2) `.modal-handle` 이 순수 장식 요소라 핸들을 잡고 아래로 당겨도 시트가 닫히지 않음.
+- **근본 원인**: (1) 부모 `.modal-overlay`/`.modal-sheet` 의 `animation: fadeIn / slideUp` keyframe 이 첫 paint 시점에 일부 환경(특히 iOS WKWebView)에서 from→to 가 정상 트리거되지 않고 final state 가 잠깐 노출됨. (2) `.modal-handle` 은 36×4px 시각 요소뿐, hit-area 도 작고 pointer 핸들러도 없었음.
+- **구현방법**: (1) `confirmDialog.js` 와 동일한 클래스 토글 + transition 패턴으로 교체. `.update-sheet-overlay` 에 `animation: none` + `opacity 0→1` transition, `.update-sheet` 에 `transform translateY(100%→0)` transition, `.is-visible` 클래스로 활성화. JS 는 더블 `requestAnimationFrame` 으로 초기 paint 보장 후 `.is-visible` 토글 → flash 제거. (2) `.update-sheet-handle-area` wrapper 신설 — 시트 padding 을 음수 margin 으로 상쇄해 좌우 풀폭 + 상하 padding 으로 hit-area 넉넉히 확장 + `touch-action: none` 으로 브라우저 세로 스크롤 가로채기 차단. pointer event 4종(`pointerdown/move/up/cancel`) + `setPointerCapture` 로 손가락이 영역 밖으로 나가도 추적 유지. 시트 높이의 30% 초과 드래그 시 close, 미달이면 inline transform 제거로 snap back. 드래그 progress 에 비례해 오버레이를 최대 50% 까지 fade (닫힘 예고 피드백). 닫기 흐름 단순화 — `.is-closing` 클래스 제거하고 인라인 `transform: translateY(100%)` + `.is-visible` 제거로 통합 (드래그 중간 위치든 정상 위치든 현재 위치에서 매끄럽게 슬라이드 다운).
+- **변경파일**: `src/css/components.css`, `src/js/components/updateSheet.js`.
+- **검증**: `npm run build` 156ms 성공. 사용자 실기 검증 권장 (Clear site data 후 시트 등장 시 flash 없는지 + 핸들 드래그 시 시트 따라옴 + 30% 임계 초과 시 close + 미달 시 snap back).
+
+### 2026-05-27 19:45 — Claude Opus 4.7
+
+- **요구사항**: `login.js` 의 `auth-logo-title`(`<h1>DayStory</h1>`)와 `auth-logo-subtitle`(`<p>매일 만나는 역사 카드</p>`) 에 박혀 있던 인라인 `style="margin: 0;"` / `style="margin-top: 5px;"` 하드코딩 제거.
+- **구현방법**: `login.js` 로그인/회원가입 양쪽 페이지의 4곳(타이틀 2 + 서브타이틀 2) 인라인 style 속성 삭제. 단순 제거 시 h1/p 의 user-agent default margin 이 살아나 시각이 깨지므로, `pages.css` 의 `.auth-logo-title` 에 `margin: 0`, `.auth-logo-subtitle` 에 `margin-top: var(--space-1)` 추가해 시각 유지 + 디자인 토큰화. 결과: 인라인 margin 흔적 0건, spacing 은 CSS 한 곳에서 토큰으로 관리.
+- **변경파일**: `src/js/pages/login.js`, `src/css/pages.css`.
+- **검증**: `npm run build` 통과 (도중에 `components.css` 의 `word-break: ;` 빈값 lint 에러 1회 — 사용자 측에서 `keep-all` 로 보강한 뒤 통과).
+
+---
+
+### 2026-05-27 일일 정리 — 작업 9건 카테고리별 요약
+
+오늘은 카드 시스템 안정화 → UX 디테일 보강 → 신규 업데이트 알림 시스템 → 코드 품질 순으로 진행됨.
+
+**A. 카드 시스템 안정화 (오전~오후)** — 4건
+- 10:38 / 11:09 / 11:30 / 11:41 — Swiper Virtual 의 `renderSlide` 가 outermost 요소를 그대로 slide DOM 으로 쓰는 동작 발견 → `.swiper-slide` 명시 래핑으로 mystory/editorstory 빈 화면 복구.
+- 14:04 — mystory 마지막 방문 날짜를 `setState('lastMyStoryDate')` 에 저장 → Warm Navigation 시 해당 날짜 카드 복원.
+- 14:52 — editorstory 도 동일 적용 (`lastEditorStoryDate`) + iOS 1월 1일 stuck 회피용 `ensureSwiper` 재시도(최대 8회 rAF) + 휠 `instant` 옵션으로 smooth scroll 우회 (초기 진입만).
+
+**B. 에디터 여담 UX** — 2건
+- 15:20 — `.back-editor-btn` Unread 뱃지 (localStorage `readEditorNotes`).
+- 15:35 — `@capacitor/haptics` 신규 설치 + 여담 말풍선 표시 시 `ImpactStyle.Light` 햅틱.
+
+**C. 로딩 경험** — 1건
+- 15:50 — 카드 영역(`.editorstory-card-area`) 데이터 fetch 동안 `.skeleton-card` 노출, swiper 생성 시 페이드아웃.
+
+**D. 신규: 앱 업데이트 알림 시스템** — 2건
+- 18:55 — TDD 로 `compareVersions`/`isUpdateAvailable` 유틸 작성 → Firebase Remote Config(`latest_version`) + `App.getInfo()` 비교 → `.modal-sheet` 디자인 토큰 재사용한 바텀시트 노출 → 스토어 URL 외부 브라우저 진입. 부팅 1회 fire-and-forget, 모든 단계 try-catch.
+- 19:25 — 시트 진입 애니메이션 flash 수정(keyframe → `.is-visible` 토글+transition) + `.modal-handle` 주변 hit-area 확장 + pointer event 기반 드래그-투-클로즈(30% 임계 + 오버레이 progressive fade).
+
+**E. 코드 품질** — 1건
+- 19:45 — `login.js` 4곳의 `auth-logo-*` 인라인 `style="margin: ..."` 제거, `pages.css` 의 `.auth-logo-title`/`.auth-logo-subtitle` 에 토큰화된 margin 추가.
+
+**검증 종합**: `npm run build` 매 단계 성공. 신규 테스트는 `tests/version.spec.js` 9건(전부 green). 기존 테스트의 71/285 fail 은 baseline 의 위젯/북마크/콘텐츠매니저 등 무관 영역 회귀로 이번 작업과 무관.
+
+**미해결/사용자 액션 필요**: (a) Firebase Remote Config 운영값(`latest_version` 을 실제 출시 버전으로 유지), (b) iOS App Store 의 numeric URL 을 `ios_store_url` 키로 주입, (c) 시트 진입 애니메이션 + 핸들 드래그 실기 검증.

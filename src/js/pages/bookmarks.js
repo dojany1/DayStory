@@ -22,9 +22,10 @@ import { showToast } from '../components/toast.js';
 
 
 export function renderArchiveSection() {
+  const initialTab = localStorage.getItem('lastArchiveTab') === 'mine' ? 'mine' : 'history';
   return `
     <div class="archive-page">
-      ${renderArchiveHeader()}
+      ${renderArchiveHeader(initialTab)}
       <div id="archive-content" class="archive-content-loading">
         <div class="loading-spinner"></div>
       </div>
@@ -43,12 +44,13 @@ export function initArchiveSection(page, options = {}) {
 export function renderBookmarks() {
   const page = document.createElement('div');
   page.className = 'archive-page page';
+  const initialTab = localStorage.getItem('lastArchiveTab') === 'mine' ? 'mine' : 'history';
 
   page.innerHTML = `
     <div class="page-header page-header-centered">
       <h1 class="page-header-title">${t('bookmarks.title')}</h1>
     </div>
-    ${renderArchiveHeader()}
+    ${renderArchiveHeader(initialTab)}
     <div id="archive-content" class="archive-content-loading">
       <div class="loading-spinner"></div>
     </div>
@@ -78,10 +80,11 @@ async function loadCollection(page, options = DEFAULT_ARCHIVE_OPTIONS) {
     String(b.publish_date || '').localeCompare(String(a.publish_date || ''))
   );
 
+  const savedTab = localStorage.getItem('lastArchiveTab');
   const state = {
     bookmarks: bookmarkStories,
     myStories,
-    activeTab: 'history', // 'history' | 'mine'
+    activeTab: savedTab === 'mine' ? 'mine' : 'history',
     queryStr: '',
   };
 
@@ -138,6 +141,7 @@ async function loadCollection(page, options = DEFAULT_ARCHIVE_OPTIONS) {
       const tab = btn.dataset.tab;
       if (tab === state.activeTab) return;
       state.activeTab = tab;
+      localStorage.setItem('lastArchiveTab', tab);
       state.queryStr = '';
       const searchInput = page.querySelector('#collection-search-input');
       if (searchInput) searchInput.value = '';
@@ -241,6 +245,14 @@ function renderStories(contentEl, list, tab, onClick, opts = {}) {
     card.addEventListener('click', () => onClick(story));
   });
 
+  contentEl.querySelectorAll('.edit-my-story-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const storyId = btn.dataset.id;
+      navigate(`/mystory/new?edit=${storyId}`);
+    });
+  });
+
   contentEl.querySelectorAll('.mini-bookmark-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -254,18 +266,19 @@ function renderStories(contentEl, list, tab, onClick, opts = {}) {
 }
 
 
-function renderArchiveHeader() {
+function renderArchiveHeader(initialTab = 'history') {
   const historyLabel = t('calendar.tab_history');
+  const isMine = initialTab === 'mine';
 
   return `
     <div class="archive-section-header">
-      <div class="calendar-toggle archive-toggle" data-mode="history">
-        <button type="button" class="calendar-toggle-btn active" data-tab="history" aria-label="${escapeHtml(historyLabel)}">
+      <div class="calendar-toggle archive-toggle" data-mode="${initialTab}">
+        <button type="button" class="calendar-toggle-btn${isMine ? '' : ' active'}" data-tab="history" aria-label="${escapeHtml(historyLabel)}">
           <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
-        <button type="button" class="calendar-toggle-btn" data-tab="mine">나의 카드</button>
+        <button type="button" class="calendar-toggle-btn${isMine ? ' active' : ''}" data-tab="mine">나의 카드</button>
         <span class="calendar-toggle-thumb" aria-hidden="true"></span>
       </div>
       <div class="search-bar archive-search">
@@ -327,16 +340,28 @@ function renderMiniCard(story) {
 
 function renderMyMiniCard(story) {
   const dateStr = story.publish_date || '';
-  const [year = '', month = '', day = ''] = dateStr.split('-');
+  const [yearStr = '', monthStr = '', dayStr = ''] = dateStr.split('-');
+  const month = parseInt(monthStr, 10) || '';
+  const day = parseInt(dayStr, 10) || '';
   const imgSrc = escapeHtml(story.image_url || story.image_thumb_url || '');
+  const author = story.author_nickname || story.authorNickname || story.author?.nickname || '';
 
   return `
     <div class="history-card-mini my-story-mini" data-story-id="${escapeHtml(story.id || '')}">
       <div class="mini-card-top">
         <div class="mini-top-left">
-          <div class="mini-date">${month}. ${day}</div>
+          <div class="mini-year">${escapeHtml(yearStr)}</div>
+          <div class="mini-date">${month}${month !== '' && day !== '' ? '. ' : ''}${day}</div>
         </div>
-        <span class="mini-top-text">${escapeHtml(year)}</span>
+        <div class="mini-top-right">
+          <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="수정">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          ${author ? `<span class="mini-top-text">${escapeHtml(author)}</span>` : ''}
+        </div>
       </div>
       <div class="mini-card-image-wrap">
         ${imgSrc

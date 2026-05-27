@@ -21,8 +21,30 @@ import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { showConfirm } from '../components/confirmDialog.js';
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+const LS_EDITOR_NOTES_KEY = 'readEditorNotes';
+
+function getReadEditorNotes() {
+  try { return JSON.parse(localStorage.getItem(LS_EDITOR_NOTES_KEY) || '[]'); } catch { return []; }
+}
+
+function isEditorNoteRead(storyId) {
+  if (!storyId) return true;
+  return getReadEditorNotes().includes(storyId);
+}
+
+function markEditorNoteRead(storyId) {
+  if (!storyId) return;
+  const list = getReadEditorNotes();
+  if (!list.includes(storyId)) {
+    list.push(storyId);
+    try { localStorage.setItem(LS_EDITOR_NOTES_KEY, JSON.stringify(list)); } catch { /* noop */ }
+  }
+}
 export function renderCalendar() {
   const page = document.createElement('div');
   page.className = 'calendar-page page';
@@ -413,6 +435,17 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       bubble.appendChild(nameEl);
       bubble.appendChild(document.createTextNode(comment));
       editorBtn.appendChild(bubble);
+
+      if (Capacitor.isNativePlatform()) {
+        Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      }
+
+      const storyId = editorBtn.dataset.storyId;
+      if (storyId) {
+        markEditorNoteRead(storyId);
+        editorBtn.classList.remove('unread');
+      }
+
       const handleOutside = (event) => {
         if (editorBtn.contains(event.target)) return;
         removeEditorBubble();
@@ -539,7 +572,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
           <hr class="back-divider" />
           <div class="back-body">${bodyHtml}</div>
           <div class="back-footer">
-            <button class="back-editor-btn" type="button" title="에디터 한마디" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
+            <button class="back-editor-btn${!editorBtnHidden && story.id && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id || '')}" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
               <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">

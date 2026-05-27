@@ -33,6 +33,14 @@ import { getLocalToday } from '../utils/date.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
+/* 카드 로딩 스켈레톤 제거 — 페이드 아웃 후 DOM 에서 제거 (밑에 깔린 실제 카드가 드러남) */
+function hideCardSkeleton(page) {
+  const sk = page.querySelector('#mystory-card-skeleton');
+  if (!sk) return;
+  sk.classList.add('is-hiding');
+  setTimeout(() => sk.remove(), 300);
+}
+
 /* iOS WKWebView WebP 디코더 crash 의 부분 방어 (완전 차단 불가능).
    사용자 업로드 이미지(legacy .webp 포함) 도 src 그대로 부여하고, 디코드
    실패 시 onerror 가 fallback PNG 로 swap. iOS WebKit 의 OS-level crash 는
@@ -94,6 +102,7 @@ export function renderMyStory() {
       <div class="swiper card-swiper" id="mystory-card-swiper">
         <div class="swiper-wrapper"></div>
       </div>
+      <div class="skeleton-card" id="mystory-card-skeleton" aria-hidden="true"></div>
     </div>
 
     <div class="page-calendar-view" id="mystory-cal-view" hidden>
@@ -282,6 +291,7 @@ async function loadMyStoryData(page) {
           bindMyStoryCardEvents(flipContainer, slide?.story, slide?.iso);
         },
       });
+      hideCardSkeleton(page);
       return swiper;
     };
 
@@ -676,13 +686,12 @@ export function renderMyStoryNew() {
           <input type="hidden" id="ms-image-thumb" />
           <div id="ms-image-upload-area" class="ms-image-upload-area" role="button" tabindex="0" aria-label="카드 이미지 업로드">
             <div id="ms-image-placeholder" class="ms-image-upload-placeholder">
-              <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
-                <line x1="12" y1="7" x2="12" y2="12"/>
-                <line x1="9.5" y1="9.5" x2="12" y2="7"/>
-                <line x1="14.5" y1="9.5" x2="12" y2="7"/>
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/>
+                <line x1="16" x2="22" y1="5" y2="5"/>
+                <line x1="19" x2="19" y1="2" y2="8"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
               </svg>
               <span>카드 이미지 업로드</span>
             </div>
@@ -692,12 +701,12 @@ export function renderMyStoryNew() {
         <!-- 3. 단일 제목 -->
         <div class="input-group">
           <label class="input-label">제목</label>
-          <input class="input-field" id="ms-title" placeholder="일화 제목을 입력하세요" />
+          <input class="input-field" id="ms-title" />
         </div>
         <!-- 4. 본문 -->
         <div class="input-group">
           <label class="input-label">본문</label>
-          <textarea class="input-field" id="ms-body" placeholder="본문을 입력하세요..." style="min-height:250px; resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
+          <textarea class="input-field" id="ms-body" style="min-height:250px; resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
         </div>
         ${editingId ? `
           <!-- 편집 모드: 폼 하단 우측에 삭제 버튼 배치 -->
@@ -852,7 +861,7 @@ export function renderMyStoryNew() {
           <button type="button" class="btn-rotate" id="btn-crop-rotate">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 2v6h-6"/>
-              <path d="M21 8A9 9 0 1 1 5.82 5.82"/>
+              <path d="M21 13a9 9 0 1 1-2.63-6.36L21 9"/>
             </svg>
             회전
           </button>

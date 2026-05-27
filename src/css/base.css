@@ -137,6 +137,10 @@ img {
   display: block;
   max-width: 100%;
   height: auto;
+  -webkit-touch-callout: none; /* iOS 꾹 누름 시스템 메뉴 차단 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* 리스트 — 기본 불릿/번호 제거 */

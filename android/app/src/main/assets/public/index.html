@@ -97,20 +97,21 @@
   </style>
 
   <title>DayStory</title>
-  <script type="module" crossorigin src="/assets/index-Btv5jsT5.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/preload-helper-DgFuoWHe.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-D9tJEqyA.js">
-  <link rel="modulepreload" crossorigin href="/assets/index.esm-DulCFOgL.js">
-  <link rel="modulepreload" crossorigin href="/assets/firebase-tVkosmAg.js">
+  <script type="module" crossorigin src="/assets/index-CSiNOSFm.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/preload-helper-DeiOTZKJ.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-DtHwfn-n.js">
+  <link rel="modulepreload" crossorigin href="/assets/index.esm2017-BJw-uIX1.js">
+  <link rel="modulepreload" crossorigin href="/assets/index.esm-CJc8sPRJ.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-DFBK8Wgd.js">
   <link rel="modulepreload" crossorigin href="/assets/date-BXCTTgfI.js">
   <link rel="modulepreload" crossorigin href="/assets/router-7m-s0x-D.js">
   <link rel="modulepreload" crossorigin href="/assets/state-DQ9Huans.js">
   <link rel="modulepreload" crossorigin href="/assets/i18n-DQjfkUMB.js">
-  <link rel="modulepreload" crossorigin href="/assets/stories-DERhl4xW.js">
-  <link rel="modulepreload" crossorigin href="/assets/storyI18n-Ca-WoKLA.js">
-  <link rel="modulepreload" crossorigin href="/assets/toast-C65VsBgm.js">
-  <link rel="modulepreload" crossorigin href="/assets/sanitize-rT1jjWTx.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-CD7rVb-A.css">
+  <link rel="modulepreload" crossorigin href="/assets/stories-DtUSAb1-.js">
+  <link rel="modulepreload" crossorigin href="/assets/storyI18n-HHuSAaZ8.js">
+  <link rel="modulepreload" crossorigin href="/assets/toast-ejGG2_Wi.js">
+  <link rel="modulepreload" crossorigin href="/assets/sanitize-BzcRQ1L1.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-Cotnp-H9.css">
 </head>
 
 <body>
@@ -161,31 +162,30 @@
           data-route 속성을 보고 router.js에서 해당 경로로 이동합니다.
         -->
         <nav id="bottom-nav" class="bottom-nav redesigned-nav" style="display:none;">
-          <!-- 편지 탭 (오늘의 편지 = 에디터 일화) -->
-          <button class="nav-item active" data-route="/editorstory" id="nav-editorstory" aria-label="편지">
+          <!-- 에디터 일화 탭 — Lucide BookMarked -->
+          <button class="nav-item active" data-route="/editorstory" id="nav-editorstory" aria-label="에디터 일화">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect>
-              <path d="M3.5 7.5 12 13.5 20.5 7.5"></path>
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+              <polyline points="10 2 10 10 13 7 16 10 16 2"/>
             </svg>
           </button>
 
-          
-          <!-- 내 일기 탭 -->
-          <button class="nav-item" data-route="/mystory" id="nav-mystory" aria-label="내 일기">
+          <!-- 나의 일화 탭 — Lucide BookUser -->
+          <button class="nav-item" data-route="/mystory" id="nav-mystory" aria-label="나의 일화">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+              <circle cx="12" cy="8" r="2"/>
+              <path d="M15 13a3 3 0 1 0-6 0"/>
             </svg>
           </button>
-          
-          <!-- 프로필 탭 -->
+
+          <!-- 프로필 탭 — Lucide Menu -->
           <button class="nav-item" data-route="/profile" id="nav-profile" aria-label="프로필">
-            <div class="nav-profile-img-wrap">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </div>
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" x2="20" y1="6" y2="6"/>
+              <line x1="4" x2="20" y1="12" y2="12"/>
+              <line x1="4" x2="20" y1="18" y2="18"/>
+            </svg>
           </button>
         </nav>
 

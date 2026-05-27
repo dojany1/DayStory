@@ -73,7 +73,7 @@
 
 /* 큰(Large) 버튼 — 더 넓은 패딩과 큰 폰트 */
 .btn-large {
-  padding: var(--space-4) var(--space-8);
+  padding: var(--space-3) var(--space-8);
   font-size: var(--text-base);
 }
 
@@ -103,7 +103,7 @@
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 /* 입력 라벨 — 입력 필드 위의 설명 텍스트 */
@@ -111,6 +111,7 @@
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-text-secondary);
+  padding-left: var(--space-1);
 }
 
 /* 입력 필드 — 텍스트 입력창 */
@@ -350,8 +351,6 @@
   width: 100%;
   height: 100%;
   object-fit: cover;                   /* 비율 유지하면서 빈 공간 없이 채움 */
-  user-select: none;                   /* 텍스트 선택 방지 */
-  -webkit-user-drag: none;             /* 이미지 네이티브 드래그 방지 */
   /* 비율 유지 4:3 */
   aspect-ratio: 4 / 3;
 }
@@ -415,9 +414,11 @@
   flex: 1;
   overflow-y: auto;
   font-family: var(--font-body);
-  font-size: 0.98rem;
-  line-height: 1.8rem;
+  font-size: 1rem;
+  line-height: 1.8;
+  letter-spacing: -0.016em;
   color: var(--color-text-secondary);
+  word-break: keep-all;
 }
 
 /* 뒷면 하단 바 — 에디터 프로필(좌) + 날짜(우) */
@@ -450,10 +451,10 @@
 
 /* 에디터 프로필 아이콘 버튼 */
 .back-editor-btn {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 1.5px solid var(--color-border);
+  border: 2px solid var(--color-border);
   background: var(--color-bg-secondary);
   display: flex;
   align-items: center;
@@ -464,11 +465,6 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
   position: relative;
-}
-
-[data-theme="dark"] .back-editor-btn {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
 }
 
 /* 모바일 터치 접근성을 위한 광범위 투명 터치 영역 */
@@ -484,7 +480,23 @@
 }
 
 .back-editor-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.95);
+}
+
+/* 안 읽음 알림 뱃지 */
+.back-editor-btn.unread::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e53935;
+  border: 1.5px solid var(--color-bg-card, var(--color-bg-primary));
+  z-index: 2;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
 }
 
 /* 에디터 프로필 사진 */
@@ -509,21 +521,24 @@
 .editor-comment-bubble {
   position: absolute;
   bottom: calc(100% + 12px); /* 버튼 바로 위에 위치 */
-  left: 0;
-  background: var(--color-bg-elevated, var(--color-bg-secondary));
+  left: -2px;
+  background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
-  line-height: 1.4;
-  padding: var(--space-3) var(--space-3);
-  border-radius: var(--radius-md);
-  box-shadow: 0 4px 18px rgba(0,0,0,0.3);
-  max-width: 400px;
-  min-width: 232px;
+  line-height: 1.25rem;
+  letter-spacing: 0.02em;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  max-width: 260px;
+  min-width: 230px;
   word-break: keep-all;
   text-align: left;
   animation: editorBubbleIn 0.25s ease;
   z-index: 10;
   pointer-events: auto;
+  word-break: keep-all; /* 단어 끊김 방지 */
 }
 
 /* 말풍선 아래 꼬리 */
@@ -531,25 +546,25 @@
   content: '';
   position: absolute;
   bottom: -6px;
-  left: 12px;
+  left: 6px;
   width: 0;
   height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid var(--color-bg-elevated, var(--color-bg-secondary));
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 6px solid var(--color-border);
 }
 
 /* 에디터 이름 라벨 */
 .editor-comment-name {
   display: block;
-  font-weight: 600;
-  font-size: var(--text-sm);
+  font-weight: 400;
+  font-size: var(--text-xs);
   color: var(--color-text-tertiary);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 @keyframes editorBubbleIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(28px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -652,6 +667,21 @@
   text-align: right;
 }
 
+/* 나의 카드 미니 카드 편집 버튼 — full 카드용 padding/size 덮어씌움 */
+.my-story-mini .card-action-btn {
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  line-height: 0;
+  color: var(--color-text-secondary);
+}
+
+.my-story-mini .card-action-btn svg {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
 /* 미니 카드 이미지 영역 — 남은 공간을 채움 */
 .mini-card-image-wrap {
   /* 1. Positioning */
@@ -668,15 +698,10 @@
 
 /* 미니 카드 이미지 — 영역 채우기 */
 .mini-card-image-wrap img {
-  /* 1. Positioning */
   display: block;
-  /* 2. Box Model */
   width: 100%;
   height: 100%;
-  /* 3. Typography */
-  /* 4. Visuals */
   object-fit: cover;
-  /* 5. Misc */
 }
 
 /* 미니 카드 이미지 오버레이 — 하단 그라디언트 + 인물 이름 */
@@ -984,9 +1009,9 @@
   width: 100%;
   max-width: var(--mobile-max-width);
   max-height: 85vh;                    /* 화면 85%까지만 차지 */
-  background: var(--color-bg-elevated);
+  background: var(--color-bg-primary);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0; /* 상단만 둥글게 */
-  padding: var(--space-6);
+  padding: 0 var(--space-6);
   padding-bottom: calc(var(--space-6) + var(--safe-area-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1032,11 +1057,11 @@
 
 /* 모달 핸들 바 — 시트 상단의 드래그 핸들 (장식용) */
 .modal-handle {
-  width: 36px;
+  width: 42px;
   height: 4px;
   border-radius: var(--radius-full);
   background: var(--color-border);
-  margin: 0 auto var(--space-5);
+  margin: var(--space-5) auto var(--space-5);
 }
 
 /* 모달 등장 애니메이션 — 페이드 인 */
@@ -1049,6 +1074,132 @@
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+/* ── 업데이트 안내 바텀시트 ────────────────────────
+   .modal-overlay + .modal-sheet 의 keyframe (fadeIn / slideUp) 은 첫 paint 에
+   final state 가 잠깐 노출되는 flash 가 있어, .is-visible 클래스 토글 +
+   CSS transition 패턴으로 교체 (cf. confirmDialog.js). 닫을 때는 .is-visible
+   제거 + 인라인 transform 으로 현재 위치에서 매끄럽게 슬라이드 다운. */
+.update-sheet-overlay {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.update-sheet-overlay.is-visible {
+  opacity: 1;
+}
+
+.update-sheet-overlay .update-sheet {
+  animation: none;
+  transform: translateY(100%);
+  transition: transform 0.32s var(--transition-spring);
+  will-change: transform;
+}
+.update-sheet-overlay.is-visible .update-sheet {
+  transform: translateY(0);
+}
+
+/* 드래그 중에는 transition 을 끄고 손가락 위치를 즉시 추종. */
+.update-sheet-overlay .update-sheet.is-dragging {
+  transition: none;
+}
+
+/* 핸들 hit-area — 시각적 핸들 바 위/아래 + 시트 좌우 끝까지 touch target 확장.
+   시트의 padding(var(--space-6))을 음수 margin 으로 상쇄해 좌우 풀폭으로 잡고
+   상하 padding 으로 손가락이 핸들 바를 살짝 빗나가도 잡히도록 한다. */
+.update-sheet-handle-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6) var(--space-6);
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) 0;
+  cursor: grab;
+  touch-action: none; /* 브라우저 기본 세로 스크롤이 가로채는 것을 차단 */
+  user-select: none;
+}
+.update-sheet-handle-area:active {
+  cursor: grabbing;
+}
+.update-sheet-handle-area .modal-handle {
+  margin: 0; /* 부모(.modal-handle) 의 margin-bottom 은 wrapper 의 padding 으로 흡수 */
+}
+
+.update-sheet {
+  text-align: center;
+}
+
+.update-sheet-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4);
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-accent);
+}
+
+.update-sheet-title {
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
+  letter-spacing: -0.01em;
+}
+
+.update-sheet-message {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--space-5);
+  padding: 0 var(--space-6);
+  /* 텍스트 끊기 */
+  word-break: keep-all;
+}
+
+.update-sheet-versions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.update-sheet-version-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+
+.update-sheet-version-label {
+  color: var(--color-text-secondary);
+}
+
+.update-sheet-version-value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.update-sheet-version-row.is-latest .update-sheet-version-value {
+  color: var(--color-accent);
+}
+
+.update-sheet-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.update-sheet-actions .btn {
+  flex: 1;
 }
 
 
@@ -1241,6 +1392,9 @@
   gap: var(--space-2);
   padding: var(--space-2);
   color: var(--color-text-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .btn-rotate svg {

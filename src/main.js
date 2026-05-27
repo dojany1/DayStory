@@ -71,6 +71,7 @@ import { Capacitor } from '@capacitor/core';
 */
 import { renderEditorStory } from './js/pages/editorstory.js';
 import { getLocalToday } from './js/utils/date.js';
+import { checkForAppUpdate } from './js/services/appUpdate.js';
 
 function registerImageCacheWorker() {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -225,6 +226,10 @@ function checkAndStartApp() {
     pendingWidgetDeepLinkUrl = null;
     routeWidgetDeepLink(url);
   }
+
+  /* 부팅 직후 1회 — 신규 버전 출시 안내 (비동기, fire-and-forget).
+     내부에서 모든 실패를 흡수하므로 await 불필요 + 부팅을 절대 막지 않는다. */
+  void checkForAppUpdate();
 }
 
 if (auth) {
@@ -236,6 +241,7 @@ if (auth) {
           id: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL || null,
         });
 
         /* 프로필 정보 가져오기 (Firestore의 profiles 컬렉션) */

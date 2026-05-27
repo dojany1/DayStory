@@ -55,7 +55,7 @@ export function renderProfile() {
     ? `<div class="page-header-actions" style="display:flex;align-items:center;">${adminBtn}${gearBtn}</div>`
     : gearBtn;
 
-  const profileHeader = renderPageHeader({ title: '프로필', icon: 'none', rightAction });
+  const profileHeader = renderPageHeader({ title: '마이 페이지', icon: 'none', rightAction });
 
   page.innerHTML = `
     ${profileHeader}
@@ -69,8 +69,9 @@ export function renderProfile() {
               /* WebP avatar 는 iOS WKWebView 크래시 유발 → fallback SVG. */
               const rawUrl = (profile && profile.photoURL) || user.photoURL;
               const safeUrl = rawUrl && !isWebpUrl(rawUrl) ? rawUrl : '';
+              const fallbackSvg = `this.style.display='none';this.parentNode.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'`;
               return safeUrl
-                ? `<img src="${escapeHtml(safeUrl)}" alt="" />`
+                ? `<img src="${escapeHtml(safeUrl)}" alt="" onerror="${fallbackSvg}" />`
                 : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
             })()}
           </div>
@@ -137,15 +138,20 @@ function openProfileEditModal() {
 
       <div class="profile-edit-body">
         <div class="profile-edit-avatar-section">
-          <div class="profile-edit-avatar" id="profile-edit-avatar">
-            ${currentPhoto
-              ? `<img src="${currentPhoto}" />`
-              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
-            }
-          </div>
-          <div style="display:flex; gap:var(--space-2); justify-content:center;">
-            <button class="profile-edit-photo-btn" id="profile-edit-photo-gallery">보관함</button>
-            <button class="profile-edit-photo-btn" id="profile-edit-photo-camera">촬영</button>
+          <div class="profile-edit-avatar-wrap">
+            <div class="profile-edit-avatar" id="profile-edit-avatar">
+              ${currentPhoto
+                ? `<img src="${currentPhoto}" />`
+                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
+              }
+            </div>
+            <button type="button" class="profile-edit-photo-icon" id="profile-edit-photo-btn" aria-label="프로필 사진 변경">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -217,8 +223,7 @@ function openProfileEditModal() {
       showToast(err?.message || '사진을 불러올 수 없습니다.', 'error');
     }
   }
-  overlay.querySelector('#profile-edit-photo-gallery')?.addEventListener('click', () => handleProfilePhotoPick('gallery'));
-  overlay.querySelector('#profile-edit-photo-camera')?.addEventListener('click', () => handleProfilePhotoPick('camera'));
+  overlay.querySelector('#profile-edit-photo-btn')?.addEventListener('click', () => handleProfilePhotoPick('gallery'));
 
   overlay.querySelector('#profile-edit-save').addEventListener('click', async () => {
     const saveBtn = overlay.querySelector('#profile-edit-save');
@@ -286,7 +291,8 @@ function openCropperForProfile(imageSrc, onConfirm) {
     <div class="crop-modal-footer">
       <button type="button" class="btn-rotate" id="btn-profile-crop-rotate">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.53-11.23l5.67 5.66" />
+          <path d="M21 2v6h-6"/>
+          <path d="M21 13a9 9 0 1 1-2.63-6.36L21 9"/>
         </svg>
         회전
       </button>

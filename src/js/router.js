@@ -41,6 +41,7 @@ let onUnmountHook = null;
 /* Keep-Alive DOM 캐시: 탭 이동 시 DOM을 파괴하지 않고 메모리에 보존해 즉시 복원한다.
  * route -> { node: HTMLElement, savedAt: number, cleanup: Function|null } */
 const PAGE_DOM_CACHE = new Map();
+
 const PAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5분
 /* Keep-Alive 비활성 — editorstory/mystory 는 Swiper.js 인스턴스를 유지하는데
    DOM detach → attach 과정에서 Swiper 의 transform 이 reset 되어
@@ -345,6 +346,7 @@ function updateNav(path) {
 /* Wave 5: utils/date.js 의 getLocalToday() 로 날짜 문자열은 위임하고
  * month/day 만 router 내부에서 분해해 사용. */
 import { getLocalToday } from './utils/date.js';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 function getLocalTodaySelection() {
   const date = getLocalToday();                       /* 'YYYY-MM-DD' */
@@ -380,6 +382,8 @@ export function initRouter() {
     bottomNav.addEventListener('click', (e) => {
       const item = e.target.closest('.nav-item');
       if (!item) return;
+
+      try { Haptics.impact({ style: ImpactStyle.Light }); } catch (_) { /* 웹 환경 무시 */ }
 
       const route = item.dataset.route;
       const currentPath = getCurrentPath();

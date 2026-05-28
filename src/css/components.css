@@ -492,7 +492,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #e53935;
+  background: var(--color-w);
   border: 1.5px solid var(--color-bg-card, var(--color-bg-primary));
   z-index: 2;
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -763,6 +763,7 @@
   align-items: center;
   justify-content: space-between;
   background: var(--color-bg-primary);
+  min-width: var(--mobile-min-width);
 }
 
 /* 페이지 헤더 제목 — line-height:1 및 미세 이동으로 한글 폰트 수직 중앙 정렬 완벽 보정 */
@@ -1300,7 +1301,6 @@
 */
 
 .crop-modal-overlay {
-  /* 1. Positioning */
   position: fixed;
   top: 0;
   left: 50%;
@@ -1308,14 +1308,13 @@
   z-index: var(--z-overlay);
   display: flex;
   flex-direction: column;
-  /* 2. Box Model */
+
   width: 100%;
   max-width: var(--mobile-max-width);
   height: 100dvh;
-  /* 3. Typography */
-  /* 4. Visuals */
+
   background: var(--color-bg-primary);
-  /* 5. Misc */
+
   opacity: 0;
   transition: opacity 0.2s ease;
   touch-action: none;
@@ -1364,7 +1363,7 @@
   min-height: 0;
   /* 3. Typography */
   /* 4. Visuals */
-  background: #000;
+  background: var(--color-bg-overlay);
   /* 5. Misc */
   overflow: hidden;
 }
@@ -1425,7 +1424,62 @@
 /* cropperjs 라이브러리 .cropper-bg 체크무늬 이미지 재정의 */
 .cropper-bg {
   background-image: none !important;
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-bg-overlay);
+}
+
+/*
+  Cropper.js 글로벌 리셋 격리
+  ─────────────────────────────────────────────────────────────────────────────
+  base.css 의 `*, *::before, *::after { box-sizing: border-box }` 전역 리셋이
+  Cropper.js 내부 요소들의 pixel 단위 레이아웃을 깨뜨린다.
+  Cropper.js 는 line-e/w 의 width:5px + right:-3px, point 의 margin-top:-3px 등
+  content-box 기준 수치로 설계되어 있으므로 해당 요소들만 명시적으로 복원한다.
+  JS/기능 로직은 건드리지 않고 CSS 격리만 수행한다.
+*/
+
+/* 컨테이너 레벨 — border-box 유지해도 영향 없지만 명시적으로 정렬 */
+.cropper-container,
+.cropper-wrap-box,
+.cropper-canvas,
+.cropper-drag-box,
+.cropper-crop-box,
+.cropper-modal,
+.cropper-view-box,
+.cropper-face,
+.cropper-dashed,
+.cropper-center {
+  box-sizing: content-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 핵심 — 라인과 포인트는 content-box 기준 pixel 수치로 위치를 계산하므로 반드시 복원 */
+.cropper-line,
+.cropper-line.line-e,
+.cropper-line.line-n,
+.cropper-line.line-w,
+.cropper-line.line-s,
+.cropper-point,
+.cropper-point.point-e,
+.cropper-point.point-n,
+.cropper-point.point-w,
+.cropper-point.point-s,
+.cropper-point.point-ne,
+.cropper-point.point-nw,
+.cropper-point.point-sw,
+.cropper-point.point-se {
+  box-sizing: content-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 가상 요소(::before / ::after)도 전역 border-box 에 오염되므로 복원 */
+.cropper-center::before,
+.cropper-center::after,
+.cropper-point.point-se::before {
+  box-sizing: content-box;
+  margin: 0;
+  padding: 0;
 }
 
 

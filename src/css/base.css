@@ -191,6 +191,7 @@ ul, ol {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: var(--mobile-min-width);
   height: 100vh;
   height: 100dvh;
 }
@@ -220,6 +221,7 @@ ul, ol {
   overflow-y: auto;                    /* 세로 스크롤 허용 */
   overflow-x: hidden;                  /* 가로 스크롤 방지 */
   background: var(--color-bg-primary); /* bottom-nav와 동일한 배경색 */
+  min-width: var(--mobile-min-width);
 }
 
 /* sticky 헤더가 있는 페이지: 프로그래밍 방식 스크롤(scrollIntoView, focus 등) 시
@@ -401,6 +403,7 @@ ul, ol {
   justify-content: space-around;       /* 아이콘을 균등하게 배치 */
   width: 100%;
   max-width: var(--mobile-max-width);  /* 래퍼 너비에 맞춤 */
+  min-width: var(--mobile-min-width);
   height: calc(var(--nav-height) + var(--safe-area-bottom));
   padding: var(--space-2) var(--space-8) 0; /* 상하 패딩 조정, 하단 패딩은 safe-area만큼 확보 */
   padding-bottom: calc(var(--space-1) + var(--safe-area-bottom)); /* 홈 바 영역까지 배경색 확장 */
@@ -417,45 +420,34 @@ ul, ol {
   position: relative;
 }
 
-/* 활성화된 내비게이션 아이템 — 라이트 모드에서 진한 검정 */
-.nav-item.active {
-  color: var(--color-text-primary);
-}
+
 
 /* 내비게이션 아이템 터치 시 — 살짝 축소 애니메이션 */
 .nav-item:active {
-  transform: scale(0.85);
-  transition: transform 200ms ease-out;
+  transform: scale(0.95);
+  transition: transform 200ms;
+  background: var(--color-bg-card-dark);
 }
 
 /* 리디자인된 내비게이션의 아이템 — 더 넓은 터치 영역 및 사이즈 확보 */
 .bottom-nav.redesigned-nav .nav-item {
-  padding: var(--space-3) var(--space-8);
+  padding: var(--space-2) var(--space-5);
   justify-content: center;
   width: auto;
   height: auto;
+  border-radius: var(--radius-md);
 }
 
 /* 리디자인된 내비게이션의 아이콘 */
 .bottom-nav.redesigned-nav .nav-icon {
   width: 28px;
   height: 28px;
-  stroke-width: 2px;
+  stroke-width: 1.5px;
 }
 
 /* 내비게이션 활성화 아이콘 */
 .bottom-nav.redesigned-nav .nav-item.active .nav-icon {
   color: var(--color-accent);
-  stroke-width: 2px;
-}
-
-/* 프로필 버튼 아바타 전용 래퍼: 다른 아이콘들과 정확히 동일한 사이즈(28x28) 유지 */
-.nav-profile-img-wrap {
-  overflow: hidden;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 

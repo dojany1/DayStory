@@ -299,6 +299,7 @@
   z-index: 2;
   cursor: pointer;
   white-space: nowrap;
+  background: none;
 }
 
 /* 활성화된 휠 피커 아이템 */
@@ -310,67 +311,10 @@
 
 .wheel-item:active {
   transform: scale(0.9);
+  background: var(--color-bg-card-dark);
 }
 
-/* 캘린더 날짜 아이템 — 요일 + 날짜 세로 배치 */
-.cal-item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 36px;
-  width: 36px;
-  color: var(--color-text-tertiary);   /* 비활성 날짜: 연한 색 */
-  transition: all var(--transition-fast);
-  cursor: pointer;
-}
 
-/* 활성화된(선택된) 날짜 아이템 — 요일 텍스트를 강조색으로 표시 */
-.cal-item.active {
-  color: var(--color-accent);
-}
-
-/* 선택된 날짜의 숫자 — 강조 */
-.cal-item.active .cal-date {
-  color: var(--color-accent);
-  font-weight: 400;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--color-accent-border); /* 선택된 요소에 내부 외곽선 적용 */
-}
-
-/* 날짜 아이템 터치 시 — 살짝 축소 */
-.cal-item:active {
-  transform: scale(0.9);
-}
-
-/* 선택되지 않은 월의 날짜 희미해짐 효과 */
-.cal-item.faded {
-  opacity: 0.25;
-}
-
-/* 캘린더 요일 텍스트 (예: "월", "화") */
-.cal-day {
-  font-size: 0rem;
-  font-weight: 400;
-  line-height: 100%;
-  margin-bottom: 2px;
-}
-
-/* 캘린더 날짜 숫자 — 원형 영역 안에 표시 */
-.cal-date {
-  font-family: var(--font-body);
-  font-size: 1.15rem;
-  font-weight: 400;
-  line-height: 120%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10%;
-}
 
 /* 홈 카드 영역 — 남은 수직 공간을 채우며 카드를 중앙에 배치.
    위아래 padding 으로 카드 box-shadow 표시 공간 확보. 휠 피커는 opaque
@@ -878,6 +822,7 @@
   min-width: 0;
   width: auto;
   margin-bottom: 0;
+
 }
 
 .archive-toggle .calendar-toggle-btn svg {
@@ -888,10 +833,10 @@
 
 /* 헤더 내 검색바: flex:1로 절반 차지 */
 .archive-section-header .archive-search {
-  flex: 1;
+  flex: 1.6;
   min-width: 0;
   margin-bottom: 0;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-3);
   box-sizing: border-box;
 }
 
@@ -1107,15 +1052,14 @@
 }
 
 .settings-user-info {
-  margin: 0 var(--space-5);
-  padding: var(--space-5)var(--space-2);
+  padding: var(--space-8) var(--space-2) var(--space-5) var(--space-6);
   
 }
 
 .settings-user-row {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-width: 0;
 }
 /* 프로필 아바타 랩 — 원형 배경 + 이미지 또는 SVG 아이콘을 포함하는 컨테이너 */
@@ -1123,6 +1067,7 @@
   width: 56px;
   height: 56px;
   flex: 0 0 56px;
+  display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -1130,17 +1075,17 @@
   background: var(--color-bg-secondary);
   border-radius: 50%;
 }
-/* 프로필 아바타 이미지 또는 SVG 아이콘 */
-.profile-avatar-wrap img,
-.profile-avatar-wrap svg {
+/* 프로필 사진 — 원형 박스를 가득 채움 */
+.profile-avatar-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
+/* fallback 아이콘 — 가운데 정렬, 박스 대비 적당한 크기 */
 .profile-avatar-wrap svg {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
 }
 
 .settings-user-meta {
@@ -1550,122 +1495,6 @@
   display: none;
 }
 
-/* 에디터 일화 목록 — 세로 나열 */
-.editor-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-/* 개별 일화 아이템 — 썸네일 + 정보 + 액션 가로 배치 */
-.editor-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-}
-
-/* 일화 썸네일 — 56x56 정사각형 */
-.editor-item-thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-/* 일화 썸네일 이미지 */
-.editor-item-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* 일화 정보 영역 — 메타 + 제목 */
-.editor-item-info {
-  flex: 1;
-  min-width: 0;                        /* 텍스트 말줄임 허용 */
-}
-
-/* 일화 메타 정보 (날짜, 상태 뱃지 등) */
-.editor-item-meta {
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  margin-bottom: var(--space-1);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-/* 일화 제목 — 1줄 말줄임 */
-.editor-item-title {
-  font-weight: 600;
-  font-size: var(--text-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 일화 액션 버튼 그룹 (수정, 삭제 등) */
-.editor-item-actions {
-  /* 1. Positioning */
-  display: flex;
-  gap: var(--space-1);
-  flex-shrink: 0;
-  /* 2. Box Model */
-  /* 3. Typography */
-  /* 4. Visuals */
-  /* 5. Misc */
-}
-
-/* 액션 버튼 공통 스타일 */
-.editor-item-actions button {
-  /* 1. Positioning */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 2. Box Model */
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  /* 3. Typography */
-  /* 4. Visuals */
-  background: transparent;
-  border-radius: var(--radius-sm);
-  /* 5. Misc */
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-/* 편집 아이콘 */
-.editor-edit-btn {
-  /* 3. Typography */
-  color: var(--color-text-secondary);
-}
-
-.editor-edit-btn:active {
-  /* 3. Typography */
-  color: var(--color-text-primary);
-  /* 4. Visuals */
-  background: var(--color-bg-secondary);
-}
-
-/* 삭제 아이콘 (에러/경고 컬러 적용) */
-.editor-delete-btn {
-  /* 3. Typography */
-  color: var(--color-text-tertiary);
-}
-
-.editor-delete-btn:active {
-  /* 3. Typography */
-  color: var(--color-error);
-  /* 4. Visuals */
-  background: rgba(220, 53, 69, 0.1); /* 에러 컬러의 연한 배경 */
-}
 
 
 /* ============================================
@@ -2224,12 +2053,8 @@
 
 /* 닉네임 입력 필드 영역 */
 .profile-edit-field {
-  /* 1. Positioning */
-  /* 2. Box Model */
-  padding: 0 var(--space-5) var(--space-4);
-  /* 3. Typography */
-  /* 4. Visuals */
-  /* 5. Misc */
+  padding: 0 var(--space-5) var(--space-10);
+
 }
 
 /* 입력 필드 라벨 */
@@ -2314,41 +2139,42 @@
   font-weight:800}
 
 .calendar-toggle {
-  background:var(--color-bg-card-dark);
-  border:1px solid var(--color-border);
-  border-radius:var(--radius-lg);
-  align-self:center;
-  width:min(100%,240px);
-  padding:4px;
-  gap:4px;
-  display:inline-flex;
-  position:relative;
+  background: var(--color-bg-card-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  align-self: center;
+  width: min(100%,240px);
+  padding: 2px;
+  gap: 4px;
+  display: inline-flex;
+  position: relative;
 }
 
 .calendar-toggle-btn {
-  z-index:2;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:var(--space-2) 0;
-  border-radius:calc(var(--radius-lg) - 2px);
-  font-family:var(--font-sans);
-  font-size:var(--text-sm);
-  color:var(--color-text-tertiary);
-  text-align:center;
-  white-space:nowrap;
-  cursor:pointer;
-  transition:color var(--transition-fast), transform var(--transition-fast);
-  -webkit-tap-highlight-color:transparent;
-  background:0 0;
-  border:0;
-  flex:1 1 0;
-  font-weight:600;
-  position:relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  text-align: enter;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  background: 0 0;
+  border: 0;
+  flex: 1 1 0;
+  font-weight: 600;
+  position: relative;
 }
 
 .calendar-toggle-btn.active {
   color: var(--color-text-on-light-segment);
+  border-radius: var(--radius-full);
 }
 
 .calendar-toggle-btn:not(.active):active {
@@ -2358,7 +2184,7 @@
 
 .calendar-toggle-thumb {
   display:block;
-  border-radius:calc(var(--radius-lg) - 2px);
+  border-radius: var(--radius-full);
   background:#ffffff;
   box-shadow:0 1px 3px rgba(0,0,0,0.18), 0 0.5px 0 rgba(0,0,0,0.06);
   z-index:1;
@@ -2655,29 +2481,6 @@
 .cal-cell-peek--locked {
   filter:grayscale(1)}
 
-/* 카드 뒷면 삭제 버튼 — 보관함 모달에서만 노출 */
-.card-delete-btn {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--color-bg-secondary);
-  color: var(--color-error);
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  z-index: 3;
-  transition: transform var(--transition-fast);
-}
-
-.card-delete-btn:active {
-  transform: scale(.94);
-}
-
 
 /* ── 카드 잠금 오버레이 (팝업 앞면) ── */
 .card-locked-overlay {
@@ -2805,52 +2608,7 @@
   display:flex}
 
 
-/* ===== 에디터 헤더 (5월 1일 AAB) ===== */
 
-.editor-list-header {
-  padding:0}
-
-.editor-header-action {
-  border-radius:var(--radius-full);
-  background:var(--color-accent);
-  width:36px;
-  height:36px;
-  color:var(--color-text-inverse);
-  cursor:pointer;
-  transition:transform var(--transition-fast), background var(--transition-fast);
-  border:0;
-  grid-column:3;
-  justify-content:center;
-  justify-self:end;
-  align-items:center;
-  padding:0;
-  display:flex}
-
-.editor-header-action:active {
-  background:var(--color-accent-dark);
-  transform:scale(.96)}
-
-.editor-header-action svg {
-  width:20px;
-  height:20px}
-
-
-/* ===== 마이스토리 빈 상태 (5월 1일 AAB) ===== */
-
-.empty-story-content {
-  flex-direction:column;
-  align-items:center;
-  margin:auto 0;
-  display:flex}
-
-.mystory-write-icon {
-  stroke:currentColor;
-  stroke-width:2.2px;
-  flex-shrink:0;
-  width:22px;
-  height:22px;
-  display:block;
-  overflow:visible}
 
 
 /* ===== 이미지 크롭 모달 — 취소 버튼 (5월 1일 AAB) ===== */

@@ -181,11 +181,6 @@ async function loadCollection(page, options = DEFAULT_ARCHIVE_OPTIONS) {
   function onCardClick(stateRef, story) {
     openCardPopup(story, 'history', stateRef.bookmarks.map(s => s.id), {
       hideHint: true,
-      onRemove: async (target) => {
-        await removeCard(stateRef, target);
-        showToast(t('bookmarks.removed'), 'success');
-        filterAndRender();
-      },
       onBookmarkChange: (storyId, bookmarked) => {
         if (!bookmarked) {
           stateRef.bookmarks = stateRef.bookmarks.filter(s => s.id !== storyId);
@@ -194,24 +189,10 @@ async function loadCollection(page, options = DEFAULT_ARCHIVE_OPTIONS) {
         }
         const miniBtn = document.querySelector(`.mini-bookmark-btn[data-story-id="${storyId}"]`);
         if (miniBtn) miniBtn.classList.toggle('active', bookmarked);
+        filterAndRender();
       },
     });
   }
-}
-
-/**
- * removeCard — 카드 종류를 판별해 적절한 저장소에서 삭제하고
- * 화면 상태(state.bookmarks/received) 에서도 즉시 제거한다.
- */
-async function removeCard(state, story) {
-  if (!story || !story.id) return;
-
-  try {
-    await toggleBookmark(story.id);
-  } catch {
-    /* 실패해도 화면에선 빼서 일관성 유지 */
-  }
-  state.bookmarks = state.bookmarks.filter((s) => s.id !== story.id);
 }
 
 
@@ -278,7 +259,12 @@ function renderArchiveHeader(initialTab = 'history') {
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
-        <button type="button" class="calendar-toggle-btn${isMine ? ' active' : ''}" data-tab="mine">나의 카드</button>
+        <button type="button" class="calendar-toggle-btn${isMine ? ' active' : ''}" data-tab="mine" aria-label="나의 카드">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="8" r="5"/>
+            <path d="M20 21a8 8 0 0 0-16 0"/>
+          </svg>
+        </button>
         <span class="calendar-toggle-thumb" aria-hidden="true"></span>
       </div>
       <div class="search-bar archive-search">
@@ -355,9 +341,9 @@ function renderMyMiniCard(story) {
         </div>
         <div class="mini-top-right">
           <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="수정">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+              <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+              <path d="m15 5 4 4"/>
             </svg>
           </button>
           ${author ? `<span class="mini-top-text">${escapeHtml(author)}</span>` : ''}

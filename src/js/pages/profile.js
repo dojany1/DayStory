@@ -17,7 +17,6 @@ import { showToast } from '../components/toast.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
-import { isWebpUrl } from '../utils/storage.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -66,13 +65,15 @@ export function renderProfile() {
         <div class="settings-user-row">
           <div class="profile-avatar-wrap">
             ${(() => {
-              /* WebP avatar 는 iOS WKWebView 크래시 유발 → fallback SVG. */
-              const rawUrl = (profile && profile.photoURL) || user.photoURL;
-              const safeUrl = rawUrl && !isWebpUrl(rawUrl) ? rawUrl : '';
-              const fallbackSvg = `this.style.display='none';this.parentNode.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'`;
-              return safeUrl
-                ? `<img src="${escapeHtml(safeUrl)}" alt="" onerror="${fallbackSvg}" />`
-                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+              /* legacy WebP 포함 photoURL 을 그대로 사용한다.
+                 이전엔 isWebpUrl 차단으로 기존 유저 아바타가 fallback 으로 보이는 버그 발생.
+                 디코드 실패 시 onerror 핸들러가 img 를 숨기고 옆 SVG 를 노출한다. */
+              const rawUrl = (profile && profile.photoURL) || user.photoURL || '';
+              const fallbackSvg = `<svg class="profile-avatar-fallback" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"${rawUrl ? ' style="display:none"' : ''}><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`;
+              const imgOnError = "this.style.display='none';this.nextElementSibling.style.display='block';";
+              return rawUrl
+                ? `<img src="${escapeHtml(rawUrl)}" alt="" onerror="${imgOnError}" />${fallbackSvg}`
+                : fallbackSvg;
             })()}
           </div>
           <div class="settings-user-meta">
@@ -105,6 +106,55 @@ export function renderProfile() {
   initArchiveSection(page, { myStoryClickMode: 'popup' });
 
   return page;
+}
+
+
+/**
+ * syncProfileDom — 저장 성공 직후 현재 화면의 .settings-user-info 를 직접 업데이트.
+ * 라우터 same-path no-op 우회용 Optimistic UI 패치.
+ * @param {{ nickname: string, photoURL?: string, isEditor?: boolean }} next
+ */
+function syncProfileDom(next) {
+  const root = document.querySelector('.settings-user-info');
+  if (!root) return;
+
+  /* 닉네임 — textContent 로 안전하게 갱신 후 admin 배지 복원 */
+  const nameEl = root.querySelector('.settings-user-name');
+  if (nameEl) {
+    nameEl.textContent = next.nickname;
+    if (next.isEditor) {
+      const badge = document.createElement('span');
+      badge.className = 'settings-user-badge';
+      badge.textContent = '관리자';
+      nameEl.appendChild(badge);
+    }
+  }
+
+  /* 아바타 — photoURL 이 새로 들어왔을 때만 갱신 */
+  if (!next.photoURL) return;
+  const wrap = root.querySelector('.profile-avatar-wrap');
+  if (!wrap) return;
+
+  let img = wrap.querySelector('img');
+  if (img) {
+    img.src = next.photoURL;
+    img.style.display = '';
+  } else {
+    img = document.createElement('img');
+    img.alt = '';
+    img.src = next.photoURL;
+    img.onerror = function () {
+      this.style.display = 'none';
+      const sib = this.nextElementSibling;
+      if (sib) sib.style.display = 'block';
+    };
+    wrap.insertBefore(img, wrap.firstChild);
+  }
+  const fallback = wrap.querySelector('svg');
+  if (fallback) {
+    fallback.classList.add('profile-avatar-fallback');
+    fallback.style.display = 'none';
+  }
 }
 
 
@@ -254,6 +304,7 @@ function openProfileEditModal() {
 
       await setDoc(profileRef, updateData, { merge: true });
 
+      /* 전역 state 동기화 — 다른 페이지에서도 최신 값 사용. */
       const newProfile = { ...profile, ...updateData };
       setState('profile', newProfile);
 
@@ -262,9 +313,13 @@ function openProfileEditModal() {
       if (updateData.photoURL) updatedUser.photoURL = updateData.photoURL;
       setState('user', updatedUser);
 
+      /* Optimistic UI — 현재 보이는 .settings-user-info 의 닉네임/아바타를 즉시 갱신.
+         같은 경로(/profile) 로 navigate 해도 router 가 no-op 처리해 재렌더되지 않으므로
+         DOM 을 직접 패치한다. */
+      syncProfileDom({ nickname, photoURL: updateData.photoURL, isEditor: profile.role === 'editor' });
+
       showToast('프로필이 수정되었습니다.', 'success');
       closeModal();
-      navigate('/profile');
     } catch (err) {
       console.error('프로필 저장 실패:', err);
       showToast('프로필 저장에 실패했습니다.', 'error');
@@ -284,7 +339,14 @@ function openCropperForProfile(imageSrc, onConfirm) {
   cropOverlay.className = 'crop-modal-overlay';
 
   cropOverlay.innerHTML = `
-    <div class="crop-modal-header">프로필 사진 자르기</div>
+    <div class="crop-modal-header">
+      <button type="button" class="crop-modal-back-btn" id="btn-profile-crop-back" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+      </button>
+      프로필 사진 자르기
+    </div>
     <div class="crop-modal-body">
       <img id="profile-cropper-image" src="${imageSrc}" style="max-width: 100%; display: block;" />
     </div>
@@ -326,6 +388,15 @@ function openCropperForProfile(imageSrc, onConfirm) {
     showToast('이미지를 불러올 수 없습니다.', 'error');
     cropOverlay.remove();
   };
+
+  const cancelCrop = () => {
+    cropOverlay.style.opacity = '0';
+    setTimeout(() => {
+      if (cropper) cropper.destroy();
+      cropOverlay.remove();
+    }, 300);
+  };
+  cropOverlay.querySelector('#btn-profile-crop-back').addEventListener('click', cancelCrop);
 
   cropOverlay.querySelector('#btn-profile-crop-rotate').addEventListener('click', () => {
     if (cropper) cropper.rotate(90);

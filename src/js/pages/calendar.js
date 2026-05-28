@@ -312,7 +312,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     <div class="calendar-card-popup-inner">
       <div class="calendar-card-popup-stage">
         ${mode === 'history'
-          ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected, { showDeleteBtn: !!options.onRemove })
+          ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected)
           : buildMyCardHtml(story, year, month, day, getMyCardNickname(story))}
       </div>
       ${options.hideHint ? '' : `<div class="calendar-card-popup-hint">${collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint')}</div>`}
@@ -333,26 +333,6 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay || e.target.classList.contains('calendar-card-popup-inner')) close();
   });
-
-  /* 삭제 버튼 (보관함 페이지에서 onRemove 콜백을 넘긴 경우) */
-  if (options.onRemove) {
-    const deleteBtn = overlay.querySelector('.card-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const ok = await showConfirm({
-          title: t('bookmarks.remove_confirm_title'),
-          message: t('bookmarks.remove_confirm_message'),
-          confirmText: t('bookmarks.remove_btn'),
-          cancelText: t('common.cancel'),
-          danger: true,
-        });
-        if (!ok) return;
-        await options.onRemove(story);
-        close();
-      });
-    }
-  }
 
   /* 카드 플립 — 수집된 카드 또는 오늘 카드만 뒤집을 수 있음 */
   const flipper = overlay.querySelector('.flipper');
@@ -513,7 +493,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   }
 }
 
-function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], collected = false, options = {}) {
+function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], collected = false) {
   const bodyHtml = (story.body || '').split(/\n|\\n/)
     .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
   const isBookmarked = !!(story.id && bookmarkedIds.includes(story.id));
@@ -559,15 +539,6 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
           </div>
         </div>
         <div class="back history-card-back">
-          ${options.showDeleteBtn ? `
-            <button class="card-delete-btn" type="button" aria-label="${escapeHtml(t('bookmarks.remove_btn'))}" title="${escapeHtml(t('bookmarks.remove_btn'))}">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                <path d="M10 11v6"/><path d="M14 11v6"/>
-                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-              </svg>
-            </button>` : ''}
           <div class="back-title">${escapeHtml(story.figure_name || '')}</div>
           <hr class="back-divider" />
           <div class="back-body">${bodyHtml}</div>
@@ -621,9 +592,9 @@ function buildMyCardHtml(story, year, month, day, nickname = '') {
                   </svg>
                 </button>
                 <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="수정">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                    <path d="m15 5 4 4"/>
                   </svg>
                 </button>
               </div>

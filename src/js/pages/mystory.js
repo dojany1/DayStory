@@ -533,9 +533,9 @@ function buildMyStorySlideHTML(story, isoDateStr) {
                   </svg>
                 </button>
                 <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id)}" aria-label="수정">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                    <path d="m15 5 4 4"/>
                   </svg>
                 </button>
               </div>
@@ -810,10 +810,20 @@ export function renderMyStoryNew() {
 
       try {
         await deleteMyStory(editingId);
-        const deletedDate = document.getElementById('ms-date')?.value || defaultDate;
         void syncDiaryStateFromList(allStories.filter((story) => String(story.id) !== String(editingId)));
         showToast('일화가 삭제되었습니다.', 'success');
-        navigate('/mystory', { date: deletedDate });
+        /* 진입 경로(/mystory, /profile, /editorstory 등)로 자연스럽게 복귀.
+           PageHeader 뒤로가기 버튼과 동일한 history.back() 패턴을 사용한다.
+           history 가 비어있는 외부 진입(직접 URL, 알림 등) 케이스를 위해
+           일정 시간 내 hashchange 가 없으면 /mystory 로 fallback. */
+        const beforeHash = window.location.hash;
+        const fallbackTimer = setTimeout(() => {
+          if (window.location.hash === beforeHash) {
+            navigate('/mystory');
+          }
+        }, 300);
+        window.addEventListener('hashchange', () => clearTimeout(fallbackTimer), { once: true });
+        history.back();
       } catch (err) {
         showToast('삭제 중 오류가 발생했습니다.', 'error');
       }

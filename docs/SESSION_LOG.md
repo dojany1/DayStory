@@ -657,3 +657,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **G. 레이아웃·CSS 버그 수정**
 - `pages.css` — `.profile-avatar-wrap` 에 `display: flex` 누락으로 `align-items/justify-content` 가 작동하지 않아 기본 아이콘이 좌상단으로 쏠리던 문제 수정. img/svg 셀렉터 분리해 img 는 `object-fit: cover`, svg 는 32×32 고정 사이즈.
 - `components.css` — `base.css` 전역 `box-sizing: border-box` 리셋이 Cropper.js 내부 요소(`cropper-line`, `cropper-point` 등)의 pixel 단위 레이아웃을 깨뜨리던 문제 수정. 해당 클래스와 `::before/::after` 가상 요소에 `box-sizing: content-box; margin: 0; padding: 0;` 명시 복원.
+
+**H. 카드 캡처 공유 기능 신규 (Claude, 17:14)**
+- `html2canvas@1.4.1`, `@capacitor/filesystem@8.1.2` 설치. `capacitor.config.json` 의 `android.includePlugins` 에 filesystem 추가하여 `cap sync android` 가 plugin 으로 인식하도록 함 (Android 는 allowlist 방식, iOS 는 자동).
+- `services/sharing.js` 에 `captureAndShareCard(cardElement, options)` 추가. 흐름: ① 카드 하단 우측에 워터마크 DOM(앱 로고 + 'DayStory') 임시 주입 + 카드 `position` 임시 `relative` ② `html2canvas` 동적 import 로 캡처(`useCORS: true`, devicePixelRatio scale) ③ `finally` 에서 워터마크 제거 + position 원복 ④ Native(Capacitor): `Filesystem.writeFile` → `Directory.Cache` 저장 → `Share.share({ url })` ⑤ Web: Web Share Level 2(files) 우선, 미지원 시 다운로드 폴백.
+- `pages/mystory.js`, `pages/calendar.js`, `pages/editorstory.js` 의 공유 버튼 핸들러를 새 캡처 흐름으로 전환. 캡처 실패(non-cancel) 시 기존 `shareStory()`(URL/텍스트) 로 폴백, 캡처 중에는 버튼 `disabled` 토글로 중복 클릭 차단.
+- html2canvas 는 `await import('html2canvas')` 동적 import 로 분리 → 별도 chunk `html2canvas-*.js 199.56kB / gzip 46.78kB`, 초기 번들 영향 없음.
+- 검증: `npm run build` 성공, `npx cap sync android` → "Found 9 Capacitor plugins" 에서 `@capacitor/filesystem@8.1.2` 확인, `android/capacitor.settings.gradle` 및 `android/app/capacitor.build.gradle` 에 `:capacitor-filesystem` 등록 확인. 기존 vitest 71 fail 은 베이스라인의 jsdom `sessionStorage` 미설정 등 무관 회귀.

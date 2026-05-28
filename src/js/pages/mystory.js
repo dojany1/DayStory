@@ -18,7 +18,7 @@ import { escapeHtml } from '../utils/sanitize.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
 import { auth, storage } from '../firebase.js';
 import { ref as fsRef, getBlob } from 'firebase/storage';
-import { shareStory } from '../services/sharing.js';
+import { shareStory, captureAndShareCard } from '../services/sharing.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { syncDiaryStateFromList } from '../services/widget.js';
@@ -613,7 +613,24 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
     shareBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (!checkAuth()) return;
-      await shareStory(story, { kind: 'mystory', includeImage: false });
+      const cardEl = flipContainer.querySelector('.history-card-front');
+      if (!cardEl) {
+        await shareStory(story, { kind: 'mystory', includeImage: false });
+        return;
+      }
+      shareBtn.disabled = true;
+      try {
+        const res = await captureAndShareCard(cardEl, {
+          title: story.title || 'DayStory',
+          text: `[DayStory] ${story.title || ''}`.trim(),
+          dialogTitle: '나의 일화 공유',
+        });
+        if (!res.ok && res.reason !== 'cancelled') {
+          await shareStory(story, { kind: 'mystory', includeImage: false });
+        }
+      } finally {
+        shareBtn.disabled = false;
+      }
     });
   }
 

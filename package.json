@@ -1,6 +1,6 @@
 {
   "name": "daystory",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -27,6 +27,7 @@
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "@capacitor/device": "^8.0.2",
+    "@capacitor/filesystem": "^8.1.2",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.3.4",
     "@capacitor/local-notifications": "^8.0.2",
@@ -36,6 +37,7 @@
     "@revenuecat/purchases-capacitor": "^13.1.0",
     "cropperjs": "^1.6.2",
     "firebase": "^10.14.1",
+    "html2canvas": "^1.4.1",
     "lucide": "^1.16.0",
     "swiper": "^11.2.10"
   }

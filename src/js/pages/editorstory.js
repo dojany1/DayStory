@@ -13,7 +13,7 @@ import { fetchStories, fetchTodayStory } from '../services/stories.js';
 import { toggleBookmark, getBookmarkedStoryIds } from '../services/bookmarks.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { shareStory } from '../services/sharing.js';
+import { shareStory, captureAndShareCard } from '../services/sharing.js';
 import { getState, setState } from '../state.js';
 import { navigate, setOnUnmount } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
@@ -666,7 +666,24 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
   if (shareBtn && story) {
     shareBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      await shareStory(story, { kind: 'history' });
+      const cardEl = flipContainer.querySelector('.history-card-front');
+      if (!cardEl) {
+        await shareStory(story, { kind: 'history' });
+        return;
+      }
+      shareBtn.disabled = true;
+      try {
+        const res = await captureAndShareCard(cardEl, {
+          title: story.figure_name || story.title || 'DayStory',
+          text: `[DayStory] ${story.figure_name || story.title || ''}`.trim(),
+          dialogTitle: '역사 일화 공유',
+        });
+        if (!res.ok && res.reason !== 'cancelled') {
+          await shareStory(story, { kind: 'history' });
+        }
+      } finally {
+        shareBtn.disabled = false;
+      }
     });
   }
 

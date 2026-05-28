@@ -16,7 +16,7 @@ import { getState } from '../state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date.js';
 import { navigate } from '../router.js';
-import { shareStory } from '../services/sharing.js';
+import { shareStory, captureAndShareCard } from '../services/sharing.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
@@ -437,6 +437,25 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     editorBtn.addEventListener('click', showEditorBubble);
   }
 
+  /* 카드 캡처 공유 헬퍼 — overlay 안의 .history-card-front 를 PNG로 캡처. */
+  const shareCardCapture = async (kind) => {
+    const cardEl = overlay.querySelector('.history-card-front');
+    if (!cardEl) {
+      await shareStory(story, { kind, includeImage: kind === 'history' });
+      return;
+    }
+    const dialogTitle = kind === 'history' ? '역사 일화 공유' : '나의 일화 공유';
+    const text = `[DayStory] ${story.title || story.figure_name || ''}`.trim();
+    const res = await captureAndShareCard(cardEl, {
+      title: story.title || story.figure_name || 'DayStory',
+      text,
+      dialogTitle,
+    });
+    if (!res.ok && res.reason !== 'cancelled') {
+      await shareStory(story, { kind, includeImage: kind === 'history' });
+    }
+  };
+
   /* 공유 / 수정 버튼 — 나의 일화에만 표시 */
   if (mode !== 'history') {
     const shareBtn = overlay.querySelector('.share-my-story-btn');
@@ -445,7 +464,9 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     if (shareBtn) {
       shareBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        await shareStory(story, { kind: 'mystory', includeImage: false });
+        shareBtn.disabled = true;
+        try { await shareCardCapture('mystory'); }
+        finally { shareBtn.disabled = false; }
       });
     }
 
@@ -466,7 +487,9 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     if (shareBtn) {
       shareBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        await shareStory(story, { kind: 'history' });
+        shareBtn.disabled = true;
+        try { await shareCardCapture('history'); }
+        finally { shareBtn.disabled = false; }
       });
     }
 

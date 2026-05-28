@@ -629,3 +629,31 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증 종합**: `npm run build` 매 단계 성공. 신규 테스트는 `tests/version.spec.js` 9건(전부 green). 기존 테스트의 71/285 fail 은 baseline 의 위젯/북마크/콘텐츠매니저 등 무관 영역 회귀로 이번 작업과 무관.
 
 **미해결/사용자 액션 필요**: (a) Firebase Remote Config 운영값(`latest_version` 을 실제 출시 버전으로 유지), (b) iOS App Store 의 numeric URL 을 `ios_store_url` 키로 주입, (c) 시트 진입 애니메이션 + 핸들 드래그 실기 검증.
+
+---
+
+### 2026-05-28 — UI 아이콘 교체 · 프로필 버그 수정 · UX 개선
+
+**A. 하단 내비게이션 Haptic Feedback**
+- `router.js` — `@capacitor/haptics` import 추가. `.nav-item` 클릭 이벤트 핸들러 최상단에 `Haptics.impact({ style: ImpactStyle.Light })` 호출. 웹 환경 오류 방지를 위해 try-catch 감쌈.
+
+**B. 아이콘 교체 (Lucide 통일)**
+- `bookmarks.js` — 보관함 토글의 "나의 카드" 텍스트 버튼 → Lucide `user-round` (채우기) 아이콘으로 교체. 북마크 아이콘과 동일한 SVG 구조·CSS 룰 공유.
+- `bookmarks.js`, `calendar.js`, `mystory.js` — `edit-my-story-btn` 아이콘을 기존 사각형+펜 → Lucide `pencil` 으로 교체.
+- `profile.js` — 기본 프로필 아바타 SVG(user 실루엣) → Lucide `user-round` (채우기) 로 교체. 이미지 로드 실패 onerror fallback 도 동일 아이콘 적용.
+
+**C. 프로필 아바타 WebP 차단 버그 수정**
+- `profile.js` — `isWebpUrl()` 필터로 기존 유저의 WebP photoURL 이 전부 차단돼 기본 아이콘으로 표시되던 문제 수정. `isWebpUrl` 필터 제거 후 photoURL 을 그대로 사용하고, 디코드 실패 시 `onerror` 로 img 숨김 + 옆 SVG fallback 노출 패턴(sibling toggle)으로 전환. 미사용 import 제거.
+
+**D. 프로필 편집 저장 후 UI 동기화 버그 수정**
+- `profile.js` — 닉네임·프로필 사진 저장 성공 후 `navigate('/profile')` 가 라우터 same-path 가드에 막혀 DOM 이 갱신되지 않던 문제 수정. `syncProfileDom()` 헬퍼 추가: `.settings-user-name` textContent 교체 + `.profile-avatar-wrap img.src` 교체 + SVG fallback 토글. 전역 `setState('profile'/'user')` 는 유지해 다른 페이지 일관성 보장.
+
+**E. 프로필 이미지 자르기 모달 뒤로가기 버튼 추가**
+- `profile.js` — 크롭 모달 헤더에 `crop-modal-back-btn` 추가(Lucide chevron-left). `cancelCrop()` 핸들러(오버레이 페이드아웃 → cropper destroy → DOM 제거) 구현. `mystory.js` / `editor.js` 의 크롭 모달과 동일한 CSS 클래스·패턴 적용.
+
+**F. 일화 삭제 후 페이지 복귀 버그 수정**
+- `mystory.js` — 삭제 성공 시 `navigate('/mystory')` 로 강제 이동하던 로직을 `history.back()` 으로 교체. `/profile` 에서 진입해 삭제하면 `/profile` 로, `/mystory` 에서 진입하면 `/mystory` 로 자연스럽게 복귀. history 가 비어있는 외부 진입을 위해 300ms fallback(`navigate('/mystory')`) 안전망 추가.
+
+**G. 레이아웃·CSS 버그 수정**
+- `pages.css` — `.profile-avatar-wrap` 에 `display: flex` 누락으로 `align-items/justify-content` 가 작동하지 않아 기본 아이콘이 좌상단으로 쏠리던 문제 수정. img/svg 셀렉터 분리해 img 는 `object-fit: cover`, svg 는 32×32 고정 사이즈.
+- `components.css` — `base.css` 전역 `box-sizing: border-box` 리셋이 Cropper.js 내부 요소(`cropper-line`, `cropper-point` 등)의 pixel 단위 레이아웃을 깨뜨리던 문제 수정. 해당 클래스와 `::before/::after` 가상 요소에 `box-sizing: content-box; margin: 0; padding: 0;` 명시 복원.

@@ -23,6 +23,7 @@
   --color-bg-card-dark: #F2F0EF;         /* 카드 어두운 배경 (비활성 상태 등) */
   --color-bg-elevated: #ffffff;          /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.45); /* 오버레이 (대비 소폭 강화) */
+  --color-bg-desktop: #e8e8ed;           /* 데스크톱 본문 배경 (모바일 래퍼 바깥) */
 
   /* ── 라이트 테마 텍스트 색상 ── */
   --color-text-primary: #111111;         /* 눈이 편안한 차콜 블랙 */
@@ -56,7 +57,7 @@
   
   /* ── 라이트 테마 데스크톱 래퍼 ── */
   --color-bg-desktop: #e8e8ed;   /* 데스크톱 본문 배경 (모바일 래퍼 바깥) */
-  --shadow-wrapper: none;        /* 라이트 모드에서는 래퍼 그림자 없음 */
+  --shadow-wrapper: 0 0 24px rgba(0, 0, 0, 0.4); /* 데스크톱 래퍼 그림자 (모바일 래퍼에 깊이감 부여) */
 
   /* ── 그림자 (깊이감 표현) ── */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -128,11 +129,11 @@
   --z-overlay: 500;     /* 풀스크린 오버레이 (confirm/profile-edit/crop-modal) — 가장 위 */
 
   /* ── 레이아웃 ── */
-  --mobile-max-width: 768px;                      /* 모바일 래퍼 최대 너비 */
+  --mobile-max-width: 618px;                      /* 모바일 래퍼 최대 너비 */
   --mobile-min-width: 320px;                      /* 모바일 래퍼 최소 너비 */
   --card-max-width: 94%;                          /* 카드 최대 너비 */
   --card-aspect-ratio: 3.1 / 4.8;                 /* 카드 비율 */
-  --nav-height: 58px;                             /* 하단 내비게이션 바 높이 */
+  --nav-height: 50px;                             /* 하단 내비게이션 바 높이 */
   --safe-area-top: env(safe-area-inset-top, 0px); /* 상단 안전 영역 (노치 대응) */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px); /* 하단 안전 영역 (홈 바 대응) */
 
@@ -153,6 +154,7 @@
   --color-bg-card-dark: #29292b;            /* 카드 더 어두운 배경 */
   --color-bg-elevated: #303036;             /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.65);
+  --color-bg-desktop: #1c1c1e;           /* 데스크톱 본문 배경 (모바일 래퍼 바깥) — 다크 모드에서는 모바일 래퍼와 동일한 어두운 배경 유지 */
 
   /* ── 다크 테마 텍스트 색상 ── */
   --color-text-primary: #f5f5f7;            /* 가독성 높은 소프트 화이트 */
@@ -186,7 +188,7 @@
 
   /* ── 다크 테마 데스크톱 래퍼 ── */
   --color-bg-desktop: #000000;
-  --shadow-wrapper: inset 0 0 1px rgba(255, 255, 255, 0.1);
+  --shadow-wrapper: 0 0 68px rgba(85, 84, 84, 0.4); /* 다크 모드에서는 모바일 래퍼에 밝은 그림자 적용하여 깊이감 부여 */
 }
 
 

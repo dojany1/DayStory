@@ -686,4 +686,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - `pages.css` — `.settings-page` padding-bottom `var(--space-8)` → `var(--space-16)` (32px → 64px).
 - `base.css` — `.page` 의 `min-height: 100%` → `flex: 1 0 auto` 전환. 이유: overflow-y:auto 인 flex 컨테이너에서 `min-height:100%` 는 브라우저가 무한 루프 방지를 위해 아이템을 컨테이너 높이에 고정시켜 padding-bottom 이 스크롤 영역에 포함되지 않음. `flex:1 0 auto` 로 flex-grow:1(짧은 페이지 채움) + flex-shrink:0(콘텐츠 길 때 정상 확장) 동시 달성.
 
+**E. 디자인 토큰 · 래퍼 레이아웃 조정 (사용자 직접 수정)**
+- `variables.css` — `--mobile-max-width` 768px → 618px, `--nav-height` 58px → 50px.
+- `variables.css` — 라이트 테마 `--shadow-wrapper` `none` → `0 0 24px rgba(0,0,0,0.4)` (데스크톱 래퍼 그림자 추가). 다크 테마 `--shadow-wrapper` → `0 0 68px rgba(85,84,84,0.4)` (밝은 헤일로 효과).
+- `variables.css` — 라이트 테마 최상단 및 다크 테마 블록에 `--color-bg-desktop` 변수 누락분 추가 (라이트 `#e8e8ed`, 다크 `#1c1c1e`).
+- `android/app/src/main/assets/public/index.html` — `npm run build` 후 변경된 asset 해시(index.js, router.js, i18n.js, storyI18n.js, index.css) 업데이트.
+
 **검증**: 실기 테스트 (카드 꾹 누름 → 피드백, 페이지 간 진입 방향, 설정 페이지 하단 스크롤 여백 확인). `npm run build` 성공.

@@ -193,6 +193,10 @@
   transition: transform 0.4s ease-in-out 0.05s, scale 0.2s;
 }
 
+.flipper.is-pressing {
+  scale: 0.98;
+}
+
 /* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */
 .flipper.flipped {
   transform: rotateY(180deg);
@@ -492,7 +496,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--color-w);
+  background: var(--color-error);
   border: 1.5px solid var(--color-bg-card, var(--color-bg-primary));
   z-index: 2;
   transition: opacity 0.2s ease, transform 0.2s ease;

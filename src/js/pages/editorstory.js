@@ -15,7 +15,7 @@ import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { shareStory, captureAndShareCard } from '../services/sharing.js';
 import { getState, setState } from '../state.js';
-import { navigate, setOnUnmount } from '../router.js';
+import { navigate, setOnUnmount, getPreviousRoute } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
@@ -75,6 +75,8 @@ const ICON_CARD = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" s
 export function renderEditorStory() {
   const page = document.createElement('div');
   page.className = 'editorstory-page page';
+  /* 다른 페이지에서 진입 시에만 좌측에서 우측으로, 최초 로드는 기본값(아래→위) */
+  if (getPreviousRoute()) page.dataset.enter = 'from-left';
 
   const savedView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
   const initialYear = new Date().getFullYear();
@@ -634,6 +636,15 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
   /* 이미 바인딩됐다면 중복 방지 (Virtual cache로 같은 슬라이드 DOM이 재사용될 때) */
   if (flipContainer.dataset.bound === '1') return;
   flipContainer.dataset.bound = '1';
+
+  /* 꾹 누름 피드백: 60ms 후 is-pressing 추가, 손가락 떼거나 움직이면 즉시 해제 */
+  let _pressTimer = null;
+  const _startPress = () => { _pressTimer = setTimeout(() => flipper.classList.add('is-pressing'), 60); };
+  const _endPress   = () => { clearTimeout(_pressTimer); flipper.classList.remove('is-pressing'); };
+  flipper.addEventListener('touchstart',  _startPress, { passive: true });
+  flipper.addEventListener('touchmove',   _endPress,   { passive: true });
+  flipper.addEventListener('touchend',    _endPress,   { passive: true });
+  flipper.addEventListener('touchcancel', _endPress,   { passive: true });
 
   /* 이미지 fade-in */
   flipContainer.querySelectorAll('.history-card-image-wrap img').forEach(img => {

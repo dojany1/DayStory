@@ -73,7 +73,7 @@ body {
   min-height: 100dvh;                  /* dvh: 동적 뷰포트 높이 (모바일 주소창 고려) */
   font-family: var(--font-ui);
   line-height: 1.6;
-  background-color: var(--color-bg-primary); /* 데스크톱 배경색 (래퍼 바깥) */
+  background-color: var(--color-bg-desktop); /* 데스크톱 배경색 (래퍼 바깥) */
   color: var(--color-text-primary);
   overflow-x: hidden;                  /* 가로 스크롤 방지 */
   -webkit-font-smoothing: antialiased;      /* macOS에서 폰트 부드럽게 */
@@ -97,7 +97,7 @@ body {
   margin: 0 auto;                      /* 수평 중앙 정렬 */
   background-color: var(--color-bg-primary); /* 앱 내부 배경색 */
   overflow: hidden;                    /* 앱 외부로 요소가 나가는 것만 방지 */
-  box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.2); /* 데스크톱에서 약간의 그림자 효과 */
+  box-shadow: var(--shadow-wrapper); /* 데스크톱에서 약간의 그림자 효과 */
 }
 
 
@@ -233,9 +233,14 @@ ul, ol {
 
 /* 개별 페이지 — 각 페이지(홈, 설정 등)의 공통 래퍼
    페이지 전환 시 아래에서 위로 페이드인 애니메이션 적용 */
+/* flex: 1 0 auto — flex-grow:1 로 짧은 페이지가 컨테이너를 채우고,
+   flex-shrink:0 으로 콘텐츠가 길 때 컨테이너 밖으로 정상 확장되어
+   padding-bottom 이 스크롤 영역을 올바르게 넓힌다.
+   (min-height:100% 는 overflow:auto flex 컨테이너에서 브라우저가
+   무한 루프 방지를 위해 아이템을 컨테이너 높이에 고정시켜 padding-bottom 무시됨) */
 .page {
   width: 100%;
-  min-height: 100%;
+  flex: 1 0 auto;
   animation: pageEnter 0.4s;
 }
 
@@ -247,19 +252,33 @@ ul, ol {
   animation: none;
 }
 .page:has(.page-header-with-back) > :not(.page-header) {
-  animation: pageEnter 0.35s;
+  animation: pageEnter 0.2s ease-out;
 }
 
-/* 페이지 진입 애니메이션 — 아래에서 위로 미끄러지며 나타남 */
+/* 페이지 진입 애니메이션 — 아래에서 위로 미끄러지며 나타남 (기본값) */
 @keyframes pageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 우측에서 좌측으로 — 나의 일화 */
+@keyframes pageEnterFromRight {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* 좌측에서 우측으로 — 에디터 일화 (다른 페이지에서 진입 시) */
+@keyframes pageEnterFromLeft {
+  from { opacity: 0; transform: translateX(-28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* data-enter 바리에이션 — 기본 .page animation-name: pageEnter 를 덮어씀 */
+.page[data-enter="from-right"] {
+  animation-name: pageEnterFromRight;
+}
+.page[data-enter="from-left"] {
+  animation-name: pageEnterFromLeft;
 }
 
 
@@ -401,12 +420,15 @@ ul, ol {
   display: flex;
   align-items: center;
   justify-content: space-around;       /* 아이콘을 균등하게 배치 */
+
   width: 100%;
   max-width: var(--mobile-max-width);  /* 래퍼 너비에 맞춤 */
   min-width: var(--mobile-min-width);
   height: calc(var(--nav-height) + var(--safe-area-bottom));
-  padding: var(--space-2) var(--space-8) 0; /* 상하 패딩 조정, 하단 패딩은 safe-area만큼 확보 */
+
+  padding: 0 var(--space-10) 0; /* 상하 패딩 조정, 하단 패딩은 safe-area만큼 확보 */
   padding-bottom: calc(var(--space-1) + var(--safe-area-bottom)); /* 홈 바 영역까지 배경색 확장 */
+
   background: var(--color-bg-primary); /* 항상 불투명 — backdrop-filter 미지원 환경에서 뒤가 비치지 않도록 */
   transform: translateX(-50%);         /* left:50% + 이 값으로 중앙 정렬 */
 }
@@ -416,7 +438,7 @@ ul, ol {
   display: flex;
   align-items: center;
   color: var(--color-text-tertiary);   /* 비활성 상태: 연한 회색 */
-  transition: color var(--transition-fast), transform var(--transition-fast);
+  transition: color var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
   position: relative;
 }
 
@@ -424,8 +446,9 @@ ul, ol {
 
 /* 내비게이션 아이템 터치 시 — 살짝 축소 애니메이션 */
 .nav-item:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
   transition: transform 200ms;
+  color: var(--color-accent);
   background: var(--color-bg-card-dark);
 }
 

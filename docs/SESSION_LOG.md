@@ -664,3 +664,26 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - `pages/mystory.js`, `pages/calendar.js`, `pages/editorstory.js` 의 공유 버튼 핸들러를 새 캡처 흐름으로 전환. 캡처 실패(non-cancel) 시 기존 `shareStory()`(URL/텍스트) 로 폴백, 캡처 중에는 버튼 `disabled` 토글로 중복 클릭 차단.
 - html2canvas 는 `await import('html2canvas')` 동적 import 로 분리 → 별도 chunk `html2canvas-*.js 199.56kB / gzip 46.78kB`, 초기 번들 영향 없음.
 - 검증: `npm run build` 성공, `npx cap sync android` → "Found 9 Capacitor plugins" 에서 `@capacitor/filesystem@8.1.2` 확인, `android/capacitor.settings.gradle` 및 `android/app/capacitor.build.gradle` 에 `:capacitor-filesystem` 등록 확인. 기존 vitest 71 fail 은 베이스라인의 jsdom `sessionStorage` 미설정 등 무관 회귀.
+
+---
+
+### 2026-06-01 — 카드 UX 피드백 · 페이지 진입 애니메이션 · 레이아웃 개선
+
+**A. 카드 탭 피드백 (꾹 누름 상태 시각화)**
+- `components.css` — `.flipper.is-pressing { scale: 0.95; }` 추가. 기존 `.flipper` 의 `transition: scale 0.2s` 와 결합해 누를 때·뗄 때 부드럽게 스케일 변환.
+- `editorstory.js`, `mystory.js` — `bindFlipCardEvents()` / `bindMyStoryCardEvents()` 초입에 touch 이벤트 핸들러 추가. 60ms 딜레이 후 `.is-pressing` 클래스 추가, `touchmove`/`touchend`/`touchcancel` 에서 즉시 제거. 스와이프와 탭을 구분해 스와이프 중에는 피드백 미표시.
+
+**B. 페이지 진입 애니메이션 바리에이션 (방향성 있는 진입)**
+- `router.js` — `previousRoute` 변수 추가, 매 실제 네비게이션 시 `currentRoute` 로 갱신. `getPreviousRoute()` export 추가 → 페이지가 직전 경로를 판단 가능.
+- `base.css` — `pageEnterFromRight`(우측 28px), `pageEnterFromLeft`(좌측 -28px) keyframes 추가. `.page[data-enter="from-right/left"]` 로 animation-name 덮어씀(기본값 유지).
+- `mystory.js` — `data-enter="from-right"` 항상 설정 (우측에서 좌측으로 나타남).
+- `editorstory.js` — `getPreviousRoute()` 가 있을 때만 `data-enter="from-left"` 설정 (좌측에서 우측으로). 최초 로드(`previousRoute === null`) 시 기본값(아래→위) 유지.
+
+**C. 내비게이션 아이템 터치 피드백 부드러움 개선**
+- `base.css` — `.nav-item` 기본 transition 에 `background` 추가(`color`, `transform` 과 함께 200ms cubic-bezier). `:active` 해제 시 배경색도 부드럽게 페이드아웃 되어 즉각성 완화.
+
+**D. 설정 페이지 하단 여백 및 레이아웃 수정**
+- `pages.css` — `.settings-page` padding-bottom `var(--space-8)` → `var(--space-16)` (32px → 64px).
+- `base.css` — `.page` 의 `min-height: 100%` → `flex: 1 0 auto` 전환. 이유: overflow-y:auto 인 flex 컨테이너에서 `min-height:100%` 는 브라우저가 무한 루프 방지를 위해 아이템을 컨테이너 높이에 고정시켜 padding-bottom 이 스크롤 영역에 포함되지 않음. `flex:1 0 auto` 로 flex-grow:1(짧은 페이지 채움) + flex-shrink:0(콘텐츠 길 때 정상 확장) 동시 달성.
+
+**검증**: 실기 테스트 (카드 꾹 누름 → 피드백, 페이지 간 진입 방향, 설정 페이지 하단 스크롤 여백 확인). `npm run build` 성공.

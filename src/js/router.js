@@ -27,6 +27,9 @@ const routes = new Map();
 /* currentRoute: 현재 표시 중인 페이지 경로 (중복 렌더링 방지용) */
 let currentRoute = null;
 
+/* previousRoute: 직전 페이지 경로 — 진입 애니메이션 방향 결정에 사용 */
+let previousRoute = null;
+
 /* targetRoute: 현재 로딩 중인 페이지 경로 (중복 호출 방지용) */
 let targetRoute = null;
 
@@ -158,6 +161,11 @@ export function getCurrentPath() {
   return hash.split('?')[0];
 }
 
+/** getPreviousRoute — 직전 페이지 경로 반환 (진입 애니메이션 방향 결정용) */
+export function getPreviousRoute() {
+  return previousRoute;
+}
+
 
 /* ─────────────────────────────────────────────
    섹션 3: 경로 매칭 (내부 함수)
@@ -227,6 +235,8 @@ async function handleRoute() {
 
   /* 1) 같은 페이지면 다시 그리지 않음, 현재 로딩 중인 페이지와 같아도 다시 불러오지 않음 */
   if (path === currentRoute || path === targetRoute) return;
+
+  previousRoute = currentRoute;
 
   /* 콘텐츠 페이지(editorstory/mystory)에서 다른 페이지로 이동하면 임시 보기 상태 초기화 */
   const CONTENT_ROUTES = new Set(['/editorstory', '/mystory']);

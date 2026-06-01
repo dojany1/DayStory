@@ -7,7 +7,7 @@
    좌우 스와이프는 Swiper.js 11 기반으로 통합되었습니다 (2026-05-24).
    ===================================================================== */
 
-import { navigate, getParams, setOnUnmount } from '../router.js';
+import { navigate, getParams, setOnUnmount, getPreviousRoute } from '../router.js';
 import { getState, setState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
@@ -76,6 +76,7 @@ function getMyStoryAuthorNickname(story = {}) {
 export function renderMyStory() {
   const page = document.createElement('div');
   page.className = 'mystory-page page';
+  page.dataset.enter = 'from-right';
 
   const savedView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
   const initialYear = new Date().getFullYear();
@@ -573,6 +574,15 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
   /* 중복 바인딩 방지 */
   if (flipContainer.dataset.bound === '1') return;
   flipContainer.dataset.bound = '1';
+
+  /* 꾹 누름 피드백: 60ms 후 is-pressing 추가, 손가락 떼거나 움직이면 즉시 해제 */
+  let _pressTimer = null;
+  const _startPress = () => { _pressTimer = setTimeout(() => flipper.classList.add('is-pressing'), 60); };
+  const _endPress   = () => { clearTimeout(_pressTimer); flipper.classList.remove('is-pressing'); };
+  flipper.addEventListener('touchstart',  _startPress, { passive: true });
+  flipper.addEventListener('touchmove',   _endPress,   { passive: true });
+  flipper.addEventListener('touchend',    _endPress,   { passive: true });
+  flipper.addEventListener('touchcancel', _endPress,   { passive: true });
 
   /* 이미지 fade-in */
   flipContainer.querySelectorAll('.history-card-image-wrap img').forEach(img => {

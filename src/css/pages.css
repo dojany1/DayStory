@@ -229,11 +229,11 @@
 /* 페이지 전환 시 부모(.page)의 translateY(12px)를 상쇄해 휠 피커가 움직이지 않도록 고정 */
 .editorstory-page .wheel-pickers-container,
 .mystory-page .wheel-pickers-container {
-  animation: wheelPickerStatic 0.35s ease;
+  animation: wheelPickerStatic 0s ease;
 }
 
 @keyframes wheelPickerStatic {
-  from { transform: translateY(-12px); }
+  from { transform: translateY(0px); }
   to   { transform: translateY(0); }
 }
 
@@ -393,6 +393,7 @@
   grid-area: stack;
   width: 100%;
   min-width: 0;
+
   /* aspect-ratio 로 height 자동 계산. max-height 로 부모 영역 초과 방지. */
   aspect-ratio: var(--card-aspect-ratio);
   max-height: 100%;
@@ -1047,12 +1048,12 @@
 
 /* 설정 페이지 전체 — 하단 여백 */
 .settings-page {
-  padding-bottom: var(--space-8);
+  padding-bottom: var(--space-16);
   padding-top: 48px; /* 상단 헤더 공간 확보 */
 }
 
 .settings-user-info {
-  padding: var(--space-8) var(--space-2) var(--space-5) var(--space-6);
+  padding: var(--space-8) var(--space-3) var(--space-5) var(--space-6);
   
 }
 
@@ -1705,14 +1706,10 @@
 
 /* 빈 일화 작성하기 버튼 */
 .mystory-write-btn {
-  /* 1. Positioning */
-  /* 2. Box Model */
-  margin-top: 30px;
-  padding: 10px 24px;
-  /* 3. Typography */
-  /* 4. Visuals */
-  border-radius: var(--radius-lg);
-  /* 5. Misc */
+  font-size: var(--text-md);
+  margin-top: var(--space-10);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-full);
 }
 
 /* 나의 일화 카드 앞면 및 뒷면 디자인 재정의 */
@@ -2567,9 +2564,11 @@
 }
 /* 버전 정보 텍스트 */
 .settings-version {
-  color:var(--color-text-tertiary);
-  font-size:var(--text-xs);
-  text-align:center}
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  text-align: center;
+  padding-bottom: var(--space-1);
+}
 
 .settings-subsection-title {
   font-size:var(--text-xs);
@@ -2735,7 +2734,7 @@
    뷰 전환 애니메이션
    ══════════════════════════════════════════ */
 @keyframes viewEnter {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(-10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes viewExit {

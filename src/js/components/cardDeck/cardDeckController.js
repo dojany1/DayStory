@@ -188,9 +188,9 @@ async function mountCardDeck(page, config) {
       return closest;
     }
 
-    function syncMonthWheel(dayMonth, instant = false) {
+    function syncMonthWheel(dayMonth, instant = false, force = false) {
       const activeMonthEl = monthEl.querySelector('.wheel-item.active');
-      if (activeMonthEl && parseInt(activeMonthEl.dataset.month, 10) === dayMonth) return;
+      if (!force && activeMonthEl && parseInt(activeMonthEl.dataset.month, 10) === dayMonth) return;
       const targetMonthEl = monthEl.querySelector(`.wheel-item[data-month="${dayMonth}"]`);
       if (!targetMonthEl) return;
       monthEl.querySelectorAll('.wheel-item').forEach((el) => el.classList.remove('active'));
@@ -200,14 +200,17 @@ async function mountCardDeck(page, config) {
       else monthEl.scrollTo({ left: t, behavior: 'smooth' });
     }
 
-    function activateDayWheelByIndex(idx, instant = false) {
+    let selectedIdx = initialIdx;
+
+    function activateDayWheelByIndex(idx, instant = false, force = false) {
       const items = dayEl.querySelectorAll('.wheel-item');
       items.forEach((el) => el.classList.remove('active'));
       const target = items[idx];
       if (!target) return;
+      selectedIdx = idx;
       target.classList.add('active');
       const month = parseInt(target.dataset.month, 10);
-      syncMonthWheel(month, instant);
+      syncMonthWheel(month, instant, force);
       const t = target.offsetLeft - dayEl.offsetWidth / 2 + target.offsetWidth / 2;
       if (instant) dayEl.scrollLeft = t;
       else dayEl.scrollTo({ left: t, behavior: 'smooth' });
@@ -220,6 +223,10 @@ async function mountCardDeck(page, config) {
     const calView = page.querySelector(`#${P}-cal-view`);
     let currentView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
 
+    /* 캘린더 뷰로 복원되면 day picker/card area 가 hidden 상태라 Swiper 초기화를 건너뛰지만,
+       휠의 active month/date 는 논리 상태로 먼저 고정해 둔다. 그래야 카드 뷰로 돌아와도 1월로 보이지 않는다. */
+    activateDayWheelByIndex(selectedIdx, true, true);
+
     /* hidden 컨테이너 위에서 init 하면 geometry 0 → activeIndex 0 stuck. offsetParent 가 보일 때만 생성. */
     let swiper = null;
     const deckCtx = { page, idPrefix: P, swiperEl, slides, calState, today, get swiper() { return swiper; } };
@@ -231,7 +238,7 @@ async function mountCardDeck(page, config) {
         slides,
         /* Swiper Virtual 은 renderSlide 반환 string 의 outermost 를 slide DOM 으로 사용 → .swiper-slide 래핑 필수 */
         renderSlide: (slide) => `<div class="swiper-slide">${config.renderSlideHTML(slide.story, slide.iso)}</div>`,
-        initialSlide: initialIdx,
+        initialSlide: selectedIdx,
         onSlideActive: (idx) => {
           setState(config.lastDateKey, slides[idx]?.iso ?? null);
           activateDayWheelByIndex(idx);
@@ -366,11 +373,9 @@ async function mountCardDeck(page, config) {
         dayPicker.hidden = false;
         cardArea.hidden = false;
         requestAnimationFrame(() => {
-          const activeDay = dayEl.querySelector('.wheel-item.active');
-          if (activeDay) {
-            dayEl.scrollLeft = activeDay.offsetLeft - dayEl.offsetWidth / 2 + activeDay.offsetWidth / 2;
-          }
+          activateDayWheelByIndex(selectedIdx, true, true);
           const sw = ensureSwiper();
+          if (sw && sw.activeIndex !== selectedIdx) sw.slideTo(selectedIdx, 0);
           if (sw) requestAnimationFrame(() => sw.update());
           cardArea.classList.add('view-enter');
           setTimeout(() => cardArea.classList.remove('view-enter'), 250);

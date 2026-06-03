@@ -824,3 +824,20 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npx vitest run tests/camera.spec.js` 7/7 통과, `npx vitest run tests/router_guard_stack.spec.js tests/regression.bugs.spec.js tests/camera.spec.js` 23 passed / 2 skipped 통과, `npm run build` 성공, `npm test` → **Test Files 30 passed (30), Tests 287 passed | 6 skipped (293)**, `plutil -lint ios/App/App/Info.plist` OK, Android XML 3개 `xmllint --noout` 통과.
 
 **변경파일**: `src/js/services/camera.js`, `tests/camera.spec.js`, `tests/router_guard_stack.spec.js`, `tests/regression.bugs.spec.js`, `ios/App/App/Info.plist`, `android/app/src/main/AndroidManifest.xml`, `android/app/src/main/res/xml/locales_config.xml`, `android/app/src/main/res/values-ko/strings.xml`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 17:30 — Codex · 캘린더 뷰 복원 시 카드덱 월 휠 1월 초기화 핫픽스
+
+**요구사항**: `editorstory` / `mystory` 에서 캘린더 뷰 상태로 다른 탭 이동 후 재진입하면 카드 뷰 뒤의 월 휠이 마지막 날짜 월이 아니라 1월로 초기화되는 버그 수정.
+
+**구현방법**:
+- `tests/cardDeckController.spec.js` 신규 추가. `ds_session_view='calendar'` 로 복원된 카드덱이 Swiper 를 만들지 않아도 `initialDate` 기준 월/일 휠 항목을 active 로 유지해야 한다는 회귀 케이스를 먼저 작성해 Red 확인.
+- `cardDeckController.js` 에 `selectedIdx` 논리 상태를 추가하고, `syncMonthWheel` / `activateDayWheelByIndex` 에 `force` 인자를 더해 active class 와 scroll 위치를 강제로 재동기화할 수 있게 확장.
+- 카드덱 마운트 직후 `activateDayWheelByIndex(selectedIdx, true, true)` 를 항상 호출해 캘린더 뷰로 복원된 숨김 day picker 도 마지막 날짜의 월/일 active 상태를 보존.
+- 카드 뷰로 토글 복귀할 때도 같은 `selectedIdx` 로 휠을 재동기화하고, Swiper 최초 생성 시 `initialSlide` 를 `selectedIdx` 로 사용하도록 수정.
+- 시그니처 확장에 맞춰 `tests/swiper_lazy_init.spec.js` source assertion 을 갱신.
+
+**검증**: `npx vitest run tests/cardDeckController.spec.js tests/swiper_lazy_init.spec.js tests/view-toggle.spec.js` → 49/49 통과. `npm test` → **Test Files 31 passed (31), Tests 288 passed | 6 skipped (294)**. `npm run build` 성공.
+
+**변경파일**: `src/js/components/cardDeck/cardDeckController.js`, `tests/cardDeckController.spec.js`, `tests/swiper_lazy_init.spec.js`, `docs/SESSION_LOG.md`.

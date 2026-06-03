@@ -766,7 +766,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   background: var(--color-bg-primary);
+  box-shadow: var(--color-bg-primary) 0px 8px 22px;
   min-width: var(--mobile-min-width);
 }
 

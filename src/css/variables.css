@@ -23,6 +23,7 @@
   --color-bg-card-dark: #F2F0EF;         /* 카드 어두운 배경 (비활성 상태 등) */
   --color-bg-elevated: #ffffff;          /* 부유 요소 배경 */
   --color-bg-overlay: rgba(0, 0, 0, 0.45); /* 오버레이 (대비 소폭 강화) */
+  --color-bg-o: rgba(255, 255, 255, 0.8); /* 반투명 흰색 배경 (모달 시트 등) */
   --color-bg-desktop: #e8e8ed;           /* 데스크톱 본문 배경 (모바일 래퍼 바깥) */
 
   /* ── 라이트 테마 텍스트 색상 ── */

@@ -96,11 +96,11 @@ describe('Date persistence — 공통 컨트롤러 + editorstory config', () => 
 
 describe('휠 즉시 표시 (초기 진입 smooth 우회) — 공통 컨트롤러', () => {
   it('컨트롤러: activateDayWheelByIndex 가 instant 인자를 받는다', () => {
-    expect(controllerSrc()).toMatch(/function\s+activateDayWheelByIndex\s*\(\s*idx\s*,\s*instant\s*=\s*false\s*\)/);
+    expect(controllerSrc()).toMatch(/function\s+activateDayWheelByIndex\s*\(\s*idx\s*,\s*instant\s*=\s*false\s*,\s*force\s*=\s*false\s*\)/);
   });
 
   it('컨트롤러: syncMonthWheel 가 instant 인자를 받는다', () => {
-    expect(controllerSrc()).toMatch(/function\s+syncMonthWheel\s*\(\s*dayMonth\s*,\s*instant\s*=\s*false\s*\)/);
+    expect(controllerSrc()).toMatch(/function\s+syncMonthWheel\s*\(\s*dayMonth\s*,\s*instant\s*=\s*false\s*,\s*force\s*=\s*false\s*\)/);
   });
 
   it('컨트롤러: instant 모드에서 scrollLeft 직접 할당 (smooth 우회)', () => {

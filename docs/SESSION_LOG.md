@@ -891,6 +891,22 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 
 ---
 
+### 2026-06-03 18:58 — Codex · 나의 일화 작성 폼 하단 버튼 레이아웃 스래싱 보정
+
+**요구사항**: 나의 일화 작성/수정 페이지 마운트 직후 `.mystory-form-actions` 하단 저장 버튼 영역이 우측으로 밀렸다가 제자리로 돌아오는 초기 레이아웃 깜빡임 수정.
+
+**구현방법**:
+- `.mystory-form-actions` 의 `left: 50%` + `transform: translateX(-50%)` 중심 정렬 방식을 제거하고, `left: 0`, `right: 0`, `width: min(100%, var(--mobile-max-width))`, `margin: 0 auto` 로 첫 페인트부터 위치와 폭이 확정되도록 변경.
+- `z-index: 50` 하드코딩을 `var(--z-nav)` 토큰으로 교체하고, `box-sizing: border-box` 를 추가해 padding 포함 폭 계산이 초기 렌더에서 흔들리지 않도록 보강.
+- 해당 CSS 블록을 요청된 5단계 정렬 컨벤션(`Positioning → Display & Box Model → Typography → Visuals → Misc`)에 맞춰 재정렬.
+- `tests/mystory_form_actions.spec.js` 신규 추가. fixed action bar가 좌우 앵커, 확정 폭, auto margin을 사용하고 `left: 50%` / `translateX` 를 다시 쓰지 않는지 회귀 검증.
+
+**검증**: `npx vitest run tests/mystory_form_actions.spec.js --environment jsdom` 1/1 통과, `npx vitest run tests/mystory_form_actions.spec.js tests/mystory_card_meta.ui.spec.js --environment jsdom` 3/3 통과, `npm run build` 성공, `npm test` → **Test Files 34 passed (34), Tests 298 passed | 6 skipped (304)**.
+
+**변경파일**: `src/css/pages.css`, `tests/mystory_form_actions.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
 ### 2026-06-03 18:41 — Codex · 상세 바텀시트 닫힘 후 캘린더 카드 팝업 유지
 
 **요구사항**: 캘린더 카드 팝업에서 상세 바텀시트를 열었다 닫았을 때, 기존 `calendar-card-popup open` 상태가 그대로 유지되도록 변경.

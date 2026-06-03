@@ -591,11 +591,12 @@
 .detail-sheet-drag-zone {
   position: relative;
   flex-shrink: 0;
-  min-height: 52px;
-  padding: var(--space-3) var(--space-4) var(--space-2);
+  min-height: 48px;
+  padding: var(--space-4) var(--space-4) var(--space-2);
   cursor: grab;
   touch-action: none;
   background: var(--color-bg-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .detail-sheet-handle {
@@ -608,7 +609,7 @@
 
 .detail-sheet-close {
   position: absolute;
-  top: 8px;
+  top: 4px;
   left: var(--space-4);
   display: flex;
   align-items: center;
@@ -676,7 +677,7 @@
 /* 히어로 연도 텍스트 (예: "1879") */
 .detail-hero-year {
   font-family: var(--font-display);
-  font-size: var(--text-4xl);
+  font-size: var(--text-3xl);
   font-weight: 900;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -685,7 +686,7 @@
 /* 히어로 월/일 텍스트 (예: "03.14") — 초대형 */
 .detail-hero-monthday {
   font-family: var(--font-display);
-  font-size: var(--text-6xl);
+  font-size: var(--text-5xl);
   font-weight: 900;
   line-height: 0.9;
   letter-spacing: -0.04em;
@@ -718,6 +719,7 @@
 
 /* 인물 이름 (예: "알베르트 아인슈타인") */
 .detail-figure-name {
+  align-self: center;
   font-family: var(--font-heading);
   font-size: var(--text-2xl);
   font-weight: 700;
@@ -1890,20 +1892,30 @@
 /* 나의 일화 작성/편집 — 하단 floating 액션 영역 (저장/삭제 버튼)
    .mobile-wrapper 너비에 맞춰 화면 가장 하단에 고정 */
 .mystory-form-actions {
+  /* 1. Positioning */
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: var(--mobile-max-width);
-  padding: var(--space-4) var(--space-5);
-  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-  background: var(--color-bg-primary);
-  border-top: 1px solid var(--color-divider);
+  left: 0;
+  right: 0;
+  z-index: var(--z-nav);
+
+  /* 2. Display & Box Model */
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  z-index: 50;
+  width: min(100%, var(--mobile-max-width));
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+
+  /* 3. Typography */
+
+  /* 4. Visuals */
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-divider);
+
+  /* 5. Misc */
 }
 
 .mystory-form-actions #ms-save-btn {

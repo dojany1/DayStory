@@ -110,7 +110,7 @@ export function bindSettingsSections(page) {
   bindThemeOptions(page);
   bindViewModeItem(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
-  bindRow(page, '#setting-about', () => navigate('/about'));
+  bindRow(page, '#setting-about', () => showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info'));
   bindRow(page, '#setting-contact', () => showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);

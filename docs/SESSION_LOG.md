@@ -891,6 +891,20 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 
 ---
 
+### 2026-06-03 19:31 — Codex · 설정 개발자 알아보기 항목 준비중 처리
+
+**요구사항**: 미완성된 "개발자 알아보기" 페이지를 숨기기 위해 설정 페이지의 해당 항목을 `/about` 이동 대신 문의와 동일한 준비중 토스트로 처리.
+
+**구현방법**:
+- `settingsSections.js` 의 `#setting-about` 클릭 바인딩을 `navigate('/about')` 에서 `showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info')` 로 변경.
+- `tests/regression.bugs.spec.js` 의 toast mock 을 검증 가능하게 정리하고, 개발자 알아보기 항목 클릭 시 `/about` 으로 이동하지 않고 준비중 토스트가 호출되는 회귀 테스트 추가.
+
+**검증**: `npx vitest run tests/regression.bugs.spec.js --environment jsdom -t "settings page|developer page is unfinished"` 6/6 통과, `npm run build` 성공, `npm test` → **Test Files 34 passed (34), Tests 299 passed | 6 skipped (305)**.
+
+**변경파일**: `src/js/components/settingsSections.js`, `tests/regression.bugs.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
 ### 2026-06-03 18:58 — Codex · 나의 일화 작성 폼 하단 버튼 레이아웃 스래싱 보정
 
 **요구사항**: 나의 일화 작성/수정 페이지 마운트 직후 `.mystory-form-actions` 하단 저장 버튼 영역이 우측으로 밀렸다가 제자리로 돌아오는 초기 레이아웃 깜빡임 수정.

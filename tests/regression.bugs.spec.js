@@ -18,6 +18,7 @@ const {
   updateMyStoryMock,
   deleteMyStoryMock,
   showConfirmMock,
+  showToastMock,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   getParamsMock: vi.fn(),
@@ -34,6 +35,7 @@ const {
   updateMyStoryMock: vi.fn(),
   deleteMyStoryMock: vi.fn(),
   showConfirmMock: vi.fn(),
+  showToastMock: vi.fn(),
 }));
 
 vi.mock('../src/js/router.js', () => ({
@@ -99,7 +101,7 @@ vi.mock('../src/js/services/mystories.js', () => ({
 }));
 
 vi.mock('../src/js/components/toast.js', () => ({
-  showToast: vi.fn(),
+  showToast: showToastMock,
 }));
 
 vi.mock('../src/js/components/confirmDialog.js', () => ({
@@ -289,6 +291,7 @@ describe('Regression bugs', () => {
     updateMyStoryMock.mockReset();
     deleteMyStoryMock.mockReset();
     showConfirmMock.mockReset();
+    showToastMock.mockReset();
 
     setDefaultState();
     getParamsMock.mockReturnValue({});
@@ -325,6 +328,16 @@ describe('Regression bugs', () => {
     expect(page.querySelector('#setting-tutorial')).toBeNull();
     expect(page.querySelector('#setting-about')).not.toBeNull();
     expect(page.querySelector('#setting-widget-theme')).toBeNull();
+  });
+
+  it('Given the developer page is unfinished, when the about row is tapped, then it should show the coming soon toast instead of navigating', () => {
+    const page = renderSettings();
+    document.body.appendChild(page);
+
+    page.querySelector('#setting-about')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(navigateMock).not.toHaveBeenCalledWith('/about');
+    expect(showToastMock).toHaveBeenCalledWith('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info');
   });
 
   it('Given the profile tab renders the settings page, when CSS is inspected, then the user card avatar and row icons should be bounded', () => {

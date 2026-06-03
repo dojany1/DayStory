@@ -1705,6 +1705,7 @@
   width: 252px;      /* 360px × zoom(0.7) — zoomed card exact layout width */
   max-width: 100%;
   overflow: hidden;  /* fractional px 오버플로 차단 */
+  box-shadow: var(--shadow-card);
 }
 
 /* 미리보기 내부에서는 홈 카드의 min-width 제한을 해제 (래퍼 폭에 맞춤) */

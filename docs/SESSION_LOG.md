@@ -807,3 +807,18 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npm test` → 30 passed / 286 tests / 0 failed.
 
 **변경파일**: `src/main.js`.
+
+---
+
+### 2026-06-03 — Codex · 인계 요약: 3단계 리팩토링 완료 및 어드민 핫픽스 정리
+
+**요구사항**: 이전 Claude 작업 인계 내용 기준으로, 방금 완료된 대규모 3단계 UI 리팩토링과 어드민 권한 핫픽스 결과를 세션 로그 맨 아래에 정갈하게 append.
+
+**구현방법**:
+- `editorstory` / `mystory` / `calendar` 에 흩어진 카드 뷰 렌더링 로직을 공통 `cardFace.js` / `cardDeckController.js` 기반으로 통합한 완료 상태를 정리. 인계 기준 총 944줄 제거, 공통 모듈 601줄 도입, 순감 343줄.
+- `calendar.js` 팝업 카드도 `cardFace` 경유로 통합되어 `buildHistoryCardHtml` / `buildMyCardHtml` 의 중복 마크업과 본문 파싱 중복이 제거된 상태를 기록.
+- `main.js` 에 Firestore `profile.role === 'editor'` 기반 fallback 을 추가해, `syncAdminClaim` Cloud Function 미배포 상태에서도 기존 관리자 권한 UI가 유실되지 않도록 한 핫픽스를 함께 요약.
+
+**검증**: 인계 기준 `npm test` 100% Green — 30 files passed / 286 tests passed / 6 skipped / 0 failed.
+
+**변경파일**: `src/js/components/cardDeck/cardFace.js`, `src/js/components/cardDeck/cardDeckController.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/js/pages/calendar.js`, `src/main.js`, 관련 테스트 파일, `docs/SESSION_LOG.md`.

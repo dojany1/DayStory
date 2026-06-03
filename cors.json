@@ -3,11 +3,18 @@
     "origin": [
       "http://localhost:5173",
       "http://localhost:4173",
+      "https://daystory.app",
       "https://dokhu-daystory.web.app",
       "https://dokhu-daystory.firebaseapp.com"
     ],
     "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "X-Requested-With"]
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "X-Requested-With",
+      "Access-Control-Allow-Origin"
+    ]
   }
 ]

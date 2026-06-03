@@ -465,6 +465,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
 
     if (shareBtn) {
       shareBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
         e.stopPropagation();
         shareBtn.disabled = true;
         try { await shareCardCapture('mystory'); }
@@ -488,6 +489,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
 
     if (shareBtn) {
       shareBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
         e.stopPropagation();
         shareBtn.disabled = true;
         try { await shareCardCapture('history'); }

@@ -13,6 +13,7 @@
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
+import { showToast, dismissToast } from '../components/toast.js';
 /* html2canvas 는 captureAndShareCard 안에서 동적 import — 초기 번들 분리. */
 
 /* 공유 URL 도메인. 실제 배포 도메인으로 변경 시 한 곳만 수정. */
@@ -195,22 +196,67 @@ export async function shareToKakao(story) {
 /* =====================================================================
    카드 캡처 공유 (.history-card-front → PNG → 네이티브 공유)
    =====================================================================
-   1) 워터마크(앱 아이콘 + 'DayStory') DOM 을 카드 하단 우측에 임시 주입
-   2) html2canvas 로 카드 앞면을 PNG로 캡처 (useCORS: true)
-   3) finally 에서 워터마크 제거 + 카드 position 원복
-   4) Native: Filesystem.Cache 에 저장 → Share.share({ url: fileUri })
+   캡처 전략 (new Image() + canvas Base64 + onclone):
+   1) 캡처 전 new Image() 로 crossOrigin='anonymous' → src 순으로 설정해
+      CORS 모드 요청. 서버가 CORS 헤더를 반환하면 canvas.toDataURL() 로
+      Base64 Data URL 획득. html2canvas 는 로컬 데이터만 그려 tainted canvas 없음.
+   2) html2canvas(cardElement, { onclone }) — onclone 콜백에서:
+      · 변환 실패 이미지에 crossOrigin + cache-bust 2차 적용
+      · 복제본 부모 체인의 Swiper translateX 제거 → 레이아웃 보호
+      · 복제된 카드 하단에 워터마크 주입
+   3) finally 에서 dataset.originalSrc 로 원본 src 원상 복구.
+   4) Native: Filesystem.Cache 저장 → Share.share({ url: fileUri })
       Web   : Web Share Level 2 (files) → 미지원 시 다운로드 폴백
    ===================================================================== */
 
 /**
- * buildWatermarkElement — 캡처용 워터마크 DOM 을 생성합니다.
- * 캡처 직전에 카드 안에 appendChild 되고, 캡처 후 즉시 제거됩니다.
+ * imageToBase64 — 외부 URL 이미지를 Base64 Data URL 로 변환합니다.
+ *
+ * crossOrigin = 'anonymous' 를 src 할당 이전에 설정해야
+ * 브라우저가 CORS 모드로 요청하고 canvas 오염이 발생하지 않습니다.
+ * 변환 실패(CORS 차단, 네트워크 오류) 시 null 을 반환합니다.
+ *
+ * @param {string} src - 변환할 이미지 URL
+ * @param {number} [timeoutMs=8000]
+ * @returns {Promise<string|null>} Base64 Data URL 또는 null
  */
-function buildWatermarkElement() {
-  const wm = document.createElement('div');
+function imageToBase64(src, timeoutMs = 8000) {
+  return new Promise((resolve) => {
+    const probe = new Image();
+    /* crossOrigin 은 반드시 src 보다 먼저 설정해야 CORS 모드로 요청됨 */
+    probe.crossOrigin = 'anonymous';
+    /* 캐시 버스팅 — 브라우저에 CORS 없이 캐시된 응답을 재사용하지 않도록 */
+    const sep = src.includes('?') ? '&' : '?';
+    probe.src = `${src}${sep}_t=${Date.now()}`;
+
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+
+    probe.onload = () => {
+      clearTimeout(timer);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = probe.naturalWidth || 1;
+        canvas.height = probe.naturalHeight || 1;
+        canvas.getContext('2d').drawImage(probe, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
+      } catch {
+        /* canvas 오염 → null 반환 (onclone 에서 crossOrigin 설정으로 재시도) */
+        resolve(null);
+      }
+    };
+    probe.onerror = () => { clearTimeout(timer); resolve(null); };
+  });
+}
+
+/**
+ * buildWatermarkElement — 캡처용 워터마크 DOM 을 생성합니다.
+ * onclone 콜백 내에서 호출될 때는 복제된 문서(clonedDoc)를 전달합니다.
+ * @param {Document} [doc]
+ */
+function buildWatermarkElement(doc = document) {
+  const wm = doc.createElement('div');
   wm.className = 'card-watermark-tmp';
   wm.setAttribute('aria-hidden', 'true');
-  /* 인라인 스타일 — 캡처 직전에만 살아있으므로 CSS 의존을 최소화. */
   wm.style.cssText = [
     'position:absolute',
     'bottom:10px',
@@ -222,7 +268,7 @@ function buildWatermarkElement() {
     'background:rgba(0,0,0,0.55)',
     'border-radius:999px',
     'color:#fff',
-    'font-family:var(--font-ui, -apple-system, sans-serif)',
+    'font-family:-apple-system,sans-serif',
     'font-size:12px',
     'font-weight:700',
     'letter-spacing:0.01em',
@@ -231,14 +277,13 @@ function buildWatermarkElement() {
     'line-height:1',
   ].join(';');
 
-  const img = document.createElement('img');
-  /* public/daystory_icon_light.png — same-origin 이므로 CORS 이슈 없음. */
+  const img = doc.createElement('img');
   img.src = '/daystory_icon_light.png';
   img.alt = '';
   img.style.cssText = 'width:16px;height:16px;display:block;object-fit:contain';
   img.crossOrigin = 'anonymous';
 
-  const label = document.createElement('span');
+  const label = doc.createElement('span');
   label.textContent = 'DayStory';
 
   wm.appendChild(img);
@@ -266,6 +311,10 @@ async function dataUrlToFile(dataUrl, filename) {
 /**
  * captureAndShareCard — `.history-card-front` 요소를 PNG로 캡처해 네이티브 공유 시트로 전달.
  *
+ * iOS CORS 차단 우회: 캡처 전 모든 <img>.src 를 fetch → Base64 Data URL 로 교체.
+ * html2canvas 는 외부 네트워크 없이 로컬 데이터만 그리므로 tainted canvas 오염 없음.
+ * Swiper transform 오염: onclone 콜백에서 복제본 부모 체인의 transform 을 제거.
+ *
  * @param {HTMLElement} cardElement  - 캡처 대상 (.history-card-front)
  * @param {object} [options]
  *   - title:  공유 시트 제목 (기본 'DayStory')
@@ -278,48 +327,153 @@ export async function captureAndShareCard(cardElement, options = {}) {
     return { ok: false, withImage: false, reason: 'no-element' };
   }
 
-  /* 자식의 position:absolute 가 카드 안에서 자리잡도록 임시 relative.
-     원래 값이 'static'(기본) 인 경우만 손대고, 원복 시 그대로 복원. */
-  const originalInlinePosition = cardElement.style.position;
-  const computedPosition = window.getComputedStyle(cardElement).position;
-  if (computedPosition === 'static') {
-    cardElement.style.position = 'relative';
-  }
+  showToast('공유 이미지 생성 중...', 'info', 30000);
 
-  const watermark = buildWatermarkElement();
-  cardElement.appendChild(watermark);
+  /* onclone 에서 올바른 카드를 찾기 위한 임시 식별자 */
+  const captureId = `_cap_${Date.now()}`;
+  cardElement.dataset.captureId = captureId;
 
-  /* 워터마크 이미지 디코드를 보장 (html2canvas 가 빈 이미지를 그리는 것 방지). */
-  try {
-    const wmImg = watermark.querySelector('img');
-    if (wmImg && typeof wmImg.decode === 'function') {
-      await wmImg.decode().catch(() => { /* decode 실패해도 진행 */ });
-    }
-  } catch { /* noop */ }
+  const imgs = Array.from(cardElement.querySelectorAll('img'));
 
   let dataUrl = null;
   try {
+    /* ── Step 1: new Image() + canvas 방식으로 Base64 강제 변환 ──
+       crossOrigin = 'anonymous' 를 src 이전에 설정하는 것이 핵심.
+       변환 실패 이미지는 null 로 처리되고 onclone 에서 2차 방어. */
+    await Promise.all(
+      imgs.map(async (img) => {
+        const src = img.src || '';
+        if (!src || src.startsWith('data:') || src.startsWith('blob:')) return;
+        img.dataset.originalSrc = src;
+        const b64 = await imageToBase64(src);
+        if (b64) img.src = b64;
+        /* b64 가 null 이면 원본 src 유지 — onclone 에서 crossOrigin + cache-bust 처리 */
+      })
+    );
+
+    /* ── Step 2: html2canvas — onclone 으로 transform 제거 + 워터마크 주입 ──
+       html2canvas 호출 전 실제 DOM 에서 치수를 측정해 두어
+       onclone 에서 명시적 픽셀값으로 설정한다 (flex/aspect-ratio 오해석 방지). */
+    const captureW = cardElement.offsetWidth || 320;
+    const captureH = cardElement.offsetHeight || 520;
+    const imageWrapEl = cardElement.querySelector('.history-card-image-wrap');
+    const wrapW = imageWrapEl ? (imageWrapEl.offsetWidth || captureW) : captureW;
+    const wrapH = imageWrapEl ? (imageWrapEl.offsetHeight || 400) : 400;
+
+    /* position:fixed 요소 클래스 목록 — onclone 내에서 숨길 대상 */
+    const FIXED_HIDE = [
+      '.status-bar-spacer', '.bottom-nav', '#toast-container',
+      '.modal-overlay', '.notification-settings-overlay', '.crop-modal-overlay',
+      '.page-header-centered', '.page-header-with-back',
+      '.detail-page', '.detail-sheet', '.detail-sheet-backdrop',
+      '.mystory-form-actions', '.profile-edit-overlay',
+    ].join(',');
+
     const { default: html2canvas } = await import('html2canvas');
     const canvas = await html2canvas(cardElement, {
       useCORS: true,
+      allowTaint: false,
+      scale: 3,
       backgroundColor: null,
-      scale: Math.min(window.devicePixelRatio || 1, 2),
       logging: false,
+      width: captureW,
+      height: captureH,
+      onclone: (clonedDoc) => {
+        /* ① fixed 요소 숨기기: status-bar-spacer / bottom-nav 등이
+              html2canvas 클론 문서에서 카드 위에 렌더링되는 현상 방지 */
+        clonedDoc.querySelectorAll(FIXED_HIDE).forEach((el) => {
+          el.style.display = 'none';
+        });
+
+        const cloned = clonedDoc.querySelector(`[data-capture-id="${captureId}"]`);
+        if (!cloned) return;
+
+        /* ② 클론 카드에 명시적 픽셀 치수 고정
+              html2canvas 가 flex:1 / aspect-ratio 를 잘못 계산하는 경우 방어 */
+        cloned.style.cssText += [
+          `width:${captureW}px`,
+          `height:${captureH}px`,
+          'overflow:hidden',
+          'position:relative',
+          'flex-shrink:0',
+        ].join(';');
+
+        /* ③ 이미지 래퍼에 명시적 치수 설정
+              object-fit:cover 가 html2canvas 에서 부분적으로만 지원되므로
+              img 를 절대 배치로 wrap 안에 꽉 채워 잘림 없이 커버 */
+        cloned.querySelectorAll('.history-card-image-wrap').forEach((wrap) => {
+          wrap.style.cssText += [
+            `width:${wrapW}px`,
+            `height:${wrapH}px`,
+            'overflow:hidden',
+            'position:relative',
+            'flex-shrink:0',
+          ].join(';');
+          const imgEl = wrap.querySelector('img');
+          if (imgEl) {
+            imgEl.style.cssText += [
+              'position:absolute',
+              'top:0',
+              'left:0',
+              `width:${wrapW}px`,
+              `height:${wrapH}px`,
+              'object-fit:cover',
+              'max-width:none',
+              'max-height:none',
+              'aspect-ratio:unset',
+            ].join(';');
+          }
+        });
+
+        /* ④ 부모 체인(swiper-slide / swiper-wrapper 등)의 transform 제거 */
+        let el = cloned.parentElement;
+        while (el && el !== clonedDoc.body) {
+          if (el.style && el.style.transform) el.style.transform = 'none';
+          el = el.parentElement;
+        }
+        /* 자식 요소에 남은 inline transform 잔재도 제거 */
+        cloned.querySelectorAll('[style*="transform"]').forEach((child) => {
+          child.style.transform = 'none';
+        });
+
+        /* ⑤ 변환 실패 외부 URL 이미지에 crossOrigin + cache-bust 2차 적용 */
+        cloned.querySelectorAll('img').forEach((imgEl) => {
+          const s = imgEl.getAttribute('src') || '';
+          if (s && !s.startsWith('data:') && !s.startsWith('blob:')) {
+            imgEl.crossOrigin = 'anonymous';
+            const sep = s.includes('?') ? '&' : '?';
+            imgEl.setAttribute('src', `${s}${sep}_cors=${Date.now()}`);
+          }
+        });
+
+        /* ⑥ 워터마크 주입 — clonedDoc 컨텍스트로 생성해야 올바르게 렌더링됨 */
+        cloned.appendChild(buildWatermarkElement(clonedDoc));
+      },
     });
+
     dataUrl = canvas.toDataURL('image/png');
   } catch (err) {
     console.error('카드 캡처 실패:', err?.message || err);
+    showToast('이미지 공유에 실패했습니다.', 'error');
     return { ok: false, withImage: false, reason: 'capture-failed' };
   } finally {
-    /* 성공/실패 무관: 워터마크 제거 + position 원복.
-       JS 스펙상 finally 는 catch 의 return 이전에 실행되므로 cleanup 안전. */
-    if (watermark.isConnected) watermark.remove();
-    cardElement.style.position = originalInlinePosition;
+    /* ── Step 3: 원본 img src 복구 + 임시 식별자 제거 ── */
+    imgs.forEach((img) => {
+      if (img.dataset.originalSrc) {
+        img.src = img.dataset.originalSrc;
+        delete img.dataset.originalSrc;
+      }
+    });
+    delete cardElement.dataset.captureId;
   }
 
   if (!dataUrl || dataUrl.length < 32) {
+    showToast('이미지 공유에 실패했습니다.', 'error');
     return { ok: false, withImage: false, reason: 'empty-image' };
   }
+
+  /* 캡처 완료 — 공유 시트 열기 전에 로딩 인디케이터 제거 */
+  dismissToast();
 
   const title = options.title || 'DayStory';
   const text = options.text || '';

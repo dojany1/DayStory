@@ -257,7 +257,7 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
     - `src/js/services/mystories.js:fetchMyStories` — uid 가 undefined/null/'' 면 즉시 빈 배열 반환. Firestore SDK 가 `where('uid','==',undefined)` 처리 시 SDK 버전에 따라 전체 스캔 가능성 차단.
     - `src/js/services/bookmarks.js:toggleBookmark` — 모듈 스코프 `inFlightToggles: Set<storyId>` 도입. 같은 storyId 에 대한 동시 호출은 두 번째부터 즉시 `{bookmarked:false}` 반환. `finally` 에서 해제.
     - `src/js/services/mystories.js:deleteMyStory`, `src/js/services/stories.js:deleteStory` — `image_url.includes('firebasestorage') || .includes('.firebasestorage.app')` 위양성 패턴을 새 `isFirebaseStorageUrl(url)` 헬퍼(URL 객체 host 파싱)로 교체. `firebasestorage.googleapis.com` 또는 `*.firebasestorage.app` host만 허용. attacker.com/firebasestorage/x.jpg 같은 URL 의도적 식별 차단.
-  - **sanitize.js URL 화이트리스트** ([src/js/utils/sanitize.js](../src/js/utils/sanitize.js)): 기존 `javascript:`/`data:` 만 차단하던 패턴을 화이트리스트(`http`/`https`/`mailto`/`tel` 만 허용) 로 전환. 공백/탭/개행/제어 문자(` -`)로 우회한 `java\tscript:` 변형도 normalize 후 차단. 상대 경로(`/path`, `./rel`, `#anchor`)는 스킴 미존재 시 통과.
+  - **sanitize.js URL 화이트리스트** ([src/js/utils/sanitize.js](../src/js/utils/sanitize.js)): 기존 `javascript:`/`data:` 만 차단하던 패턴을 화이트리스트(`http`/`https`/`mailto`/`tel` 만 허용) 로 전환. 공백/탭/개행/제어 문자(`-`)로 우회한 `java\tscript:` 변형도 normalize 후 차단. 상대 경로(`/path`, `./rel`, `#anchor`)는 스킴 미존재 시 통과.
   - **Firebase Security Rules 파일 신설**:
     - 신설 `firestore.rules` — 핵심: ① `profiles/{uid}` write 시 `role` 필드는 변경 불가(`resource.data.role == request.resource.data.role`), 신규 create 시 `role != 'editor'` (클라이언트 admin 승격 차단, audit P0). ② `stories/{id}` read 는 published 만 일반 사용자 / 어드민은 모든 status. write 는 어드민만. ③ `userStories`, `bookmarks` 는 본인만. ④ `reports` 는 인증 사용자 누구나 create, read/update/delete 는 어드민. ⑤ 그 외 경로 기본 거부.
     - 신설 `storage.rules` — 핵심: `users/{userId}/{folder=**}` 에 `request.auth.uid == userId` 이고 파일 크기 < 10MB 이고 contentType `image/*` 일 때만 write. `users/guest/{**}` 명시적 거부(Wave 2 동기화). 그 외 경로 기본 거부.
@@ -891,6 +891,36 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 
 ---
 
+### 2026-06-03 19:49 — Codex · 사용자 직접 CSS 작업 로그 보강
+
+**요구사항**: 오늘 사용자가 직접 작업/수정한 CSS 코드가 세션 로그에 남아 있는지 다시 확인하고, 해당 작업을 파일 맨 아래에 별도 로그로 명확히 기록.
+
+**구현방법**:
+- `docs/SESSION_LOG.md` 최근 항목과 최신 체크포인트 `277b0d7` 를 확인해 오늘 작업 로그가 기록되어 있음을 재확인.
+- 사용자가 직접 수정한 iOS 터치 피드백 관련 CSS 작업을 별도 보강 로그로 기록. 주요 내용은 `base.css` 의 전역 인터랙티브 요소 `touch-action: manipulation` / `-webkit-tap-highlight-color: transparent`, `components.css` 의 `.flipper.active` 피드백 연결, 카드 터치 active 동작 보강.
+- `SESSION_LOG.md` 에 남아 있던 NUL 바이트를 제거해 텍스트 검색 도구가 binary 파일로 오인하지 않도록 정리.
+
+**검증**: `git log --oneline -8`, `git show --stat --oneline --name-only HEAD`, `docs/SESSION_LOG.md` 최근 항목 확인.
+
+**변경파일**: `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 19:49 — Codex · 사용자 직접 CSS 작업 로그 보강
+
+**요구사항**: 오늘 사용자가 직접 작업/수정한 CSS 코드가 세션 로그에 남아 있는지 확인하고, 해당 작업을 별도 로그로 명확히 기록.
+
+**구현방법**:
+- `docs/SESSION_LOG.md` 최근 항목과 최신 체크포인트 `277b0d7` 를 확인해 오늘 작업 로그가 기록되어 있음을 재확인.
+- 사용자가 직접 수정한 iOS 터치 피드백 관련 CSS 작업을 별도 보강 로그로 기록. 주요 내용은 `base.css` 의 전역 인터랙티브 요소 `touch-action: manipulation` / `-webkit-tap-highlight-color: transparent`, `components.css` 의 `.flipper.active` 피드백 연결, 관련 카드 터치 active 동작 보강.
+- 기존 로그 항목은 수정하지 않고, 새 항목을 append 하여 정정/보강 기록 방식 유지.
+
+**검증**: `git log --oneline -8`, `git show --stat --oneline --name-only HEAD`, `docs/SESSION_LOG.md` 최근 항목 확인.
+
+**변경파일**: `docs/SESSION_LOG.md`.
+
+---
+
 ### 2026-06-03 19:38 — Codex · iOS 터치 active 피드백 핫픽스
 
 **요구사항**: iOS Safari/WKWebView에서 앱 버튼과 카드 등 인터랙티브 요소 탭 시 `:active` 스타일이 늦게 뜨거나 씹히는 터치 딜레이 개선.
@@ -980,3 +1010,77 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm run build` 성공, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**.
 
 **변경파일**: `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 19:49 — Codex · 사용자 직접 CSS 작업 로그 보강
+
+**요구사항**: 오늘 사용자가 직접 작업/수정한 CSS 코드가 세션 로그에 남아 있는지 다시 확인하고, 해당 작업을 파일 맨 아래에 별도 로그로 명확히 기록.
+
+**구현방법**:
+- `docs/SESSION_LOG.md` 최근 항목과 최신 체크포인트 `277b0d7` 를 확인해 오늘 작업 로그가 기록되어 있음을 재확인.
+- 사용자가 직접 수정한 iOS 터치 피드백 관련 CSS 작업을 별도 보강 로그로 기록. 주요 내용은 `base.css` 의 전역 인터랙티브 요소 `touch-action: manipulation` / `-webkit-tap-highlight-color: transparent`, `components.css` 의 `.flipper.active` 피드백 연결, 카드 터치 active 동작 보강.
+- `SESSION_LOG.md` 에 남아 있던 NUL 바이트를 제거해 텍스트 검색 도구가 binary 파일로 오인하지 않도록 정리.
+
+**검증**: `git log --oneline -8`, `git show --stat --oneline --name-only HEAD`, `docs/SESSION_LOG.md` 최근 항목 확인.
+
+**변경파일**: `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 20:15 — Claude · 공유 버튼 무반응(Silent Failure) 핫픽스
+
+**요구사항**: 카드 공유 버튼 탭 시 아무 반응 없는 문제 해결. ① 로딩/에러 시각 피드백 추가, ② 이벤트 충돌 방지, ③ 이미지 로드 대기 안전장치.
+
+**구현방법**:
+- `src/js/components/toast.js`: `dismissToast()` 함수 추가 — 로딩 인디케이터용 장기 토스트를 공유 시트 열기 전에 프로그래매틱하게 제거.
+- `src/js/services/sharing.js`: `captureAndShareCard` 진입 시 `showToast('공유 이미지 생성 중...', 'info', 30000)` 로딩 토스트 표시; 캡처 실패·빈 이미지 시 `showToast('이미지 공유에 실패했습니다.', 'error')`로 에러 노출; 공유 시트 열기 직전 `dismissToast()`로 로딩 인디케이터 제거. `Promise.all(imageLoadPromises)`을 8초 타임아웃 `Promise.race`로 감싸 네트워크 지연 시 캡처가 영원히 대기하는 현상 방지.
+- `src/js/pages/mystory.js`, `editorstory.js`, `calendar.js` 공유 버튼 핸들러: 기존 `e.stopPropagation()`에 `e.preventDefault()` 추가 — Swiper·카드 플립 부모 이벤트와의 충돌 방지.
+
+**검증**: `npm run build` 성공(150ms), `npm test` → 34 Files / 302 passed.
+
+**변경파일**: `src/js/components/toast.js`, `src/js/services/sharing.js`, `src/js/pages/mystory.js`, `src/js/pages/editorstory.js`, `src/js/pages/calendar.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 20:35 — Claude · 공유 캡처 Base64 + onclone 방식으로 전면 개편
+
+**요구사항**: iOS CORS 차단으로 카드 이미지 회색 썸네일 + Swiper CSS 상속 끊김으로 레이아웃 찌그러짐 완벽 해결.
+
+**구현방법**:
+- `src/js/services/sharing.js`: 수동 `#capture-sandbox` + `cloneNode` 방식 폐기. 새 전략: ① 캡처 전 `cardElement` 내 모든 `<img>.src`를 `fetch → Blob → FileReader(Base64 DataURL)`로 교체(원본은 `dataset.originalSrc` 백업). html2canvas가 외부 네트워크 없이 로컬 데이터만 그리므로 CORS tainted canvas 100% 방지. ② `html2canvas(cardElement, { onclone })` — `onclone` 콜백에서 복제본의 부모 체인(`swiper-slide/wrapper`) `transform: none` 강제화 + 워터마크 `buildWatermarkElement(clonedDoc)` 주입. `clonedDoc` 컨텍스트로 DOM 생성해야 올바르게 렌더링됨. ③ `finally` 블록에서 `dataset.originalSrc`로 원본 img src 복원. 8초 `Promise.race` 타임아웃 유지. `blobToDataUrl(blob)` FileReader 헬퍼 추가.
+
+**검증**: `npm run build` 성공(190ms), `npm test` → 34 Files / 302 passed.
+
+**변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 20:46 — Claude · SecurityError(Tainted Canvas) 핫픽스 + cors.json 보완
+
+**요구사항**: html2canvas에서 `SecurityError: The operation is insecure` 발생. CORS 속성 미적용 및 Firebase Storage CORS 설정 누락이 원인.
+
+**구현방법**:
+- `cors.json`: `origin` 배열에 `https://daystory.app` 추가(프로덕션 도메인 누락 수정). `responseHeader`에 `Access-Control-Allow-Origin` 명시.
+- `src/js/services/sharing.js`: `blobToDataUrl(FileReader)` 방식 → `imageToBase64(new Image() + canvas)` 방식으로 교체. `probe.crossOrigin = 'anonymous'`를 `probe.src` 할당 이전에 설정(CORS 모드 요청 보장). 8초 타임아웃 내장. `onclone` 내 변환 실패 img에 `crossOrigin = 'anonymous'` + cache-bust 2차 적용.
+- cors.json 적용 명령: `gsutil cors set cors.json gs://dokhu-daystory.firebasestorage.app` (직접 실행 필요).
+
+**검증**: `npm run build` 성공(186ms), `npm test` → 34 Files / 302 passed.
+
+**변경파일**: `cors.json`, `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 21:00 — Claude · 공유 카드 캡처 레이아웃 깨짐 핫픽스
+
+**요구사항**: 공유된 카드 이미지에서 `.status-bar-spacer`·`.bottom-nav` 등이 카드 위에 오버레이되거나 이미지 영역이 카드 경계를 벗어나는 문제 해결.
+
+**구현방법**:
+- `src/js/services/sharing.js` `onclone` 콜백 전면 보강:
+  ① `position:fixed` 요소 일괄 숨김(`.status-bar-spacer`, `.bottom-nav`, `#toast-container`, 각종 오버레이/모달) — html2canvas 클론 문서에서 fixed 요소가 뷰포트 기준으로 카드 위에 렌더링되는 버그 방지.
+  ② html2canvas 호출 전 `cardElement.offsetWidth/Height`·`imageWrap.offsetWidth/Height` 측정 → `html2canvas` 옵션 `width/height` + 클론 카드 인라인 스타일에 px 고정 — flex/aspect-ratio 오해석 방지.
+  ③ `.history-card-image-wrap img`를 `position:absolute; top/left:0; width/height px; object-fit:cover; aspect-ratio:unset`으로 재설정 — html2canvas의 부분적 object-fit 지원 한계 보완.
+
+**검증**: `npm run build` 성공(210ms), `npm test` → 34 Files / 302 passed.
+
+**변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.

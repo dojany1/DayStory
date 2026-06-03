@@ -251,6 +251,7 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
 
   if (shareBtn && story) {
     shareBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
       e.stopPropagation();
       const cardEl = flipContainer.querySelector('.history-card-front');
       if (!cardEl) {

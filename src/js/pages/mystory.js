@@ -188,6 +188,7 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
 
   if (shareBtn && story) {
     shareBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
       e.stopPropagation();
       if (!checkAuth()) return;
       const cardEl = flipContainer.querySelector('.history-card-front');

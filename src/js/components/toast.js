@@ -52,3 +52,21 @@ export function showToast(message, type = 'info', duration = 4000) {
   }, duration);
 }
 
+/**
+ * dismissToast — 현재 표시 중인 토스트를 즉시 제거합니다.
+ * 로딩 인디케이터용 장기 토스트를 공유 시트 등이 뜨기 전에 제거할 때 사용.
+ */
+export function dismissToast() {
+  if (currentToastTimer) {
+    clearTimeout(currentToastTimer);
+    currentToastTimer = null;
+  }
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const existing = container.querySelector('.toast');
+  if (existing) {
+    existing.classList.add('hide');
+    existing.addEventListener('animationend', () => existing.remove(), { once: true });
+  }
+}
+

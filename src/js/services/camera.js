@@ -28,6 +28,12 @@ const CANCEL_HINTS = [
   'not available while running in simulator',
 ];
 const PERMISSION_HINTS = ['permission', 'denied', 'not authorized', 'unauthorized'];
+const CAMERA_PROMPT_LABELS_KO = {
+  promptLabelHeader: '사진 첨부',
+  promptLabelPhoto: '앨범에서 선택',
+  promptLabelPicture: '카메라로 촬영',
+  promptLabelCancel: '취소',
+};
 
 function isCancelError(err) {
   const msg = String(err?.message || err || '').toLowerCase();
@@ -44,6 +50,7 @@ async function pickViaCapacitor(source) {
     const photo = await Camera.getPhoto({
       source,
       resultType: CameraResultType.DataUrl,
+      ...CAMERA_PROMPT_LABELS_KO,
       quality: 90,
       allowEditing: false,
       presentationStyle: 'fullscreen',

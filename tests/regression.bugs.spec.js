@@ -292,7 +292,9 @@ describe('Regression bugs', () => {
 
     setDefaultState();
     getParamsMock.mockReturnValue({});
+    getBookmarkedStoriesMock.mockResolvedValue([]);
     getBookmarkedStoryIdsMock.mockResolvedValue([]);
+    fetchMyStoriesMock.mockResolvedValue([]);
     toggleBookmarkMock.mockResolvedValue({ bookmarked: true, error: null });
   });
 

@@ -16,7 +16,7 @@ vi.mock('@capacitor/camera', () => ({
   CameraSource: { Camera: 'CAMERA', Photos: 'PHOTOS', Prompt: 'PROMPT' },
 }));
 
-const { pickFromCamera, pickFromGallery, CameraPermissionError } = await import(
+const { pickFromCamera, pickFromGallery, pickImage, CameraPermissionError } = await import(
   '../src/js/services/camera.js'
 );
 
@@ -115,6 +115,24 @@ describe('camera service — 네이티브', () => {
     }));
     expect(result?.dataUrl).toContain('base64');
     expect(result?.mimeType).toBe('image/jpeg');
+  });
+
+  it('네이티브 이미지 선택 프롬프트는 한국어 라벨을 전달한다', async () => {
+    isNativePlatformMock.mockReturnValue(true);
+    getPhotoMock.mockResolvedValueOnce({
+      dataUrl: 'data:image/jpeg;base64,AAAA',
+      format: 'jpeg',
+    });
+
+    await pickImage();
+
+    expect(getPhotoMock).toHaveBeenCalledWith(expect.objectContaining({
+      source: 'PROMPT',
+      promptLabelHeader: '사진 첨부',
+      promptLabelPhoto: '앨범에서 선택',
+      promptLabelPicture: '카메라로 촬영',
+      promptLabelCancel: '취소',
+    }));
   });
 
   it('네이티브 권한 거부 시 CameraPermissionError 를 던진다', async () => {

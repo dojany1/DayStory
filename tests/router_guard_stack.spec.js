@@ -36,12 +36,13 @@ describe('router beforeNavigate 가드 스택 (audit 4-1)', () => {
     initRouter();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     removers.forEach((r) => r());
     removers = [];
     setBeforeNavigate(null);
-    document.body.innerHTML = '';
     window.location.hash = '';
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.body.innerHTML = '';
   });
 
   it('베이스 가드와 push 된 페이지 가드가 모두 실행된다', async () => {

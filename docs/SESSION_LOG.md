@@ -810,15 +810,17 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 
 ---
 
-### 2026-06-03 — Codex · 인계 요약: 3단계 리팩토링 완료 및 어드민 핫픽스 정리
+### 2026-06-03 17:02 — Codex · 이미지 피커 네이티브 액션 시트 한국어 현지화
 
-**요구사항**: 이전 Claude 작업 인계 내용 기준으로, 방금 완료된 대규모 3단계 UI 리팩토링과 어드민 권한 핫픽스 결과를 세션 로그 맨 아래에 정갈하게 append.
+**요구사항**: 프로필 이미지와 나의 일화 이미지 첨부 시 Capacitor Camera 네이티브 액션 시트가 `Photo / From Photos / Take Picture` 처럼 영어로 노출되는 문제를 한국어로 수정.
 
 **구현방법**:
-- `editorstory` / `mystory` / `calendar` 에 흩어진 카드 뷰 렌더링 로직을 공통 `cardFace.js` / `cardDeckController.js` 기반으로 통합한 완료 상태를 정리. 인계 기준 총 944줄 제거, 공통 모듈 601줄 도입, 순감 343줄.
-- `calendar.js` 팝업 카드도 `cardFace` 경유로 통합되어 `buildHistoryCardHtml` / `buildMyCardHtml` 의 중복 마크업과 본문 파싱 중복이 제거된 상태를 기록.
-- `main.js` 에 Firestore `profile.role === 'editor'` 기반 fallback 을 추가해, `syncAdminClaim` Cloud Function 미배포 상태에서도 기존 관리자 권한 UI가 유실되지 않도록 한 핫픽스를 함께 요약.
+- `src/js/services/camera.js` 의 공통 `Camera.getPhoto` 호출 옵션에 `promptLabelHeader: '사진 첨부'`, `promptLabelPhoto: '앨범에서 선택'`, `promptLabelPicture: '카메라로 촬영'`, `promptLabelCancel: '취소'` 를 추가해 `pickImage` / `pickFromCamera` / `pickFromGallery` 네이티브 호출이 모두 한국어 라벨을 전달하도록 함.
+- `ios/App/App/Info.plist` 에서 `CFBundleDevelopmentRegion` 을 `ko_KR` 로 바꾸고 `CFBundleLocalizations` 에 `ko` 를 추가해 iOS 시스템 기본 팝업의 한국어 지역화 힌트를 보강.
+- Android 는 `android:localeConfig="@xml/locales_config"` 와 `res/xml/locales_config.xml`, `res/values-ko/strings.xml` 을 추가해 한국어 지원 앱으로 명시.
+- `tests/camera.spec.js` 에 네이티브 이미지 선택 프롬프트가 한국어 라벨 옵션을 전달하는 회귀 테스트 추가.
+- 전체 `npm test` 에서 기존 unhandled error 로 exit code 1 이 나던 테스트 정리 누락 2건을 함께 안정화: `router_guard_stack.spec.js` 는 hashchange 잔여 tick 처리 후 DOM cleanup, `regression.bugs.spec.js` 는 보관함/일기 mock 기본 Promise 값을 설정.
 
-**검증**: 인계 기준 `npm test` 100% Green — 30 files passed / 286 tests passed / 6 skipped / 0 failed.
+**검증**: `npx vitest run tests/camera.spec.js` 7/7 통과, `npx vitest run tests/router_guard_stack.spec.js tests/regression.bugs.spec.js tests/camera.spec.js` 23 passed / 2 skipped 통과, `npm run build` 성공, `npm test` → **Test Files 30 passed (30), Tests 287 passed | 6 skipped (293)**, `plutil -lint ios/App/App/Info.plist` OK, Android XML 3개 `xmllint --noout` 통과.
 
-**변경파일**: `src/js/components/cardDeck/cardFace.js`, `src/js/components/cardDeck/cardDeckController.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/js/pages/calendar.js`, `src/main.js`, 관련 테스트 파일, `docs/SESSION_LOG.md`.
+**변경파일**: `src/js/services/camera.js`, `tests/camera.spec.js`, `tests/router_guard_stack.spec.js`, `tests/regression.bugs.spec.js`, `ios/App/App/Info.plist`, `android/app/src/main/AndroidManifest.xml`, `android/app/src/main/res/xml/locales_config.xml`, `android/app/src/main/res/values-ko/strings.xml`, `docs/SESSION_LOG.md`.

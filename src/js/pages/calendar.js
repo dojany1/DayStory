@@ -252,6 +252,9 @@ export function renderGrid(page, state, today) {
       const story = storyByDate.get(date);
       if (!story) return;
 
+      if (typeof state.onStoryOpen === 'function') {
+        state.onStoryOpen(story, date);
+      }
       openCardPopup(story, state.mode, state.bookmarkedIds);
     });
   });

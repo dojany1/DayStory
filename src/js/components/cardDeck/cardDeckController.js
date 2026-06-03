@@ -167,13 +167,27 @@ async function mountCardDeck(page, config) {
     initialIdx = Math.max(0, initialIdx);
 
     /* 캘린더 상태 */
+    const selectedDateForCalendar = dateItems[initialIdx]?.iso || todayIso;
+    const [initialCalYear, initialCalMonth] = selectedDateForCalendar.split('-').map(Number);
     const calState = {
       mode: config.calMode,
-      year: currentYear,
-      month: today.getMonth(),
+      year: initialCalYear || currentYear,
+      month: initialCalMonth ? initialCalMonth - 1 : today.getMonth(),
       historyStories: calStores.historyStories || [],
       myStories: calStores.myStories || [],
       bookmarkedIds,
+      onStoryOpen: (_story, date) => {
+        const targetIso = date || _story?.publish_date;
+        if (!targetIso) return;
+        const targetIdx = slides.findIndex((s) => s.iso === targetIso);
+        if (targetIdx >= 0) selectedIdx = targetIdx;
+        const [year, month] = targetIso.split('-').map(Number);
+        if (year && month) {
+          calState.year = year;
+          calState.month = month - 1;
+        }
+        setState(config.lastDateKey, targetIso);
+      },
     };
 
     function getCenterItem(scrollArea) {

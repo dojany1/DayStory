@@ -891,6 +891,22 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 
 ---
 
+### 2026-06-03 18:35 — Codex · 캘린더 상세 바텀시트 닫힘 시 뷰 상태 보존
+
+**요구사항**: `editorstory` / `mystory` 캘린더 보기에서 상세 바텀시트를 열었다 닫으면 원래 캘린더 그리드가 유지되지 않고 일반 카드 뷰로 돌아가는 라우팅 상태 버그 수정.
+
+**구현방법**:
+- `router.js` 에 콘텐츠 라우트(`/editorstory`, `/mystory`)와 오버레이 라우트(`/detail/:id`) 구분을 추가해, 상세 바텀시트 진입 시 `ds_session_view` 를 삭제하지 않도록 변경. 설정 등 실제 다른 페이지로 이동할 때는 기존처럼 임시 뷰 상태를 삭제.
+- `cardDeckController.js` 의 캘린더 상태를 마지막 선택 날짜 기준으로 초기화해, 오늘 월이 아니라 사용자가 열었던 카드의 월 그리드로 복원되도록 수정.
+- `calendar.js` 의 캘린더 셀 클릭 시 `state.onStoryOpen` 콜백을 호출해 상세 진입 전 해당 카드 날짜를 `lastEditorStoryDate` / `lastMyStoryDate` 에 기록하도록 연결.
+- `tests/router_session_view.spec.js` 신규 추가 및 `tests/cardDeckController.spec.js` 보강으로 detail 오버레이 진입 시 세션 뷰 보존, 일반 라우트 이탈 시 삭제, 마지막 카드 날짜 월 복원을 회귀 검증.
+
+**검증**: `npx vitest run tests/router_session_view.spec.js tests/cardDeckController.spec.js --environment jsdom` 4/4 통과, `npx vitest run tests/detail_nav.ui.spec.js tests/router_session_view.spec.js tests/cardDeckController.spec.js --environment jsdom` 23/23 통과, `npm run build` 성공, `npm test` → **Test Files 32 passed (32), Tests 296 passed | 6 skipped (302)**.
+
+**변경파일**: `src/js/router.js`, `src/js/components/cardDeck/cardDeckController.js`, `src/js/pages/calendar.js`, `tests/router_session_view.spec.js`, `tests/cardDeckController.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
 ### 2026-06-03 18:20 — Codex · 상세 바텀시트 상단 표시 보정
 
 **요구사항**: `.detail-sheet` 의 `bottom: 0` 및 height 계산 조합 때문에 바텀시트 상단이 화면 밖으로 밀리거나 표시되지 않는 문제 확인 및 수정.

@@ -57,6 +57,12 @@ const PAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5분
    (fetchStories 는 storiesCachePromise 로 캐싱되어 네트워크 비용 미미.) */
 const KEEP_ALIVE_ROUTES = new Set();
 
+const CONTENT_ROUTES = new Set(['/editorstory', '/mystory']);
+
+function isContentOverlayRoute(path) {
+  return path === '/detail' || path.startsWith('/detail/');
+}
+
 
 /* ─────────────────────────────────────────────
    섹션 2: 라우트 등록 및 네비게이션 함수
@@ -265,8 +271,7 @@ async function handleRoute() {
   previousRoute = currentRoute;
 
   /* 콘텐츠 페이지(editorstory/mystory)에서 다른 페이지로 이동하면 임시 보기 상태 초기화 */
-  const CONTENT_ROUTES = new Set(['/editorstory', '/mystory']);
-  if (currentRoute && CONTENT_ROUTES.has(currentRoute) && !CONTENT_ROUTES.has(path)) {
+  if (currentRoute && CONTENT_ROUTES.has(currentRoute) && !CONTENT_ROUTES.has(path) && !isContentOverlayRoute(path)) {
     sessionStorage.removeItem('ds_session_view');
   }
 

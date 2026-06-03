@@ -81,4 +81,36 @@ describe('cardDeckController — calendar view wheel state', () => {
     expect(renderGridMock).toHaveBeenCalled();
     expect(createCardSwiperMock).not.toHaveBeenCalled();
   });
+
+  it('Given calendar view is restored from a previously opened story date, when the deck mounts, then the calendar grid starts on that story month', async () => {
+    sessionStorage.setItem('ds_session_view', 'calendar');
+
+    const page = buildCardDeck({
+      idPrefix: 'testdeck',
+      pageClass: 'testdeck-page',
+      calMode: 'history',
+      lastDateKey: 'lastEditorStoryDate',
+      loadData: async () => ({
+        stories: [{ id: 's-1', publish_date: '2026-04-24', title: 'April story' }],
+        initialDate: '2026-04-24',
+        calStores: {
+          historyStories: [{ id: 's-1', publish_date: '2026-04-24', title: 'April story' }],
+        },
+        bookmarkedIds: [],
+      }),
+      renderSlideHTML: () => '<div class="flip-container"></div>',
+      bindCard: vi.fn(),
+    });
+    document.body.appendChild(page);
+
+    await flushMount();
+
+    const renderedState = renderGridMock.mock.calls.at(-1)?.[1];
+    expect(renderedState.year).toBe(2026);
+    expect(renderedState.month).toBe(3);
+
+    renderedState.onStoryOpen({ id: 's-1', publish_date: '2026-04-24' }, '2026-04-24');
+
+    expect(setStateMock).toHaveBeenCalledWith('lastEditorStoryDate', '2026-04-24');
+  });
 });

@@ -83,8 +83,7 @@ function docToData(docSnap) {
 async function autoPublishScheduled(todayStr) {
   if (!db) return;
   /* 관리자만 write 가능. 일반 사용자가 호출하면 보안 룰이 거부하므로 미리 컷. */
-  const profile = getState('profile');
-  if (!profile || profile.role !== 'editor') return;
+  if (getState('isAdmin') !== true) return;
   try {
     /* scheduled 상태이면서 발행 예정일이 오늘이거나 지난 글을 검색 */
     const q = query(

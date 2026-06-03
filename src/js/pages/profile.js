@@ -32,7 +32,7 @@ export function renderProfile() {
   const user = getState('user');
   const profile = getState('profile');
 
-  const isAdmin = profile && profile.role === 'editor';
+  const isAdmin = getState('isAdmin');
 
   const adminBtn = isAdmin
     ? '<button type="button" id="goto-editor-btn" class="page-header-back" aria-label="콘텐츠 관리">'
@@ -79,7 +79,7 @@ export function renderProfile() {
           <div class="settings-user-meta">
             <div class="settings-user-name">
               ${(profile && profile.nickname) || user.displayName || (user.email ? user.email.split('@')[0] : '사용자')}
-              ${profile && profile.role === 'editor' ? '<span class="settings-user-badge">관리자</span>' : ''}
+              ${isAdmin ? '<span class="settings-user-badge">관리자</span>' : ''}
             </div>
             <div class="settings-user-email">${user.email || '이메일 정보 없음'}</div>
           </div>
@@ -316,7 +316,7 @@ function openProfileEditModal() {
       /* Optimistic UI — 현재 보이는 .settings-user-info 의 닉네임/아바타를 즉시 갱신.
          같은 경로(/profile) 로 navigate 해도 router 가 no-op 처리해 재렌더되지 않으므로
          DOM 을 직접 패치한다. */
-      syncProfileDom({ nickname, photoURL: updateData.photoURL, isEditor: profile.role === 'editor' });
+      syncProfileDom({ nickname, photoURL: updateData.photoURL, isEditor: getState('isAdmin') });
 
       showToast('프로필이 수정되었습니다.', 'success');
       closeModal();

@@ -1,12 +1,15 @@
 rules_version = '2';
 
-// DayStory Storage Security Rules — v1.4.0 (Wave 4)
+// DayStory Storage Security Rules — v1.5.0 (audit 3-1: 사용자 간 격리 강화)
 // =====================================================================
 // 핵심 원칙:
-//   1) 로그인 사용자만 업로드 가능 (게스트 폴백 차단, Wave 2 동기화).
-//   2) 본인 폴더(users/{uid}/**) 에만 쓰기 가능.
-//   3) read 는 인증 사용자라면 누구나(공유 카드 이미지 등) — Firestore Rules 가 데이터 가시성 통제.
-//   4) 이미지 MIME 만 허용, 10MB 제한.
+//   1) 로그인 사용자만 업로드 가능.
+//   2) 개인 자료(users/{uid}/** : 일기 이미지·아바타 등)는 본인만 read/write/delete.
+//      → audit [CRITICAL 3-1] 수정: 이전 규칙은 인증된 누구나 타인 자료를 read 할 수 있었다.
+//   3) 공개 카드 이미지는 public/cards/** 로 분리. read 는 인증 사용자, write/delete 는 어드민(token.admin)만.
+//   4) 레거시 카드 이미지(users/{uid}/editor_images/**)는 하위 호환을 위해 인증 사용자 read 유지.
+//      ※ 카드 자산을 public/cards 로 마이그레이션한 뒤 이 블록을 제거할 것.
+//   5) 이미지 MIME 만 허용, 10MB 제한.
 //
 // 배포: firebase deploy --only storage
 // =====================================================================
@@ -14,14 +17,47 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // 사용자 업로드 디렉토리: users/{uid}/(editor_images|diary|...)/...
-    match /users/{userId}/{folder=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.size < 10 * 1024 * 1024  // 10MB
-                   && request.resource.contentType.matches('image/.*');
-      allow delete: if request.auth != null && request.auth.uid == userId;
+    // ---------- 헬퍼 ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    // 어드민은 Firebase Custom Claims(token.admin == true)로 부여 (audit 2-3).
+    // 클레임 미보유 토큰에서 undefined 접근 경고가 나지 않도록 키 존재를 먼저 확인.
+    function isAdmin() {
+      return isSignedIn()
+        && ('admin' in request.auth.token)
+        && request.auth.token.admin == true;
+    }
+    function isValidImageUpload() {
+      return request.resource.size < 10 * 1024 * 1024            // 10MB
+             && request.resource.contentType.matches('image/.*');
+    }
+
+    // 1) 공개 카드 이미지 — 신규 카드 자산의 정식 경로.
+    //    read: 인증 사용자 누구나(카드 표시). write/delete: 어드민 클레임 보유자만.
+    match /public/cards/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidImageUpload();
+      allow delete: if isAdmin();
+    }
+
+    // 2) 레거시 카드 이미지 — 기존 발행 카드가 가리키는 users/{uid}/editor_images.
+    //    하위 호환: 인증 사용자 read 유지. 업로드/삭제는 소유자(어드민 본인)만.
+    match /users/{userId}/editor_images/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && isValidImageUpload();
+      allow delete: if isOwner(userId);
+    }
+
+    // 3) 그 외 개인 자료(일기 이미지·프로필 아바타 등) — 본인만 read/write/delete.
+    //    audit [CRITICAL 3-1] 핵심 격리.
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidImageUpload();
+      allow delete: if isOwner(userId);
     }
 
     // 명시적 차단: 비로그인/익명 'guest' 경로 (v1.3.5 이전 잔재 보호)

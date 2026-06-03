@@ -7,8 +7,8 @@
    좌우 스와이프는 Swiper.js 11 기반으로 통합되었습니다 (2026-05-24).
    ===================================================================== */
 
-import { navigate, getParams, setOnUnmount, getPreviousRoute } from '../router.js';
-import { getState, setState } from '../state.js';
+import { navigate, getParams } from '../router.js';
+import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
 import { Capacitor } from '@capacitor/core';
@@ -26,30 +26,15 @@ import { uploadImage } from '../services/images.js';
 import { pickImage, CameraPermissionError } from '../services/camera.js';
 
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
-import { renderGrid, isAtCurrentMonth, WEEKDAYS } from './calendar.js';
 import { renderPageHeader, bindPageHeaderBack } from '../components/pageHeader.js';
-import { createCardSwiper } from '../utils/cardSwiper.js';
-import { getLocalToday } from '../utils/date.js';
+
+import { buildCardDeck } from '../components/cardDeck/cardDeckController.js';
+import {
+  cardShell, cardFront, cardFrontTop, cardImageWrap, cardBack, emptyCardFace, cardActionButton,
+  bindCardBase, parseIsoDate, formatMonthNameDate, bodyToHtml, SHARE_ICON_SVG,
+} from '../components/cardDeck/cardFace.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
-
-/* 카드 로딩 스켈레톤 제거 — 페이드 아웃 후 DOM 에서 제거 (밑에 깔린 실제 카드가 드러남) */
-function hideCardSkeleton(page) {
-  const sk = page.querySelector('#mystory-card-skeleton');
-  if (!sk) return;
-  sk.classList.add('is-hiding');
-  setTimeout(() => sk.remove(), 300);
-}
-
-/* iOS WKWebView WebP 디코더 crash 의 부분 방어 (완전 차단 불가능).
-   사용자 업로드 이미지(legacy .webp 포함) 도 src 그대로 부여하고, 디코드
-   실패 시 onerror 가 fallback PNG 로 swap. iOS WebKit 의 OS-level crash 는
-   onerror 발화 이전이라 막을 수 없으나, 잡을 수 있는 케이스는 잡는다. */
-const FALLBACK_IMG = '/assets/editor_profile.png';
-const IMG_ONERROR = `this.onerror=null;this.src='${FALLBACK_IMG}';this.classList.add('img-fallback');`;
-
-const ICON_CALENDAR_MY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7v10"/><path d="M6 5v14"/><rect width="12" height="18" x="10" y="3" rx="2"/></svg>`;
-const ICON_CARD_MY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>`;
 
 function getMyStoryAuthorNickname(story = {}) {
   const profile = getState('profile') || {};
@@ -74,404 +59,35 @@ function getMyStoryAuthorNickname(story = {}) {
    섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커 + Swiper)
    ───────────────────────────────────────────── */
 export function renderMyStory() {
-  const page = document.createElement('div');
-  page.className = 'mystory-page page';
-  page.dataset.enter = 'from-right';
+  return buildCardDeck({
+    idPrefix: 'mystory',
+    pageClass: 'mystory-page',
+    headerHtml: '',
+    enterDir: 'from-right',
+    calMode: 'mine',
+    lastDateKey: 'lastMyStoryDate',
 
-  const savedView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
-  const initialYear = new Date().getFullYear();
-
-  page.innerHTML = `
-    <!-- 휠 피커 스타일 날짜 선택기 -->
-    <div class="wheel-pickers-container">
-      <div class="wheel-year-label" id="mystory-year-label">${initialYear}</div>
-      <!-- 월 피커 -->
-      <div class="wheel-picker-wrapper">
-        <div class="wheel-selection-box"></div>
-        <div class="modern-wheel-scroll" id="mystory-month-scroll"></div>
-        <button type="button" class="view-toggle-btn" id="mystory-view-toggle" aria-label="보기 방식 변경">${savedView === 'calendar' ? ICON_CARD_MY : ICON_CALENDAR_MY}</button>
-      </div>
-      <!-- 일 피커 -->
-      <div class="wheel-picker-wrapper" id="mystory-day-picker">
-        <div class="wheel-selection-box"></div>
-        <div class="modern-wheel-scroll" id="mystory-calendar"></div>
-      </div>
-    </div>
-
-    <!-- 카드 렌더링 영역 (Swiper) -->
-    <div class="editorstory-card-area" id="mystory-card-area">
-      <div class="swiper card-swiper" id="mystory-card-swiper">
-        <div class="swiper-wrapper"></div>
-      </div>
-      <div class="skeleton-card" id="mystory-card-skeleton" aria-hidden="true"></div>
-    </div>
-
-    <div class="page-calendar-view" id="mystory-cal-view" hidden>
-      <div class="calendar-month-nav">
-        <button type="button" class="calendar-month-arrow" id="cal-prev-month" aria-label="이전 달">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <div class="calendar-month-label" id="cal-month-label">—</div>
-        <button type="button" class="calendar-month-arrow" id="cal-next-month" aria-label="다음 달">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-      <div class="calendar-weekdays">
-        ${WEEKDAYS.map((d, i) => `<div class="calendar-weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}
-      </div>
-      <div class="calendar-grid" id="calendar-grid">
-        <div class="calendar-grid-loading"><div class="loading-spinner"></div></div>
-      </div>
-    </div>
-  `;
-
-  if (savedView === 'calendar') {
-    page.querySelector('#mystory-day-picker').hidden = true;
-    page.querySelector('#mystory-card-area').hidden = true;
-    page.querySelector('#mystory-cal-view').hidden = false;
-  }
-
-  loadMyStoryData(page);
-
-  return page;
-}
-
-async function loadMyStoryData(page) {
-  try {
-    const user = getState('user');
-    // Firebase Auth의 실제 UID를 우선 사용 (Firestore 보안 규칙의 request.auth.uid와 일치해야 함)
-    const uid = auth?.currentUser?.uid || user?.id;
-    const allStories = await fetchMyStories(uid);
-    void syncDiaryStateFromList(allStories);
-
-    // 로컬 시간 기준 실제 오늘 날짜 (휠 피커의 미래 날짜 제한용)
-    const params = getParams();
-    const localTodayStr = getLocalToday();
-
-    const [rtY, rtM, rtD] = localTodayStr.split('-');
-    const realToday = new Date(parseInt(rtY), parseInt(rtM) - 1, parseInt(rtD));
-
-    // 마지막 방문 날짜(메모리) > URL 파라미터 > 오늘 순서로 초기 날짜 결정
-    const targetDateStr = getState('lastMyStoryDate') || params.date || localTodayStr;
-
-    const monthElement = page.querySelector('#mystory-month-scroll');
-    const calendarElement = page.querySelector('#mystory-calendar');
-    const swiperEl = page.querySelector('#mystory-card-swiper');
-
-    const currentYear = realToday.getFullYear();
-    const currentMonth = realToday.getMonth() + 1;
-    const currentDate = realToday.getDate();
-
-
-    /* 월 휠: 1~12, currentMonth 초과는 disabled */
-    if (monthElement) {
-      monthElement.innerHTML = Array.from({ length: 12 }, (_, i) => {
-        const m = i + 1;
-        const cls = m > currentMonth ? ' disabled' : '';
-        return `<div class="wheel-item${cls}" data-month="${m}">${m}</div>`;
-      }).join('');
-    }
-
-    /* 일 휠 + Swiper 슬라이드 데이터를 같은 인덱스로 생성 */
-    const dateItems = [];
-    for (let m = 1; m <= currentMonth; m++) {
-      const lastDay = m === currentMonth ? currentDate : new Date(currentYear, m, 0).getDate();
-      for (let d = 1; d <= lastDay; d++) {
-        const mm = String(m).padStart(2, '0');
-        const dd = String(d).padStart(2, '0');
-        dateItems.push({ iso: `${currentYear}-${mm}-${dd}`, month: m, day: d });
-      }
-    }
-
-    if (calendarElement) {
-      calendarElement.innerHTML = dateItems.map(({ iso, month, day }) =>
-        `<div class="wheel-item" data-date="${iso}" data-month="${month}" data-day="${day}">${day}</div>`
-      ).join('');
-    }
-
-    /* 날짜 → 일화 매핑 */
-    const dateToStory = new Map();
-    for (const s of allStories) {
-      if (s?.publish_date) dateToStory.set(s.publish_date, s);
-    }
-
-    /* Swiper 슬라이드 데이터 */
-    const slides = dateItems.map(({ iso }) => ({ iso, story: dateToStory.get(iso) || null }));
-
-    /* 초기 인덱스: targetDateStr → 없으면 오늘 → 없으면 0 (January 1 방어) */
-    let initialIdx = dateItems.findIndex(d => d.iso === targetDateStr);
-    if (initialIdx < 0) initialIdx = dateItems.findIndex(d => d.iso === localTodayStr);
-    initialIdx = Math.max(0, initialIdx);
-
-    function getActiveItem(scrollArea) {
-      const boxCenter = scrollArea.getBoundingClientRect().left + scrollArea.offsetWidth / 2;
-      let closest = null;
-      let minDistance = Infinity;
-      scrollArea.querySelectorAll('.wheel-item:not(.disabled)').forEach(el => {
-        const elCenter = el.getBoundingClientRect().left + el.offsetWidth / 2;
-        const distance = Math.abs(boxCenter - elCenter);
-        if (distance < minDistance) { minDistance = distance; closest = el; }
-      });
-      return closest;
-    }
-
-    function syncMonthWheel(dayMonth, instant = false) {
-      const activeMonthEl = monthElement.querySelector('.wheel-item.active');
-      if (activeMonthEl && parseInt(activeMonthEl.dataset.month, 10) === dayMonth) return;
-      const targetMonthEl = monthElement.querySelector(`.wheel-item[data-month="${dayMonth}"]`);
-      if (!targetMonthEl) return;
-      monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-      targetMonthEl.classList.add('active');
-      const t = targetMonthEl.offsetLeft - monthElement.offsetWidth / 2 + targetMonthEl.offsetWidth / 2;
-      /* instant=true: 초기 진입 시 smooth 우회 (iOS scrollTo 미적용 회피 + "즉시 표시") */
-      if (instant) monthElement.scrollLeft = t;
-      else monthElement.scrollTo({ left: t, behavior: 'smooth' });
-    }
-
-    function activateDayWheelByIndex(idx, instant = false) {
-      const items = calendarElement.querySelectorAll('.wheel-item');
-      items.forEach(el => el.classList.remove('active'));
-      const target = items[idx];
-      if (!target) return;
-      target.classList.add('active');
-      const month = parseInt(target.dataset.month, 10);
-      syncMonthWheel(month, instant);
-      const t = target.offsetLeft - calendarElement.offsetWidth / 2 + target.offsetWidth / 2;
-      if (instant) calendarElement.scrollLeft = t;
-      else calendarElement.scrollTo({ left: t, behavior: 'smooth' });
-    }
-
-    /* ── Swiper Virtual 모드 ──
-       이전엔 모든 슬라이드를 사전에 DOM 에 넣고 이미지만 lazy 로딩했음. 그러나
-       각 슬라이드의 .flipper 가 transform-style:preserve-3d 로 3D 컨텍스트를
-       만들어 iOS WKWebView GPU 컴포지터가 swipe transition 중 살해됨.
-       Virtual 로 가시 슬라이드 ±2 (총 5개) 만 DOM 유지. */
-
-    /* ── 보기 방식 상태(카드 ↔ 캘린더) — Swiper 생성 전에 결정해야 lazy init 가능 ── */
-    const calState = {
-      mode: 'mine',
-      year: currentYear,
-      month: realToday.getMonth(),
-      historyStories: [],
-      myStories: allStories,
-      bookmarkedIds: [],
-    };
-
-    const toggleBtn = page.querySelector('#mystory-view-toggle');
-    const dayPicker = page.querySelector('#mystory-day-picker');
-    const cardArea = page.querySelector('#mystory-card-area');
-    const calView   = page.querySelector('#mystory-cal-view');
-    let currentView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
-
-    /* ── Swiper 인스턴스 lazy 생성 ──
-       hidden container(cardArea.hidden=true) 위에서 Swiper 를 init 하면
-       getBoundingClientRect 가 0×0 → slidesGrid 가 0 → initialSlide 가 anchor 되지 못해
-       activeIndex 0(1월 1일) 에 stuck + iOS 카드 표시 불가가 발생.
-       cardArea 가 실제로 보일 때(offsetParent !== null) 만 createCardSwiper 호출.
-       calendar view 진입 시에는 toggle 핸들러가 처음 ensureSwiper() 호출. */
-    let swiper = null;
-    const ensureSwiper = () => {
-      if (swiper) return swiper;
-      if (swiperEl.offsetParent === null) return null;
-      swiper = createCardSwiper(swiperEl, {
-        slides,
-        /* Swiper Virtual 의 renderSlide 는 반환 string 의 outermost 요소를 slide DOM 으로 사용.
-           .swiper-slide 래퍼가 outermost 여야 Swiper 의 layout/transform 이 정상 적용됨. */
-        renderSlide: (slide) => `<div class="swiper-slide">${buildMyStorySlideHTML(slide.story, slide.iso)}</div>`,
-        initialSlide: initialIdx,
-        onSlideActive: (idx) => {
-          setState('lastMyStoryDate', slides[idx]?.iso ?? null);
-          activateDayWheelByIndex(idx);
-        },
-        onSlideReady: (idx) => {
-          const slideEl = swiperEl.querySelector('.swiper-slide-active');
-          if (!slideEl) return;
-          const flipContainer = slideEl.querySelector('.flip-container');
-          if (!flipContainer) return;
-          const slide = slides[idx];
-          bindMyStoryCardEvents(flipContainer, slide?.story, slide?.iso);
-        },
-      });
-      hideCardSkeleton(page);
-      return swiper;
-    };
-
-    /* card view 진입 시 DOM 삽입 이후 첫 프레임에 생성.
-       renderMyStory() → loadMyStoryData() 순서에서 page 가 아직 DOM 밖에 있을 때
-       ensureSwiper() 를 호출하면 offsetParent === null → 생성 건너뜀 → 1월 1일 표시.
-       iOS WKWebView 는 SPA 전환 직후 첫 rAF 에서도 offsetParent 가 일시 null 일 수 있으므로
-       ensureSwiper() 가 null 이면 다음 rAF 에서 재시도 (최대 8회, 약 130ms).
-       휠 선스크롤은 instant 모드로 매 시도마다 즉시 정확한 위치에 표시 (1월 1일 flash 방지). */
-    if (currentView !== 'calendar') {
-      let attempts = 0;
-      const MAX_ATTEMPTS = 8;
-      const tryInit = () => {
-        activateDayWheelByIndex(initialIdx, true);
-        const sw = ensureSwiper();
-        if (sw) {
-          requestAnimationFrame(() => sw.update());
-          return;
-        }
-        if (++attempts < MAX_ATTEMPTS) requestAnimationFrame(tryInit);
+    loadData: async () => {
+      const user = getState('user');
+      /* Firebase Auth 실제 UID 우선 (Firestore 보안 규칙 request.auth.uid 일치) */
+      const uid = auth?.currentUser?.uid || user?.id;
+      const allStories = await fetchMyStories(uid);
+      void syncDiaryStateFromList(allStories);
+      const params = getParams();
+      return {
+        stories: allStories,
+        /* 마지막 방문 날짜 > URL date > (없으면 컨트롤러가 오늘로 fallback) */
+        initialDate: getState('lastMyStoryDate') || params.date || null,
+        calStores: { historyStories: [], myStories: allStories },
+        bookmarkedIds: [],
       };
-      requestAnimationFrame(tryInit);
-    }
+    },
 
-    setOnUnmount(() => {
-      if (swiper && !swiper.destroyed) swiper.destroy(true, true);
-    });
+    renderSlideHTML: (raw, iso) => buildMyStorySlideHTML(raw, iso),
+    bindCard: (flip, raw, iso) => bindMyStoryCardEvents(flip, raw, iso),
 
-    /* 일 휠 스크롤 디바운스 — 사용자가 일 휠을 직접 스크롤하면 Swiper도 이동 */
-    let scrollTimeout;
-    const onDayScrollEnd = () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        const centerDay = getActiveItem(calendarElement);
-        if (!centerDay) return;
-        const targetIso = centerDay.dataset.date;
-        const targetIdx = slides.findIndex(s => s.iso === targetIso);
-        const sw = ensureSwiper();
-        if (!sw || targetIdx < 0 || targetIdx === sw.activeIndex) return;
-        sw.slideTo(targetIdx, 320);
-      }, 150);
-    };
-    calendarElement.addEventListener('scroll', onDayScrollEnd, { passive: true });
-
-    /* 월 휠 스크롤 디바운스 */
-    let monthScrollTimeout;
-    const onMonthScrollEnd = () => {
-      if (currentView !== 'card') return;
-      clearTimeout(monthScrollTimeout);
-      monthScrollTimeout = setTimeout(() => {
-        const centerMonth = getActiveItem(monthElement);
-        if (!centerMonth || centerMonth.classList.contains('disabled')) return;
-        const activeDay = calendarElement.querySelector('.wheel-item.active');
-        const activeDayMonth = activeDay ? parseInt(activeDay.dataset.month, 10) : -1;
-        if (parseInt(centerMonth.dataset.month, 10) !== activeDayMonth) {
-          onMonthClick(centerMonth);
-        } else {
-          monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-          centerMonth.classList.add('active');
-        }
-      }, 150);
-    };
-    monthElement.addEventListener('scroll', onMonthScrollEnd, { passive: true });
-
-    /* 월 휠 클릭 */
-    const onMonthClick = (item) => {
-      if (item.classList.contains('disabled')) return;
-      const m = parseInt(item.dataset.month, 10);
-      const dd = m === currentMonth ? String(currentDate).padStart(2, '0') : '01';
-      const targetIso = `${currentYear}-${String(m).padStart(2, '0')}-${dd}`;
-      const targetIdx = slides.findIndex(s => s.iso === targetIso);
-      if (targetIdx < 0) return;
-      monthElement.querySelectorAll('.wheel-item').forEach(el => el.classList.remove('active'));
-      item.classList.add('active');
-      const monthScroll = item.offsetLeft - monthElement.offsetWidth / 2 + item.offsetWidth / 2;
-      monthElement.scrollTo({ left: monthScroll, behavior: 'smooth' });
-      const sw = ensureSwiper();
-      if (sw) sw.slideTo(targetIdx, 320);
-    };
-
-    /* 일 휠 클릭 */
-    const onDayClick = (item) => {
-      const targetIso = item.dataset.date;
-      const targetIdx = slides.findIndex(s => s.iso === targetIso);
-      if (targetIdx < 0) return;
-      const sw = ensureSwiper();
-      if (sw) sw.slideTo(targetIdx, 320);
-    };
-
-    monthElement.querySelectorAll('.wheel-item').forEach(item =>
-      item.addEventListener('click', () => onMonthClick(item))
-    );
-    calendarElement.querySelectorAll('.wheel-item').forEach(item =>
-      item.addEventListener('click', () => onDayClick(item))
-    );
-
-    /* 초기 휠 위치는 createCardSwiper 의 on.init → onSlideActive 에서 이미 처리됨. */
-
-    if (currentView === 'calendar') {
-      renderGrid(page, calState, realToday);
-    }
-
-    toggleBtn.addEventListener('click', () => {
-      if (currentView === 'card') {
-        currentView = 'calendar';
-        sessionStorage.setItem('ds_session_view', 'calendar');
-        toggleBtn.innerHTML = ICON_CARD_MY;
-        dayPicker.hidden = true;
-        cardArea.hidden = true;
-        calView.hidden = false;
-        requestAnimationFrame(() => {
-          calView.classList.add('view-enter');
-          renderGrid(page, calState, realToday);
-          setTimeout(() => calView.classList.remove('view-enter'), 250);
-        });
-      } else {
-        currentView = 'card';
-        sessionStorage.setItem('ds_session_view', 'card');
-        toggleBtn.innerHTML = ICON_CALENDAR_MY;
-        calView.hidden = true;
-        dayPicker.hidden = false;
-        cardArea.hidden = false;
-        requestAnimationFrame(() => {
-          const activeDay = calendarElement.querySelector('.wheel-item.active');
-          if (activeDay) {
-            calendarElement.scrollLeft = activeDay.offsetLeft - calendarElement.offsetWidth / 2 + activeDay.offsetWidth / 2;
-          }
-          /* 최초 카드 보기 진입이면 여기서 Swiper 생성. 이미 있으면 update() 로 재측정.
-             iOS WKWebView 는 hidden=false 직후 reflow 가 한 프레임 늦으므로 double rAF. */
-          const sw = ensureSwiper();
-          if (sw) {
-            requestAnimationFrame(() => sw.update());
-          }
-          cardArea.classList.add('view-enter');
-          setTimeout(() => cardArea.classList.remove('view-enter'), 250);
-        });
-      }
-    });
-
-    /* 월 휠 스크롤 → 캘린더 모드일 때 그리드 업데이트 */
-    let calMonthScrollTimer;
-    monthElement.addEventListener('scroll', () => {
-      if (currentView !== 'calendar') return;
-      clearTimeout(calMonthScrollTimer);
-      calMonthScrollTimer = setTimeout(() => {
-        const active = getActiveItem(monthElement);
-        if (!active) return;
-        const m = parseInt(active.dataset.month, 10) - 1;
-        if (m === calState.month && calState.year === currentYear) return;
-        calState.month = m;
-        calState.year = currentYear;
-        renderGrid(page, calState, realToday);
-      }, 150);
-    }, { passive: true });
-
-    /* 캘린더 이전/다음 달 버튼 */
-    page.querySelector('#cal-prev-month').addEventListener('click', () => {
-      calState.month -= 1;
-      if (calState.month < 0) { calState.month = 11; calState.year -= 1; }
-      const yearLabel = page.querySelector('#mystory-year-label');
-      if (yearLabel) yearLabel.textContent = calState.year;
-      renderGrid(page, calState, realToday);
-      syncMonthWheel(calState.month + 1);
-    });
-
-    page.querySelector('#cal-next-month').addEventListener('click', () => {
-      if (isAtCurrentMonth(calState, realToday)) return;
-      calState.month += 1;
-      if (calState.month > 11) { calState.month = 0; calState.year += 1; }
-      const yearLabel = page.querySelector('#mystory-year-label');
-      if (yearLabel) yearLabel.textContent = calState.year;
-      renderGrid(page, calState, realToday);
-      syncMonthWheel(calState.month + 1);
-    });
-
-  } catch (err) {
-    console.error('loadMyStoryData 오류:', err?.message || err?.code || JSON.stringify(err));
-    page.innerHTML = `<div class="empty-state"><div class="empty-state-title">오류가 발생했습니다</div></div>`;
-  }
+    errorHtml: () => '<div class="empty-state"><div class="empty-state-title">오류가 발생했습니다</div></div>',
+  });
 }
 
 
@@ -480,86 +96,53 @@ async function loadMyStoryData(page) {
    ───────────────────────────────────────────── */
 
 function buildMyStorySlideHTML(story, isoDateStr) {
-  const [yStr, mStr, dStr] = isoDateStr.split('-');
-  const dateObj = new Date(parseInt(yStr, 10), parseInt(mStr, 10) - 1, parseInt(dStr, 10));
-  const month = dateObj.getMonth() + 1;
-  const day = dateObj.getDate();
-  const displayYear = dateObj.getFullYear();
+  const { month, day, year: displayYear } = parseIsoDate(isoDateStr);
 
   if (!story) {
-    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    const formattedDate = `${monthNames[dateObj.getMonth()]} ${day}, ${displayYear}`;
-    return `
-      <div class="flip-container">
-        <div class="flipper mystory-flipper">
-          <div class="front history-card-front empty-story-card">
-            <div class="empty-story-day-circle">${day}</div>
-            <div class="empty-story-title">이 날의 기록이 없습니다.</div>
-            <div class="empty-story-date">${formattedDate}</div>
-            <button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
+    return emptyCardFace({
+      day,
+      title: '이 날의 기록이 없습니다.',
+      dateStr: formatMonthNameDate(isoDateStr),
+      extraHtml: `<button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
               + 나의 일화 쓰기
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
+            </button>`,
+      flipperClass: 'mystory-flipper',
+    });
   }
 
   const [storyYearRaw, storyMonthRaw, storyDayRaw] = String(story.publish_date || isoDateStr).split('-');
   const storyYear = parseInt(storyYearRaw, 10) || displayYear;
   const storyMonth = parseInt(storyMonthRaw, 10) || month;
   const storyDay = parseInt(storyDayRaw, 10) || day;
-  /* story.image_url 을 항상 그대로 부여 (legacy .webp 포함).
-     디코드 실패 시 onerror 가 fallback 으로 swap — "운 좋게" 잡힐 때만 복구. */
-  const imageSrc = story.image_url || FALLBACK_IMG;
-  const bodyHtml = (story.body || '').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
   const authorNickname = getMyStoryAuthorNickname(story);
 
-  return `
-    <div class="flip-container">
-      <div class="flipper mystory-flipper">
-        <!-- 앞면 -->
-        <div class="front history-card-front">
-          <div class="history-card-top">
-            <div class="card-top-left">
-              <div class="card-year mystory-card-year">${storyYear}</div>
-              <div class="card-date">${storyMonth}. ${storyDay}</div>
-            </div>
-            <div class="card-top-right">
-              <div class="card-actions">
-                <button class="card-action-btn share-my-story-btn" data-id="${escapeHtml(story.id)}" aria-label="공유">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                  </svg>
-                </button>
-                <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id)}" aria-label="수정">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+  const editSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                     <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
                     <path d="m15 5 4 4"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="card-meta">${escapeHtml(authorNickname)}</div>
-            </div>
-          </div>
-          <div class="history-card-image-wrap">
-            <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(story.title)}" loading="lazy" decoding="async" width="320" height="400" draggable="false" onerror="${IMG_ONERROR}" />
-            <div class="card-image-title">${escapeHtml(story.title)}</div>
-          </div>
-        </div>
-        <!-- 뒷면 -->
-        <div class="back history-card-back">
-          <div class="back-title">${escapeHtml(story.title)}</div>
-          <hr class="back-divider" />
-          <div class="back-body">${bodyHtml}</div>
-          <div class="back-footer">
-            <div class="back-date">${storyYear}년 ${storyMonth}월 ${storyDay}일</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+                  </svg>`;
+
+  const actionsHtml = `${cardActionButton({ ariaLabel: '공유', svg: SHARE_ICON_SVG, extraClass: 'share-my-story-btn', dataId: story.id })}
+                ${cardActionButton({ ariaLabel: '수정', svg: editSvg, extraClass: 'edit-my-story-btn', dataId: story.id })}`;
+
+  const frontHtml = cardFront({
+    topHtml: cardFrontTop({
+      yearHtml: String(storyYear),
+      yearClass: 'mystory-card-year',
+      dateLabel: `${storyMonth}. ${storyDay}`,
+      actionsHtml,
+      metaHtml: escapeHtml(authorNickname),
+    }),
+    /* story.image_url 을 그대로 부여(legacy .webp 포함); cardImageWrap 이 fallback/onerror 처리 */
+    imageHtml: cardImageWrap({ src: story.image_url, alt: story.title, title: story.title }),
+  });
+
+  const backHtml = cardBack({
+    title: story.title,
+    bodyHtml: bodyToHtml(story.body),
+    footerHtml: `<div class="back-date">${storyYear}년 ${storyMonth}월 ${storyDay}일</div>`,
+  });
+
+  return cardShell({ frontHtml, backHtml, flipperClass: 'mystory-flipper' });
 }
 
 
@@ -568,32 +151,16 @@ function buildMyStorySlideHTML(story, isoDateStr) {
    ───────────────────────────────────────────── */
 
 function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
-  const flipper = flipContainer.querySelector('.flipper');
-  if (!flipper) return;
-
-  /* 중복 바인딩 방지 */
   if (flipContainer.dataset.bound === '1') return;
-  flipContainer.dataset.bound = '1';
 
-  /* 꾹 누름 피드백: 60ms 후 is-pressing 추가, 손가락 떼거나 움직이면 즉시 해제 */
-  let _pressTimer = null;
-  const _startPress = () => { _pressTimer = setTimeout(() => flipper.classList.add('is-pressing'), 60); };
-  const _endPress   = () => { clearTimeout(_pressTimer); flipper.classList.remove('is-pressing'); };
-  flipper.addEventListener('touchstart',  _startPress, { passive: true });
-  flipper.addEventListener('touchmove',   _endPress,   { passive: true });
-  flipper.addEventListener('touchend',    _endPress,   { passive: true });
-  flipper.addEventListener('touchcancel', _endPress,   { passive: true });
-
-  /* 이미지 fade-in */
-  flipContainer.querySelectorAll('.history-card-image-wrap img').forEach(img => {
-    img.classList.add('card-img-fade');
-    if (img.complete && img.naturalWidth > 0) {
-      img.classList.add('img-loaded');
-    } else {
-      img.addEventListener('load',  () => img.classList.add('img-loaded'), { once: true });
-      img.addEventListener('error', () => img.classList.add('img-loaded'), { once: true });
-    }
+  /* 공통: press 피드백 + 이미지 fade + flip 토글 (버튼 클릭은 flip 무시) */
+  const flipper = bindCardBase(flipContainer, {
+    story,
+    ignoreSelectors: ['button'],
+    flipDurationMs: 400,
   });
+  if (!flipper) return;
+  flipContainer.dataset.bound = '1';
 
   /* 상단 액션 버튼 (mystory 전용) */
   const writeBtn = flipContainer.querySelector('.mystory-write-btn');
@@ -651,17 +218,6 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
       navigate('/mystory/new?edit=' + editBtn.dataset.id);
     });
   }
-
-  /* 카드 클릭 → 플립 (Swiper의 preventClicks 동작이 스와이프 직후 click을 자동 차단) */
-  flipper.addEventListener('click', (e) => {
-    if (!story) return;
-    if (e.target.closest('button')) return;
-    if (flipper.classList.contains('is-flipping')) return;
-
-    flipper.classList.add('is-flipping');
-    flipper.classList.toggle('flipped');
-    setTimeout(() => flipper.classList.remove('is-flipping'), 400);
-  });
 }
 
 

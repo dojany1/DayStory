@@ -1646,7 +1646,6 @@
   aspect-ratio: var(--card-aspect-ratio);
 
   background: var(--color-bg-card);
-  border: 2px solid var(--color-border);
   box-shadow: var(--shadow-card);
 
   animation: pulse 1.5s infinite ease-in-out;

@@ -16,6 +16,7 @@ const {
 
 vi.mock('../src/js/router.js', () => ({
   navigate: navigateMock,
+  getPreviousRoute: vi.fn(() => null),
 }));
 
 vi.mock('../src/js/components/toast.js', () => ({
@@ -215,15 +216,10 @@ describe('Bottom navigation visuals', () => {
   it('Given the three main bottom navigation icons, when their base styles are inspected, then the profile icon should match the shared 28px size and not have a profile-only active border change', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/base.css'), 'utf8');
     const navIconRule = css.match(/\.bottom-nav\.redesigned-nav \.nav-icon\s*\{[\s\S]*?\}/)?.[0];
-    const profileWrapRule = css.match(/\.nav-profile-img-wrap\s*\{[\s\S]*?\}/)?.[0];
-    const guestAvatarRule = css.match(/\.nav-profile-img-wrap \.guest-avatar\s*\{[\s\S]*?\}/)?.[0];
-
     expect(navIconRule).toMatch(/width:\s*28px/);
     expect(navIconRule).toMatch(/height:\s*28px/);
-    expect(profileWrapRule).toMatch(/width:\s*28px/);
-    expect(profileWrapRule).toMatch(/height:\s*28px/);
-    expect(guestAvatarRule).not.toMatch(/width:\s*16px/);
-    expect(guestAvatarRule).not.toMatch(/height:\s*16px/);
+    /* 프로필 탭은 사진 wrap(.nav-profile-img-wrap) 없이 정적 .nav-icon 만 사용한다 */
+    expect(css).not.toMatch(/\.nav-profile-img-wrap\s*\{/);
     expect(css).not.toMatch(/\.nav-item\.active\s+\.nav-profile-img-wrap\s*\{[\s\S]*?border-color:/);
   });
 
@@ -231,7 +227,7 @@ describe('Bottom navigation visuals', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/base.css'), 'utf8');
     const activeIconRule = css.match(/\.bottom-nav\.redesigned-nav \.nav-item\.active \.nav-icon\s*\{[\s\S]*?\}/)?.[0] || '';
 
-    expect(activeIconRule).toMatch(/color:\s*var\(--color-text-primary\)/);
+    expect(activeIconRule).toMatch(/color:\s*var\(--color-accent\)/);
   });
 
   it('Given the my story bottom navigation icon, when its markup and styles are inspected, then it should use the same nav item treatment as neighboring tabs', () => {
@@ -246,25 +242,22 @@ describe('Bottom navigation visuals', () => {
     expect(css).not.toMatch(/\.nav-center-circle\s*\{[\s\S]*?background:\s*var\(--color-accent\)/);
   });
 
-  it('Given the home navigation icon, when the nav markup is inspected, then the first icon should use a letter-style envelope SVG instead of the current target icon', () => {
+  it('Given the home navigation icon, when the nav markup is inspected, then the first icon should use the bookmarked-book SVG and not a target icon', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const editorNavMarkup = html.match(/<button class="nav-item active" data-route="\/editorstory"[\s\S]*?<\/button>/)?.[0];
 
     expect(editorNavMarkup).not.toMatch(/<circle cx="12" cy="12" r="10"><\/circle>/);
     expect(editorNavMarkup).not.toMatch(/<polygon points="16\.24 7\.76 14\.12 14\.12 7\.76 16\.24 9\.88 9\.88 16\.24 7\.76"><\/polygon>/);
-    expect(editorNavMarkup).toMatch(/<path[^>]+d="M3(?:\.5)? 7(?:\.5)?(?:\s|,)12(?:\s|,)13(?:\.5)?(?:\s|,)20\.5 7\.5"/);
+    expect(editorNavMarkup).toMatch(/<path[^>]+d="M4 19\.5v-15/);
   });
 
-  it('Given the home navigation letter icon, when its envelope bounds are inspected, then it should not be flatter than the other main icons', () => {
+  it('Given the home navigation icon, when its viewBox is inspected, then it should use the shared square 24x24 viewBox like the other main icons', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const editorNavMarkup = html.match(/<button class="nav-item active" data-route="\/editorstory"[\s\S]*?<\/button>/)?.[0] || '';
-    const rectMarkup = editorNavMarkup.match(/<rect[^>]+>/)?.[0] || '';
-    const width = Number(rectMarkup.match(/width="([^"]+)"/)?.[1]);
-    const height = Number(rectMarkup.match(/height="([^"]+)"/)?.[1]);
+    const svgMarkup = editorNavMarkup.match(/<svg[^>]*>/)?.[0] || '';
 
-    expect(width).toBeGreaterThan(0);
-    expect(height).toBeGreaterThan(0);
-    expect(width / height).toBeLessThanOrEqual(1.25);
+    expect(svgMarkup).toMatch(/class="nav-icon"/);
+    expect(svgMarkup).toMatch(/viewBox="0 0 24 24"/);
   });
 
   it('Given a user profile photo changes, when the bottom navigation code is inspected, then the profile tab should keep the static main icon instead of rendering the photo', () => {
@@ -274,7 +267,7 @@ describe('Bottom navigation visuals', () => {
 
     expect(main).not.toMatch(/navWrap\.innerHTML\s*=\s*`<img/);
     expect(main).not.toMatch(/navWrap\.innerHTML/);
-    expect(profileNavMarkup).toMatch(/settings-nav-icon/);
-    expect(profileNavMarkup).toMatch(/<circle cx="12" cy="12" r="3"><\/circle>/);
+    expect(profileNavMarkup).toMatch(/class="nav-icon"/);
+    expect(profileNavMarkup).toMatch(/<line x1="4" x2="20"/);
   });
 });

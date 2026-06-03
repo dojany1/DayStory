@@ -182,10 +182,6 @@ export function renderGrid(page, state, today) {
     const [year, month] = story.publish_date.split('-');
     return Number(year) === state.year && Number(month) === state.month + 1;
   });
-  const profile = getState('profile') || {};
-  if (profile.role === 'editor') {
-  }
-
   const firstDay = toLocalDateFromIso(`${state.year}-${String(state.month + 1).padStart(2, '0')}-01`);
   const startWeekday = firstDay.getDay();
   const daysInMonth = getDaysInMonth(state.year, state.month + 1);

@@ -25,6 +25,8 @@ const pagesCss = () => readFileSync(root('src/css/pages.css'), 'utf8');
 const componentsCss = () => readFileSync(root('src/css/components.css'), 'utf8');
 const editorSrc = () => readFileSync(root('src/js/pages/editorstory.js'), 'utf8');
 const mystorySrc = () => readFileSync(root('src/js/pages/mystory.js'), 'utf8');
+const cardFaceSrc = () => readFileSync(root('src/js/components/cardDeck/cardFace.js'), 'utf8');
+const controllerSrc = () => readFileSync(root('src/js/components/cardDeck/cardDeckController.js'), 'utf8');
 const timeoutSrc = () => readFileSync(root('src/js/utils/timeout.js'), 'utf8');
 
 /* 특정 selector 의 첫 번째 rule block (중괄호 안 내용) 만 추출 */
@@ -67,8 +69,8 @@ describe('Step 1 — GPU 레이어 scope 한정 (iOS WKWebView GPU crash 회피)
 });
 
 describe('Step 2 — 이미지 fallback + WebP 차단', () => {
-  it('editorstory.js 가 FALLBACK_IMG 와 IMG_ONERROR 상수를 정의한다', () => {
-    const src = editorSrc();
+  it('cardFace 가 FALLBACK_IMG 와 IMG_ONERROR 상수를 정의한다 (공통)', () => {
+    const src = cardFaceSrc();
     expect(src).toMatch(/const\s+FALLBACK_IMG\s*=\s*['"]\/assets\/editor_profile\.png['"]/);
     expect(src).toMatch(/const\s+IMG_ONERROR\s*=/);
     expect(src).toMatch(/this\.onerror\s*=\s*null/);
@@ -87,32 +89,20 @@ describe('Step 2 — 이미지 fallback + WebP 차단', () => {
     expect(src).not.toMatch(/import\s*\{[^}]*isWebpUrl[^}]*\}\s*from/);
   });
 
-  it('editorstory.js 의 카드 메인 <img> 에 onerror + loading="lazy" 부여', () => {
-    const src = editorSrc();
+  it('cardFace 의 카드 메인 <img> 에 onerror + loading="lazy" 부여 (공통)', () => {
+    const src = cardFaceSrc();
     expect(src).toMatch(/<img[^>]*loading="lazy"[^>]*onerror=|<img[^>]*onerror=[^>]*loading="lazy"/);
   });
 
-  it('mystory.js 가 FALLBACK_IMG 와 IMG_ONERROR 상수를 정의한다', () => {
+  it('mystory.js: 카드 이미지는 story.image_url 을 cardImageWrap 에 전달 (fallback/onerror 는 cardFace 가 처리)', () => {
     const src = mystorySrc();
-    expect(src).toMatch(/const\s+FALLBACK_IMG\s*=\s*['"]\/assets\/editor_profile\.png['"]/);
-    expect(src).toMatch(/const\s+IMG_ONERROR\s*=/);
-    expect(src).toMatch(/this\.onerror\s*=\s*null/);
-  });
-
-  it('mystory.js: imageSrc 는 story.image_url 을 우선 사용 (차단 롤백)', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/imageSrc\s*=\s*story\.image_url\s*\|\|\s*FALLBACK_IMG/);
+    expect(src).toMatch(/cardImageWrap\(\{\s*src:\s*story\.image_url/);
   });
 
   it('mystory.js: isWebpUrl 차단을 더 이상 사용하지 않음 (롤백 검증)', () => {
     const src = mystorySrc();
     expect(src).not.toMatch(/isWebpUrl\s*\(/);
     expect(src).not.toMatch(/import\s*\{[^}]*isWebpUrl[^}]*\}\s*from/);
-  });
-
-  it('mystory.js 의 카드 메인 <img> 에 onerror + loading="lazy" 부여', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/<img[^>]*loading="lazy"[^>]*onerror=|<img[^>]*onerror=[^>]*loading="lazy"/);
   });
 
   it('utils/storage.js: isWebpUrl 유틸 자체는 유지 (profile.js 에서 사용)', () => {
@@ -197,9 +187,9 @@ describe('Step 4 — Swiper Virtual 도입 (iOS GPU crash 근본 fix)', () => {
     expect(src).toMatch(/createCardSwiper[\s\S]{0,200}slides[,\s}]/);
   });
 
-  it('editorstory.js 가 createCardSwiper 에 slides + renderSlide 를 전달', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/createCardSwiper\([\s\S]*?slides[\s\S]*?renderSlide\s*:[\s\S]*?buildSlideHTML/);
+  it('컨트롤러가 createCardSwiper 에 slides + renderSlide 전달, editorstory 가 buildSlideHTML 제공', () => {
+    expect(controllerSrc()).toMatch(/createCardSwiper\([\s\S]*?slides[\s\S]*?renderSlide\s*:/);
+    expect(editorSrc()).toMatch(/renderSlideHTML\s*:\s*\([^)]*\)\s*=>\s*buildSlideHTML/);
   });
 
   it('editorstory.js 에서 wrapperEl.innerHTML 사전 빌드 패턴이 제거됨 (Virtual 이 렌더)', () => {
@@ -208,9 +198,9 @@ describe('Step 4 — Swiper Virtual 도입 (iOS GPU crash 근본 fix)', () => {
     expect(src).not.toMatch(/wrapperEl\.innerHTML\s*=\s*slides[\s\S]{0,200}\.join/);
   });
 
-  it('mystory.js 가 createCardSwiper 에 slides + renderSlide 를 전달', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/createCardSwiper\([\s\S]*?slides[\s\S]*?renderSlide\s*:[\s\S]*?buildMyStorySlideHTML/);
+  it('mystory 가 renderSlideHTML 로 buildMyStorySlideHTML 을 제공 (createCardSwiper 는 컨트롤러가 호출)', () => {
+    expect(controllerSrc()).toMatch(/createCardSwiper\([\s\S]*?slides[\s\S]*?renderSlide\s*:/);
+    expect(mystorySrc()).toMatch(/renderSlideHTML\s*:\s*\([^)]*\)\s*=>\s*buildMyStorySlideHTML/);
   });
 
   it('mystory.js 에서 wrapperEl.innerHTML 사전 빌드 패턴이 제거됨', () => {
@@ -241,13 +231,13 @@ describe('회귀 방지 (이전 fix 유지)', () => {
     expect(editorSrc()).toMatch(/\/assets\/editor_profile\.png/);
   });
 
-  it('editorstory.js 의 lazy ensureSwiper 패턴이 유지된다', () => {
-    expect(editorSrc()).toMatch(/ensureSwiper\s*=\s*\(/);
-    expect(editorSrc()).toMatch(/offsetParent\s*===\s*null/);
+  it('컨트롤러의 lazy ensureSwiper 패턴이 유지된다', () => {
+    expect(controllerSrc()).toMatch(/ensureSwiper\s*=\s*\(/);
+    expect(controllerSrc()).toMatch(/offsetParent\s*===\s*null/);
   });
 
-  it('mystory.js 가 getLocalToday 를 사용 (timezone 트릭 미사용)', () => {
-    const src = mystorySrc();
+  it('컨트롤러가 getLocalToday 를 사용 (timezone 트릭 미사용)', () => {
+    const src = controllerSrc();
     expect(src).toMatch(/localTodayStr\s*=\s*getLocalToday\s*\(\s*\)/);
     expect(src).not.toMatch(/getTimezoneOffset\s*\(\s*\)\s*\*\s*60000/);
   });

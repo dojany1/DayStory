@@ -32,7 +32,7 @@ export function renderSettingsSections() {
   const themeActiveIdx = Math.max(0, ['light', 'dark', 'system'].indexOf(currentTheme));
 
   return `
-    ${profile && profile.role === 'editor' ? `
+    ${getState('isAdmin') ? `
     <div class="settings-section">
       <div class="settings-section-title">관리자 도구</div>
       ${renderSettingsRow({

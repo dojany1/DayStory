@@ -13,7 +13,7 @@
      profiles 테이블의 role이 'editor'인 유저만 접근 가능합니다.
    ===================================================================== */
 
-import { navigate, setBeforeNavigate } from '../router.js';
+import { navigate, pushBeforeNavigate, setOnUnmount } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
 import { getState } from '../state.js';
@@ -45,8 +45,7 @@ export function renderEditor() {
   page.className = 'editor-page page';
 
   /* ---- 권한 체크: 에디터가 아니면 접근 차단 ---- */
-  const profile = getState('profile');
-  if (!profile || profile.role !== 'editor') {
+  if (!getState('isAdmin')) {
     page.innerHTML = `
       <div class="page-header"><h1 class="page-header-title">에디터</h1></div>
       <div class="empty-state">
@@ -285,8 +284,7 @@ export function renderEditorNew() {
   const page = document.createElement('div');
   page.className = 'editor-new-page page';
 
-  const profile = getState('profile');
-  if (!profile || profile.role !== 'editor') {
+  if (!getState('isAdmin')) {
     page.innerHTML = `
       <div class="page-header"><h1 class="page-header-title">권한 없음</h1></div>
     `;
@@ -409,8 +407,11 @@ export function renderEditorNew() {
   };
   window.addEventListener('beforeunload', blockClose);
 
-  // 라우터 이동 방지 (SPA) & 하드웨어 뒤로가기
-  setBeforeNavigate(async (targetPath) => {
+  // 라우터 이동 방지 (SPA) & 하드웨어 뒤로가기.
+  // audit 4-1: 전역 단일 가드(setBeforeNavigate)를 덮어쓰지 않고 스택에 push 한다.
+  // (이전에는 떠날 때 setBeforeNavigate(null) 로 main.js 의 인증/네비 가드까지 지워버려,
+  //  에디터를 한 번 방문하면 앱 전역 가드가 리로드 전까지 비활성화되는 버그가 있었다.)
+  const removeNavGuard = pushBeforeNavigate(async () => {
     if (!saving && unsavedChanges) {
       const confirmLeave = await showConfirm({
         title: '저장되지 않은 정보가 있습니다',
@@ -421,10 +422,13 @@ export function renderEditorNew() {
       });
       if (!confirmLeave) return false;
     }
-    // 페이지 벗어날 때 리스너 제거
-    window.removeEventListener('beforeunload', blockClose);
-    setBeforeNavigate(null); // 훅 초기화
     return true;
+  });
+
+  // 페이지를 떠날 때 정리 — 전역 인증/네비 가드는 그대로 유지된다.
+  setOnUnmount(() => {
+    window.removeEventListener('beforeunload', blockClose);
+    removeNavGuard();
   });
 
   /* ── 언어별 텍스트 필드 보관소 (탭 전환 시 swap) ────────────────

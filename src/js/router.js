@@ -33,8 +33,13 @@ let previousRoute = null;
 /* targetRoute: 현재 로딩 중인 페이지 경로 (중복 호출 방지용) */
 let targetRoute = null;
 
-/** beforeNavigateHook: 페이지 이동 전에 실행할 함수 (인증 체크 등) */
+/** beforeNavigateHook: 베이스 이동 가드 (main.js 인증/네비). setBeforeNavigate 로 설정. */
 let beforeNavigateHook = null;
+
+/** navigateGuardStack: 페이지가 일시적으로 쌓는 이동 가드들 (pushBeforeNavigate).
+ * 베이스 가드를 덮어쓰지 않으므로, 페이지를 떠나도 전역 인증/네비 가드가 사라지지 않는다 (audit 4-1).
+ * 베이스 + 스택의 모든 가드가 통과해야 이동이 허용된다. */
+const navigateGuardStack = [];
 
 /** onUnmountHook: 현재 페이지를 떠날 때 호출할 cleanup 함수 (리스너 해제 등).
  * 페이지 렌더 함수가 setOnUnmount(fn) 으로 등록하면 다음 라우트로 이동하기 직전에 실행된다.
@@ -82,6 +87,27 @@ export function registerRoute(path, handler) {
  */
 export function setBeforeNavigate(fn) {
   beforeNavigateHook = fn;
+}
+
+/**
+ * pushBeforeNavigate — 페이지가 자신만의 이동 가드를 스택에 추가합니다.
+ * setBeforeNavigate(베이스 가드)를 덮어쓰지 않으므로, 페이지를 떠나도
+ * 앱 전역 인증/네비 가드가 사라지지 않습니다 (audit 4-1 회귀 방지).
+ *
+ * @param {Function} fn  (path) => boolean|Promise<boolean>. false 면 이동 차단.
+ * @returns {Function} 가드를 스택에서 제거하는 함수. setOnUnmount 안에서 호출하세요.
+ *
+ * 사용 예시:
+ *   const removeGuard = pushBeforeNavigate(async () => { ...; return true; });
+ *   setOnUnmount(() => removeGuard());
+ */
+export function pushBeforeNavigate(fn) {
+  if (typeof fn !== 'function') return () => {};
+  navigateGuardStack.push(fn);
+  return function removeGuard() {
+    const i = navigateGuardStack.lastIndexOf(fn);
+    if (i !== -1) navigateGuardStack.splice(i, 1);
+  };
 }
 
 /**
@@ -246,10 +272,14 @@ async function handleRoute() {
 
   targetRoute = path;
 
-  /* 2) beforeNavigate 훅 실행 (페이지 이동 허용 여부 확인) */
-  if (beforeNavigateHook) {
-    const canNavigate = await beforeNavigateHook(path);
-    /* 비동기 훅 도중 URL이 바뀌었을 가능성 체크 */
+  /* 2) 이동 가드 평가 — 페이지 스택 가드(LIFO) 먼저, 베이스 가드 마지막.
+   *    하나라도 false 면 이동 차단. 베이스 가드는 부수효과(네비 표시 등)가 있으므로
+   *    스택 가드가 막으면 베이스를 건드리지 않도록 마지막에 둔다. */
+  const guards = [...navigateGuardStack].reverse();
+  if (beforeNavigateHook) guards.push(beforeNavigateHook);
+  for (const guard of guards) {
+    const canNavigate = await guard(path);
+    /* 비동기 가드 도중 URL이 바뀌었을 가능성 체크 */
     if (path !== getCurrentPath() || path !== targetRoute) return;
     if (canNavigate === false) {
       targetRoute = null;

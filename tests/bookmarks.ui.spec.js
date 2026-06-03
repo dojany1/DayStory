@@ -85,6 +85,8 @@ function mockBaseState(overrides = {}) {
 describe('Bookmarks page', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+    /* 테스트 격리: 'mine' 탭 테스트가 남긴 lastArchiveTab 이 다음 테스트의 기본 탭을 바꾸지 않도록 초기화 */
+    localStorage.clear();
     navigateMock.mockReset();
     getStateMock.mockReset();
     mockBaseState();
@@ -325,8 +327,9 @@ describe('Bookmarks page', () => {
     /* 팝업에서 북마크 해제 시뮬레이션 */
     callOpts.onBookmarkChange('s-popup-sync', false);
 
+    /* 북마크 해제 시 해당 카드는 보관함 목록에서 제거된다 (onBookmarkChange → filterAndRender 재렌더). */
     const miniBtn = page.querySelector('.mini-bookmark-btn[data-story-id="s-popup-sync"]');
-    expect(miniBtn?.classList.contains('active')).toBe(false);
+    expect(miniBtn).toBeNull();
   });
 
   it('팝업에서 북마크 재활성화 시 미니 버튼도 active로 동기화된다', async () => {

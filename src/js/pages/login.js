@@ -46,8 +46,6 @@ const appleProvider = new OAuthProvider('apple.com');
 appleProvider.addScope('email');
 appleProvider.addScope('name');
 
-const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
-
 /* ─────────────────────────────────────────────
    섹션 1: 소셜 로그인 아이콘 (SVG)
    ───────────────────────────────────────────── */
@@ -83,11 +81,7 @@ async function upsertProfileAndNavigate(firebaseUser) {
         ? profileSnap.data()
         : { created_at: new Date().toISOString() };
 
-      const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
-      if (isAdmin && profileData.role !== 'editor') {
-        profileData.role = 'editor';
-        await setDoc(profileRef, profileData, { merge: true });
-      } else if (!isExisting) {
+      if (!isExisting) {
         await setDoc(profileRef, profileData);
       }
       setState('profile', profileData);
@@ -263,8 +257,6 @@ export function renderLogin() {
         /* 로그인 성공: 유저 정보와 프로필 저장 */
         setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
 
-        const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
-        const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
         
         let profileData = null;
         if (db) {
@@ -272,10 +264,7 @@ export function renderLogin() {
           const profileSnap = await getDoc(profileRef);
           profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
 
-          if (isAdmin && profileData.role !== 'editor') {
-            profileData.role = 'editor';
-            await setDoc(profileRef, profileData, { merge: true });
-          } else if (!profileSnap.exists()) {
+          if (!profileSnap.exists()) {
             await setDoc(profileRef, profileData);
           }
 
@@ -442,18 +431,13 @@ export function renderSignup() {
 
         setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
 
-        const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
-        const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
 
         if (db) {
           const profileRef = doc(db, 'profiles', firebaseUser.uid);
           const profileSnap = await getDoc(profileRef);
           let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
           
-          if (isAdmin && profileData.role !== 'editor') {
-            profileData.role = 'editor';
-            await setDoc(profileRef, profileData, { merge: true });
-          } else if (!profileSnap.exists()) {
+          if (!profileSnap.exists()) {
             await setDoc(profileRef, profileData);
           }
           

@@ -24,10 +24,11 @@ const root = (p) => resolve(process.cwd(), p);
 const editorSrc = () => readFileSync(root('src/js/pages/editorstory.js'), 'utf8');
 const mystorySrc = () => readFileSync(root('src/js/pages/mystory.js'), 'utf8');
 const swiperSrc = () => readFileSync(root('src/js/utils/cardSwiper.js'), 'utf8');
+const controllerSrc = () => readFileSync(root('src/js/components/cardDeck/cardDeckController.js'), 'utf8');
 
-describe('Swiper lazy init — editorstory.js', () => {
+describe('Swiper lazy init — 공통 컨트롤러(cardDeckController.js)', () => {
   it('createCardSwiper 호출은 ensureSwiper 함수 내부에 있다', () => {
-    const src = editorSrc();
+    const src = controllerSrc();
     expect(src).toMatch(/ensureSwiper\s*=\s*\(/);
     /* createCardSwiper( 가 ensureSwiper 정의 블록 이전(=top-level)에 나타나면 안 됨 */
     const ensureIdx = src.indexOf('ensureSwiper');
@@ -37,168 +38,79 @@ describe('Swiper lazy init — editorstory.js', () => {
   });
 
   it('ensureSwiper 는 offsetParent === null 가드를 가진다', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/offsetParent\s*===\s*null/);
+    expect(controllerSrc()).toMatch(/offsetParent\s*===\s*null/);
   });
 
   it('savedView calendar 진입 시 즉시 ensureSwiper() 를 호출하지 않는다', () => {
-    const src = editorSrc();
     /* 'if (currentView !== ' 패턴 — calendar 가 아닐 때만 즉시 init */
-    expect(src).toMatch(/currentView\s*!==\s*['"]calendar['"]/);
+    expect(controllerSrc()).toMatch(/currentView\s*!==\s*['"]calendar['"]/);
   });
 
   it('초기 ensureSwiper 호출이 requestAnimationFrame 내부에 있다 (DOM 삽입 후 보장)', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/requestAnimationFrame\s*\(\s*tryInit\s*\)/);
+    expect(controllerSrc()).toMatch(/requestAnimationFrame\s*\(\s*tryInit\s*\)/);
   });
 
   it('ensureSwiper init 이 retry 패턴(MAX_ATTEMPTS)을 가진다 (iOS offsetParent null 흡수)', () => {
-    const src = editorSrc();
+    const src = controllerSrc();
     expect(src).toMatch(/MAX_ATTEMPTS/);
     expect(src).toMatch(/\+\+attempts\s*<\s*MAX_ATTEMPTS/);
   });
 });
 
-describe('Swiper lazy init — mystory.js', () => {
-  it('createCardSwiper 호출은 ensureSwiper 함수 내부에 있다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/ensureSwiper\s*=\s*\(/);
-    const ensureIdx = src.indexOf('ensureSwiper');
-    const createIdx = src.indexOf('createCardSwiper(');
-    expect(ensureIdx).toBeGreaterThan(-1);
-    expect(createIdx).toBeGreaterThan(ensureIdx);
+/* mystory.js 의 wheel/Swiper/date-persistence 로직은 공통 컨트롤러
+   (cardDeckController.js) 로 이전됨 → 위 "공통 컨트롤러" describe 가 커버.
+   여기서는 mystory 가 컨트롤러에 넘기는 config 계약만 검증한다. */
+describe('mystory.js — buildCardDeck config', () => {
+  it('mystory 가 buildCardDeck 컨트롤러를 통해 렌더된다', () => {
+    expect(mystorySrc()).toMatch(/buildCardDeck/);
   });
 
-  it('ensureSwiper 는 offsetParent === null 가드를 가진다', () => {
+  it('mystory 가 lastDateKey="lastMyStoryDate" + getState 로 초기 날짜를 계산한다', () => {
     const src = mystorySrc();
-    expect(src).toMatch(/offsetParent\s*===\s*null/);
-  });
-
-  it('savedView calendar 진입 시 즉시 ensureSwiper() 를 호출하지 않는다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/currentView\s*!==\s*['"]calendar['"]/);
-  });
-
-  it('초기 ensureSwiper 호출이 requestAnimationFrame 내부에 있다 (DOM 삽입 후 보장)', () => {
-    const src = mystorySrc();
-    /* rAF 콜백(tryInit) 안에서 ensureSwiper() 를 호출하는 패턴 */
-    expect(src).toMatch(/requestAnimationFrame\s*\(\s*tryInit\s*\)/);
-  });
-
-  it('ensureSwiper init 이 retry 패턴(MAX_ATTEMPTS)을 가진다 (iOS offsetParent null 흡수)', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/MAX_ATTEMPTS/);
-    expect(src).toMatch(/\+\+attempts\s*<\s*MAX_ATTEMPTS/);
-  });
-});
-
-describe('Date persistence — mystory.js', () => {
-  it('setState 를 state.js 로부터 import 한다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/import\s*\{[^}]*setState[^}]*\}\s*from\s*['"][^'"]*state\.js['"]/);
-  });
-
-  it('getState("lastMyStoryDate") 를 targetDateStr 계산에 사용한다', () => {
-    const src = mystorySrc();
+    expect(src).toMatch(/lastDateKey:\s*['"]lastMyStoryDate['"]/);
     expect(src).toMatch(/getState\s*\(\s*['"]lastMyStoryDate['"]\s*\)/);
-    /* targetDateStr 의 첫 번째 후보가 getState('lastMyStoryDate') 여야 함 */
-    expect(src).toMatch(/targetDateStr\s*=\s*getState\s*\(\s*['"]lastMyStoryDate['"]\s*\)/);
-  });
-
-  it('onSlideActive 에서 setState("lastMyStoryDate") 를 호출한다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/setState\s*\(\s*['"]lastMyStoryDate['"]\s*,/);
-  });
-
-  it('initialIdx 가 today fallback 체인을 가진다 (January 1 방어)', () => {
-    const src = mystorySrc();
-    /* 2단계 fallback: targetDateStr 검색 실패 → localTodayStr 재검색 */
-    expect(src).toMatch(/if\s*\(\s*initialIdx\s*<\s*0\s*\)\s*initialIdx\s*=\s*dateItems\.findIndex/);
-    expect(src).toMatch(/localTodayStr/);
   });
 });
 
-describe('Date persistence — editorstory.js', () => {
-  it('setState 를 state.js 로부터 import 한다', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/import\s*\{[^}]*setState[^}]*\}\s*from\s*['"][^'"]*state\.js['"]/);
+describe('Date persistence — 공통 컨트롤러 + editorstory config', () => {
+  it('컨트롤러가 setState 를 state.js 로부터 import 한다', () => {
+    expect(controllerSrc()).toMatch(/import\s*\{[^}]*setState[^}]*\}\s*from\s*['"][^'"]*state\.js['"]/);
   });
 
-  it('getState("lastEditorStoryDate") 를 초기 날짜 계산에 사용한다', () => {
+  it('editorstory 가 lastDateKey="lastEditorStoryDate" + getState 로 초기 날짜를 계산한다', () => {
     const src = editorSrc();
+    expect(src).toMatch(/lastDateKey:\s*['"]lastEditorStoryDate['"]/);
     expect(src).toMatch(/getState\s*\(\s*['"]lastEditorStoryDate['"]\s*\)/);
   });
 
-  it('onSlideActive 에서 setState("lastEditorStoryDate") 를 호출한다', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/setState\s*\(\s*['"]lastEditorStoryDate['"]\s*,/);
+  it('컨트롤러 onSlideActive 가 setState(config.lastDateKey) 로 날짜를 저장한다', () => {
+    expect(controllerSrc()).toMatch(/setState\s*\(\s*config\.lastDateKey\s*,/);
   });
 
-  it('initialIdx 가 today fallback 체인을 가진다 (January 1 방어)', () => {
-    const src = editorSrc();
+  it('컨트롤러 initialIdx 가 today(todayIso) fallback 체인을 가진다 (January 1 방어)', () => {
+    const src = controllerSrc();
     expect(src).toMatch(/if\s*\(\s*initialIdx\s*<\s*0\s*\)\s*initialIdx\s*=\s*dateItems\.findIndex/);
     expect(src).toMatch(/todayIso/);
   });
 });
 
-describe('휠 즉시 표시 (초기 진입 smooth 우회) — 양쪽 페이지', () => {
-  it('mystory.js: activateDayWheelByIndex 가 instant 인자를 받는다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/function\s+activateDayWheelByIndex\s*\(\s*idx\s*,\s*instant\s*=\s*false\s*\)/);
+describe('휠 즉시 표시 (초기 진입 smooth 우회) — 공통 컨트롤러', () => {
+  it('컨트롤러: activateDayWheelByIndex 가 instant 인자를 받는다', () => {
+    expect(controllerSrc()).toMatch(/function\s+activateDayWheelByIndex\s*\(\s*idx\s*,\s*instant\s*=\s*false\s*\)/);
   });
 
-  it('mystory.js: syncMonthWheel 가 instant 인자를 받는다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/function\s+syncMonthWheel\s*\(\s*dayMonth\s*,\s*instant\s*=\s*false\s*\)/);
+  it('컨트롤러: syncMonthWheel 가 instant 인자를 받는다', () => {
+    expect(controllerSrc()).toMatch(/function\s+syncMonthWheel\s*\(\s*dayMonth\s*,\s*instant\s*=\s*false\s*\)/);
   });
 
-  it('mystory.js: instant 모드에서 scrollLeft 직접 할당 (smooth 우회)', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/if\s*\(\s*instant\s*\)\s*calendarElement\.scrollLeft\s*=/);
-    expect(src).toMatch(/if\s*\(\s*instant\s*\)\s*monthElement\.scrollLeft\s*=/);
-  });
-
-  it('mystory.js: 초기 진입 휠 호출이 instant=true 를 전달한다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/activateDayWheelByIndex\s*\(\s*initialIdx\s*,\s*true\s*\)/);
-  });
-
-  it('editorstory.js: activateDayWheelByIndex 가 instant 인자를 받는다', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/function\s+activateDayWheelByIndex\s*\(\s*idx\s*,\s*instant\s*=\s*false\s*\)/);
-  });
-
-  it('editorstory.js: syncMonthWheel 가 instant 인자를 받는다', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/function\s+syncMonthWheel\s*\(\s*dayMonth\s*,\s*instant\s*=\s*false\s*\)/);
-  });
-
-  it('editorstory.js: instant 모드에서 scrollLeft 직접 할당 (smooth 우회)', () => {
-    const src = editorSrc();
+  it('컨트롤러: instant 모드에서 scrollLeft 직접 할당 (smooth 우회)', () => {
+    const src = controllerSrc();
     expect(src).toMatch(/if\s*\(\s*instant\s*\)\s*dayEl\.scrollLeft\s*=/);
     expect(src).toMatch(/if\s*\(\s*instant\s*\)\s*monthEl\.scrollLeft\s*=/);
   });
 
-  it('editorstory.js: 초기 진입 휠 호출이 instant=true 를 전달한다', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/activateDayWheelByIndex\s*\(\s*initialIdx\s*,\s*true\s*\)/);
-  });
-});
-
-describe('Date normalization — mystory.js', () => {
-  it('getLocalToday 를 import 한다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/import\s*\{[^}]*getLocalToday[^}]*\}\s*from\s*['"][^'"]*utils\/date\.js['"]/);
-  });
-
-  it('getTimezoneOffset 곱셈 트릭을 더 이상 사용하지 않는다', () => {
-    const src = mystorySrc();
-    expect(src).not.toMatch(/getTimezoneOffset\s*\(\s*\)\s*\*\s*60000/);
-  });
-
-  it('localTodayStr 는 getLocalToday() 결과를 사용한다', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/localTodayStr\s*=\s*getLocalToday\s*\(\s*\)/);
+  it('컨트롤러: 초기 진입 휠 호출이 instant=true 를 전달한다', () => {
+    expect(controllerSrc()).toMatch(/activateDayWheelByIndex\s*\(\s*initialIdx\s*,\s*true\s*\)/);
   });
 });
 
@@ -270,20 +182,13 @@ describe('Editor avatar — 로컬 PNG 고정 (iOS WKWebView WebP crash 회피)'
 });
 
 describe('Existing invariants (regression guard)', () => {
-  it('editorstory 의 setOnUnmount 가 swiper.destroy 를 null-safe 하게 호출', () => {
-    const src = editorSrc();
+  it('컨트롤러의 setOnUnmount 가 swiper.destroy 를 null-safe 하게 호출', () => {
+    const src = controllerSrc();
     expect(src).toMatch(/setOnUnmount\(/);
     expect(src).toMatch(/swiper\s*&&\s*!swiper\.destroyed/);
   });
 
-  it('mystory 의 setOnUnmount 가 swiper.destroy 를 null-safe 하게 호출', () => {
-    const src = mystorySrc();
-    expect(src).toMatch(/setOnUnmount\(/);
-    expect(src).toMatch(/swiper\s*&&\s*!swiper\.destroyed/);
-  });
-
-  it('editorstory 가 getLocalToday 를 여전히 import (회귀 방지)', () => {
-    const src = editorSrc();
-    expect(src).toMatch(/import\s*\{[^}]*getLocalToday[^}]*\}\s*from\s*['"][^'"]*utils\/date\.js['"]/);
+  it('컨트롤러가 getLocalToday 를 import (회귀 방지)', () => {
+    expect(controllerSrc()).toMatch(/import\s*\{[^}]*getLocalToday[^}]*\}\s*from\s*['"][^'"]*utils\/date\.js['"]/);
   });
 });

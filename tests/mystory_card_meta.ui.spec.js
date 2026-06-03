@@ -14,10 +14,42 @@ vi.mock('../src/js/router.js', () => ({
   navigate: vi.fn(),
   getParams: getParamsMock,
   setOnUnmount: vi.fn(),
+  getPreviousRoute: vi.fn(() => null),
+}));
+
+/* jsdom 은 레이아웃이 없어 실제 Swiper 가 카드 슬라이드를 활성화하지 못한다.
+   createCardSwiper 를 대체해 스토리가 있는 슬라이드를 활성 슬라이드로 동기 렌더한다. */
+vi.mock('../src/js/utils/cardSwiper.js', () => ({
+  createCardSwiper: (container, opts = {}) => {
+    const { slides = [], renderSlide, onSlideActive, onSlideReady, initialSlide = 0 } = opts;
+    let wrapper = container.querySelector('.swiper-wrapper');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.className = 'swiper-wrapper';
+      container.appendChild(wrapper);
+    }
+    let idx = slides.findIndex((s) => s && s.story && (s.story.title || s.story.figure_name || s.story.id));
+    if (idx < 0) idx = initialSlide;
+    const temp = document.createElement('div');
+    temp.innerHTML = renderSlide(slides[idx], idx);
+    const slideEl = temp.firstElementChild;
+    if (slideEl) {
+      slideEl.classList.add('swiper-slide-active');
+      wrapper.appendChild(slideEl);
+    }
+    const swiper = {
+      activeIndex: idx, destroyed: false,
+      destroy() { this.destroyed = true; }, update() {}, slideTo() {},
+    };
+    onSlideActive?.(idx);
+    onSlideReady?.(idx);
+    return swiper;
+  },
 }));
 
 vi.mock('../src/js/state.js', () => ({
   getState: getStateMock,
+  setState: vi.fn(),
 }));
 
 vi.mock('../src/js/components/toast.js', () => ({
@@ -111,6 +143,13 @@ describe('My story card meta', () => {
     if (!HTMLElement.prototype.scrollTo) {
       HTMLElement.prototype.scrollTo = vi.fn();
     }
+
+    Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
+      configurable: true,
+      get() { return this.parentNode; },
+    });
+    window.requestAnimationFrame = (callback) => setTimeout(callback, 0);
+    window.cancelAnimationFrame = (handle) => clearTimeout(handle);
 
     getParamsMock.mockReset();
     getStateMock.mockReset();

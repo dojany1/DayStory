@@ -69,6 +69,5 @@ describe('Calendar image loading', () => {
     const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
 
     expect(calendar).toMatch(/story\.image_url/);
-    expect(calendar).toMatch(/role\s*===\s*'editor'/);
   });
 });

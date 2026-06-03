@@ -12,7 +12,7 @@
      "/share/**" → 이 함수
    ===================================================================== */
 
-const { onRequest } = require('firebase-functions/v2/https');
+const { onRequest, onCall } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
@@ -137,5 +137,56 @@ exports.shareOg = onRequest(
 <script>location.replace(${JSON.stringify(`${APP_URL}/#/detail/${storyId || ''}`)});</script>
 <p><a href="${APP_URL}/#/detail/${escapeHtml(storyId || '')}">계속하기</a></p>
 </body></html>`);
+  }
+);
+
+
+/* =====================================================================
+   syncAdminClaim — 어드민 권한(Custom Claims) 부여/회수 (audit 2-3)
+   =====================================================================
+   클라이언트에 하드코딩돼 있던 ADMIN_EMAILS 를 서버 전용으로 옮긴다.
+   호출자(로그인 사용자)의 이메일이 allowlist 에 있으면:
+     - Custom Claim  admin: true        → storage.rules / 클라이언트가 사용
+     - profiles/{uid}.role = 'editor'   → 기존 배포된 firestore.rules 호환
+   allowlist 에서 빠졌는데 클레임이 남아 있으면 회수한다.
+
+   클라이언트(src/js/services/admin.js)는 로그인 직후 1회 호출하고,
+   부여되면 ID 토큰을 강제 갱신해 즉시 반영한다.
+
+   배포: firebase deploy --only functions
+   ===================================================================== */
+const ADMIN_EMAILS = [
+  'daystory@test.com',
+  'dokhubooks@gmail.com',
+  'ldj729@gmail.com',
+];
+
+exports.syncAdminClaim = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const authCtx = request.auth;
+    if (!authCtx) return { admin: false };
+
+    const uid = authCtx.uid;
+    const email = String(authCtx.token.email || '').toLowerCase();
+    const shouldBeAdmin = ADMIN_EMAILS.includes(email);
+    const alreadyAdmin = authCtx.token.admin === true;
+
+    try {
+      if (shouldBeAdmin && !alreadyAdmin) {
+        await admin.auth().setCustomUserClaims(uid, { admin: true });
+        await admin.firestore().doc(`profiles/${uid}`).set({ role: 'editor' }, { merge: true });
+      } else if (!shouldBeAdmin && alreadyAdmin) {
+        // allowlist 에서 제거됨 → 강등
+        await admin.auth().setCustomUserClaims(uid, { admin: false });
+        await admin.firestore().doc(`profiles/${uid}`)
+          .set({ role: admin.firestore.FieldValue.delete() }, { merge: true });
+      }
+    } catch (err) {
+      console.error('syncAdminClaim 실패:', err);
+      return { admin: alreadyAdmin };
+    }
+
+    return { admin: shouldBeAdmin };
   }
 );

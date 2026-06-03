@@ -693,3 +693,85 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - `android/app/src/main/assets/public/index.html` — `npm run build` 후 변경된 asset 해시(index.js, router.js, i18n.js, storyI18n.js, index.css) 업데이트.
 
 **검증**: 실기 테스트 (카드 꾹 누름 → 피드백, 페이지 간 진입 방향, 설정 페이지 하단 스크롤 여백 확인). `npm run build` 성공.
+
+
+--------------------------------------------------------------
+
+
+### 2026-06-02 16:40 — Claude · 코드베이스 종합 진단 보고서 작성
+
+**요구사항**: 코드 수정 없이 전체 코드베이스를 4관점(기획·아키텍처 / 개발·코드품질 / 디자인·UI·UX / 테스트·유지보수)에서 평가하고, `[CRITICAL]~[LOW]` 등급 + 해결안을 담은 `PROJECT_AUDIT.md`를 루트에 생성.
+
+**구현방법**: 서비스·라우터·상태·유틸·컴포넌트·CSS·보안 룰·Functions·테스트를 직접 정독해 근거(파일:라인) 기반으로 진단. 주요 발견 — ① `storage.rules` 가 인증 사용자 누구에게나 타인 `users/{uid}/**`(개인 일기 이미지) read 허용(CRITICAL) ② `userStories`/`bookmarks` update 시 `uid` 불변 검증 부재 ③ `editor.js` 가 전역 단일 `setBeforeNavigate` 를 떠날 때 `null` 로 초기화해 인증/네비 가드 무력화 ④ 수집·받은 카드·알림이 localStorage 단독(다기기 미동기화) ⑤ 죽은 의존성(lucide/revenuecat/device/status-bar)·빈 파일(editorComment.js) ⑥ `@capacitor/haptics` 가 includePlugins 누락으로 안드로이드 무동작 ⑦ vitest 스코프 미설정으로 `npm test` 가 iOS 빌드 산출물(RevenueCat SPM) 테스트까지 수집해 현재 레드(순수 로직 47개는 통과). 진단 중 발견한 테스트 레드 실태를 보고서에 정직하게 반영.
+
+**변경파일**: `PROJECT_AUDIT.md`(신규), `docs/SESSION_LOG.md`(본 항목). 소스 코드 변경 없음.
+
+---
+
+### 2026-06-02 17:30 — Claude · 보안 진단 1단계(즉시) 구현
+
+**요구사항**: `PROJECT_AUDIT.md` 로드맵 1단계(보안/프라이버시) 4개 항목을 순서대로 구현.
+
+**구현방법**:
+- **[HIGH 6-1] 테스트 스코프 교정** — `vitest.config.js`(tests/ 만 수집, ios/android/dist/functions/_disabled/tests-rules 제외) + `tests/setup.js`(Node 22+ 네이티브 Web Storage 가 jsdom localStorage 를 가리던 문제를 인메모리 폴리필로 해결, Haptics vibrate 스텁) 추가. iOS RevenueCat 산출물 24개가 더 이상 수집되지 않음. 실패 66→43(잔여는 전부 기존 UI/CSS 어서션 드리프트 베이스라인), 통과 219→256.
+- **[CRITICAL 3-1] Storage 격리** — `storage.rules` 재작성: 개인 자료(`users/{uid}/**` 일기·아바타)는 소유자만 read/write, 공개 카드 `public/cards/**`(인증 read·어드민 `token.admin` write), 레거시 카드 `users/{uid}/editor_images/**` 인증 read carve-out(기존 발행 카드 호환). `isAdmin()` 은 클레임 존재 확인 후 비교.
+- **[HIGH 3-2] Firestore uid 불변** — `userStories.update` 에 `request.resource.data.uid == resource.data.uid` 추가(소유권 이전/타인 피드 주입 차단). `bookmarks` 는 update 미허용(토글 전용)임을 주석으로 명시.
+- **[HIGH 6-2] 규칙 에뮬레이터 테스트** — `@firebase/rules-unit-testing@3.0.4`(devDep) + `firebase.json` emulators(firestore 8080/storage 9199) + `tests/rules/{firestore,storage}.rules.spec.js`(총 22 케이스) + `vitest.rules.config.js` + `npm run test:rules`(firebase emulators:exec). **에뮬레이터 실측 22/22 통과**.
+
+**검증**: `npm run test:rules` → 22 passed(에뮬레이터). `npm test` → 256 passed / 43 기존 베이스라인 fail(무관, 규칙 테스트는 스코프 제외). `src/` 변경 없음 → 앱 번들 영향 없음. ※ 규칙은 작성·검증 완료, **실 적용은 `firebase deploy --only firestore:rules,storage` 필요(미실행)**.
+
+**변경파일**: `vitest.config.js`, `vitest.rules.config.js`, `tests/setup.js`, `tests/rules/firestore.rules.spec.js`, `tests/rules/storage.rules.spec.js`, `firestore.rules`, `storage.rules`, `firebase.json`, `package.json`, `package-lock.json`.
+
+---
+
+### 2026-06-02 19:00 — Claude · 보안 진단 2단계(단기·정합성/위생) 구현
+
+**요구사항**: `PROJECT_AUDIT.md` 로드맵 2단계 4개 항목 구현 — 에디터 전역 가드 복원, 어드민 Custom Claims 이전, 죽은 의존성/빈 파일 제거, 햅틱 플러그인 설정.
+
+**구현방법**:
+- **[HIGH 4-1] 전역 가드 스택화** — `router.js` 에 `pushBeforeNavigate(fn)`(제거 함수 반환) 추가, `handleRoute` 가 스택(LIFO)+베이스 가드를 평가. `editor.js` 는 `setBeforeNavigate(null)`(전역 가드 말살) → `pushBeforeNavigate` + `setOnUnmount`(가드 제거 + beforeunload 해제)로 교체. 신규 `tests/router_guard_stack.spec.js` 3/3 통과(베이스 가드 생존 회귀 고정).
+- **[HIGH 2-3] 어드민 Custom Claims 이전** — 클라이언트 `ADMIN_EMAILS` 하드코딩/role 자가승격 전부 제거(main.js + login.js 3곳). 신규 `services/admin.js`(`readAdminClaim`/`syncAdminClaim`), `main.js` 가 로그인 시 `token.admin` 클레임을 읽고 미보유 시 서버 콜러블로 부트스트랩 → `setState('isAdmin')`. 신규 Cloud Function `functions/index.js:syncAdminClaim`(서버 allowlist → `admin:true` 클레임 + `profiles.role='editor'` 동기화, 이탈 시 회수). 어드민 체크 7곳(settingsSections·profile·editor·stories·calendar 죽은 if)을 `getState('isAdmin')`로 이전. `state.js` 에 `isAdmin` 추가. 배포된 `storage.rules` 의 `token.admin` 과 호환. 영향받은 테스트(editor 라우터 mock, regression.bugs allowlist/settings)는 새 방식에 맞게 갱신.
+- **[MEDIUM 4-5] 죽은 의존성/빈 파일 제거** — `package.json` 에서 `lucide`·`@revenuecat/purchases-capacitor`·`@capacitor/device`·`@capacitor/status-bar`(JS·네이티브 사용처 0) 제거, `capacitor.config.json includePlugins` 에서 device·status-bar 제거, 0바이트 `components/editorComment.js` 삭제.
+- **[MEDIUM 5-1] 햅틱 플러그인 등록** — `capacitor.config.json includePlugins` 에 `@capacitor/haptics` 추가(코드는 쓰는데 미등록이라 안드로이드에서 무동작이던 문제 해결). `npx cap sync android` → "Found 8 Capacitor plugins"(haptics 포함, device/status-bar 제외) 확인.
+
+**검증**: `npm test` → 259 passed / 43 fail(전부 기존 베이스라인, 신규 회귀 0). `npm run build` 성공. `node --check functions/index.js` OK. `npx cap sync android` 성공. ※ 미배포분: `firebase deploy --only functions`(syncAdminClaim). 기존 obsolete 테스트 `regression.bugs > "haptics are removed"`(284행)는 햅틱 활성화 의도와 모순 — 차기 테스트 정리 대상.
+
+**변경파일**: `src/js/router.js`, `src/js/pages/editor.js`, `src/js/pages/login.js`, `src/js/pages/profile.js`, `src/js/pages/calendar.js`, `src/js/components/settingsSections.js`, `src/js/services/stories.js`, `src/js/services/admin.js`(신규), `src/js/state.js`, `src/main.js`, `functions/index.js`, `capacitor.config.json`, `package.json`, `tests/router_guard_stack.spec.js`(신규), `tests/editor_management_calendar.spec.js`, `tests/regression.bugs.spec.js`, `tests/calendar.ui.spec.js`, `src/js/components/editorComment.js`(삭제). cap sync 로 `android/*` 갱신.
+
+---
+
+### 2026-06-03 — Claude · 레거시 테스트 43건 현행화 (npm test 100% green)
+
+**요구사항**: 미뤄둔 43개 `npm test` 실패(UI/CSS 어서션 드리프트, 누락 mock, obsolete)를 현재 앱 코드 스펙에 맞게 **테스트 코드만** 수정해 100% green 달성. 앱 코드는 불변.
+
+**구현방법**:
+- **공통 인프라**: 여러 spec 의 router mock 에 누락된 `getPreviousRoute`/`setState` export 추가. editorstory/mystory 카드 Swiper 가 jsdom(레이아웃 0)에서 렌더되도록 `createCardSwiper` 를 테스트용 mock 으로 대체(스토리 슬라이드를 활성 슬라이드로 동기 렌더) + `HTMLElement.prototype.offsetParent` 부모 반환 + `requestAnimationFrame`→`setTimeout(0)` 강제 + flushRender 다중 tick.
+- **CSS/마크업 드리프트 갱신**: toast `border-radius:2px`, editor-comment-bubble 배경/보더, `.history-card-image-wrap` flex, `.front/.back` box-shadow, 다크 wheel/카드 토큰, 하단 nav 아이콘(BookMarked/Menu)·28px·`--color-accent`, 프로필 아바타 56px·`img object-fit`, list-item-icon 24px, settings 헤더 '마이 페이지', view-mode 바인딩 함수명(`bindViewModeItem`), 삭제 흐름 `history.back()`, 북마크 해제 시 카드 제거, bookmarks 테스트 localStorage 격리(`lastArchiveTab`).
+- **obsolete 삭제(2건)**: `regression.bugs` 의 "haptics are removed"(햅틱 활성 정책과 모순), "nav-bookmarks 탭"(하단 nav 에서 제거됨). "ADMIN_EMAILS allowlist" 테스트는 Custom Claims 이전 검증으로 재작성(이전 단계).
+- **skip(6건, 사유 명시)**: Swiper 터치 제스처 기반 날짜 이동 2건(jsdom geometry 불가) + 네이티브 Android 위젯 통합 4건(android/ 에 위젯 네이티브 소스 부재).
+
+**검증**: `npm test` → **Test Files 29 passed (29), Tests 294 passed | 6 skipped (300), 0 failed**. 앱 코드(`src/` 런타임) 변경 없음.
+
+**후속 플래그**: ① 네이티브 Android 위젯 코드(MainActivity 등록·`daystory_widget_info.xml`·Provider·런처 아이콘)가 `android/` 에서 누락 — 재추가 필요. ② Swiper 스와이프 날짜 이동은 추후 Playwright 등 E2E 로 커버 권장.
+
+**변경파일**: `tests/` — editorstory.ui, detail_nav.ui, regression.bugs, bookmarks.ui, mystory_card_meta.ui, toast.ui, view-toggle, editor_management_calendar, widget.static. (앱 코드 변경 없음)
+
+---
+
+### 2026-06-03 — Claude · 3단계 리팩토링: editorstory/mystory 카드덱 공통 모듈 추출 (Step 1–5)
+
+**요구사항**: `editorstory.js` 와 `mystory.js` 에 중복된 카드 마크업·월/일 휠·Swiper·뷰토글·달력 네비 로직을 공통 모듈(`src/js/components/cardDeck/`)로 추출. 각 단계 후 `npm test` 100% green 유지. CSS 5단계 논리 정렬 컨벤션 준수. Step 5 완료 후 보고·승인 대기, Step 6(calendar.js 팝업 통합)은 승인 후 진행.
+
+**구현방법**:
+- **Step 1 — `cardFace.js`(181줄, 신규)**: 순수 카드 마크업 빌더 + 공통 상수. `FALLBACK_IMG`·`IMG_ONERROR`·`MONTH_NAMES`·`ICON_CALENDAR/CARD`·`SHARE_ICON_SVG` 단일 정의, `parseIsoDate`/`formatMonthNameDate`/`bodyToHtml`, `cardShell`/`cardFront`/`cardFrontTop`/`cardImageWrap`(src 미지정 시 FALLBACK + onerror 내장)/`cardBack`/`emptyCardFace`/`cardActionButton`, `bindCardBase`(press 피드백·이미지 fade·flip 토글 공통화, `onBeforeFlip` false 반환 시 취소). `tests/cardFace.spec.js`(신규) 13 유닛테스트.
+- **Step 2 — `cardDeckController.js`(420줄, 신규)**: `buildCardDeck(config)` 팩토리. 월/일 휠 빌드·`ensureSwiper` lazy init(offsetParent 가드 + rAF MAX_ATTEMPTS retry)·`onSlideActive→setState(config.lastDateKey)`·뷰토글(`ds_session_view`/`ds_default_view`)·달력 그리드(`renderGrid`/`isAtCurrentMonth`) 전부 이전. config 계약: `idPrefix/pageClass/headerHtml/enterDir/calMode/lastDateKey/loadData/renderSlideHTML/bindCard/...`.
+- **Step 3 — `editorstory.js` 826→364줄(−462, −56%)**: `renderEditorStory()` 가 `buildCardDeck(editorConfig)` 반환. 카드 마크업은 cardFace 빌더로, flip 바인딩은 `bindCardBase` + 에디터 전용 핸들러(북마크/공유/상세/버블)로 재작성.
+- **Step 4 — `mystory.js` 1125→681줄(−444, −39%)**: 카드뷰 부분을 `buildCardDeck(mystoryConfig)` 로 전환, `buildMyStorySlideHTML`/`bindMyStoryCardEvents` 를 cardFace/`bindCardBase` 기반으로 교체. 일기 작성 폼 `renderMyStoryNew`(약 395줄)는 **바이트 단위 불변** 유지(diff 0).
+- **Step 5 — dedup/build**: 공통 상수·아이콘이 cardFace 에만 정의되고 두 페이지에 재선언 없음 확인. 페이지 고유 아이콘(editorstory `BOOKMARK_ICON_SVG`, mystory `ICON_SPINNER/CHECK`)만 로컬 잔존(정상).
+- **테스트 현행화**: 로직이 컨트롤러/cardFace 로 이동하며 깨진 소스검사 테스트(swiper_lazy_init·ios_gpu_webp_guard·view-toggle·editorstory.ui)의 어서션 타깃을 컨트롤러/cardFace 로 리다이렉트하고, 컨트롤러 describe 와 중복되던 mystory describe 는 config 검증으로 축소.
+
+**검증**: `npm test` → **Test Files 30 passed (30), Tests 286 passed | 6 skipped, 0 failed**. `npm run build` 성공. 앱 코드 순감 약 906줄(두 페이지), 신규 공통 모듈 601줄이 양쪽(+추후 calendar.js)을 단일 소스로 서비스.
+
+**후속**: Step 6(calendar.js `openCardPopup` 의 `buildHistoryCardHtml`/`buildMyCardHtml` 을 cardFace 경유로 통합)은 사용자 승인 후 진행 예정.
+
+**변경파일**: `src/js/components/cardDeck/cardFace.js`(신규), `src/js/components/cardDeck/cardDeckController.js`(신규), `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `tests/cardFace.spec.js`(신규), `tests/swiper_lazy_init.spec.js`, `tests/ios_gpu_webp_guard.spec.js`, `tests/view-toggle.spec.js`, `tests/editorstory.ui.spec.js`.

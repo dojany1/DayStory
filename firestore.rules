@@ -1,12 +1,14 @@
 rules_version = '2';
 
-// DayStory Firestore Security Rules — v1.4.0 (Wave 4)
+// DayStory Firestore Security Rules — v1.5.0 (audit 3-2)
 // =====================================================================
 // 핵심 원칙:
 //   1) 모든 read/write 는 로그인 필수 (게스트 모드 제거, Wave 2).
 //   2) profile.role 은 사용자가 직접 바꿀 수 없다 (클라이언트 admin 부여 차단, audit P0).
 //   3) 사용자 일기/북마크는 본인만 read/write.
 //   4) stories(역사 카드)는 모두 read 가능, write 는 어드민(role == 'editor') 만.
+//   5) userStories.update 시 uid 불변 — 소유권 이전·타인 피드 주입 차단 (audit 3-2).
+//      bookmarks 는 update 미허용(토글 전용)으로 user_id 변조 원천 차단.
 //
 // 배포: firebase deploy --only firestore:rules
 // =====================================================================
@@ -57,13 +59,20 @@ service cloud.firestore {
     match /userStories/{id} {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      // update: 본인 문서만. 단 uid 는 불변 —
+      // 자기 문서의 uid 를 타인 uid 로 바꿔 남의 피드에 카드를 주입/소유권을 이전하는 것을 차단 (audit 3-2).
+      allow update: if isSignedIn()
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == resource.data.uid;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
     // ---------- bookmarks/{id} ----------
+    // 북마크는 토글(생성/삭제) 전용. update 를 허용하지 않으므로 user_id 변조(audit 3-2)는 원천 불가.
     match /bookmarks/{id} {
       allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      // allow update: 의도적으로 미허용 (기본 거부) — user_id 불변 보장.
       allow delete: if isSignedIn() && resource.data.user_id == request.auth.uid;
     }
 

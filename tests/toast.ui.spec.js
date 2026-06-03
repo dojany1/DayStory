@@ -15,7 +15,7 @@ describe('Toast positioning', () => {
     expect(containerRule).toMatch(/left:\s*50%/);
     expect(containerRule).toMatch(/transform:\s*translateX\(-50%\)/);
     expect(containerRule).toMatch(/align-items:\s*center/);
-    expect(toastRule).toMatch(/border-radius:\s*0/);
+    expect(toastRule).toMatch(/border-radius:\s*2px/);
     expect(toastInRule).toMatch(/from\s*\{[^}]*translateY\(var\(--space-4\)\)/);
     expect(toastOutRule).toMatch(/to\s*\{[^}]*translateY\(var\(--space-4\)\)/);
   });

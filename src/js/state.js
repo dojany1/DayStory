@@ -26,7 +26,8 @@
 */
 const state = {
   user: null,           /* 로그인한 유저 정보 (게스트일 수도 있음) */
-  profile: null,        /* 유저의 프로필 정보 (역할, 닉네임 등) */
+  profile: null,        /* 유저의 프로필 정보 (닉네임, 테마 등) */
+  isAdmin: false,       /* 어드민 여부 — Custom Claims(token.admin)로 판정 (audit 2-3) */
   todayStory: null,     /* 오늘의 역사 일화 데이터 */
   currentStory: null,   /* 현재 보고 있는 일화 데이터 */
   stories: [],          /* 전체 일화 목록 */

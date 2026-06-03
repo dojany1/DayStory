@@ -57,7 +57,8 @@ import { onAuthStateChanged } from 'firebase/auth';
  * - getDoc : 해당 문서의 데이터를 가져옴
  * - setDoc : 문서를 생성하거나 덮어씀
  */
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { readAdminClaim, syncAdminClaim } from './js/services/admin.js';
 
 /* Capacitor App 플러그인 (안드로이드 뒤로가기 제어 등 네이티브 통신) */
 import { App } from '@capacitor/app';
@@ -244,37 +245,32 @@ if (auth) {
           photoURL: firebaseUser.photoURL || null,
         });
 
-        /* 프로필 정보 가져오기 (Firestore의 profiles 컬렉션) */
+        /* 어드민 권한 — Custom Claims(token.admin)로 판정 (audit 2-3).
+           클라이언트 ADMIN_EMAILS 하드코딩/자가승격 제거. allowlist 는 서버(functions)에만 존재. */
+        try {
+          let isAdmin = await readAdminClaim();
+          if (!isAdmin) {
+            /* allowlist 이메일이면 서버가 클레임을 부여하고 true 를 반환한다 */
+            isAdmin = await syncAdminClaim();
+          }
+          setState('isAdmin', isAdmin);
+        } catch (err) {
+          console.warn('어드민 클레임 확인 실패:', err);
+          setState('isAdmin', false);
+        }
+
+        /* 프로필 정보 가져오기 (닉네임/테마/폰트). role 부여는 더 이상 클라이언트가 하지 않는다. */
         if (db) {
           try {
-            const profileRef = doc(db, 'profiles', firebaseUser.uid);
-            const profileSnap = await getDoc(profileRef);
-            let profileData = null;
-
-            const ADMIN_EMAILS = ['daystory@test.com', 'dokhubooks@gmail.com', 'ldj729@gmail.com'];
-            const isAdmin = ADMIN_EMAILS.includes(firebaseUser.email);
-
+            const profileSnap = await getDoc(doc(db, 'profiles', firebaseUser.uid));
             if (profileSnap.exists()) {
-              profileData = profileSnap.data();
-              if (isAdmin && profileData.role !== 'editor') {
-                profileData.role = 'editor';
-                await setDoc(profileRef, profileData, { merge: true });
-              }
-            } else if (isAdmin) {
-              /* 어드민 특권: 해당 이메일은 자동으로 에디터 권한 부여 (처음 로그인 시 DB에 생성) */
-              profileData = { role: 'editor', created_at: new Date().toISOString() };
-              await setDoc(profileRef, profileData);
-            }
-
-            if (profileData) {
+              const profileData = profileSnap.data();
               setState('profile', profileData);
               if (profileData.theme) setState('theme', profileData.theme);
               if (profileData.font_size) setState('fontSize', profileData.font_size);
             }
-
-
           } catch (err) {
-            console.warn('프로필 로드 (또는 생성) 실패:', err);
+            console.warn('프로필 로드 실패:', err);
           }
         }
 
@@ -293,6 +289,7 @@ if (auth) {
            바로 /login 으로 보내야 빈 화면이 노출되지 않는다. */
         setState('user', null);
         setState('profile', null);
+        setState('isAdmin', false);
 
         const nav = document.getElementById('bottom-nav');
         if (nav) nav.style.display = 'none';

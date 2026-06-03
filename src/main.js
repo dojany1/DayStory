@@ -39,6 +39,8 @@ import pkg from '../package.json';
 /* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
 initI18n();
 
+document.body.addEventListener('touchstart', function() {}, { passive: true });
+
 /* 스플래시 화면 하단에 현재 빌드 버전 표시 — 사라지기 전 사용자에게 노출 */
 {
   const versionEl = document.getElementById('splash-version');

@@ -891,6 +891,22 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 
 ---
 
+### 2026-06-03 19:38 — Codex · iOS 터치 active 피드백 핫픽스
+
+**요구사항**: iOS Safari/WKWebView에서 앱 버튼과 카드 등 인터랙티브 요소 탭 시 `:active` 스타일이 늦게 뜨거나 씹히는 터치 딜레이 개선.
+
+**구현방법**:
+- `base.css` 전역 인터랙티브 셀렉터에 `touch-action: manipulation` 과 `-webkit-tap-highlight-color: transparent` 를 적용해 더블 탭 지연과 iOS 탭 하이라이트를 제거.
+- `main.js` 부팅 경로에 `document.body` passive `touchstart` no-op 리스너를 등록해 iOS가 `:active` 상태를 즉시 계산하도록 보강.
+- `bindCardBase` 에서 카드 본체 `touchstart` 시 `.active` 를 즉시 추가하고 `touchmove`/`touchend`/`touchcancel` 에서 제거하도록 개선. 내부 액션 버튼은 기존 `ignoreSelectors` 를 존중해 카드 active 피드백과 충돌하지 않게 처리.
+- CSS에서 `.flipper.active` 를 기존 `.is-pressing` 피드백과 같은 scale 규칙으로 연결하고, 관련 회귀 테스트를 추가.
+
+**검증**: `npm test -- tests/cardFace.spec.js tests/css_tokens.spec.js tests/regression.bugs.spec.js` 통과, `npm run build` 성공, `npm test` → **Test Files 34 passed (34), Tests 302 passed | 6 skipped (308)**.
+
+**변경파일**: `src/main.js`, `src/css/base.css`, `src/css/components.css`, `src/js/components/cardDeck/cardFace.js`, `tests/cardFace.spec.js`, `tests/css_tokens.spec.js`, `tests/regression.bugs.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
 ### 2026-06-03 19:31 — Codex · 설정 개발자 알아보기 항목 준비중 처리
 
 **요구사항**: 미완성된 "개발자 알아보기" 페이지를 숨기기 위해 설정 페이지의 해당 항목을 `/about` 이동 대신 문의와 동일한 준비중 토스트로 처리.

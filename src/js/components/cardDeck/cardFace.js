@@ -145,10 +145,18 @@ export function bindCardBase(flipContainer, { story, ignoreSelectors = [], onBef
   const flipper = flipContainer.querySelector('.flipper');
   if (!flipper) return null;
 
-  /* 꾹 누름: 60ms 후 is-pressing, 떼거나 움직이면 즉시 해제 */
+  /* 꾹 누름: 터치 시작 즉시 active, 60ms 후 is-pressing, 떼거나 움직이면 즉시 해제 */
   let pressTimer = null;
-  const startPress = () => { pressTimer = setTimeout(() => flipper.classList.add('is-pressing'), 60); };
-  const endPress = () => { clearTimeout(pressTimer); flipper.classList.remove('is-pressing'); };
+  const isIgnoredTarget = (target) => ignoreSelectors.some((sel) => target?.closest?.(sel));
+  const startPress = (e) => {
+    if (isIgnoredTarget(e.target)) return;
+    flipper.classList.add('active');
+    pressTimer = setTimeout(() => flipper.classList.add('is-pressing'), 60);
+  };
+  const endPress = () => {
+    clearTimeout(pressTimer);
+    flipper.classList.remove('active', 'is-pressing');
+  };
   flipper.addEventListener('touchstart', startPress, { passive: true });
   flipper.addEventListener('touchmove', endPress, { passive: true });
   flipper.addEventListener('touchend', endPress, { passive: true });

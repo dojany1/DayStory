@@ -425,6 +425,12 @@ describe('Regression bugs', () => {
     expect(mainSource).toMatch(/setState\(\s*'isAdmin'/);
   });
 
+  it('Given iOS Safari suppresses :active without touchstart, when main.js is inspected, then body registers a passive touchstart listener', () => {
+    const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
+
+    expect(mainSource).toMatch(/document\.body\.addEventListener\(\s*'touchstart'\s*,\s*function\s*\(\)\s*\{\s*\}\s*,\s*\{\s*passive\s*:\s*true\s*\}\s*\)/);
+  });
+
   it('Given the notification settings sheet is already open, when the settings row fires again, then the existing sheet should be reused', () => {
     getStateMock.mockImplementation((key) => {
       if (key === 'theme') return 'light';

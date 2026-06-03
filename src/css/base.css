@@ -122,6 +122,51 @@ button {
   outline: none;
 }
 
+button,
+a,
+[role="button"],
+[role="link"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+label,
+summary,
+.card,
+.flip-container,
+.flipper,
+.history-card-front,
+.history-card-back,
+.history-card-mini,
+.card-action-btn,
+.card-detail-shortcut-btn,
+.back-editor-btn,
+.bookmark-btn,
+.nav-item,
+.btn,
+.btn-icon,
+.list-item,
+.theme-option,
+.view-mode-option,
+.widget-theme-option,
+.calendar-toggle-btn,
+.calendar-month-arrow,
+.wheel-item,
+.cal-cell,
+.detail-action-btn,
+.detail-sheet-close,
+.search-result-item,
+.editor-stat,
+.editor-lang-tab,
+.editor-calendar-cell,
+.mystory-form-actions button,
+.ms-image-upload-area,
+.profile-edit-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* 입력 요소(input, textarea, select) — 기본 스타일 제거 */
 input, textarea, select {
   font-family: inherit;
@@ -540,5 +585,4 @@ ul, ol {
   from { opacity: 1; transform: translateY(0); }
   to { opacity: 0; transform: translateY(var(--space-4)); }
 }
-
 

@@ -64,6 +64,14 @@ describe('Wave 3 — base.css 접근성 글로벌 블록', () => {
     expect(reducedBlock[1]).toMatch(/(animation[^:]*:\s*(none|0)|animation-duration\s*:\s*(0\.01ms|0s|0))/i);
     expect(reducedBlock[1]).toMatch(/(transition[^:]*:\s*(none|0)|transition-duration\s*:\s*(0\.01ms|0s|0))/i);
   });
+
+  it('Given iOS touch interactions, when base styles are inspected, then interactive elements disable double-tap delay and tap highlight', () => {
+    const interactiveTouchRule = base.match(/button,\s*\na,[\s\S]*?\{\s*[\s\S]*?touch-action\s*:\s*manipulation[\s\S]*?-webkit-tap-highlight-color\s*:\s*transparent/);
+
+    expect(interactiveTouchRule).not.toBeNull();
+    expect(interactiveTouchRule[0]).toMatch(/\.card/);
+    expect(interactiveTouchRule[0]).toMatch(/\.mystory-form-actions button/);
+  });
 });
 
 describe('Wave 3 — pages.css 하드코딩 색상 정리 + 터치 영역', () => {

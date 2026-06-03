@@ -132,4 +132,15 @@ describe('cardFace — bindCardBase', () => {
     flipper.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(flipper.classList.contains('flipped')).toBe(false);
   });
+
+  it('Given a touch card, when touch starts and ends, then native-like active feedback is toggled immediately', () => {
+    const flipContainer = mountCard();
+    const flipper = bindCardBase(flipContainer, { story: { id: 's1' } });
+
+    flipper.dispatchEvent(new Event('touchstart', { bubbles: true, cancelable: true }));
+    expect(flipper.classList.contains('active')).toBe(true);
+
+    flipper.dispatchEvent(new Event('touchend', { bubbles: true, cancelable: true }));
+    expect(flipper.classList.contains('active')).toBe(false);
+  });
 });

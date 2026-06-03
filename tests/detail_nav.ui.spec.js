@@ -207,9 +207,10 @@ describe('Detail page editor remark', () => {
     const backdropRule = css.match(/\.detail-sheet-backdrop\s*\{[\s\S]*?\}/)?.[0];
 
     expect(sheetRule).toMatch(/position:\s*fixed/);
+    expect(sheetRule).toMatch(/top:\s*env\(safe-area-inset-top,\s*0px\)/);
     expect(sheetRule).toMatch(/bottom:\s*0/);
-    expect(sheetRule).toMatch(/height:\s*calc\(100vh - var\(--safe-top\)\)/);
-    expect(sheetRule).toMatch(/height:\s*calc\(100dvh - var\(--safe-top\)\)/);
+    expect(sheetRule).toMatch(/height:\s*auto/);
+    expect(sheetRule).not.toMatch(/var\(--safe-top\)/);
     expect(sheetRule).toMatch(/transform:\s*translateY\(100%\)/);
     expect(sheetRule).toMatch(/transition:\s*transform/);
     expect(closeRule).toMatch(/left:\s*var\(--space-4\)/);

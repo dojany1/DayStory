@@ -888,3 +888,18 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm run build` 성공, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**.
 
 **변경파일**: `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 18:20 — Codex · 상세 바텀시트 상단 표시 보정
+
+**요구사항**: `.detail-sheet` 의 `bottom: 0` 및 height 계산 조합 때문에 바텀시트 상단이 화면 밖으로 밀리거나 표시되지 않는 문제 확인 및 수정.
+
+**구현방법**:
+- 이전 보정에서 사용한 `var(--safe-top)` 이 정의되어 있지 않아 `height: calc(...)` 가 무효화될 수 있던 구조를 확인.
+- `.detail-sheet` 를 `top: env(safe-area-inset-top, 0px); bottom: 0; height: auto` 구조로 변경해 상단 safe area 와 하단 경계를 직접 고정하고, 내부 `.detail-sheet-scroll` 만 스크롤되도록 유지.
+- `tests/detail_nav.ui.spec.js` 의 바텀시트 CSS 회귀 테스트를 `top: env(...)`, `height: auto`, `var(--safe-top)` 미사용 기대값으로 갱신.
+
+**검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm run build` 성공, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**.
+
+**변경파일**: `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.

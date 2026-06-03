@@ -13,8 +13,8 @@ android {
         applicationId "com.daystory.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 24      //  (!! 앱 빌드 시 +1 !!)
-        versionName "1.4.2" //  (!! 버전 업데이트 시 변경 !!)
+        versionCode 25      //  (!! 앱 빌드 시 +1 !!)
+        versionName "1.5.0" //  (!! 버전 업데이트 시 변경 !!)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

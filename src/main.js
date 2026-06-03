@@ -268,6 +268,15 @@ if (auth) {
               setState('profile', profileData);
               if (profileData.theme) setState('theme', profileData.theme);
               if (profileData.font_size) setState('fontSize', profileData.font_size);
+
+              /* Custom Claims 미배포 폴백: syncAdminClaim Cloud Function 이 아직 배포되지
+                 않아 isAdmin = false 가 됐더라도, Firestore 프로필에 role:'editor' 가 있으면
+                 관리자로 인정한다. 쓰기 없이 읽기만 하므로 자가승격 보안 취약점과 무관하다.
+                 Cloud Function 배포 완료 후 readAdminClaim() 경로가 활성화되면 이 분기는
+                 자연스럽게 skip 된다(isAdmin 이 이미 true). */
+              if (!getState('isAdmin') && profileData.role === 'editor') {
+                setState('isAdmin', true);
+              }
             }
           } catch (err) {
             console.warn('프로필 로드 실패:', err);

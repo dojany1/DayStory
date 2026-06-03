@@ -19,10 +19,14 @@ describe('Calendar image loading', () => {
 
   it('Given a calendar history card front, when source is inspected, then it should not render the collect bar inside the front face', () => {
     const calendar = readFileSync(resolve(process.cwd(), 'src/js/pages/calendar.js'), 'utf8');
-    const historyCardBuilder = calendar.match(/function buildHistoryCardHtml[\s\S]*?function buildMyCardHtml/)?.[0] || '';
-
-    expect(historyCardBuilder).toContain('history-card-front');
-    expect(historyCardBuilder).not.toContain('card-collect-bar');
+    const cardFace = readFileSync(resolve(process.cwd(), 'src/js/components/cardDeck/cardFace.js'), 'utf8');
+    /* buildHistoryCardHtml/buildMyCardHtml 은 cardFace 빌더 경유로 마크업을 생성함 */
+    expect(calendar).toMatch(/buildHistoryCardHtml/);
+    expect(calendar).toMatch(/buildMyCardHtml/);
+    /* history-card-front 는 공통 cardFace 에 있고; collect-bar 는 어디에도 없어야 함 */
+    expect(cardFace).toContain('history-card-front');
+    expect(cardFace).not.toContain('card-collect-bar');
+    expect(calendar).not.toContain('card-collect-bar');
   });
 
   it('Given the calendar mode toggle, when styles are inspected, then it should follow the theme option segmented control layout', () => {

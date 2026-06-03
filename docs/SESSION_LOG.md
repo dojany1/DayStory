@@ -775,3 +775,35 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **후속**: Step 6(calendar.js `openCardPopup` 의 `buildHistoryCardHtml`/`buildMyCardHtml` 을 cardFace 경유로 통합)은 사용자 승인 후 진행 예정.
 
 **변경파일**: `src/js/components/cardDeck/cardFace.js`(신규), `src/js/components/cardDeck/cardDeckController.js`(신규), `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `tests/cardFace.spec.js`(신규), `tests/swiper_lazy_init.spec.js`, `tests/ios_gpu_webp_guard.spec.js`, `tests/view-toggle.spec.js`, `tests/editorstory.ui.spec.js`.
+
+---
+
+### 2026-06-03 — Claude · 3단계 리팩토링: Step 6 — calendar.js 팝업 cardFace 통합
+
+**요구사항**: Step 5 보고 후 사용자 최종 승인을 받아 `calendar.js` 의 `openCardPopup` 내부 `buildHistoryCardHtml` / `buildMyCardHtml` 인라인 마크업 빌더를 공통 `cardFace` 모듈 경유로 통합.
+
+**구현방법**:
+- `calendar.js` 상단에 `cardFace.js` import 추가(`cardShell / cardFront / cardFrontTop / cardImageWrap / cardBack / cardActionButton / bodyToHtml / SHARE_ICON_SVG`).
+- `buildHistoryCardHtml`: 인라인 HTML 템플릿 → `cardFrontTop`(yearHtml/dateLabel/actionsHtml/metaHtml) + `cardImageWrap`(src/alt/title) + `cardBack`(title/bodyToHtml/footerHtml) + `cardShell` 로 재작성. 북마크 버튼은 `active` 클래스 조건이 필요해 `cardActionButton` 바깥에 인라인 유지.
+- `buildMyCardHtml`: 동일 패턴으로 재작성. `flipperClass: 'mystory-flipper'` 전달.
+- 두 함수에서 `bodyToHtml` 로 본문 파싱 위임 → `escapeHtml` + split 중복 2곳 제거.
+- `cardImageWrap` 이 자동으로 `FALLBACK_IMG / IMG_ONERROR / loading="lazy"` 를 부여 → 팝업 카드도 iOS WebP fallback 보호 자동 확보.
+- `tests/calendar.ui.spec.js` 의 `historyCardBuilder` 소스 grep 어서션을 cardFace 경유 방식으로 갱신.
+
+**검증**: `npm run build` 성공. `npm test` → **Test Files 30 passed (30), Tests 286 passed | 6 skipped, 0 failed**.
+
+**변경파일**: `src/js/pages/calendar.js`, `tests/calendar.ui.spec.js`.
+
+---
+
+### 2026-06-03 — Claude · 어드민 권한 폴백 핫픽스
+
+**요구사항**: 3단계 리팩토링 직후 관리자 계정의 권한 기능(에디터 진입, 관리자 배지, 관리자 도구)이 사라지는 긴급 버그 수정.
+
+**진단**: 3단계 카드덱 리팩토링은 무고. 같은 `1cc1e24` 커밋에 포함된 2단계 어드민 Custom Claims 마이그레이션(`profile.role → getState('isAdmin')`)이 원인. `syncAdminClaim()` Cloud Function 미배포 시 조용히 `false` 반환 → 모든 관리자 UI 숨겨짐.
+
+**수정**: `src/main.js` 프로필 로드 후 `if (!getState('isAdmin') && profileData.role === 'editor') setState('isAdmin', true)` 폴백 추가. 읽기 전용이므로 자가승격 보안 취약점 없음. Cloud Function 배포 후에는 `readAdminClaim()` 경로가 우선하여 자연 skip.
+
+**검증**: `npm test` → 30 passed / 286 tests / 0 failed.
+
+**변경파일**: `src/main.js`.

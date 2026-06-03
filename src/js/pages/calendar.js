@@ -23,6 +23,10 @@ import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { showConfirm } from '../components/confirmDialog.js';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import {
+  cardShell, cardFront, cardFrontTop, cardImageWrap, cardBack, cardActionButton,
+  bodyToHtml, SHARE_ICON_SVG,
+} from '../components/cardDeck/cardFace.js';
 
 export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -513,67 +517,47 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
 }
 
 function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], collected = false) {
-  const bodyHtml = (story.body || '').split(/\n|\\n/)
-    .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
   const isBookmarked = !!(story.id && bookmarkedIds.includes(story.id));
   const editorComment = story.editor_comment || '';
   /* 에디터 아바타는 항상 로컬 PNG 사용 (iOS WKWebView 의 WebP 디코더 crash 회피). */
   const editorName = (story.editor && story.editor.displayName) || 'DayStory';
   const editorBtnHidden = !editorComment.trim();
-  const imageUrl = story.image_url || '';
-  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
 
-  return `
-    <div class="flip-container">
-      <div class="flipper">
-        <div class="front history-card-front">
-          <div class="history-card-top">
-            <div class="card-top-left">
-              <div class="card-year">${escapeHtml(story.historical_year || year)}</div>
-              <div class="card-date">${month}. ${day}</div>
-            </div>
-            <div class="card-top-right">
-              <div class="card-actions">
-                <button class="card-action-btn" aria-label="공유">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                  </svg>
-                </button>
-                <button class="card-action-btn bookmark-btn${isBookmarked ? ' active' : ''}" aria-label="보관함">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  const bookmarkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="card-meta">
-                ${escapeHtml(story.country || '')}<br>
-                ${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}
-              </div>
-            </div>
-          </div>
-          <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.figure_name || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
-            <div class="card-image-title">${escapeHtml(story.figure_name || '')}</div>
-          </div>
-        </div>
-        <div class="back history-card-back">
-          <div class="back-title">${escapeHtml(story.figure_name || '')}</div>
-          <hr class="back-divider" />
-          <div class="back-body">${bodyHtml}</div>
-          <div class="back-footer">
+                  </svg>`;
+  const actionsHtml = `${cardActionButton({ ariaLabel: '공유', svg: SHARE_ICON_SVG })}
+                <button class="card-action-btn bookmark-btn${isBookmarked ? ' active' : ''}" aria-label="보관함">${bookmarkSvg}</button>`;
+
+  const metaHtml = `${escapeHtml(story.country || '')}<br>
+                ${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`;
+
+  const footerHtml = `
             <button class="back-editor-btn${!editorBtnHidden && story.id && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id || '')}" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
               <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
               <div class="back-date">${escapeHtml(story.historical_year || year)}년 ${month}월 ${day}일</div>
               <button class="card-detail-shortcut-btn" type="button">${escapeHtml(t('home.detail_button'))}</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+            </div>`;
+
+  const frontHtml = cardFront({
+    topHtml: cardFrontTop({
+      yearHtml: escapeHtml(story.historical_year || year),
+      dateLabel: `${month}. ${day}`,
+      actionsHtml,
+      metaHtml,
+    }),
+    imageHtml: cardImageWrap({ src: story.image_url, alt: story.figure_name || '', title: story.figure_name || '' }),
+  });
+
+  const backHtml = cardBack({
+    title: story.figure_name || '',
+    bodyHtml: bodyToHtml(story.body),
+    footerHtml,
+  });
+
+  return cardShell({ frontHtml, backHtml });
 }
 
 function getMyCardNickname(story) {
@@ -589,51 +573,29 @@ function getMyCardNickname(story) {
 }
 
 function buildMyCardHtml(story, year, month, day, nickname = '') {
-  const bodyHtml = (story.body || '').split(/\n|\\n/)
-    .map(p => p.trim() ? `<p>${escapeHtml(p)}</p>` : '<p><br></p>').join('');
-  const imageUrl = story.image_url || '';
-  const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
-  return `
-    <div class="flip-container">
-      <div class="flipper mystory-flipper">
-        <div class="front history-card-front">
-          <div class="history-card-top">
-            <div class="card-top-left">
-              <div class="card-year mystory-card-year">${year}</div>
-              <div class="card-date">${month}. ${day}</div>
-            </div>
-            <div class="card-top-right">
-              <div class="card-actions">
-                <button class="card-action-btn share-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="공유">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                  </svg>
-                </button>
-                <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="수정">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+  const editSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
                     <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
                     <path d="m15 5 4 4"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="card-meta">${escapeHtml(nickname)}</div>
-            </div>
-          </div>
-          <div class="history-card-image-wrap">
-            <img ${imageAttrs} alt="${escapeHtml(story.title || '')}" loading="eager" decoding="async" width="320" height="400" draggable="false" />
-            <div class="card-image-title">${escapeHtml(story.title || '')}</div>
-          </div>
-        </div>
-        <div class="back history-card-back">
-          <div class="back-title">${escapeHtml(story.title || '')}</div>
-          <hr class="back-divider" />
-          <div class="back-body">${bodyHtml}</div>
-          <div class="back-footer">
-            <div class="back-date">${year}년 ${month}월 ${day}일</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+                  </svg>`;
+  const actionsHtml = `${cardActionButton({ ariaLabel: '공유', svg: SHARE_ICON_SVG, extraClass: 'share-my-story-btn', dataId: story.id || '' })}
+                ${cardActionButton({ ariaLabel: '수정', svg: editSvg, extraClass: 'edit-my-story-btn', dataId: story.id || '' })}`;
+
+  const frontHtml = cardFront({
+    topHtml: cardFrontTop({
+      yearHtml: String(year),
+      yearClass: 'mystory-card-year',
+      dateLabel: `${month}. ${day}`,
+      actionsHtml,
+      metaHtml: escapeHtml(nickname),
+    }),
+    imageHtml: cardImageWrap({ src: story.image_url, alt: story.title || '', title: story.title || '' }),
+  });
+
+  const backHtml = cardBack({
+    title: story.title || '',
+    bodyHtml: bodyToHtml(story.body),
+    footerHtml: `<div class="back-date">${year}년 ${month}월 ${day}일</div>`,
+  });
+
+  return cardShell({ frontHtml, backHtml, flipperClass: 'mystory-flipper' });
 }

@@ -841,3 +841,20 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npx vitest run tests/cardDeckController.spec.js tests/swiper_lazy_init.spec.js tests/view-toggle.spec.js` → 49/49 통과. `npm test` → **Test Files 31 passed (31), Tests 288 passed | 6 skipped (294)**. `npm run build` 성공.
 
 **변경파일**: `src/js/components/cardDeck/cardDeckController.js`, `tests/cardDeckController.spec.js`, `tests/swiper_lazy_init.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 17:52 — Codex · 에디터 일화 상세보기 바텀시트 전환
+
+**요구사항**: `/detail/:id` 로 열리는 에디터 일화 상세보기를 전체 화면 페이지 느낌에서 모바일 네이티브 스타일 바텀시트로 리팩토링. Backdrop 클릭, X 버튼, 핸들 드래그로 닫히고, 긴 본문 내부 스크롤과 드래그 닫기 충돌을 방지해야 함.
+
+**구현방법**:
+- `detail.js` 렌더 shell 을 `detail-sheet-backdrop` + `detail-sheet` + `detail-sheet-drag-zone` + `detail-sheet-scroll` 구조로 변경. 로딩 상태부터 같은 sheet shell 을 사용하고 데이터 로드 후 scroll 영역만 교체.
+- `closeDetailSheet()` 를 추가해 backdrop / X 버튼 / 기존 back 버튼 / 드래그 닫기가 모두 동일한 닫힘 애니메이션 후 `history.back()` 으로 귀결되도록 정리.
+- `touchstart` / `touchmove` / `touchend` 기반 드래그 닫기 구현. 드래그 시작 지점이 핸들 영역이거나 내부 scroll 영역이 최상단(`scrollTop <= 0`)일 때만 아래 드래그를 닫기 후보로 처리하고, 본문을 읽는 중(`scrollTop > 0`)에는 시트를 닫지 않도록 방어.
+- `pages.css` 에 fixed bottom sheet 스타일, dim backdrop, handle, close button, 내부 scroll 영역, dragging transition 해제 스타일 추가. 색상/간격/z-index 는 기존 토큰 사용.
+- `tests/detail_nav.ui.spec.js` 에 바텀시트 shell, backdrop click close, handle drag close, scrolled content drag 방어, fixed bottom sheet CSS 회귀 테스트 추가.
+
+**검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**, `npm run build` 성공.
+
+**변경파일**: `src/js/pages/detail.js`, `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.

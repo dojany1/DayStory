@@ -70,6 +70,10 @@ async function flushRender() {
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
 }
 
+async function flushCloseAnimation() {
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 220));
+}
+
 describe('Detail page editor remark', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -100,6 +104,65 @@ describe('Detail page editor remark', () => {
     expect(text).not.toContain('에디터의 말');
     expect(text).toContain('DayStory');
     expect(text).toContain('Editor note');
+  });
+
+  it('Given the detail page opens, when the shell renders, then it should use a bottom sheet with backdrop handle and close button', async () => {
+    const page = renderDetail({ id: 'story-1' });
+    document.body.appendChild(page);
+
+    await flushRender();
+
+    expect(page.querySelector('.detail-sheet-backdrop')).not.toBeNull();
+    expect(page.querySelector('.detail-sheet')).not.toBeNull();
+    expect(page.querySelector('.detail-sheet-handle')).not.toBeNull();
+    expect(page.querySelector('#detail-close')).not.toBeNull();
+    expect(page.querySelector('.detail-sheet-scroll')).not.toBeNull();
+  });
+
+  it('Given the detail backdrop is tapped, when it receives a click, then the sheet closes via history back', async () => {
+    const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    const page = renderDetail({ id: 'story-1' });
+    document.body.appendChild(page);
+
+    await flushRender();
+    page.querySelector('.detail-sheet-backdrop')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushCloseAnimation();
+
+    expect(backSpy).toHaveBeenCalledTimes(1);
+    backSpy.mockRestore();
+  });
+
+  it('Given the sheet handle is dragged down from the top, when the threshold is passed, then the sheet closes', async () => {
+    const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    const page = renderDetail({ id: 'story-1' });
+    document.body.appendChild(page);
+
+    await flushRender();
+    const dragZone = page.querySelector('.detail-sheet-drag-zone');
+    dragZone?.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [{ clientY: 100 }] }));
+    dragZone?.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: [{ clientY: 220 }] }));
+    dragZone?.dispatchEvent(new TouchEvent('touchend', { bubbles: true, changedTouches: [{ clientY: 220 }] }));
+    await flushCloseAnimation();
+
+    expect(backSpy).toHaveBeenCalledTimes(1);
+    backSpy.mockRestore();
+  });
+
+  it('Given the sheet content is scrolled, when the user drags inside content, then it should not close the sheet', async () => {
+    const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    const page = renderDetail({ id: 'story-1' });
+    document.body.appendChild(page);
+
+    await flushRender();
+    const scrollArea = page.querySelector('.detail-sheet-scroll');
+    Object.defineProperty(scrollArea, 'scrollTop', { value: 48, configurable: true });
+
+    scrollArea?.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [{ clientY: 100 }] }));
+    scrollArea?.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, touches: [{ clientY: 240 }] }));
+    scrollArea?.dispatchEvent(new TouchEvent('touchend', { bubbles: true, changedTouches: [{ clientY: 240 }] }));
+
+    expect(backSpy).not.toHaveBeenCalled();
+    backSpy.mockRestore();
   });
 
   it('Given the detail page hero, when the story renders, then the image area should not show the title or country tag', async () => {
@@ -133,6 +196,20 @@ describe('Detail page editor remark', () => {
     expect(editorNoteRule).toBeTruthy();
     expect(editorNoteRule).toMatch(/background:\s*var\(--color-bg-secondary\)/);
     expect(editorNoteRule).not.toMatch(/gradient/i);
+  });
+
+  it('Given the detail page styles, when inspected, then the detail surface should animate as a fixed bottom sheet', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
+    const sheetRule = css.match(/\.detail-sheet\s*\{[\s\S]*?\}/)?.[0];
+    const openRule = css.match(/\.detail-page\.is-open\s+\.detail-sheet\s*\{[\s\S]*?\}/)?.[0];
+    const backdropRule = css.match(/\.detail-sheet-backdrop\s*\{[\s\S]*?\}/)?.[0];
+
+    expect(sheetRule).toMatch(/position:\s*fixed/);
+    expect(sheetRule).toMatch(/bottom:\s*0/);
+    expect(sheetRule).toMatch(/transform:\s*translateY\(100%\)/);
+    expect(sheetRule).toMatch(/transition:\s*transform/);
+    expect(openRule).toMatch(/transform:\s*translateY\(0\)/);
+    expect(backdropRule).toMatch(/position:\s*fixed/);
   });
 
   it('Given the detail page title area, when the story renders, then bookmark and share buttons should sit beside the title instead of in the top header', async () => {

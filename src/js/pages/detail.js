@@ -118,13 +118,93 @@ export function renderDetail(params) {
 
   /* 로딩 스피너를 먼저 보여주고, 데이터를 비동기로 불러옴 */
   page.innerHTML = `
-    <div style="display:flex;justify-content:center;align-items:center;min-height:60vh;">
-      <div class="loading-spinner"></div>
-    </div>
+    <button type="button" class="detail-sheet-backdrop" aria-label="상세 닫기"></button>
+    <section class="detail-sheet" role="dialog" aria-modal="true" aria-label="일화 상세">
+      <div class="detail-sheet-drag-zone">
+        <div class="detail-sheet-handle" aria-hidden="true"></div>
+        <button type="button" class="detail-sheet-close" id="detail-close" aria-label="닫기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="detail-sheet-scroll">
+        <div class="detail-loading">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </section>
   `;
 
+  bindDetailSheet(page);
+  requestAnimationFrame(() => page.classList.add('is-open'));
   loadDetail(page, params.id);
   return page;
+}
+
+function closeDetailSheet(page) {
+  if (page.dataset.closing === 'true') return;
+  page.dataset.closing = 'true';
+  page.classList.remove('is-open');
+  window.setTimeout(() => window.history.back(), 180);
+}
+
+function touchClientY(event) {
+  return event.touches?.[0]?.clientY ?? event.changedTouches?.[0]?.clientY ?? 0;
+}
+
+function bindDetailSheet(page) {
+  const sheet = page.querySelector('.detail-sheet');
+  const scrollArea = page.querySelector('.detail-sheet-scroll');
+  const dragZone = page.querySelector('.detail-sheet-drag-zone');
+  const backdrop = page.querySelector('.detail-sheet-backdrop');
+  const closeBtn = page.querySelector('#detail-close');
+
+  backdrop?.addEventListener('click', () => closeDetailSheet(page));
+  closeBtn?.addEventListener('click', () => closeDetailSheet(page));
+
+  let dragStartY = 0;
+  let dragY = 0;
+  let isDragging = false;
+
+  const canStartDrag = (target) => {
+    if (dragZone?.contains(target)) return true;
+    return (scrollArea?.scrollTop || 0) <= 0;
+  };
+
+  const onTouchStart = (event) => {
+    if (!canStartDrag(event.target)) return;
+    dragStartY = touchClientY(event);
+    dragY = 0;
+    isDragging = true;
+    sheet?.classList.add('is-dragging');
+  };
+
+  const onTouchMove = (event) => {
+    if (!isDragging || !sheet) return;
+    dragY = Math.max(0, touchClientY(event) - dragStartY);
+    if (dragY <= 0) return;
+    event.preventDefault();
+    sheet.style.transform = `translateY(${dragY}px)`;
+    const opacity = Math.max(0.25, 1 - dragY / 420);
+    page.style.setProperty('--detail-backdrop-opacity', String(opacity));
+  };
+
+  const onTouchEnd = () => {
+    if (!isDragging || !sheet) return;
+    isDragging = false;
+    sheet.classList.remove('is-dragging');
+    sheet.style.transform = '';
+    page.style.removeProperty('--detail-backdrop-opacity');
+    if (dragY > 80) closeDetailSheet(page);
+    dragY = 0;
+  };
+
+  sheet?.addEventListener('touchstart', onTouchStart, { passive: true });
+  sheet?.addEventListener('touchmove', onTouchMove, { passive: false });
+  sheet?.addEventListener('touchend', onTouchEnd, { passive: true });
+  sheet?.addEventListener('touchcancel', onTouchEnd, { passive: true });
 }
 
 
@@ -141,7 +221,8 @@ async function loadDetail(page, storyId) {
   const rawStory = await fetchStoryById(storyId);
 
   if (!rawStory) {
-    page.innerHTML = `
+    const content = page.querySelector('.detail-sheet-scroll') || page;
+    content.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-title">${t('common.load_failed_title')}</div>
       </div>
@@ -181,10 +262,11 @@ async function loadDetail(page, storyId) {
   const attributionHtml = renderAttribution(story, sources);
 
   /* ---- 페이지 HTML 생성 ---- */
-  page.innerHTML = `
+  const content = page.querySelector('.detail-sheet-scroll') || page;
+  content.innerHTML = `
     <!-- 상단 헤더: 뒤로가기 -->
     <div class="detail-header" id="detail-header">
-      <button class="page-header-back" id="detail-back">
+      <button class="page-header-back" id="detail-back" aria-label="닫기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
@@ -242,7 +324,7 @@ async function loadDetail(page, storyId) {
      ───────────────────────────────────────────── */
 
   /* 뒤로가기 버튼 */
-  document.getElementById('detail-back')?.addEventListener('click', () => window.history.back());
+  page.querySelector('#detail-back')?.addEventListener('click', () => closeDetailSheet(page));
 
   /**
    * handleBookmark — 북마크 토글 처리 함수
@@ -263,7 +345,7 @@ async function loadDetail(page, storyId) {
 
     showToast(bookmarked ? '보관함에 저장했습니다' : '보관함에서 해제했습니다', 'success');
   };
-  document.getElementById('detail-bookmark')?.addEventListener('click', handleBookmark);
+  page.querySelector('#detail-bookmark')?.addEventListener('click', handleBookmark);
 
   /**
    * shareAction — 공유 기능
@@ -283,6 +365,6 @@ async function loadDetail(page, storyId) {
       showToast('클립보드에 복사했습니다', 'success');
     } catch { /* 사용자가 공유를 취소한 경우 무시 */ }
   };
-  document.getElementById('detail-share')?.addEventListener('click', shareAction);
+  page.querySelector('#detail-share')?.addEventListener('click', shareAction);
 
 }

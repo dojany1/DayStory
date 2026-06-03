@@ -208,6 +208,8 @@ describe('Detail page editor remark', () => {
 
     expect(sheetRule).toMatch(/position:\s*fixed/);
     expect(sheetRule).toMatch(/bottom:\s*0/);
+    expect(sheetRule).toMatch(/height:\s*calc\(100vh - var\(--safe-top\)\)/);
+    expect(sheetRule).toMatch(/height:\s*calc\(100dvh - var\(--safe-top\)\)/);
     expect(sheetRule).toMatch(/transform:\s*translateY\(100%\)/);
     expect(sheetRule).toMatch(/transition:\s*transform/);
     expect(closeRule).toMatch(/left:\s*var\(--space-4\)/);

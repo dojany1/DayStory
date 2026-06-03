@@ -873,3 +873,18 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm run build` 성공, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**.
 
 **변경파일**: `src/js/pages/detail.js`, `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 18:10 — Codex · 상세 바텀시트 콘텐츠 표시 영역 보정
+
+**요구사항**: `.detail-sheet` 콘텐츠가 화면에 제대로 표시되지 않고, 핸들/닫기 영역 없이 상세 콘텐츠가 화면 상단부터 잘려 보이는 문제 확인 및 수정.
+
+**구현방법**:
+- 원인은 `.detail-sheet` 가 `max-height` 만 갖고 있어 일부 WebView / 콘텐츠 높이 조합에서 시트 자체가 콘텐츠 높이만큼 커지고 상단 drag zone 이 화면 밖으로 밀릴 수 있는 구조로 판단.
+- `pages.css` 의 `.detail-sheet` 에 `height: calc(100vh - var(--safe-top))` fallback 과 `height: calc(100dvh - var(--safe-top))` 를 함께 명시해 시트 높이를 viewport 안에 고정. 내부 `.detail-sheet-scroll` 만 스크롤되도록 기존 flex/overflow 구조 유지.
+- `tests/detail_nav.ui.spec.js` 의 바텀시트 CSS 회귀 테스트에 `100vh` fallback 과 `100dvh` height 기대값 추가.
+
+**검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm run build` 성공, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**.
+
+**변경파일**: `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.

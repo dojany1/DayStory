@@ -264,15 +264,6 @@ async function loadDetail(page, storyId) {
   /* ---- 페이지 HTML 생성 ---- */
   const content = page.querySelector('.detail-sheet-scroll') || page;
   content.innerHTML = `
-    <!-- 상단 헤더: 뒤로가기 -->
-    <div class="detail-header" id="detail-header">
-      <button class="page-header-back" id="detail-back" aria-label="닫기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-    </div>
-
     <!-- 히어로 이미지 영역 -->
     <div class="detail-hero">
       <img src="${escapeHtml(story.image_url)}" alt="${escapeHtml(story.figure_name)}" loading="eager" decoding="async" fetchpriority="high" width="1200" height="1500" />
@@ -322,9 +313,6 @@ async function loadDetail(page, storyId) {
   /* ─────────────────────────────────────────────
      섹션 3: 이벤트 리스너 연결
      ───────────────────────────────────────────── */
-
-  /* 뒤로가기 버튼 */
-  page.querySelector('#detail-back')?.addEventListener('click', () => closeDetailSheet(page));
 
   /**
    * handleBookmark — 북마크 토글 처리 함수

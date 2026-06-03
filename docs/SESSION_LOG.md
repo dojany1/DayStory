@@ -858,3 +858,18 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**, `npm run build` 성공.
 
 **변경파일**: `src/js/pages/detail.js`, `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-03 18:06 — Codex · 상세 바텀시트 헤더 제거 및 닫기 버튼 좌측 이동
+
+**요구사항**: 상세 바텀시트 내부의 `detail-header` 를 제거하고, `.detail-sheet-close` 버튼을 바텀시트 상단 좌측으로 이동.
+
+**구현방법**:
+- `detail.js` 에서 데이터 로드 후 삽입하던 `detail-header` / `detail-back` 마크업과 관련 이벤트 바인딩 제거.
+- `pages.css` 에서 `.detail-sheet-close` 위치를 `right` 에서 `left: var(--space-4)` 로 변경하고, 더 이상 쓰지 않는 `.detail-header` / `.detail-header.scrolled` 스타일 제거. `.detail-sheet` 의 `bottom: 0` 도 명시해 하단 고정 조건을 유지.
+- `tests/detail_nav.ui.spec.js` 에서 상세 shell 렌더 시 `.detail-header` 가 없어야 하고 닫기 버튼 CSS가 좌측 배치여야 한다는 기대값으로 갱신.
+
+**검증**: `npx vitest run tests/detail_nav.ui.spec.js` 19/19 통과, `npm run build` 성공, `npm test` → **Test Files 31 passed (31), Tests 293 passed | 6 skipped (299)**.
+
+**변경파일**: `src/js/pages/detail.js`, `src/css/pages.css`, `tests/detail_nav.ui.spec.js`, `docs/SESSION_LOG.md`.

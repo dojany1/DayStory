@@ -117,6 +117,7 @@ describe('Detail page editor remark', () => {
     expect(page.querySelector('.detail-sheet-handle')).not.toBeNull();
     expect(page.querySelector('#detail-close')).not.toBeNull();
     expect(page.querySelector('.detail-sheet-scroll')).not.toBeNull();
+    expect(page.querySelector('.detail-header')).toBeNull();
   });
 
   it('Given the detail backdrop is tapped, when it receives a click, then the sheet closes via history back', async () => {
@@ -201,6 +202,7 @@ describe('Detail page editor remark', () => {
   it('Given the detail page styles, when inspected, then the detail surface should animate as a fixed bottom sheet', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
     const sheetRule = css.match(/\.detail-sheet\s*\{[\s\S]*?\}/)?.[0];
+    const closeRule = css.match(/\.detail-sheet-close\s*\{[\s\S]*?\}/)?.[0];
     const openRule = css.match(/\.detail-page\.is-open\s+\.detail-sheet\s*\{[\s\S]*?\}/)?.[0];
     const backdropRule = css.match(/\.detail-sheet-backdrop\s*\{[\s\S]*?\}/)?.[0];
 
@@ -208,6 +210,8 @@ describe('Detail page editor remark', () => {
     expect(sheetRule).toMatch(/bottom:\s*0/);
     expect(sheetRule).toMatch(/transform:\s*translateY\(100%\)/);
     expect(sheetRule).toMatch(/transition:\s*transform/);
+    expect(closeRule).toMatch(/left:\s*var\(--space-4\)/);
+    expect(closeRule).not.toMatch(/right:\s*var\(--space-4\)/);
     expect(openRule).toMatch(/transform:\s*translateY\(0\)/);
     expect(backdropRule).toMatch(/position:\s*fixed/);
   });
@@ -224,8 +228,7 @@ describe('Detail page editor remark', () => {
     expect(titleRow?.querySelector('.detail-figure-name')?.textContent).toContain('Test Figure');
     expect(titleRow?.querySelector('#detail-bookmark')).not.toBeNull();
     expect(titleRow?.querySelector('#detail-share')).not.toBeNull();
-    expect(page.querySelector('#detail-header #detail-bookmark')).toBeNull();
-    expect(page.querySelector('#detail-header #detail-share')).toBeNull();
+    expect(page.querySelector('#detail-header')).toBeNull();
   });
 
   it('Given the detail page content, when the story renders, then the bottom bookmark share report action nav should not render', async () => {

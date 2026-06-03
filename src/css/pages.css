@@ -608,7 +608,7 @@
 .detail-sheet-close {
   position: absolute;
   top: 8px;
-  right: var(--space-4);
+  left: var(--space-4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -646,24 +646,6 @@
 }
 
 /* 상세 페이지 상단 헤더 — 스크롤 시 상단에 고정(sticky) */
-.detail-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-primary);
-  border-bottom: 1px solid transparent;
-  transition: border-color var(--transition-fast);
-}
-
-/* 헤더 스크롤 상태 — 아래로 스크롤하면 하단 테두리 표시 */
-.detail-header.scrolled {
-  border-bottom-color: var(--color-border);
-}
-
 /* 히어로 이미지 영역 — 정사각형 비율 */
 .detail-hero {
   position: relative;

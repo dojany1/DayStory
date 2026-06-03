@@ -891,6 +891,21 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 
 ---
 
+### 2026-06-03 18:41 — Codex · 상세 바텀시트 닫힘 후 캘린더 카드 팝업 유지
+
+**요구사항**: 캘린더 카드 팝업에서 상세 바텀시트를 열었다 닫았을 때, 기존 `calendar-card-popup open` 상태가 그대로 유지되도록 변경.
+
+**구현방법**:
+- `calendar.js` 의 `.card-detail-shortcut-btn` 클릭 핸들러에서 상세 라우트 이동 전 `close()` 를 호출하던 로직을 제거해, 카드 팝업 DOM과 `.open` 상태, scroll lock 상태가 유지되도록 수정.
+- detail 바텀시트는 `--z-overlay`, 캘린더 카드 팝업은 `--z-modal` 계층이라 팝업을 남겨도 detail이 위에 표시되는 기존 z-index 구조를 그대로 활용.
+- `tests/calendar_popup.spec.js` 신규 추가. 상세 보기 클릭 후 `navigate('/detail/:id')` 는 실행되지만 `unlockScroll()` 은 호출되지 않고, 동일한 `.calendar-card-popup.open` 요소가 남는지 회귀 검증.
+
+**검증**: `npx vitest run tests/calendar_popup.spec.js tests/detail_nav.ui.spec.js tests/router_session_view.spec.js --environment jsdom` 22/22 통과, `npm run build` 성공, `npm test` → **Test Files 33 passed (33), Tests 297 passed | 6 skipped (303)**.
+
+**변경파일**: `src/js/pages/calendar.js`, `tests/calendar_popup.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
 ### 2026-06-03 18:35 — Codex · 캘린더 상세 바텀시트 닫힘 시 뷰 상태 보존
 
 **요구사항**: `editorstory` / `mystory` 캘린더 보기에서 상세 바텀시트를 열었다 닫으면 원래 캘린더 그리드가 유지되지 않고 일반 카드 뷰로 돌아가는 라우팅 상태 버그 수정.

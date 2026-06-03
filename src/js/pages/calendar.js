@@ -383,7 +383,6 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   if (detailBtn && mode === 'history' && story.id) {
     detailBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      close();
       navigate(`/detail/${story.id}`);
     });
   }

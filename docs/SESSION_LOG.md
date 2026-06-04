@@ -1084,3 +1084,166 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npm run build` 성공(210ms), `npm test` → 34 Files / 302 passed.
 
 **변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 — Claude · 카드 캡처 고정 크기 + 네이티브 이미지 누락 핫픽스
+
+**요구사항**: ① 웹 환경에서 브라우저 창 크기에 따라 캡처 이미지 크기·레이아웃이 변동하는 문제. ② iOS/Android 네이티브에서 캡처 시 메인 이미지가 흰 공간으로 렌더링되는 CORS·타이밍 문제.
+
+**구현방법**:
+- `CAPTURE_W = 375`, `CAPTURE_H = 667` 모듈 상수 추가 — 뷰포트 독립 고정 치수.
+- html2canvas 호출 직전 `cardElement.getAttribute('style')` 백업 후 width/height/min/max를 고정 px로 강제 설정, `finally`에서 `setAttribute`로 원상 복구.
+- base64 이미지 교체 + 크기 강제 이후 300ms `setTimeout` 딜레이 추가 — DOM 리플로우·이미지 렌더링 완료 보장.
+- 이미지 래퍼 치수를 강제 크기 기준 reflow 후 측정하도록 순서 변경.
+- `allowTaint: false` → `true`, `scale: 3` → `2` 변경.
+- `onclone` 내 이미지 래퍼 `img`에 `crossOrigin = 'anonymous'` 명시적 설정 추가.
+
+**변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 — Claude · CLAUDE.md 갱신 및 캡처 백화 현상 추가 수정
+
+**요구사항**: ① CLAUDE.md를 구버전(Vanilla JS 프로젝트 기준)과 신규 작성 내용(Mobile-First 원칙, html2canvas 4대 규칙, UGC 보안 규칙)으로 병합해 완전한 가이드라인 문서 완성. ② 네이티브 기기 캡처 시 `crossOrigin` 누락으로 발생하는 백화 현상·이미지 누락의 근본 원인 수정.
+
+**구현방법**:
+- `CLAUDE.md` 전면 재작성: 기존 아키텍처 규칙(Harness, Session Log, Checkpoint, XSS, confirmDialog, setOnUnmount, TDD) 전량 유지 + Mobile-First/App-Only 원칙, html2canvas 4대 규칙(레이아웃 고정·CORS 우회·300ms delay·워터마크), UGC 신고 규칙 추가. 기술 스택을 실제 코드베이스(Vanilla JS) 기준으로 수정(구버전 오기 Vue 3 제거).
+- `cardFace.js` `cardImageWrap`: `<img>` 태그에 `crossorigin="anonymous"` 추가. 이미지가 항상 CORS 모드로 첫 로드되어야 캡처 시 캔버스 오염(tainted canvas)이 발생하지 않음.
+- `sharing.js` `onclone` ⑤번 처리: `removeAttribute('loading')` / `removeAttribute('decoding')` 추가 → html2canvas 렌더링 시 lazy/async 속성으로 인한 이미지 누락 차단.
+
+**변경파일**: `CLAUDE.md`, `src/js/components/cardDeck/cardFace.js`, `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 19:27 — Claude · captureAndShareCard 라이브 DOM 조작 제거 리팩토링
+
+**요구사항**: 공유 버튼 클릭 시 라이브 DOM을 400×620px로 강제 변형 + 300ms 대기하여 화면이 깜빡이는 치명적 UX 버그 수정. 모든 레이아웃 조작을 `onclone` 내부로 이전하고, 워터마크 위치 및 `.card-actions` 숨김 처리 개선.
+
+**구현방법**:
+- `captureAndShareCard`: 라이브 DOM(`cardElement.style.*`, `imageWrapEl.style.*`, `imgInWrap.style.*`) 강제 크기 설정 코드(구 Step 2)와 300ms `setTimeout` 딜레이(구 Step 3) 완전 제거. 관련 `savedStyleAttr` / `savedWrapStyleAttr` / `savedImgStyleAttr` 백업·복구 코드 일괄 삭제.
+- `onclone` 콜백에서만 복제 DOM을 400×620으로 고정 (기존 구현 유지). 라이브 DOM에서 `card-top` 높이 실측만 수행(조작 없음).
+- `onclone` 콜백에 `.card-actions` 요소를 `setProperty('display','none','important')`로 숨기는 처리 추가 → 버튼이 캡처 이미지에 찍히지 않음.
+- `buildWatermarkElement`: 위치를 `bottom:20px / right:10px` → `bottom:16px / right:16px`으로 `--space-4` 기본 패딩과 일치하도록 통일.
+- `tests/ios_gpu_webp_guard.spec.js`: 이전 세션에서 변경된 `FALLBACK_IMG` 경로(`editor_profile.png` → `FALLBACK_IMG.png`)를 테스트가 경직된 경로 패턴으로 기대하던 부분을 `/assets/*.png` 포괄 패턴으로 수정.
+
+**변경파일**: `src/js/services/sharing.js`, `tests/ios_gpu_webp_guard.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 19:57 — Claude · 연도/월일 간격 근본 원인 수정 (html2canvas flex gap 미지원)
+
+**요구사항**: 캡처 이미지에서 year(1917)과 date(6. 4) 사이 간격이 여전히 비정상적으로 넓은 문제 재수정.
+
+**구현방법**:
+- 원인: html2canvas 1.4.1이 flex `gap` 속성을 불안정하게 지원. `gap: 4px` 인라인 스타일이 클론 문서 렌더링에서 무시되거나 예측 불가능하게 처리됨.
+- `card-top-left` onclone 처리를 `display: flex → block` 으로 변경, flex gap 속성 제거.
+- `card-date` 상단 간격을 `margin-top: 4px` 으로 처리 (flex gap 완전 대체).
+- `card-year` / `card-date` 의 명시적 px 폰트 크기(`28px` / `57px`) 및 `display: block` 설정은 유지.
+
+**변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 20:18 — Claude · 캡처 카드 레이아웃 치수 단일 출처로 정리 (정합성 회귀 방지)
+
+**요구사항**: 카드 캡처 공유 이미지에서 카드 크기·레이아웃 구조가 엉켜있는 문제를 정리하고 테스트 추가.
+
+**구현방법**:
+- 원인: 상단 높이가 세 곳에서 불일치. `CARD_TOP_TOTAL_H = 16+4+50+16`(=86, 매직넘버 `50`은 year28+date57=85이어야 함) ↔ 주석(105) ↔ `card-date` line-height `0.5`(실측 높이를 ~28px로 줄여 잘못된 86을 우연히 보정하던 꼼수)가 서로 싸우는 상태. line-height를 정상값으로 되돌리면 이미지 영역이 19px 넘쳐 하단이 잘림.
+- `sharing.js` 모듈 상단에 캡처 치수 단일 출처 도입: `CARD_TOP_PAD_Y/YEAR_FONT/DATE_FONT/YEAR_DATE_GAP` 기본 상수 + 파생 상수 `CARD_TOP_H`(=105)·`WRAP_W`(=368)·`WRAP_H`(=483). 손으로 더하지 않고 식으로 파생시켜 드리프트 차단.
+- 함수 내 지역 상수(`CARD_TOP_TOTAL_H`/`wrapW`/`wrapH`/`captureH`) 제거하고 onclone이 동일 상수를 참조하도록 통일. `card-date` line-height `0.5 → 1`로 복구(글자 클리핑 방지).
+- `tests/sharing_capture_layout.spec.js` 신규: html2canvas mock으로 onclone 결과 인라인 스타일을 검사해 "상단 영역 + 이미지 영역 == 카드 내부 높이(588)" 정합성, 400×620 고정, WRAP 폭/overflow, line-height=1, capture-id 정리를 검증(6 케이스).
+
+**검증**: `npx vitest run` 전체 35파일 308 통과(6 skip).
+
+**변경파일**: `src/js/services/sharing.js`, `tests/sharing_capture_layout.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 20:33 — Claude · 캡처 디버그 모드 해제 + As-Is(WYSIWYG) 캡처로 전면 리팩토링
+
+> 위 20:18 '치수 단일 출처' 항목을 정정함: 픽셀 계산 방식 자체가 실기기에서 실패해 폐기.
+
+**요구사항**:
+1. 캡처 디버그 모드(`_debugPreview`/오버레이/`__previewCard`) 해제.
+2. 실기기(iOS/Android WebView)에서 레이아웃이 여전히 깨짐. 원인은 JS로 고정 픽셀(CARD_TOP_H=105, WRAP_H=483 등)을 강제 주입한 Math 방식 — 디바이스별 폰트·Safe Area·OS 차이를 못 따라감. 브라우저가 CSS로 렌더한 화면을 "있는 그대로" 캡처하는 As-Is 방식으로 재작성.
+
+**구현방법**:
+- 디버그 제거: `sharing.js`의 `_debugPreview` 분기·`previewCaptureCard()`·`showDebugPreviewOverlay()`·`window.__previewCard`(DEV) 삭제. `editorstory.js` 공유 호출의 `{ _debugPreview: true }` 인자 제거.
+- 레이아웃 상수 전부 삭제: `CAPTURE_W/CAPTURE_H/CARD_PADDING/CARD_TOP_PAD_Y/YEAR_FONT/DATE_FONT/YEAR_DATE_GAP/CARD_TOP_H/WRAP_W/WRAP_H`.
+- html2canvas 옵션에서 `width`/`height` 제거 → 원본 렌더 크기 그대로 캡처.
+- onclone 최소화: 카드/상단/이미지래퍼/타이틀의 width·height·flex·position·font-size·margin 강제 주입 코드 전량 삭제. 남긴 것은 ① `.card-actions`+오버레이(FIXED_HIDE) `display:none` ② `.card-date` `line-height:1`(Safari 클리핑 방어) ③ 워터마크 주입, + plumbing(Swiper 부모 `transform:none`, 이미지 CORS 2차 방어).
+- 백화 방지 로직(`imageToBase64`, `useCORS:true`, `crossOrigin='anonymous'`, cache-bust, `scale:2`)은 100% 유지.
+- 테스트 `sharing_capture_layout.spec.js`를 As-Is 계약 검증으로 덮어씀: 사이즈 미강제(width/height/flex 빈 값), html2canvas width/height undefined, CORS 속성·워터마크·card-actions 숨김·date line-height:1 검증(7 케이스).
+
+**검증**: `npx vitest run` 전체 35파일 **309 통과**(6 skip).
+
+**변경파일**: `src/js/services/sharing.js`, `src/js/pages/editorstory.js`, `tests/sharing_capture_layout.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 20:57 — Claude · 캡처 디버그 모드 재활성화 (실기기 As-Is 검증용)
+
+**요구사항**: 이미지 공유 디버그 모드 켜기 — 실기기에서 As-Is 캡처 결과를 공유 시트 대신 오버레이로 바로 확인.
+
+**구현방법**:
+- `sharing.js`에 단일 토글 상수 `DEBUG_CAPTURE_PREVIEW = true` 추가. `import.meta.env.DEV`와 무관하게 빌드된 앱에서도 동작하도록 설계(실기기는 DEV 플래그가 꺼짐).
+- `captureAndShareCard`: `dismissToast()` 직후 `if (DEBUG_CAPTURE_PREVIEW || options._debugPreview)` 분기로 `showDebugPreviewOverlay(dataUrl)` 호출 후 조기 반환(`reason:'debug-preview'`). 3개 호출처(editorstory/mystory/calendar)를 개별 수정하지 않고 한 곳에서 제어.
+- `previewCaptureCard()`·`showDebugPreviewOverlay()`·`window.__previewCard`(DEV 콘솔 헬퍼) 복원.
+- 검증 종료 후 상수를 `false`로 되돌리면 정상 공유로 복귀.
+
+**검증**: `npx vitest run` 35파일 **309 통과**(6 skip), `npm run build` 성공. onclone은 디버그 분기보다 먼저 실행되어 As-Is 테스트 영향 없음.
+
+**변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 21:05 — Claude · 워터마크 라벨 수직 중앙 보정 버그 수정
+
+**요구사항**: 캡처 워터마크의 'DayStory' 라벨이 아이콘 옆에서 수직 중앙이 어긋남.
+
+**구현방법**: `buildWatermarkElement`에서 `label.style.cssText`를 두 번 할당해 `line-height:1`이 `align-items:center`로 덮어써지던 버그 수정(`cssText`는 누적이 아닌 전체 교체). 일반 `<span>`엔 `align-items`가 무효이므로 `display:flex;align-items:center;line-height:1` 한 선언으로 합쳐 실제로 수직 중앙 정렬되도록 함.
+
+**검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7 통과(워터마크 주입 검증 포함).
+
+**변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 21:10 — Claude · 워터마크 라벨 하단 쏠림 실제 원인 수정 (html2canvas flex 미지원)
+
+> 위 21:05 'flex 보정' 항목 정정: 브라우저에선 맞지만 html2canvas 캡처에선 무효였음.
+
+**요구사항**: 실기기 캡처 결과에서 워터마크 'DayStory' 라벨이 여전히 아이콘보다 아래로 쏠림.
+
+**구현방법**:
+- 원인: html2canvas 1.x 가 flexbox `align-items:center` 를 제대로 렌더링하지 못함. 라이브 DOM은 중앙 정렬되지만 캡처 PNG에선 무시되어 텍스트가 baseline 으로 떨어짐(아이콘 위/텍스트 아래).
+- `buildWatermarkElement`를 flex 비의존 방식으로 재작성: 컨테이너 `display:flex/align-items/gap` 제거 → `line-height:16px`(아이콘 높이)+`white-space:nowrap`. 아이콘/라벨은 `vertical-align:middle`, `gap`은 아이콘 `margin-right:6px`로 대체. 16px line-box 안에서 아이콘·텍스트가 함께 중앙 정렬됨.
+
+**검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7 통과.
+
+**변경파일**: `src/js/services/sharing.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-04 21:19 — Claude · 오늘 캡처/공유 작업 최종 정리 + 커밋
+
+> 위 20:18~21:10 정정 체인의 최종 안착 상태를 한 항목으로 요약. (개별 항목은 위 참조)
+
+**최종 상태 (sharing.js)**:
+- **캡처 방식 = As-Is(WYSIWYG)**: 픽셀 강제 주입(Math 방식) 전면 폐기. html2canvas 에 width/height 미지정, 화면 렌더 크기 그대로 캡처. onclone 은 레이아웃 미변경 — ① 불필요 UI(.card-actions+오버레이) 숨김 ② `.card-date` line-height:1(Safari 클리핑) ③ 워터마크 주입 + plumbing(Swiper transform 무력화, 이미지 CORS 2차 방어)만 수행.
+- **백화 방지 유지**: `imageToBase64`, `useCORS:true`, `crossOrigin='anonymous'`, cache-bust, `scale:2`.
+- **워터마크 수직 정렬**: html2canvas flexbox 미지원 → flex 대신 `line-height:16px`+`vertical-align:middle` 방식.
+- **디버그 토글 `DEBUG_CAPTURE_PREVIEW = true` (현재 ON)**: 모든 공유 버튼이 공유 시트 대신 캡처 결과를 오버레이로 표시. ⚠️ 실기기 검증 후 `false`로 되돌릴 것.
+- 테스트 `tests/sharing_capture_layout.spec.js`(신규)는 As-Is 계약(사이즈 미강제·CORS·워터마크·card-actions 숨김)을 검증.
+
+**함께 커밋되는 UI 미세조정** (별도 작업, 본 세션 외 워킹트리 변경):
+- `components.css`: 플립 transition `ease-in-out→ease-out`, press scale `0.98→0.99`.
+- `pages.css`: 캘린더 카드 팝업 `max-width 360→400`, 등장 transform 조정.
+- `cardFace.js`: `FALLBACK_IMG` 경로 `editor_profile.png→FALLBACK_IMG.png` / `ios_gpu_webp_guard.spec.js` 동기화.
+- `bookmarks.js`: 미니카드 day 라벨 0패딩 제거.
+
+**검증**: `npx vitest run` 전체 35파일 309 통과(6 skip), `npm run build` 성공.
+
+**변경파일**: `src/js/services/sharing.js`, `tests/sharing_capture_layout.spec.js`, `src/css/components.css`, `src/css/pages.css`, `src/js/components/cardDeck/cardFace.js`, `src/js/pages/bookmarks.js`, `tests/ios_gpu_webp_guard.spec.js`, `docs/SESSION_LOG.md`.

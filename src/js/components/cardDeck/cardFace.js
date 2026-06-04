@@ -12,7 +12,7 @@
 import { escapeHtml } from '../../utils/sanitize.js';
 
 /* ── 공통 상수 ── */
-export const FALLBACK_IMG = '/assets/editor_profile.png';
+export const FALLBACK_IMG = '/assets/FALLBACK_IMG.png';
 /* iOS WKWebView WebP 디코드 실패 시 fallback PNG 로 swap (onerror=null 로 무한루프 차단) */
 export const IMG_ONERROR = `this.onerror=null;this.src='${FALLBACK_IMG}';this.classList.add('img-fallback');`;
 export const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];

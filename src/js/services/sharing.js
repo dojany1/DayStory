@@ -254,16 +254,20 @@ function imageToBase64(src, timeoutMs = 8000) {
  * @param {Document} [doc]
  */
 function buildWatermarkElement(doc = document) {
+  /* ⚠️ html2canvas 1.x 는 flexbox align-items 를 제대로 렌더링하지 못한다.
+        (브라우저에선 중앙이지만 캡처 결과에선 텍스트가 baseline 으로 쏠림)
+        → flex 를 쓰지 않고 line-height + vertical-align:middle 로 수직 정렬한다.
+        컨테이너 line-height 를 아이콘 높이(16px)와 같게 두면, 16px line-box
+        안에서 아이콘과 텍스트가 함께 중앙에 놓인다. */
+  const ICON = 16;
+
   const wm = doc.createElement('div');
   wm.className = 'card-watermark-tmp';
   wm.setAttribute('aria-hidden', 'true');
   wm.style.cssText = [
     'position:absolute',
-    'bottom:10px',
-    'right:10px',
-    'display:flex',
-    'align-items:center',
-    'gap:6px',
+    'bottom:16px',
+    'right:16px',
     'padding:6px 10px',
     'background:rgba(0,0,0,0.55)',
     'border-radius:999px',
@@ -272,19 +276,22 @@ function buildWatermarkElement(doc = document) {
     'font-size:12px',
     'font-weight:700',
     'letter-spacing:0.01em',
+    `line-height:${ICON}px`, /* 아이콘 높이와 동일 — 텍스트 수직 중앙 */
+    'white-space:nowrap',
     'z-index:9999',
     'pointer-events:none',
-    'line-height:1',
+    'box-sizing:border-box',
   ].join(';');
 
   const img = doc.createElement('img');
   img.src = '/daystory_icon_light.png';
   img.alt = '';
-  img.style.cssText = 'width:16px;height:16px;display:block;object-fit:contain';
+  img.style.cssText = `width:${ICON}px;height:${ICON}px;vertical-align:middle;object-fit:contain;margin-right:6px`;
   img.crossOrigin = 'anonymous';
 
   const label = doc.createElement('span');
   label.textContent = 'DayStory';
+  label.style.cssText = `vertical-align:middle;line-height:${ICON}px`;
 
   wm.appendChild(img);
   wm.appendChild(label);
@@ -308,8 +315,25 @@ async function dataUrlToFile(dataUrl, filename) {
   return new File([blob], filename, { type: blob.type || 'image/png' });
 }
 
+/* =====================================================================
+   🐞 캡처 디버그 모드 토글 (실기기 검증용)
+   ---------------------------------------------------------------------
+   true 이면 모든 카드 공유 버튼이 "공유 시트" 대신 캡처 결과 이미지를
+   전체화면 오버레이로 띄운다. As-Is 캡처 결과를 실기기(iOS/Android)에서
+   눈으로 바로 확인하기 위한 스위치. import.meta.env.DEV 와 무관하게
+   빌드된 앱에서도 동작하므로, 검증이 끝나면 반드시 false 로 되돌릴 것.
+   ===================================================================== */
+const DEBUG_CAPTURE_PREVIEW = true;
+
 /**
  * captureAndShareCard — `.history-card-front` 요소를 PNG로 캡처해 네이티브 공유 시트로 전달.
+ *
+ * 캡처 전략: As-Is (WYSIWYG).
+ *   브라우저가 CSS 로 이미 렌더링해 둔 카드를 "있는 그대로" html2canvas 에 넘긴다.
+ *   픽셀 사이즈를 JS 로 강제 주입하지 않는다 — 디바이스별 폰트 렌더링·Safe Area·
+ *   OS 설정 차이를 하드코딩 상수로는 절대 따라갈 수 없기 때문(하이브리드 앱).
+ *   onclone 은 레이아웃 구조를 건드리지 않고 ① 불필요 UI 숨김 ② Safari 텍스트
+ *   클리핑 보정 ③ 워터마크 주입만 수행한다.
  *
  * iOS CORS 차단 우회: 캡처 전 모든 <img>.src 를 fetch → Base64 Data URL 로 교체.
  * html2canvas 는 외부 네트워크 없이 로컬 데이터만 그리므로 tainted canvas 오염 없음.
@@ -351,15 +375,6 @@ export async function captureAndShareCard(cardElement, options = {}) {
       })
     );
 
-    /* ── Step 2: html2canvas — onclone 으로 transform 제거 + 워터마크 주입 ──
-       html2canvas 호출 전 실제 DOM 에서 치수를 측정해 두어
-       onclone 에서 명시적 픽셀값으로 설정한다 (flex/aspect-ratio 오해석 방지). */
-    const captureW = cardElement.offsetWidth || 320;
-    const captureH = cardElement.offsetHeight || 520;
-    const imageWrapEl = cardElement.querySelector('.history-card-image-wrap');
-    const wrapW = imageWrapEl ? (imageWrapEl.offsetWidth || captureW) : captureW;
-    const wrapH = imageWrapEl ? (imageWrapEl.offsetHeight || 400) : 400;
-
     /* position:fixed 요소 클래스 목록 — onclone 내에서 숨길 대상 */
     const FIXED_HIDE = [
       '.status-bar-spacer', '.bottom-nav', '#toast-container',
@@ -372,72 +387,48 @@ export async function captureAndShareCard(cardElement, options = {}) {
     const { default: html2canvas } = await import('html2canvas');
     const canvas = await html2canvas(cardElement, {
       useCORS: true,
-      allowTaint: false,
-      scale: 3,
+      allowTaint: true,
+      scale: 2,
       backgroundColor: null,
       logging: false,
-      width: captureW,
-      height: captureH,
+      /* width/height 를 지정하지 않는다 — 화면에 렌더된 카드의 실제 크기를
+         그대로 캡처(As-Is). 픽셀 강제 주입은 디바이스 차이를 못 따라간다. */
       onclone: (clonedDoc) => {
-        /* ① fixed 요소 숨기기: status-bar-spacer / bottom-nav 등이
-              html2canvas 클론 문서에서 카드 위에 렌더링되는 현상 방지 */
-        clonedDoc.querySelectorAll(FIXED_HIDE).forEach((el) => {
-          el.style.display = 'none';
+        /* ── onclone 의 역할은 최소화: 레이아웃 구조(width/height/flex 등)는
+              절대 건드리지 않고, 캡처 결과 품질에 필요한 보정만 수행한다. ── */
+
+        /* ① 불필요 UI 숨김 (레이아웃 미변경, display 만 끔)
+              · 공유/북마크 버튼이 이미지에 찍히지 않도록
+              · status-bar-spacer / bottom-nav / 모달 등 오버레이가 클론 문서에서
+                카드 위에 겹쳐 렌더링되는 현상 방지 */
+        clonedDoc.querySelectorAll(`${FIXED_HIDE},.card-actions`).forEach((el) => {
+          el.style.setProperty('display', 'none', 'important');
         });
 
         const cloned = clonedDoc.querySelector(`[data-capture-id="${captureId}"]`);
         if (!cloned) return;
 
-        /* ② 클론 카드에 명시적 픽셀 치수 고정
-              html2canvas 가 flex:1 / aspect-ratio 를 잘못 계산하는 경우 방어 */
-        cloned.style.cssText += [
-          `width:${captureW}px`,
-          `height:${captureH}px`,
-          'overflow:hidden',
-          'position:relative',
-          'flex-shrink:0',
-        ].join(';');
+        /* ② Safari 텍스트 하단 클리핑 방어 — 대형 날짜 글자에만 line-height:1.
+              (그 외 폰트 크기·레이아웃은 브라우저 CSS 렌더 결과를 그대로 신뢰) */
+        const clonedDateEl = cloned.querySelector('.card-date');
+        if (clonedDateEl) clonedDateEl.style.lineHeight = '1';
 
-        /* ③ 이미지 래퍼에 명시적 치수 설정
-              object-fit:cover 가 html2canvas 에서 부분적으로만 지원되므로
-              img 를 절대 배치로 wrap 안에 꽉 채워 잘림 없이 커버 */
-        cloned.querySelectorAll('.history-card-image-wrap').forEach((wrap) => {
-          wrap.style.cssText += [
-            `width:${wrapW}px`,
-            `height:${wrapH}px`,
-            'overflow:hidden',
-            'position:relative',
-            'flex-shrink:0',
-          ].join(';');
-          const imgEl = wrap.querySelector('img');
-          if (imgEl) {
-            imgEl.style.cssText += [
-              'position:absolute',
-              'top:0',
-              'left:0',
-              `width:${wrapW}px`,
-              `height:${wrapH}px`,
-              'object-fit:cover',
-              'max-width:none',
-              'max-height:none',
-              'aspect-ratio:unset',
-            ].join(';');
-          }
-        });
-
-        /* ④ 부모 체인(swiper-slide / swiper-wrapper 등)의 transform 제거 */
+        /* ③ Swiper 캐러셀 transform 무력화 — 부모 translateX 때문에 캡처가
+              비거나 어긋나는 것을 방지 (크기 조작이 아니라 위치 정상화). */
         let el = cloned.parentElement;
         while (el && el !== clonedDoc.body) {
           if (el.style && el.style.transform) el.style.transform = 'none';
           el = el.parentElement;
         }
-        /* 자식 요소에 남은 inline transform 잔재도 제거 */
         cloned.querySelectorAll('[style*="transform"]').forEach((child) => {
           child.style.transform = 'none';
         });
 
-        /* ⑤ 변환 실패 외부 URL 이미지에 crossOrigin + cache-bust 2차 적용 */
+        /* ④ 백화(CORS) 2차 방어 — Base64 변환 실패한 외부 이미지에 crossOrigin +
+              cache-bust 적용, lazy/async 제거로 즉시 렌더 보장. (절대 유지) */
         cloned.querySelectorAll('img').forEach((imgEl) => {
+          imgEl.removeAttribute('loading');
+          imgEl.removeAttribute('decoding');
           const s = imgEl.getAttribute('src') || '';
           if (s && !s.startsWith('data:') && !s.startsWith('blob:')) {
             imgEl.crossOrigin = 'anonymous';
@@ -446,7 +437,7 @@ export async function captureAndShareCard(cardElement, options = {}) {
           }
         });
 
-        /* ⑥ 워터마크 주입 — clonedDoc 컨텍스트로 생성해야 올바르게 렌더링됨 */
+        /* ⑤ 워터마크 주입 — 우측 하단 (카드 기준 position:absolute) */
         cloned.appendChild(buildWatermarkElement(clonedDoc));
       },
     });
@@ -457,7 +448,7 @@ export async function captureAndShareCard(cardElement, options = {}) {
     showToast('이미지 공유에 실패했습니다.', 'error');
     return { ok: false, withImage: false, reason: 'capture-failed' };
   } finally {
-    /* ── Step 3: 원본 img src 복구 + 임시 식별자 제거 ── */
+    /* ── Step 5: 원본 img src 복구 + 임시 식별자 제거 ── */
     imgs.forEach((img) => {
       if (img.dataset.originalSrc) {
         img.src = img.dataset.originalSrc;
@@ -474,6 +465,12 @@ export async function captureAndShareCard(cardElement, options = {}) {
 
   /* 캡처 완료 — 공유 시트 열기 전에 로딩 인디케이터 제거 */
   dismissToast();
+
+  /* 🐞 디버그 모드: 공유 대신 캡처 결과를 오버레이로 표시 (실기기 검증용) */
+  if (DEBUG_CAPTURE_PREVIEW || options._debugPreview) {
+    showDebugPreviewOverlay(dataUrl);
+    return { ok: true, withImage: true, reason: 'debug-preview' };
+  }
 
   const title = options.title || 'DayStory';
   const text = options.text || '';
@@ -532,4 +529,80 @@ export async function captureAndShareCard(cardElement, options = {}) {
     console.error('다운로드 폴백 실패:', err?.message || err);
     return { ok: false, withImage: true, reason: 'no-share' };
   }
+}
+
+
+/* =====================================================================
+   🐞 캡처 디버그 — 캡처 결과를 공유 대신 전체화면 오버레이로 표시
+   ===================================================================== */
+
+/**
+ * previewCaptureCard — captureAndShareCard 와 동일한 캡처 파이프라인을 실행하되,
+ * 공유 시트 대신 전체화면 오버레이로 결과 이미지를 표시한다.
+ *
+ * 브라우저 콘솔에서 직접 호출 가능 (DEV):  __previewCard()
+ *
+ * @param {HTMLElement} cardElement - 캡처 대상 (.history-card-front)
+ */
+export async function previewCaptureCard(cardElement) {
+  return captureAndShareCard(cardElement, { _debugPreview: true });
+}
+
+/* 개발 환경에서 콘솔 한 줄로 호출 가능하도록 window 에 노출: __previewCard() */
+if (import.meta.env?.DEV) {
+  window.__previewCard = () => {
+    const el = document.querySelector('.history-card-front');
+    if (!el) { console.warn('카드를 찾을 수 없습니다. 카드가 있는 화면으로 이동 후 실행하세요.'); return; }
+    return previewCaptureCard(el);
+  };
+}
+
+/**
+ * showDebugPreviewOverlay — 캡처된 dataURL 을 전체화면 오버레이 + 치수 레이블로 표시.
+ * 닫기 버튼 또는 배경 탭으로 닫는다.
+ * @param {string} dataUrl
+ */
+export function showDebugPreviewOverlay(dataUrl) {
+  /* 기존 오버레이 제거 */
+  document.getElementById('__capture-debug-overlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '__capture-debug-overlay';
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'z-index:99999',
+    'background:rgba(0,0,0,0.85)',
+    'display:flex', 'flex-direction:column',
+    'align-items:center', 'justify-content:center',
+    'gap:12px', 'padding:16px', 'box-sizing:border-box',
+  ].join(';');
+
+  /* 이미지 */
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.cssText = 'max-width:90vw;max-height:80vh';
+
+  /* 치수 레이블 */
+  const label = document.createElement('div');
+  label.style.cssText = 'color:#fff;font-size:13px;font-family:monospace;opacity:0.8';
+  img.onload = () => {
+    label.textContent = `${img.naturalWidth} × ${img.naturalHeight}px`;
+  };
+
+  /* 닫기 버튼 */
+  const btn = document.createElement('button');
+  btn.textContent = '닫기';
+  btn.style.cssText = [
+    'padding:10px 32px', 'border:none', 'border-radius:8px',
+    'background:#fff', 'color:#000',
+    'font-size:15px', 'font-weight:700', 'cursor:pointer',
+  ].join(';');
+  btn.onclick = () => overlay.remove();
+
+  /* 배경 탭으로도 닫기 */
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  overlay.appendChild(img);
+  overlay.appendChild(label);
+  overlay.appendChild(btn);
+  document.body.appendChild(overlay);
 }

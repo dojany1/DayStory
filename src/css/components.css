@@ -191,12 +191,12 @@
    FLIP_DURATION_MS 후 remove → swipe 시점엔 is-flipping 없으므로 충돌 차단) */
 .flipper.is-flipping {
   pointer-events: none !important;
-  transition: transform 0.4s ease-in-out 0.05s, scale 0.2s;
+  transition: transform 0.4s ease-out 0.05s, scale 0.2s;
 }
 
 .flipper.active,
 .flipper.is-pressing {
-  scale: 0.98;
+  scale: 0.99;
 }
 
 /* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */

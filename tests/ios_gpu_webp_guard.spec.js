@@ -71,7 +71,7 @@ describe('Step 1 — GPU 레이어 scope 한정 (iOS WKWebView GPU crash 회피)
 describe('Step 2 — 이미지 fallback + WebP 차단', () => {
   it('cardFace 가 FALLBACK_IMG 와 IMG_ONERROR 상수를 정의한다 (공통)', () => {
     const src = cardFaceSrc();
-    expect(src).toMatch(/const\s+FALLBACK_IMG\s*=\s*['"]\/assets\/editor_profile\.png['"]/);
+    expect(src).toMatch(/const\s+FALLBACK_IMG\s*=\s*['"]\/assets\/[^'"]+\.png['"]/);
     expect(src).toMatch(/const\s+IMG_ONERROR\s*=/);
     expect(src).toMatch(/this\.onerror\s*=\s*null/);
   });

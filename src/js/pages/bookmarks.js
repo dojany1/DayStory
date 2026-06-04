@@ -287,7 +287,7 @@ function renderMiniCard(story) {
   const { valid, year, month, day } = safeStoryDateParts(story);
 
   const monthLabel = valid ? month : '';
-  const dayLabel = valid ? (day < 10 ? '0' + day : day) : '';
+  const dayLabel = valid ? day : '';
   const dateMeta = valid
     ? `${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`
     : '';

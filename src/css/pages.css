@@ -2513,14 +2513,14 @@
   gap:var(--space-3);
   flex-direction:column;
   width:100%;
-  max-width:360px;
+  max-width:400px;
   transition:transform .28s cubic-bezier(.16,1,.3,1);
   display:flex;
   position:relative;
-  transform:translateY(12px)scale(.97)}
+  transform:translateY(24px)scale(0.9)}
 
 .calendar-card-popup.open .calendar-card-popup-inner {
-  transform:translateY(0)scale(1)}
+  transform: translateY(0)scale(1)}
 
 .calendar-card-popup-close {
   color:#fff;

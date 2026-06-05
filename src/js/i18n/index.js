@@ -16,6 +16,13 @@ import { forceRoute } from '../router.js';
 const SUPPORTED_LANGS = ['ko', 'en', 'ja'];
 const DEFAULT_LANG = 'ko';
 
+/* OG 메타(og:locale)용 언어 → 로케일 매핑 */
+const OG_LOCALE_MAP = {
+  ko: 'ko_KR',
+  en: 'en_US',
+  ja: 'ja_JP',
+};
+
 const messages = {
   ko: koMessages,
   en: enMessages,
@@ -79,9 +86,34 @@ export function t(key, vars) {
   return val;
 }
 
-function applyHtmlLang(lang) {
-  if (typeof document !== 'undefined') {
-    document.documentElement.lang = lang || DEFAULT_LANG;
+/**
+ * applyHtmlLang — <html lang> 과 <meta property="og:locale"> 를 선택 언어에 동기화
+ * 지원하지 않는 값은 기본 언어(ko)로 폴백.
+ * @param {string} lang - 'ko' | 'en' | 'ja'
+ */
+export function applyHtmlLang(lang) {
+  if (typeof document === 'undefined') return;
+
+  const resolved = SUPPORTED_LANGS.includes(lang) ? lang : DEFAULT_LANG;
+  document.documentElement.lang = resolved;
+
+  /* SNS 공유 시 노출되는 og:locale 도 함께 갱신 (정적 ko_KR 고정 버그 수정) */
+  const ogLocale = document.querySelector('meta[property="og:locale"]');
+  if (ogLocale) {
+    ogLocale.setAttribute('content', OG_LOCALE_MAP[resolved] || OG_LOCALE_MAP[DEFAULT_LANG]);
+  }
+}
+
+/**
+ * applyLangFromProfile — 로그인 직후 DB 프로필의 languagePreference 를
+ * 전역 state(lang) + localStorage(ds_lang) 에 반영(덮어쓰기)한다.
+ * setLang() 이 내부에서 state 발행 → localStorage 저장 → 페이지 재렌더까지 수행.
+ * @param {{ languagePreference?: string }|null|undefined} profile
+ */
+export function applyLangFromProfile(profile) {
+  const pref = profile && profile.languagePreference;
+  if (pref && SUPPORTED_LANGS.includes(pref)) {
+    setLang(pref);
   }
 }
 

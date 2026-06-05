@@ -14,6 +14,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { setState } from '../state.js';
 import { auth, db } from '../firebase.js';
+import { applyLangFromProfile, getCurrentLang } from '../i18n/index.js';
 
 /*
  * Firebase 인증 함수 임포트
@@ -79,12 +80,14 @@ async function upsertProfileAndNavigate(firebaseUser) {
       isExisting = profileSnap.exists();
       profileData = isExisting
         ? profileSnap.data()
-        : { created_at: new Date().toISOString() };
+        : { created_at: new Date().toISOString(), languagePreference: getCurrentLang() };
 
       if (!isExisting) {
         await setDoc(profileRef, profileData);
       }
       setState('profile', profileData);
+      /* DB 에 저장된 언어 설정을 기기 상태에 동기화 (로그인 시 덮어쓰기) */
+      applyLangFromProfile(profileData);
     } catch (err) {
       console.warn('소셜 로그인 - 프로필 처리 실패:', err);
     }
@@ -262,13 +265,15 @@ export function renderLogin() {
         if (db) {
           const profileRef = doc(db, 'profiles', firebaseUser.uid);
           const profileSnap = await getDoc(profileRef);
-          profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
+          profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString(), languagePreference: getCurrentLang() };
 
           if (!profileSnap.exists()) {
             await setDoc(profileRef, profileData);
           }
 
           setState('profile', profileData);
+          /* DB 에 저장된 언어 설정을 기기 상태에 동기화 (로그인 시 덮어쓰기) */
+          applyLangFromProfile(profileData);
         }
 
         const nickname = resolveNickname(profileData, firebaseUser);
@@ -435,13 +440,15 @@ export function renderSignup() {
         if (db) {
           const profileRef = doc(db, 'profiles', firebaseUser.uid);
           const profileSnap = await getDoc(profileRef);
-          let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString() };
-          
+          let profileData = profileSnap.exists() ? profileSnap.data() : { created_at: new Date().toISOString(), languagePreference: getCurrentLang() };
+
           if (!profileSnap.exists()) {
             await setDoc(profileRef, profileData);
           }
-          
+
           setState('profile', profileData);
+          /* DB 에 저장된 언어 설정을 기기 상태에 동기화 (로그인 시 덮어쓰기) */
+          applyLangFromProfile(profileData);
         }
 
         showToast('회원가입 완료!', 'success');

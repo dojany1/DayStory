@@ -16,6 +16,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { showToast } from '../components/toast.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
+import { getCurrentLang } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -290,7 +291,8 @@ function openProfileEditModal() {
     try {
       const uid = auth?.currentUser?.uid || user.id;
       const profileRef = doc(db, 'profiles', uid);
-      const updateData = { nickname };
+      /* 프로필 업데이트 시 현재 언어 설정도 함께 영구 저장 (기기 변경 후 동기화용) */
+      const updateData = { nickname, languagePreference: getCurrentLang() };
 
       if (croppedBlob) {
         const timestamp = Date.now();

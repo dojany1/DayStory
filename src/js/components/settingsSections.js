@@ -17,7 +17,11 @@ import {
   reauthenticateUser,
 } from '../services/userCleanup.js';
 import { t, getCurrentLang, setLang } from '../i18n/index.js';
+import { saveLanguagePreference } from '../services/userProfile.js';
 import { forceRoute } from '../router.js';
+
+const LANGS = ['ko', 'en', 'ja'];
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import pkg from '../../../package.json';
 
 const AUTH_SESSION_KEY = 'daystory:auth-session-active';
@@ -30,6 +34,7 @@ export function renderSettingsSections() {
   const currentTheme = getState('theme');
   const currentLang = getCurrentLang();
   const themeActiveIdx = Math.max(0, ['light', 'dark', 'system'].indexOf(currentTheme));
+  const langActiveIdx = Math.max(0, LANGS.indexOf(currentLang));
 
   return `
     ${getState('isAdmin') ? `
@@ -54,6 +59,16 @@ export function renderSettingsSections() {
       </div>
       ${renderNotificationListItem()}
       ${renderViewModeListItem()}
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">${t('settings.section_language')}</div>
+      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}" data-active="${langActiveIdx}">
+        ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
+        ${renderLangOption('en', t('settings.lang_en'), currentLang)}
+        ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
+        <span class="theme-option-thumb" aria-hidden="true"></span>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -108,6 +123,7 @@ export function renderSettingsSections() {
 export function bindSettingsSections(page) {
   bindNotificationSettingsSection(page);
   bindThemeOptions(page);
+  bindLangOptions(page);
   bindViewModeItem(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info'));
@@ -161,6 +177,7 @@ function renderSettingsRow({ id, title, subtitle = '', icon, titleClass = '', sh
 function bindThemeOptions(page) {
   page.querySelectorAll('.theme-option[data-theme]').forEach((btn) => {
     btn.addEventListener('click', () => {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
       const selectedTheme = btn.dataset.theme;
       setState('theme', selectedTheme);
       const group = btn.closest('.theme-option-group');
@@ -182,12 +199,18 @@ function bindLangOptions(page) {
       if (btn.closest('.theme-option-group--disabled')) return;
       const selectedLang = btn.dataset.lang;
       if (getCurrentLang() === selectedLang) return;
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
       const group = btn.closest('.theme-option-group');
       const btns = [...group.querySelectorAll('.lang-option[data-lang]')];
       group.dataset.active = btns.indexOf(btn);
       setLang(selectedLang);
       /* setLang → state 발행 → i18n init이 등록한 forceRoute() 자동 호출됨 → 페이지 재렌더 */
       showToast(t('settings.lang_changed'), 'success');
+
+      /* 로그인 사용자라면 Firestore 에 영구 저장 + 전역 profile 상태 동기화 (게스트는 로컬에만 보관) */
+      const profile = getState('profile');
+      if (profile) setState('profile', { ...profile, languagePreference: selectedLang });
+      saveLanguagePreference(selectedLang);
     });
   });
 }

@@ -1301,3 +1301,9 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: `editorstory.ui.spec.js` 156번 라인의 border 색상 토큰 기대값을 `/border:\s*2px\s+solid\s+var\(--color-border\)/` → `/border:\s*2px\s+solid\s+var\(--color-text-secondary\)/` 로 수정.
 - **변경파일**: `tests/editorstory.ui.spec.js`, `docs/SESSION_LOG.md`.
 - **검증**: `npx vitest run` 36 files, 330 passed / 6 skipped / 0 failed — 100% Green.
+
+## 2026-06-05 18:20 — Claude Sonnet 4.6
+
+- **요구사항**: 이전 커밋에서 제외된 git 추적 중인 android/ios 빌드 파일(`android/app/src/main/assets/public/index.html`, `ios/App/App.xcodeproj/project.pbxproj`)을 추가 커밋.
+- **구현방법**: `.gitignore`에 의해 ignored 처리되지만 이미 추적 중인 파일이므로 `git add -f` 로 강제 스테이징 후 커밋.
+- **변경파일**: `android/app/src/main/assets/public/index.html`, `ios/App/App.xcodeproj/project.pbxproj`, `docs/SESSION_LOG.md`.

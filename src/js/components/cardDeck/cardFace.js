@@ -145,22 +145,38 @@ export function bindCardBase(flipContainer, { story, ignoreSelectors = [], onBef
   const flipper = flipContainer.querySelector('.flipper');
   if (!flipper) return null;
 
-  /* 꾹 누름: 터치 시작 즉시 active, 60ms 후 is-pressing, 떼거나 움직이면 즉시 해제 */
+  /* 꾹 누름: pointerdown 즉시 is-pressed, pointerup 시 최소 150ms 보장 후 해제.
+     pointercancel / pointerleave(스와이프·스크롤)는 딜레이 없이 즉시 해제. */
+  const MIN_PRESS_MS = 150;
   let pressTimer = null;
+  let pressStartTime = 0;
   const isIgnoredTarget = (target) => ignoreSelectors.some((sel) => target?.closest?.(sel));
-  const startPress = (e) => {
+
+  const onPointerDown = (e) => {
     if (isIgnoredTarget(e.target)) return;
-    flipper.classList.add('active');
-    pressTimer = setTimeout(() => flipper.classList.add('is-pressing'), 60);
-  };
-  const endPress = () => {
     clearTimeout(pressTimer);
-    flipper.classList.remove('active', 'is-pressing');
+    flipper.classList.add('is-pressed');
+    pressStartTime = Date.now();
   };
-  flipper.addEventListener('touchstart', startPress, { passive: true });
-  flipper.addEventListener('touchmove', endPress, { passive: true });
-  flipper.addEventListener('touchend', endPress, { passive: true });
-  flipper.addEventListener('touchcancel', endPress, { passive: true });
+
+  const releasePress = (withDelay) => {
+    clearTimeout(pressTimer);
+    if (!withDelay) {
+      flipper.classList.remove('is-pressed');
+      return;
+    }
+    const remaining = MIN_PRESS_MS - (Date.now() - pressStartTime);
+    if (remaining <= 0) {
+      flipper.classList.remove('is-pressed');
+    } else {
+      pressTimer = setTimeout(() => flipper.classList.remove('is-pressed'), remaining);
+    }
+  };
+
+  flipper.addEventListener('pointerdown', onPointerDown);
+  flipper.addEventListener('pointerup', () => releasePress(true));
+  flipper.addEventListener('pointercancel', () => releasePress(false));
+  flipper.addEventListener('pointerleave', () => releasePress(false));
 
   /* 이미지 fade-in */
   flipContainer.querySelectorAll('.history-card-image-wrap img').forEach((img) => {

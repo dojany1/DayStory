@@ -133,14 +133,66 @@ describe('cardFace — bindCardBase', () => {
     expect(flipper.classList.contains('flipped')).toBe(false);
   });
 
-  it('Given a touch card, when touch starts and ends, then native-like active feedback is toggled immediately', () => {
+  it('pointerdown 즉시 is-pressed 추가, pointerleave/pointercancel 즉시 해제', () => {
     const flipContainer = mountCard();
     const flipper = bindCardBase(flipContainer, { story: { id: 's1' } });
 
-    flipper.dispatchEvent(new Event('touchstart', { bubbles: true, cancelable: true }));
-    expect(flipper.classList.contains('active')).toBe(true);
+    flipper.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(flipper.classList.contains('is-pressed')).toBe(true);
 
-    flipper.dispatchEvent(new Event('touchend', { bubbles: true, cancelable: true }));
-    expect(flipper.classList.contains('active')).toBe(false);
+    flipper.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
+    expect(flipper.classList.contains('is-pressed')).toBe(false);
+
+    flipper.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    flipper.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true }));
+    expect(flipper.classList.contains('is-pressed')).toBe(false);
+  });
+
+  it('빠른 탭(50ms) 후 pointerup → 최소 150ms 동안 is-pressed 유지 후 해제', () => {
+    vi.useFakeTimers();
+    const flipContainer = mountCard();
+    const flipper = bindCardBase(flipContainer, { story: { id: 's1' } });
+
+    flipper.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(flipper.classList.contains('is-pressed')).toBe(true);
+
+    // 50ms 경과 후 손가락 뗌 (150ms 미만)
+    vi.advanceTimersByTime(50);
+    flipper.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    expect(flipper.classList.contains('is-pressed')).toBe(true); // 아직 유지
+
+    // 추가 99ms (총 149ms) — 아직 유지
+    vi.advanceTimersByTime(99);
+    expect(flipper.classList.contains('is-pressed')).toBe(true);
+
+    // 1ms 더 (총 150ms) — 해제
+    vi.advanceTimersByTime(1);
+    expect(flipper.classList.contains('is-pressed')).toBe(false);
+
+    vi.useRealTimers();
+  });
+
+  it('충분히 긴 탭(200ms) 후 pointerup → 즉시 is-pressed 해제', () => {
+    vi.useFakeTimers();
+    const flipContainer = mountCard();
+    const flipper = bindCardBase(flipContainer, { story: { id: 's1' } });
+
+    flipper.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    vi.advanceTimersByTime(200);
+    flipper.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    expect(flipper.classList.contains('is-pressed')).toBe(false); // 즉시 해제
+
+    vi.useRealTimers();
+  });
+
+  it('ignoreSelectors 타겟 pointerdown 은 is-pressed 를 추가하지 않는다', () => {
+    const flipContainer = mountCard();
+    const flipper = bindCardBase(flipContainer, { story: { id: 's1' }, ignoreSelectors: ['.card-action-btn'] });
+    const btn = document.createElement('button');
+    btn.className = 'card-action-btn';
+    flipper.appendChild(btn);
+
+    btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(flipper.classList.contains('is-pressed')).toBe(false);
   });
 });

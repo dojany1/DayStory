@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EDITOR_DISPLAY_NAME } from '../src/js/utils/constants.js';
 
 const {
   navigateMock,
@@ -102,7 +103,7 @@ describe('Detail page editor remark', () => {
     expect(page.querySelector('.detail-editor-note')).not.toBeNull();
     expect(page.querySelector('.detail-editor-note-label')).toBeNull();
     expect(text).not.toContain('에디터의 말');
-    expect(text).toContain('DayStory');
+    expect(text).toContain(EDITOR_DISPLAY_NAME);
     expect(text).toContain('Editor note');
   });
 

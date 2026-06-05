@@ -29,6 +29,7 @@ import { uploadImage } from '../services/images.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { auth } from '../firebase.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
+import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
 
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -788,7 +789,7 @@ export function renderEditorNew() {
       const editorInfo = {
         uid: u?.uid || stateUser?.id || 'dokhubooks_uid',
         email: u?.email || stateUser?.email || 'dokhubooks@gmail.com',
-        displayName: u?.displayName || stateProfile.displayName || (stateUser?.email ? stateUser.email.split('@')[0] : 'DayStory'),
+        displayName: EDITOR_DISPLAY_NAME,
         photoURL: stateProfile.photoURL || u?.photoURL || ''
       };
 

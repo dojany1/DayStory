@@ -5,6 +5,7 @@ import {
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { t } from '../i18n/index.js';
 import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 const NOTIFICATION_LABELS = {
   diary: {
@@ -118,6 +119,7 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
 
   overlay.querySelectorAll('[data-notification-toggle]').forEach((toggle) => {
     toggle.addEventListener('click', async () => {
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
       const type = toggle.dataset.notificationToggle;
       const current = getNotificationSettings()[type];
       toggle.setAttribute('aria-busy', 'true');

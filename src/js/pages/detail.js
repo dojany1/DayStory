@@ -20,6 +20,7 @@ import { shareStory, buildShareUrl } from '../services/sharing.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
+import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
 
 function normalizeSourceItem(source) {
   if (!source) return null;
@@ -248,7 +249,7 @@ async function loadDetail(page, storyId) {
     .map(paragraph => `<p>${escapeHtml(paragraph)}</p>`)
     .join('');
   const editorComment = (story.editor_comment || (story.editor && story.editor.comment) || '').trim();
-  const editorName = ((story.editor && story.editor.displayName) || 'DayStory').trim() || 'DayStory';
+  const editorName = EDITOR_DISPLAY_NAME;
   /* 에디터 아바타는 항상 로컬 PNG 사용 (iOS WKWebView 의 WebP 디코더 crash 회피). */
   const editorCommentHtml = escapeHtml(editorComment).replace(/\n/g, '<br />');
   const historicalMetaHtml = [story.historical_date, story.country]

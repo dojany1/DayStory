@@ -323,7 +323,7 @@ async function dataUrlToFile(dataUrl, filename) {
    눈으로 바로 확인하기 위한 스위치. import.meta.env.DEV 와 무관하게
    빌드된 앱에서도 동작하므로, 검증이 끝나면 반드시 false 로 되돌릴 것.
    ===================================================================== */
-const DEBUG_CAPTURE_PREVIEW = true;
+const DEBUG_CAPTURE_PREVIEW = false;
 
 /**
  * captureAndShareCard — `.history-card-front` 요소를 PNG로 캡처해 네이티브 공유 시트로 전달.

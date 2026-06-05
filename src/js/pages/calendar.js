@@ -27,6 +27,7 @@ import {
   cardShell, cardFront, cardFrontTop, cardImageWrap, cardBack, cardActionButton,
   bodyToHtml, SHARE_ICON_SVG,
 } from '../components/cardDeck/cardFace.js';
+import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
 
 export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -407,15 +408,14 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
         return;
       }
       const comment = editorBtn.dataset.comment;
-      const editorName = editorBtn.dataset.editorName || 'DayStory';
       if (!comment) return;
       const bubble = document.createElement('div');
       bubble.className = 'editor-comment-bubble';
       const nameEl = document.createElement('span');
       nameEl.className = 'editor-comment-name';
-      nameEl.textContent = editorName;
-      bubble.appendChild(nameEl);
+      nameEl.textContent = EDITOR_DISPLAY_NAME;
       bubble.appendChild(document.createTextNode(comment));
+      bubble.appendChild(nameEl);
       editorBtn.appendChild(bubble);
 
       if (Capacitor.isNativePlatform()) {
@@ -524,7 +524,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
   const isBookmarked = !!(story.id && bookmarkedIds.includes(story.id));
   const editorComment = story.editor_comment || '';
   /* 에디터 아바타는 항상 로컬 PNG 사용 (iOS WKWebView 의 WebP 디코더 crash 회피). */
-  const editorName = (story.editor && story.editor.displayName) || 'DayStory';
+  const editorName = EDITOR_DISPLAY_NAME;
   const editorBtnHidden = !editorComment.trim();
 
   const bookmarkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

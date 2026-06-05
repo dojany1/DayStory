@@ -1247,3 +1247,57 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 **검증**: `npx vitest run` 전체 35파일 309 통과(6 skip), `npm run build` 성공.
 
 **변경파일**: `src/js/services/sharing.js`, `tests/sharing_capture_layout.spec.js`, `src/css/components.css`, `src/css/pages.css`, `src/js/components/cardDeck/cardFace.js`, `src/js/pages/bookmarks.js`, `tests/ios_gpu_webp_guard.spec.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-05 — Claude · 설정/알림 토글 햅틱 피드백 추가
+
+**요구사항**: 테마 옵션 그룹(theme-option-group) 버튼 전환 시, 알림 설정 토글 온/오프 시 짧고 약한 햅틱 피드백 부여.
+
+**구현방법**:
+- `settingsSections.js`: `@capacitor/haptics` import 추가. `bindThemeOptions`·`bindLangOptions` 클릭 핸들러 진입 시 `Haptics.impact({ style: ImpactStyle.Light })` 호출. 언어 토글은 실제 변경이 있을 때만 발동(이미 선택된 항목 재클릭 제외).
+- `notificationSettingsSheet.js`: `@capacitor/haptics` import 추가. 알림 토글 클릭 핸들러 진입 시 `Haptics.impact({ style: ImpactStyle.Light })` 호출(비동기 처리 시작 전).
+- 웹 환경에서는 `.catch(() => {})` 로 오류 무시.
+
+**변경파일**: `src/js/components/settingsSections.js`, `src/js/components/notificationSettingsSheet.js`, `docs/SESSION_LOG.md`.
+
+---
+
+### 2026-06-05 — Claude · settings→mystory 슬라이드 인 + 카드 뒷면·설정 페이지 스크롤 레이아웃 고정
+
+**요구사항**:
+1. settings-page → mystory-page 이동 시 왼쪽에서 오른쪽으로 슬라이드 인 애니메이션 적용.
+2. back-body 내용이 길어져 스크롤이 생겨도 내부 레이아웃 크기가 영향받지 않도록 수정.
+3. settings-page 스크롤에도 동일한 레이아웃 고정 적용.
+
+**구현방법**:
+- **슬라이드 인**: `pages.css`에 `@keyframes pageSlideFromLeft` + `.page-slide-from-left` 클래스(0.28s ease-out) 추가. `router.js` NORMAL PATH 렌더 완료 후 `previousRoute === '/settings' && path === '/mystory'` 조건일 때 클래스 부여 → `animationend` 후 자동 제거.
+- **back-body 스크롤 고정**: `components.css`에서 `.history-card-back`에 `overflow: hidden` 추가, `.back-body`에 `min-height: 0` 추가. flex 자식의 수축 거부(min-height: auto 기본값) 해제로 overflow-y: auto 스크롤이 카드 경계 내에서 발동.
+- **settings-page 스크롤 고정**: `.settings-page`를 `flex: 1; height: 100%; overflow: hidden; display: flex; flex-direction: column`으로 오버라이드. `.settings-scroll` 래퍼(`flex: 1; min-height: 0; overflow-y: auto`)를 추가하고 `settings.js`에서 섹션 콘텐츠를 해당 래퍼로 감쌈.
+
+**변경파일**: `src/css/pages.css`, `src/js/router.js`, `src/css/components.css`, `src/js/pages/settings.js`, `docs/SESSION_LOG.md`.
+
+## 2026-06-05 17:03 — Claude Sonnet 4.6
+
+- **요구사항**: 에디터 닉네임을 'Editor Lee'로 고정하고 SSOT(단일 진실 공급원) 원칙에 따라 저장·렌더링 레이어 전체에 일관되게 적용.
+- **구현방법**: `src/js/utils/constants.js` 신규 생성 후 `EDITOR_DISPLAY_NAME = 'Editor Lee'` 상수 정의. 렌더링 레이어 3곳(`editorstory.js`의 `data-editor-name` 속성 및 bubble 표시 로직, `calendar.js`의 동일 위치 2곳, `detail.js`의 `editorName` 변수)에서 Firestore `story.editor.displayName` 및 `'DayStory'` 하드코딩을 상수 참조로 교체. 저장 레이어(`editor.js`의 `editorInfo.displayName`)도 상수로 교체해 Firestore에도 동일 값이 저장되도록 처리. 기존 테스트(`tests/detail_nav.ui.spec.js`)가 `'DayStory'`를 기대하던 단언을 `EDITOR_DISPLAY_NAME` 상수 참조로 갱신.
+- **변경파일**: `src/js/utils/constants.js`(신규), `src/js/pages/editorstory.js`, `src/js/pages/calendar.js`, `src/js/pages/detail.js`, `src/js/pages/editor.js`, `tests/detail_nav.ui.spec.js`.
+- **검증**: `npm test` 35 files, 312 passed, 0 failed — 100% Green.
+
+## 2026-06-05 17:46 — Claude Opus 4.8
+
+- **요구사항**: i18n 핵심 엔진은 구현돼 있으나 ① 설정 페이지 언어 선택 UI 미연결(죽은 코드), ② `<meta og:locale>` 정적(ko_KR) 고정, ③ Firestore 사용자 프로필에 언어 설정 미저장 — 3가지 문제를 TDD 방식으로 활성화·수정.
+- **구현방법**:
+  - **작업1 (설정 UI 연결)**: `settingsSections.js`의 `renderSettingsSections()`에 테마 그룹과 동일한 `.theme-option-group`+`.theme-option-thumb` 구조로 언어 선택 그룹(ko/en/ja, `data-active`=현재 언어 인덱스) 렌더링 추가. `bindSettingsSections()`에 `bindLangOptions(page)` 호출 추가. `bindLangOptions`에서 언어 변경 시 `saveLanguagePreference()` 호출 + 전역 `profile` 상태 동기화 로직 추가.
+  - **작업2 (og:locale 동적화)**: `i18n/index.js`에 `OG_LOCALE_MAP = { ko:'ko_KR', en:'en_US', ja:'ja_JP' }` 추가. `applyHtmlLang(lang)`을 export로 전환하고 `<html lang>`뿐 아니라 `meta[property="og:locale"]`도 갱신하도록 수정(미지원 값은 ko_KR 폴백).
+  - **작업3 (Firestore 연동)**: `services/userProfile.js` 신규 생성 — `saveLanguagePreference(lang)`이 `profiles/{uid}`에 `languagePreference`를 `{ merge: true }`로 저장(아키텍처 규칙: Firestore 접근은 service 레이어 경유, 게스트/미설정 시 false 반환). `i18n/index.js`에 `applyLangFromProfile(profile)` 추가 — DB의 `languagePreference`를 `setLang()`으로 state+localStorage에 덮어쓰기. `login.js` 3개 로그인 경로(소셜/이메일/회원가입) 모두 `setState('profile')` 직후 `applyLangFromProfile()` 호출 + 신규 프로필 생성 시 `languagePreference: getCurrentLang()` 기본 저장. `profile.js` 프로필 저장 시 `languagePreference: getCurrentLang()` 함께 저장.
+  - **TDD**: `tests/i18n_language_settings.spec.js` 신규 작성(정적 소스 검증 + jsdom functional 18건). state.js가 모듈 로드 시 `window.matchMedia`를 호출하므로 `detail_nav.ui.spec.js`와 동일하게 `vi.stubGlobal('matchMedia', ...)` 적용.
+- **변경파일**: `src/js/services/userProfile.js`(신규), `src/js/i18n/index.js`, `src/js/components/settingsSections.js`, `src/js/pages/login.js`, `src/js/pages/profile.js`, `tests/i18n_language_settings.spec.js`(신규), `docs/SESSION_LOG.md`.
+- **검증**: 신규 spec 18/18 통과. 전체 `npx vitest run` 336건 중 329 passed / 6 skipped / 1 failed — 유일한 실패(`editorstory.ui.spec.js` 버블 border 검증)는 이전 세션의 미커밋 CSS 변경(`pages.css` border `2px solid`→`1px dashed`)에서 비롯된 기존 실패로 본 작업과 무관(CSS 미변경). `npm run build` 성공.
+
+## 2026-06-05 18:04 — Claude Sonnet 4.6
+
+- **요구사항**: 이전 세션 미커밋 CSS 변경(`components.css`의 `.editor-comment-bubble` border가 `var(--color-border)` → `var(--color-text-secondary)`로 변경)으로 인해 `tests/editorstory.ui.spec.js` 1건이 실패 중. 테스트를 현재 CSS 상태에 맞게 수정하여 전체 테스트 100% Green 복원.
+- **구현방법**: `editorstory.ui.spec.js` 156번 라인의 border 색상 토큰 기대값을 `/border:\s*2px\s+solid\s+var\(--color-border\)/` → `/border:\s*2px\s+solid\s+var\(--color-text-secondary\)/` 로 수정.
+- **변경파일**: `tests/editorstory.ui.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `npx vitest run` 36 files, 330 passed / 6 skipped / 0 failed — 100% Green.

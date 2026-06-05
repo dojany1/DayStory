@@ -7,7 +7,7 @@
    좌우 스와이프는 Swiper.js 11 기반으로 통합되었습니다 (2026-05-24).
    ===================================================================== */
 
-import { navigate, getParams } from '../router.js';
+import { navigate, getParams, getPreviousRoute } from '../router.js';
 import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
@@ -59,11 +59,13 @@ function getMyStoryAuthorNickname(story = {}) {
    섹션 1: 나의 일화 목록 페이지 (싱글 카드 + 휠 피커 + Swiper)
    ───────────────────────────────────────────── */
 export function renderMyStory() {
+  const prev = getPreviousRoute();
+  console.log('[mystory] renderMyStory called, previousRoute =', prev);
   return buildCardDeck({
     idPrefix: 'mystory',
     pageClass: 'mystory-page',
     headerHtml: '',
-    enterDir: 'from-right',
+    enterDir: ['/settings', '/profile'].includes(prev) ? 'from-left' : 'from-right',
     calMode: 'mine',
     lastDateKey: 'lastMyStoryDate',
 

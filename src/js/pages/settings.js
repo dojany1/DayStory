@@ -15,7 +15,9 @@ export function renderSettings() {
 
   page.innerHTML = `
     ${renderPageHeader({ title: t('nav.settings'), backLabel: t('common.back') })}
-    ${renderSettingsSections()}
+    <div class="settings-scroll">
+      ${renderSettingsSections()}
+    </div>
   `;
 
   bindSettingsSections(page);

@@ -1141,12 +1141,14 @@
 
 /* 설정 페이지 전체 — 하단 여백 */
 .settings-page {
+  flex: 1;
   padding-bottom: var(--space-16);
   padding-top: 48px; /* 상단 헤더 공간 확보 */
-}
+  overflow: auto; /* 페이지 전환 애니메이션 시 자식 요소가 튀어나오는 것을 방지 */
+  }
 
 .settings-user-info {
-  padding: var(--space-8) var(--space-3) var(--space-5) var(--space-6);
+  padding: var(--space-8) var(--space-3) var(--space-6) var(--space-6);
   
 }
 
@@ -1640,6 +1642,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) 0;
 }
 
 .editor-form-section {
@@ -1847,7 +1850,7 @@
 
 /* 나의 일화 — 카드 이미지 업로드 영역 */
 .ms-image-upload-area {
-  width: 90%;
+  width: 100%;
   aspect-ratio: 3 / 4;
   align-self: center;
   border: 1px dashed var(--color-border);

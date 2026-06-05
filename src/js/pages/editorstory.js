@@ -29,6 +29,7 @@ import {
   bindCardBase, parseIsoDate, formatMonthNameDate, bodyToHtml,
   FALLBACK_IMG, SHARE_ICON_SVG,
 } from '../components/cardDeck/cardFace.js';
+import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
 
 const FLIP_DURATION_MS = 400;
 
@@ -178,7 +179,7 @@ function buildSlideHTML(rawStory, isoDate) {
 
   const hasComment = story.editor_comment && story.editor_comment.trim() !== '';
   const footerHtml = `
-            <button class="back-editor-btn${hasComment && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml((story.editor && story.editor.displayName) || 'DayStory')}" style="${hasComment ? '' : 'visibility: hidden; pointer-events: none;'}">
+            <button class="back-editor-btn${hasComment && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml(EDITOR_DISPLAY_NAME)}" style="${hasComment ? '' : 'visibility: hidden; pointer-events: none;'}">
               <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
@@ -337,15 +338,15 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
         return;
       }
       const comment = editorBtn.dataset.comment;
-      const editorName = editorBtn.dataset.editorName || 'DayStory';
+      const editorName = EDITOR_DISPLAY_NAME;
       if (!comment) return;
       const bubble = document.createElement('div');
       bubble.className = 'editor-comment-bubble';
       const nameEl = document.createElement('span');
       nameEl.className = 'editor-comment-name';
       nameEl.textContent = editorName;
-      bubble.appendChild(nameEl);
       bubble.appendChild(document.createTextNode(comment));
+      bubble.appendChild(nameEl);
       editorBtn.appendChild(bubble);
       bindOutsideBubbleDismiss();
 

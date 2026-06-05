@@ -1,5 +1,5 @@
 /* ============================================
-   마지막 수정 날짜 : 2026-06-03 19:38
+   마지막 수정 날짜 : 2026-06-05
    ============================================
    : 해당 파일이 수정된 날짜, 시각을 반드시 기록 할 것.
 */
@@ -28,6 +28,8 @@
   cursor: pointer;
   border: none;
   white-space: nowrap;                 /* 텍스트 줄바꿈 방지 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 주요(Primary) 버튼 — 검정 배경에 흰 글씨 */
@@ -159,7 +161,7 @@
 
 /* 플립 컨테이너 — 3D 원근법(perspective) 설정 */
 .flip-container {
-  perspective: 2000px;                 /* 원근감 거리 (낮을수록 과장된 3D 효과) */
+  perspective: 2200px;                 /* 원근감 거리 (낮을수록 과장된 3D 효과) */
   width: 100%;
   min-width: 280px;
   margin: 0 auto;                      /* 수평 중앙 정렬 */
@@ -177,13 +179,15 @@
   /* transform transition 은 .is-flipping 클래스 활성 동안만 적용 (아래 별도 rule).
      이전엔 base 에 항상 활성이라 Swiper 의 wrapper translate3d 와 충돌해
      iOS GPU 컴포지터가 두 애니메이션 동시 합성 → WebContent process 살해.
-     scale 만 가벼운 hover/active 효과로 유지. */
-  transition: scale 0.2s;
+     scale 은 transform 과 독립된 shorthand 라 flip rotateY 와 충돌 없이 press 피드백에 사용. */
+  transition: scale 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 복귀: 쫀득한 ease-out */
   transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 (flip 동작에 필수) */
   /* GPU promotion 힌트는 의도적으로 제외 (iOS WKWebView 의 GPU process 살해 회피).
      pages.css 의 .swiper-slide-active/-next/-prev .flipper 셀렉터로 가시 슬라이드에만 부여. */
   cursor: pointer;
   box-shadow: var(--shadow-card);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 회전 중 터치 및 클릭 완전 차단 + transform transition 활성화
@@ -194,14 +198,16 @@
   transition: transform 0.4s ease-out 0.05s, scale 0.2s;
 }
 
-.flipper.active,
-.flipper.is-pressing {
-  scale: 0.99;
+/* 눌린 상태: 즉각 반응(0.05s), 복귀는 base .flipper 의 0.3s cubic-bezier 적용 */
+.flipper.is-pressed {
+  scale: 0.98;
+  transition: scale 0.3s ease-out;
 }
 
 /* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */
 .flipper.flipped {
   transform: rotateY(180deg);
+  transition: transform 0.4s ease-out, scale 0.4s;
 }
 
 /* 카드 앞면/뒷면 공통 스타일
@@ -259,6 +265,8 @@
   line-height: 1;
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .card-detail-shortcut-btn:active {
@@ -309,6 +317,9 @@
 /* 카드 액션 버튼 그룹 — 공유/북마크 아이콘을 가로로 배치 */
 .card-actions {
   display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  height: auto;
   gap: var(--space-4);
   color: var(--color-text-tertiary);
 }
@@ -319,13 +330,23 @@
 
 /* 개별 액션 버튼 — 터치 영역 확보를 위해 패딩 추가 + 마이너스 마진 */
 .card-action-btn {
-  padding: 16px;
-  margin: -16px;                       /* 패딩만큼 마이너스 마진으로 시각적 크기 유지 */
+  padding: var(--space-2);                   /* 시각적 크기 확보 */
+  margin: -6px;                       /* 패딩만큼 마이너스 마진으로 시각적 크기 유지 */
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: transform 0.2s ease, background 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-action-btn:active {
+  background: var(--color-bg-primary);
+  transform: scale(0.95);
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 /* 액션 버튼 SVG 아이콘 크기 */
@@ -397,6 +418,7 @@
   padding: var(--space-4) var(--space-6);
   background: var(--color-bg-card);
   color: var(--color-text-primary);
+  overflow: hidden;
 }
 
 /* 뒷면 제목 — 역사 인물의 이름 */
@@ -418,6 +440,7 @@
 /* 뒷면 본문 — 스크롤 가능한 역사 일화 텍스트 */
 .back-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   font-family: var(--font-body);
   font-size: 1rem;
@@ -471,6 +494,8 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
   position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 모바일 터치 접근성을 위한 광범위 투명 터치 영역 */
@@ -486,7 +511,7 @@
 }
 
 .back-editor-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
 }
 
 /* 안 읽음 알림 뱃지 */
@@ -526,16 +551,16 @@
 /* 에디터 한마디 말풍선 */
 .editor-comment-bubble {
   position: absolute;
-  bottom: calc(100% + 12px); /* 버튼 바로 위에 위치 */
-  left: -2px;
+  bottom: calc(100% + 18px); /* 버튼 바로 위에 위치 */
+  left: -1px;
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
   line-height: 1.25rem;
   letter-spacing: 0.02em;
-  padding: var(--space-2) var(--space-4) var(--space-3);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  border: 2px solid var(--color-text-secondary);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   max-width: 260px;
   min-width: 230px;
@@ -551,22 +576,23 @@
 .editor-comment-bubble::after {
   content: '';
   position: absolute;
-  bottom: -6px;
-  left: 6px;
+  bottom: -9px;
+  left: 8px;
   width: 0;
   height: 0;
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-top: 6px solid var(--color-border);
+  border-top: 8px solid var(--color-text-secondary);
 }
 
 /* 에디터 이름 라벨 */
 .editor-comment-name {
   display: block;
   font-weight: 400;
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  margin-bottom: 1px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: right;
+  padding-top: var(--space-1);
 }
 
 @keyframes editorBubbleIn {
@@ -595,6 +621,8 @@
   flex-direction: column;
   aspect-ratio: 3 / 4.8;              /* 메인 카드와 동일한 비율 */
   transition: cubic-bezier(0.175, 0.885, 0.32, 1.275) cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 스프링 효과 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 미니 카드 터치 시 — 축소 + 그림자 줄어듦 */
@@ -1218,21 +1246,18 @@
    일화를 저장할 때 사용하는 하트/북마크 아이콘입니다.
 */
 
-/* 북마크 버튼 — 스프링 전환 효과 */
-.bookmark-btn {
-  transition: transform var(--transition-spring);
-}
 
 /* 북마크 활성화 시 아이콘 — 강조색으로 채워짐 */
 .bookmark-btn.active svg {
   fill: var(--color-text-secondary);
   stroke: var(--color-text-secondary);
 }
-
-/* 북마크 버튼 터치 시 — 커지는 애니메이션 */
-.bookmark-btn:active {
-  transform: scale(1.3);
+/* 다크모드에서 강조색 */
+[data-theme="dark"] .bookmark-btn.active svg {
+  fill: var(--color-accent);
+  stroke: var(--color-accent);
 }
+
 
 
 /* ============================================

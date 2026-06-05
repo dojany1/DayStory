@@ -153,7 +153,7 @@ describe('Editor Story comment styles', () => {
     expect(css).not.toMatch(/\.editor-badge\s*\{/);
     expect(css).not.toMatch(/badgePop/);
     expect(bubbleBlockMatch?.[0]).toMatch(/background:\s*var\(--color-bg-secondary\)/);
-    expect(bubbleBlockMatch?.[0]).toMatch(/border:\s*2px\s+solid\s+var\(--color-border\)/);
+    expect(bubbleBlockMatch?.[0]).toMatch(/border:\s*2px\s+solid\s+var\(--color-text-secondary\)/);
     expect(bubbleBlockMatch?.[0]).not.toMatch(/background:\s*var\(--color-editor-comment,\s*#ffe16a\)/);
     expect(bubbleBlockMatch?.[0]).toMatch(/pointer-events:\s*auto/);
   });

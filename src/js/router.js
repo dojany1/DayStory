@@ -357,6 +357,8 @@ async function handleRoute() {
     } else if (pageElement instanceof HTMLElement) {
       container.appendChild(pageElement);
     }
+
+
   } else {
     /* 일치하는 페이지가 없으면 unmount 후 404 표시 */
     runOnUnmount();

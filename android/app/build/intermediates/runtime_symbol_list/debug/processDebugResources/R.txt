@@ -8153,7 +8153,8 @@ int xml config 0x7f130000
 int xml file_paths 0x7f130001
 int xml image_share_filepaths 0x7f130002
 int xml ioncamera_paths 0x7f130003
-int xml m3_button_group_child_size_change 0x7f130004
-int xml m3_split_button_inner_corner_size_state_list 0x7f130005
-int xml m3expressive_button_shape_state_list 0x7f130006
-int xml m3expressive_connected_buttons_inner_corner_size_state_list 0x7f130007
+int xml locales_config 0x7f130004
+int xml m3_button_group_child_size_change 0x7f130005
+int xml m3_split_button_inner_corner_size_state_list 0x7f130006
+int xml m3expressive_button_shape_state_list 0x7f130007
+int xml m3expressive_connected_buttons_inner_corner_size_state_list 0x7f130008

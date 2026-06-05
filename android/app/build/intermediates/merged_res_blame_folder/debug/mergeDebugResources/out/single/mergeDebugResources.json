@@ -152,6 +152,10 @@
         "source": "com.daystory.app-main-55:/drawable-port-night-mdpi/splash.png"
     },
     {
+        "merged": "com.daystory.app-debug-53:/xml_locales_config.xml.flat",
+        "source": "com.daystory.app-main-55:/xml/locales_config.xml"
+    },
+    {
         "merged": "com.daystory.app-debug-53:/drawable-land-night-xhdpi_splash.png.flat",
         "source": "com.daystory.app-main-55:/drawable-land-night-xhdpi/splash.png"
     },

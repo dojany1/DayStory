@@ -6106,6 +6106,7 @@ xml config
 xml file_paths
 xml image_share_filepaths
 xml ioncamera_paths
+xml locales_config
 xml m3_button_group_child_size_change
 xml m3_split_button_inner_corner_size_state_list
 xml m3expressive_button_shape_state_list

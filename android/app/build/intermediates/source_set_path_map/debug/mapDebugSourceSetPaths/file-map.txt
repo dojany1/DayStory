@@ -60,8 +60,8 @@ com.daystory.app-debug-58 /Users/dongjin/Projects/DayStory/node_modules/@capacit
 com.daystory.app-debug-59 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/android/capacitor/build/intermediates/packaged_res/debug/packageDebugResources
 com.daystory.app-debug-60 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/app/android/build/intermediates/packaged_res/debug/packageDebugResources
 com.daystory.app-debug-61 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/camera/android/build/intermediates/packaged_res/debug/packageDebugResources
-com.daystory.app-debug-62 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/device/android/build/intermediates/packaged_res/debug/packageDebugResources
-com.daystory.app-debug-63 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/local-notifications/android/build/intermediates/packaged_res/debug/packageDebugResources
-com.daystory.app-debug-64 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/share/android/build/intermediates/packaged_res/debug/packageDebugResources
-com.daystory.app-debug-65 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/splash-screen/android/build/intermediates/packaged_res/debug/packageDebugResources
-com.daystory.app-debug-66 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/status-bar/android/build/intermediates/packaged_res/debug/packageDebugResources
+com.daystory.app-debug-62 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/filesystem/android/build/intermediates/packaged_res/debug/packageDebugResources
+com.daystory.app-debug-63 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/haptics/android/build/intermediates/packaged_res/debug/packageDebugResources
+com.daystory.app-debug-64 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/local-notifications/android/build/intermediates/packaged_res/debug/packageDebugResources
+com.daystory.app-debug-65 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/share/android/build/intermediates/packaged_res/debug/packageDebugResources
+com.daystory.app-debug-66 /Users/dongjin/Projects/DayStory/node_modules/@capacitor/splash-screen/android/build/intermediates/packaged_res/debug/packageDebugResources

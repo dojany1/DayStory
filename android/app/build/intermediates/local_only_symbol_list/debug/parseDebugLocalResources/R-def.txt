@@ -25,3 +25,4 @@ style AppTheme.NoActionBar
 style AppTheme.NoActionBarLaunch
 xml config
 xml file_paths
+xml locales_config

@@ -33,6 +33,7 @@
     <string msgid="1656852541809559762" name="abc_toolbar_collapse_description">"접기"</string>
     <string msgid="8397015543330865059" name="android.credentials.TYPE_PASSWORD_CREDENTIAL">"비밀번호"</string>
     <string msgid="3929015085059320822" name="androidx.credentials.TYPE_PUBLIC_KEY_CREDENTIAL">"패스키"</string>
+    <string name="app_name">DayStory</string>
     <string name="bottomsheet_action_collapse">하단 시트 접기</string>
     <string name="bottomsheet_action_expand">하단 시트 펼치기</string>
     <string name="bottomsheet_action_expand_halfway">반만 펼치기</string>
@@ -66,6 +67,7 @@
     <string name="common_signin_button_text">로그인</string>
     <string name="common_signin_button_text_long">Google 계정으로 로그인</string>
     <string msgid="3260749812566568062" name="copy_toast_msg">"클립보드에 링크 복사됨"</string>
+    <string name="custom_url_scheme">com.daystory.app</string>
     <string name="error_a11y_label">오류: 잘못됨</string>
     <string name="error_icon_content_description">오류</string>
     <string name="exposed_dropdown_menu_content_description">드롭다운 메뉴 표시</string>
@@ -138,10 +140,12 @@
     <string name="mtrl_picker_toggled_to_year_selection">연도별 보기로 전환됨</string>
     <string name="mtrl_timepicker_cancel">취소</string>
     <string name="mtrl_timepicker_confirm">확인</string>
+    <string name="package_name">com.daystory.app</string>
     <string name="password_toggle_content_description">비밀번호 표시</string>
     <string msgid="6264217191555673260" name="search_menu_title">"검색"</string>
     <string name="searchview_clear_text_content_description">텍스트 삭제</string>
     <string name="searchview_navigation_content_description">뒤로</string>
     <string name="side_sheet_accessibility_pane_title">사이드 시트</string>
     <string msgid="6277540029070332960" name="status_bar_notification_info_overflow">"999+"</string>
+    <string name="title_activity_main">DayStory</string>
 </resources>

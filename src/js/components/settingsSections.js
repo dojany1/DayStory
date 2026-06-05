@@ -39,7 +39,7 @@ export function renderSettingsSections() {
   return `
     ${getState('isAdmin') ? `
     <div class="settings-section">
-      <div class="settings-section-title">관리자 도구</div>
+      <div class="settings-section-title">${t('settings.section_editor_tools')}</div>
       ${renderSettingsRow({
         id: 'setting-editor',
         title: t('settings.row_editor'),
@@ -50,7 +50,7 @@ export function renderSettingsSections() {
     ` : ''}
 
     <div class="settings-section">
-      <div class="settings-section-title">앱 설정</div>
+      <div class="settings-section-title">${t('settings.section_app_settings')}</div>
       <div class="theme-option-group" role="group" aria-label="${t('settings.section_display')}" data-active="${themeActiveIdx}">
         ${renderThemeOption('light', t('settings.theme_light'), currentTheme, sunIcon())}
         ${renderThemeOption('dark', t('settings.theme_dark'), currentTheme, moonIcon())}
@@ -74,7 +74,7 @@ export function renderSettingsSections() {
     </div>
 
     <div class="settings-section">
-      <div class="settings-section-title">지원</div>
+      <div class="settings-section-title">${t('settings.section_support')}</div>
       ${renderSettingsRow({
         id: 'setting-about',
         title: t('settings.row_about'),
@@ -83,7 +83,7 @@ export function renderSettingsSections() {
       })}
       ${renderSettingsRow({
         id: 'setting-contact',
-        title: '문의',
+        title: t('settings.row_contact'),
         icon: mailIcon(),
       })}
     </div>
@@ -128,8 +128,8 @@ export function bindSettingsSections(page) {
   bindLangOptions(page);
   bindViewModeItem(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
-  bindRow(page, '#setting-about', () => showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info'));
-  bindRow(page, '#setting-contact', () => showToast('준비중인 기능입니다. 업데이트를 기다려주세요!', 'info'));
+  bindRow(page, '#setting-about', () => showToast(t('settings.toast_coming_soon'), 'info'));
+  bindRow(page, '#setting-contact', () => showToast(t('settings.toast_coming_soon'), 'info'));
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
 }
@@ -254,7 +254,7 @@ function openViewModeSheet(onChange = () => {}) {
   overlay.setAttribute('aria-modal', 'true');
   overlay.innerHTML = `
     <div class="notification-settings-sheet">
-      ${renderPageHeader({ title: t('settings.section_view_mode'), icon: 'close', backLabel: '닫기' })}
+      ${renderPageHeader({ title: t('settings.section_view_mode'), icon: 'close', backLabel: t('common.close') })}
       <div class="notification-settings-list" role="radiogroup">
         <button type="button" class="list-item view-mode-option ${defaultView === 'card' ? 'active' : ''}" data-view="card" role="radio" aria-checked="${defaultView === 'card'}">
           <div class="list-item-icon">
@@ -360,15 +360,15 @@ async function handleWithdraw() {
   if (!auth || !auth.currentUser) return;
 
   const isConfirmed = await showConfirm({
-    title: '회원 탈퇴',
-    message: '정말로 회원을 탈퇴하시겠습니까?\n계정과 모든 데이터(일화, 보관함, 업로드 사진 등)가 영구적으로 삭제되며 복구할 수 없습니다.',
-    confirmText: '탈퇴',
-    cancelText: '취소',
+    title: t('settings.withdraw_title'),
+    message: t('settings.withdraw_message'),
+    confirmText: t('settings.withdraw_confirm'),
+    cancelText: t('common.cancel'),
     danger: true,
     holdDuration: 5000,
     holdMessage: (secondsLeft) => secondsLeft > 0
-      ? `탈퇴까지 ${secondsLeft}초간 누르고 계세요...`
-      : '탈퇴를 진행합니다...',
+      ? t('settings.withdraw_hold', { seconds: secondsLeft })
+      : t('settings.withdraw_hold_done'),
   });
   if (!isConfirmed) return;
 
@@ -385,7 +385,7 @@ async function handleWithdraw() {
           console.error('재인증 후 탈퇴 재시도 실패:', retryErr);
         }
       }
-      showToast('보안 정책에 따라 다시 로그인한 뒤 탈퇴하실 수 있습니다.', 'error');
+      showToast(t('settings.toast_reauth'), 'error');
       localStorage.removeItem(AUTH_SESSION_KEY);
       setState('user', null);
       const nav = document.getElementById('bottom-nav');
@@ -394,7 +394,7 @@ async function handleWithdraw() {
       return;
     }
     console.error('회원 탈퇴 실패:', err);
-    showToast(err?.message || '회원 탈퇴 처리 중 오류가 발생했습니다.', 'error');
+    showToast(err?.message || t('settings.toast_withdraw_error'), 'error');
   }
 }
 

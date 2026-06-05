@@ -95,6 +95,26 @@ export function t(key, vars) {
 }
 
 /**
+ * tList — 배열 형태의 번역 값 조회 (예: "date.weekdays")
+ * 누락 시 한국어 폴백, 그래도 없으면 빈 배열 반환.
+ */
+export function tList(key) {
+  if (!key) return [];
+  const lang = getCurrentLang();
+  const lookup = (langCode) => {
+    const dict = messages[langCode];
+    if (!dict) return null;
+    let cur = dict;
+    for (const part of key.split('.')) {
+      if (cur == null || typeof cur !== 'object') return null;
+      cur = cur[part];
+    }
+    return Array.isArray(cur) ? cur : null;
+  };
+  return lookup(lang) || lookup(DEFAULT_LANG) || [];
+}
+
+/**
  * applyHtmlLang — <html lang> 과 <meta property="og:locale"> 를 선택 언어에 동기화
  * 지원하지 않는 값은 기본 언어(ko)로 폴백.
  * @param {string} lang - 'ko' | 'en' | 'ja'

@@ -18,6 +18,7 @@
 
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { t } from '../i18n/index.js';
 
 const CLOSE_DURATION_MS = 320;
 const DRAG_CLOSE_THRESHOLD_RATIO = 0.3; /* 시트 높이의 30% 초과 드래그 → 닫기 */
@@ -51,21 +52,21 @@ export function showUpdateSheet({ currentVersion, latestVersion } = {}) {
             <polyline points="21 4 21 10 15 10"/>
           </svg>
         </div>
-        <h2 id="update-sheet-title" class="update-sheet-title">새로운 버전이 출시됐어요</h2>
-        <p class="update-sheet-message">최신 기능과 안정성 개선이 포함된 버전으로 업데이트해 주세요.</p>
+        <h2 id="update-sheet-title" class="update-sheet-title">${t('update.title')}</h2>
+        <p class="update-sheet-message">${t('update.message')}</p>
         <div class="update-sheet-versions">
           <div class="update-sheet-version-row">
-            <span class="update-sheet-version-label">현재 버전</span>
+            <span class="update-sheet-version-label">${t('update.current_version')}</span>
             <span class="update-sheet-version-value">${escapeHtml(currentVersion || '-')}</span>
           </div>
           <div class="update-sheet-version-row is-latest">
-            <span class="update-sheet-version-label">최신 버전</span>
+            <span class="update-sheet-version-label">${t('update.latest_version')}</span>
             <span class="update-sheet-version-value">${escapeHtml(latestVersion || '-')}</span>
           </div>
         </div>
         <div class="update-sheet-actions">
-          <button type="button" class="btn btn-secondary update-sheet-later">다음에 하기</button>
-          <button type="button" class="btn btn-primary update-sheet-update">지금 업데이트</button>
+          <button type="button" class="btn btn-secondary update-sheet-later">${t('update.later')}</button>
+          <button type="button" class="btn btn-primary update-sheet-update">${t('update.now')}</button>
         </div>
       </div>
     `;

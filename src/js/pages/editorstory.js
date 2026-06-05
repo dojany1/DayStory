@@ -111,7 +111,7 @@ export function renderEditorStory() {
         const slide = ctx.slides[s.activeIndex];
         if (!slide?.story?.id) return;
         const activeSlideEl = ctx.swiperEl.querySelector('.swiper-slide-active');
-        const bookmarkIcon = activeSlideEl?.querySelector('.card-action-btn[aria-label="보관함"] svg');
+        const bookmarkIcon = activeSlideEl?.querySelector(`.card-action-btn[aria-label="${t('detail.bookmark_button')}"] svg`);
         if (bookmarkIcon && ids.includes(slide.story.id)) {
           bookmarkIcon.setAttribute('fill', 'currentColor');
         }
@@ -121,8 +121,8 @@ export function renderEditorStory() {
     emptyHtml: () => `
       <div class="editorstory-header"><h1 class="editorstory-title">Day Story</h1></div>
       <div class="empty-state">
-        <div class="empty-state-title">아직 발행된 카드가 없어요</div>
-        <div class="empty-state-desc">곧 첫 카드가 도착할 거예요</div>
+        <div class="empty-state-title">${t('search.no_cards_title')}</div>
+        <div class="empty-state-desc">${t('search.no_cards_desc')}</div>
       </div>
     `,
     errorHtml: (err) => `
@@ -161,8 +161,8 @@ function buildSlideHTML(rawStory, isoDate) {
   /* story.image_url 을 항상 그대로 부여 (legacy .webp 포함). 디코드 실패는 onerror 가 fallback 으로 swap. */
   const imageSrc = story.image_url || FALLBACK_IMG;
 
-  const actionsHtml = `${cardActionButton({ ariaLabel: '공유', svg: SHARE_ICON_SVG })}
-                ${cardActionButton({ ariaLabel: '보관함', svg: BOOKMARK_ICON_SVG })}`;
+  const actionsHtml = `${cardActionButton({ ariaLabel: t('detail.share_button'), svg: SHARE_ICON_SVG })}
+                ${cardActionButton({ ariaLabel: t('detail.bookmark_button'), svg: BOOKMARK_ICON_SVG })}`;
 
   const metaHtml = `${escapeHtml(story.card_count || '')} ${escapeHtml(story.country)}<br>
                 ${displayYear} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`;
@@ -179,11 +179,11 @@ function buildSlideHTML(rawStory, isoDate) {
 
   const hasComment = story.editor_comment && story.editor_comment.trim() !== '';
   const footerHtml = `
-            <button class="back-editor-btn${hasComment && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml(EDITOR_DISPLAY_NAME)}" style="${hasComment ? '' : 'visibility: hidden; pointer-events: none;'}">
+            <button class="back-editor-btn${hasComment && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="${t('editor.form_editor_comment')}" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml(EDITOR_DISPLAY_NAME)}" style="${hasComment ? '' : 'visibility: hidden; pointer-events: none;'}">
               <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
-              <div class="back-date">${escapeHtml(story.historical_year)}년 ${month}월 ${day}일</div>
+              <div class="back-date">${t('date.full', { y: escapeHtml(story.historical_year), m: month, d: day })}</div>
               <button class="card-detail-shortcut-btn" type="button" aria-label="${t('home.detail_button')}" title="${t('home.detail_button')}">${t('home.detail_button')}</button>
             </div>`;
 
@@ -234,14 +234,14 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
   flipContainer.dataset.bound = '1';
 
   /* 북마크 아이콘 초기 상태 (slide HTML 은 정적 캐시라 동적 표시) */
-  const bookmarkIcon = flipContainer.querySelector('.card-action-btn[aria-label="보관함"] svg');
+  const bookmarkIcon = flipContainer.querySelector(`.card-action-btn[aria-label="${t('detail.bookmark_button')}"] svg`);
   if (bookmarkIcon && story && bookmarkedIds.includes(story.id)) {
     bookmarkIcon.setAttribute('fill', 'currentColor');
   }
 
   const detailBtn = flipContainer.querySelector('.card-detail-shortcut-btn');
-  const shareBtn = flipContainer.querySelector('.card-action-btn[aria-label="공유"]');
-  const bookmarkBtn = flipContainer.querySelector('.card-action-btn[aria-label="보관함"]');
+  const shareBtn = flipContainer.querySelector(`.card-action-btn[aria-label="${t('detail.share_button')}"]`);
+  const bookmarkBtn = flipContainer.querySelector(`.card-action-btn[aria-label="${t('detail.bookmark_button')}"]`);
 
   if (detailBtn && story) {
     detailBtn.addEventListener('click', (e) => {
@@ -264,7 +264,7 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
         const res = await captureAndShareCard(cardEl, {
           title: story.figure_name || story.title || 'DayStory',
           text: `[DayStory] ${story.figure_name || story.title || ''}`.trim(),
-          dialogTitle: '역사 일화 공유',
+          dialogTitle: t('calendar.share_history'),
         });
         if (!res.ok && res.reason !== 'cancelled') {
           await shareStory(story, { kind: 'history' });

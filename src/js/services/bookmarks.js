@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { withTimeout as withTimeoutBase } from '../utils/timeout.js';
 import { fetchStories } from './stories.js';
+import { t } from '../i18n/index.js';
 
 
 /* ─────────────────────────────────────────────
@@ -28,7 +29,7 @@ import { fetchStories } from './stories.js';
    bookmarks 는 8초 + 한국어 안내 메시지로 호출 — 호출부 catch 가
    사용자에게 그대로 노출되는 경우가 있어 메시지를 유지. */
 function withTimeout(promise, ms = 8000) {
-  return withTimeoutBase(promise, ms, '네트워크 환경이 불안정하여 서버 응답이 지연되었습니다.');
+  return withTimeoutBase(promise, ms, t('bookmarks.toast_timeout'));
 }
 
 /* Wave 4 — 빠른 더블탭 잠금: 같은 storyId 에 대한 동시 토글을 막아
@@ -108,7 +109,7 @@ export async function toggleBookmark(storyId) {
     }
   } catch (err) {
     console.error('Bookmark Error:', err);
-    return { bookmarked: false, error: err.message || '북마크 처리 중 오류가 발생했습니다.' };
+    return { bookmarked: false, error: err.message || t('bookmarks.toast_process_error') };
   } finally {
     inFlightToggles.delete(storyId);
     invalidateBookmarksCache(); // 토글 후 캐시 무효화

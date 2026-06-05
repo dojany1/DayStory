@@ -31,6 +31,7 @@ import { translateContentApi } from '../services/translate.js';
 import { auth } from '../firebase.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { t, tList } from '../i18n/index.js';
 
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -49,10 +50,10 @@ export function renderEditor() {
   /* ---- 권한 체크: 에디터가 아니면 접근 차단 ---- */
   if (!getState('isAdmin')) {
     page.innerHTML = `
-      <div class="page-header"><h1 class="page-header-title">에디터</h1></div>
+      <div class="page-header"><h1 class="page-header-title">${t('editor.title')}</h1></div>
       <div class="empty-state">
-        <div class="empty-state-title">에디터 권한이 필요합니다</div>
-        <div class="empty-state-desc">관리자에게 에디터 권한을 요청하세요</div>
+        <div class="empty-state-title">${t('editor.need_permission_title')}</div>
+        <div class="empty-state-desc">${t('editor.need_permission_desc')}</div>
       </div>
     `;
     return page;
@@ -61,38 +62,32 @@ export function renderEditor() {
   page.innerHTML = `
     <div class="editor-calendar-header calendar-header">
       <div class="editor-calendar-title-row">
-        <button class="page-header-back" id="editor-back" aria-label="뒤로가기">
+        <button class="page-header-back" id="editor-back" aria-label="${t('common.back')}">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
-        <h1 class="calendar-title">콘텐츠 관리</h1>
+        <h1 class="calendar-title">${t('editor.content_mgmt')}</h1>
       </div>
     </div>
 
     <div class="editor-stats" id="editor-stats">
-      <button type="button" class="editor-stat active" data-filter="all"><span class="editor-stat-label">전체</span><span class="editor-stat-value" id="stat-total">-</span></button>
-      <button type="button" class="editor-stat" data-filter="published"><span class="editor-stat-label">발행</span><span class="editor-stat-value" id="stat-published">-</span></button>
-      <button type="button" class="editor-stat" data-filter="scheduled"><span class="editor-stat-label">예약</span><span class="editor-stat-value" id="stat-scheduled">-</span></button>
-      <button type="button" class="editor-stat" data-filter="draft"><span class="editor-stat-label">초안</span><span class="editor-stat-value" id="stat-draft">-</span></button>
+      <button type="button" class="editor-stat active" data-filter="all"><span class="editor-stat-label">${t('editor.filter_all')}</span><span class="editor-stat-value" id="stat-total">-</span></button>
+      <button type="button" class="editor-stat" data-filter="published"><span class="editor-stat-label">${t('editor.filter_published')}</span><span class="editor-stat-value" id="stat-published">-</span></button>
+      <button type="button" class="editor-stat" data-filter="scheduled"><span class="editor-stat-label">${t('editor.filter_scheduled')}</span><span class="editor-stat-value" id="stat-scheduled">-</span></button>
+      <button type="button" class="editor-stat" data-filter="draft"><span class="editor-stat-label">${t('editor.filter_draft')}</span><span class="editor-stat-value" id="stat-draft">-</span></button>
     </div>
 
     <div class="calendar-month-nav editor-month-nav">
-      <button type="button" class="calendar-month-arrow" id="editor-prev-month" aria-label="이전 달">
+      <button type="button" class="calendar-month-arrow" id="editor-prev-month" aria-label="${t('common.prev_month')}">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="calendar-month-label" id="editor-month-label">-</div>
-      <button type="button" class="calendar-month-arrow" id="editor-next-month" aria-label="다음 달">
+      <button type="button" class="calendar-month-arrow" id="editor-next-month" aria-label="${t('common.next_month')}">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
       </button>
     </div>
 
     <div class="calendar-weekdays editor-calendar-weekdays" aria-hidden="true">
-      <div class="calendar-weekday sun">일</div>
-      <div class="calendar-weekday">월</div>
-      <div class="calendar-weekday">화</div>
-      <div class="calendar-weekday">수</div>
-      <div class="calendar-weekday">목</div>
-      <div class="calendar-weekday">금</div>
-      <div class="calendar-weekday sat">토</div>
+      ${tList('date.weekdays').map((w, i) => `<div class="calendar-weekday${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${w}</div>`).join('')}
     </div>
 
     <div id="editor-calendar-grid" class="editor-calendar-grid calendar-grid">
@@ -130,7 +125,7 @@ export function renderEditor() {
     const labelEl = page.querySelector('#editor-month-label');
     if (!gridEl || !labelEl) return;
 
-    labelEl.textContent = `${visibleYear}년 ${visibleMonth + 1}월`;
+    labelEl.textContent = t('date.year_month', { y: visibleYear, m: visibleMonth + 1 });
 
     const firstDay = new Date(visibleYear, visibleMonth, 1).getDay();
     const lastDate = new Date(visibleYear, visibleMonth + 1, 0).getDate();
@@ -192,7 +187,7 @@ export function renderEditor() {
   }
 
   function renderCalendarStory(story) {
-    const title = escapeHtml(story.title || story.figure_name || '제목 없음');
+    const title = escapeHtml(story.title || story.figure_name || t('common.no_title'));
     const country = escapeHtml(story.country || '');
     const imageUrl = sanitizeUrl(story.image_url || '');
     const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
@@ -213,12 +208,12 @@ export function renderEditor() {
 
   function getStatusBadge(status) {
     const statusMap = {
-      published: ['badge-accent', '발행됨'],
-      draft: ['badge-draft', '초안'],
-      scheduled: ['badge-scheduled', '예약'],
-      archived: ['badge-archived', '보관'],
+      published: ['badge-accent', t('editor.status_published')],
+      draft: ['badge-draft', t('editor.status_draft')],
+      scheduled: ['badge-scheduled', t('editor.status_scheduled')],
+      archived: ['badge-archived', t('editor.status_archived')],
     };
-    const [className, label] = statusMap[status] || ['', status || '상태 없음'];
+    const [className, label] = statusMap[status] || ['', status || t('editor.status_none')];
     return `<span class="badge ${className}">${escapeHtml(label)}</span>`;
   }
 
@@ -288,7 +283,7 @@ export function renderEditorNew() {
 
   if (!getState('isAdmin')) {
     page.innerHTML = `
-      <div class="page-header"><h1 class="page-header-title">권한 없음</h1></div>
+      <div class="page-header"><h1 class="page-header-title">${t('editor.no_permission')}</h1></div>
     `;
     return page;
   }
@@ -308,7 +303,7 @@ export function renderEditorNew() {
       <button class="page-header-back" id="editor-new-back">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
       </button>
-      <h1 class="page-header-title" style="flex:1; text-align:center;">${editingId ? '일화 수정' : '새 일화 작성'}</h1>
+      <h1 class="page-header-title" style="flex:1; text-align:center;">${editingId ? t('editor.edit_story') : t('editor.new_story')}</h1>
       <div style="width:36px;"></div> <!-- 중앙 정렬 맞춤용 -->
     </div>
 
@@ -323,77 +318,77 @@ export function renderEditorNew() {
     <!-- 입력 폼 -->
     <div class="editor-form-section section">
       <!-- 언어 탭: 한국어(필수) / English / 日本語 -->
-      <div class="editor-lang-tabs" role="tablist" aria-label="언어">
+      <div class="editor-lang-tabs" role="tablist" aria-label="${t('settings.section_language')}">
         <button type="button" class="editor-lang-tab active" data-lang="ko" role="tab" aria-selected="true">한국어</button>
         <button type="button" class="editor-lang-tab" data-lang="en" role="tab" aria-selected="false">English</button>
         <button type="button" class="editor-lang-tab" data-lang="ja" role="tab" aria-selected="false">日本語</button>
         <button type="button" class="editor-lang-tab" data-lang="es" role="tab" aria-selected="false">Español</button>
         <button type="button" class="editor-lang-tab" data-lang="zh" role="tab" aria-selected="false">中文</button>
       </div>
-      <div class="editor-lang-hint">한국어는 필수, 나머지 언어는 비우면 카드에서 한국어로 자동 표시됩니다.</div>
-      <button type="button" id="sf-auto-translate" class="btn btn-secondary" style="width:100%; margin:0 0 var(--space-3); padding:var(--space-3); font-size:var(--text-sm);">✨ 한국어 기준 자동 번역 (영·일·스·중)</button>
+      <div class="editor-lang-hint">${t('editor.lang_hint')}</div>
+      <button type="button" id="sf-auto-translate" class="btn btn-secondary" style="width:100%; margin:0 0 var(--space-3); padding:var(--space-3); font-size:var(--text-sm);">${t('editor.auto_translate_btn')}</button>
 
       <form id="story-form" class="story-form">
         <!-- 1. 제목 (가로 단독) -->
         <div class="input-group">
-          <label class="input-label">제목 (인물/사건명) *</label>
-          <input class="input-field" id="sf-title" placeholder="예: Isaac Newton" required />
+          <label class="input-label">${t('editor.form_title')} *</label>
+          <input class="input-field" id="sf-title" placeholder="${t('editor.title_placeholder')}" required />
         </div>
 
         <!-- 2. 역사적 연도 / 발행일 -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
           <div class="input-group">
-            <label class="input-label">역사적 연도</label>
+            <label class="input-label">${t('editor.form_hist_year')}</label>
             <input class="input-field" type="number" id="sf-hist-year" placeholder="1666" />
           </div>
           <div class="input-group">
-            <label class="input-label">발행일 *</label>
+            <label class="input-label">${t('editor.form_publish_date')} *</label>
             <input class="input-field" type="date" id="sf-publish-date" required />
           </div>
         </div>
 
         <!-- 3. 국가 -->
         <div class="input-group">
-          <label class="input-label">국가</label>
-          <input class="input-field" id="sf-country" placeholder="영국" />
+          <label class="input-label">${t('editor.form_country')}</label>
+          <input class="input-field" id="sf-country" placeholder="${t('editor.country_placeholder')}" />
         </div>
 
         <!-- 4. 본문 -->
         <div class="input-group">
-          <label class="input-label">본문 *</label>
-          <textarea class="input-field" id="sf-body" placeholder="역사 일화 본문을 입력하세요..." style="min-height:200px; resize:vertical; line-height:1.6; font-family:var(--font-body);" required></textarea>
+          <label class="input-label">${t('editor.form_body')} *</label>
+          <textarea class="input-field" id="sf-body" placeholder="${t('editor.body_placeholder')}" style="min-height:200px; resize:vertical; line-height:1.6; font-family:var(--font-body);" required></textarea>
         </div>
 
         <!-- 4-1. 에디터 한마디 -->
         <div class="input-group">
-          <label class="input-label">에디터 한마디</label>
-          <textarea class="input-field" id="sf-editor-comment" placeholder="카드 뒷면에 표시될 에디터의 코멘트" rows="3" style="resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
+          <label class="input-label">${t('editor.form_editor_comment')}</label>
+          <textarea class="input-field" id="sf-editor-comment" placeholder="${t('editor.comment_placeholder')}" rows="3" style="resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
         </div>
 
         <!-- 5. 이미지 업로드/URL -->
         <div class="input-group">
-          <label class="input-label">이미지 업로드 및 URL</label>
-          <input class="input-field" id="sf-image" placeholder="URL 직접 입력 또는 사진 선택" />
+          <label class="input-label">${t('editor.form_image')}</label>
+          <input class="input-field" id="sf-image" placeholder="${t('editor.image_placeholder')}" />
           <input type="hidden" id="sf-image-thumb" />
           <div style="display:flex; gap:var(--space-2); margin-top:var(--space-2);">
-            <button type="button" id="sf-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">편집</button>
-            <button type="button" id="sf-image-gallery-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">보관함</button>
-            <button type="button" id="sf-image-camera-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">촬영</button>
+            <button type="button" id="sf-image-edit-btn" class="btn btn-secondary" style="display:none; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">${t('common.edit')}</button>
+            <button type="button" id="sf-image-gallery-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">${t('nav.bookmarks')}</button>
+            <button type="button" id="sf-image-camera-btn" class="btn btn-secondary" style="cursor:pointer; margin:0; padding:var(--space-2) var(--space-3); font-size:var(--text-sm); white-space:nowrap;">${t('editor.btn_camera')}</button>
           </div>
-          <div id="sf-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">사진을 업로드하는 중입니다... ⏳</div>
+          <div id="sf-image-status" style="font-size:var(--text-xs); color:var(--color-primary); margin-top:var(--space-1); display:none;">${t('editor.uploading')}</div>
         </div>
 
         <!-- 6. 이미지 출처 및 라이선스 -->
         <div class="input-group">
-          <label class="input-label">이미지 출처 및 라이선스</label>
-          <input class="input-field" id="sf-image-source" placeholder="예: Unsplash (CC0), Wikimedia Commons" />
+          <label class="input-label">${t('editor.form_image_source')}</label>
+          <input class="input-field" id="sf-image-source" placeholder="${t('editor.image_source_placeholder')}" />
         </div>
 
         <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-6);margin-bottom:var(--space-10);">
-          <button type="submit" class="btn btn-primary btn-full" style="font-size:var(--text-md); padding:var(--space-4);">발행하기</button>
+          <button type="submit" class="btn btn-primary btn-full" style="font-size:var(--text-md); padding:var(--space-4);">${t('editor.btn_publish')}</button>
           <div style="display:flex;gap:var(--space-3);">
-            <button type="button" class="btn btn-secondary btn-full" id="sf-save-draft">초안 저장</button>
-            <button type="button" class="btn btn-full" id="sf-schedule" style="background:var(--color-info);color:#fff;border:none;">예약 발행</button>
+            <button type="button" class="btn btn-secondary btn-full" id="sf-save-draft">${t('editor.btn_save_draft')}</button>
+            <button type="button" class="btn btn-full" id="sf-schedule" style="background:var(--color-info);color:#fff;border:none;">${t('editor.btn_schedule')}</button>
           </div>
         </div>
       </form>
@@ -419,10 +414,10 @@ export function renderEditorNew() {
   const removeNavGuard = pushBeforeNavigate(async () => {
     if (!saving && unsavedChanges) {
       const confirmLeave = await showConfirm({
-        title: '저장되지 않은 정보가 있습니다',
-        message: '정말 나가시겠습니까?',
-        confirmText: '나가기',
-        cancelText: '계속 작성',
+        title: t('editor.leave_title'),
+        message: t('editor.leave_message'),
+        confirmText: t('editor.leave_confirm'),
+        cancelText: t('editor.leave_cancel'),
         danger: true,
       });
       if (!confirmLeave) return false;
@@ -499,13 +494,13 @@ export function renderEditorNew() {
         editor_comment: (ko['sf-editor-comment'] || '').trim(),
       };
       if (!fields.title && !fields.body) {
-        showToast('먼저 한국어 제목 또는 본문을 입력해주세요.', 'warning');
+        showToast(t('editor.translate_need_input'), 'warning');
         return;
       }
 
       const originalLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = '번역 중… ⏳';
+      btn.textContent = t('editor.translating');
       try {
         const { translations } = await translateContentApi({ fields });
         let filled = 0;
@@ -520,13 +515,13 @@ export function renderEditorNew() {
         applyLangValues(activeLang); /* 현재 보이는 탭 즉시 반영 */
         updatePreview(true);
         unsavedChanges = true;
-        showToast(filled ? '자동 번역 완료 (영·일·스·중)' : '번역 결과가 비어 있습니다.', filled ? 'success' : 'warning');
+        showToast(filled ? t('editor.translate_done') : t('editor.translate_empty'), filled ? 'success' : 'warning');
       } catch (err) {
         console.error('자동 번역 실패:', err);
         let msg;
-        if (err?.code === 'functions/permission-denied') msg = '관리자만 사용할 수 있는 기능입니다.';
-        else if (err?.code === 'functions/unavailable') msg = 'AI 번역 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.';
-        else msg = err?.message || '번역에 실패했습니다. 잠시 후 다시 시도해주세요.';
+        if (err?.code === 'functions/permission-denied') msg = t('editor.translate_err_permission');
+        else if (err?.code === 'functions/unavailable') msg = t('editor.translate_err_unavailable');
+        else msg = err?.message || t('editor.translate_err_generic');
         showToast(msg, 'error');
       } finally {
         btn.disabled = false;
@@ -607,7 +602,7 @@ export function renderEditorNew() {
       let localSrc = imageSrc;
       if (isCrossOrigin) {
         if (!isFirebaseStorageUrl(imageSrc)) {
-          showToast('외부 이미지는 편집할 수 없습니다.\n[사진 추가]로 새 이미지를 업로드해주세요.', 'error');
+          showToast(t('editor.crop_external_error'), 'error');
           return;
         }
         try {
@@ -617,7 +612,7 @@ export function renderEditorNew() {
           localSrc = URL.createObjectURL(blob);
         } catch (err) {
           console.error('이미지 fetch 실패:', err);
-          showToast('이미지를 불러올 수 없습니다. 다시 시도해주세요.', 'error');
+          showToast(t('editor.image_load_failed'), 'error');
           return;
         }
       }
@@ -627,12 +622,12 @@ export function renderEditorNew() {
       
       overlay.innerHTML = `
         <div class="crop-modal-header">
-          <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="닫기">
+          <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="${t('common.close')}">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </button>
-          카드 이미지 편집
+          ${t('editor.crop_title')}
         </div>
         <div class="crop-modal-body">
           <img id="cropper-image" src="${localSrc}" decoding="async" style="max-width: 100%; display: block;" />
@@ -643,9 +638,9 @@ export function renderEditorNew() {
               <path d="M21 2v6h-6"/>
               <path d="M21 13a9 9 0 1 1-2.63-6.36L21 9"/>
             </svg>
-            회전
+            ${t('editor.rotate')}
           </button>
-          <button type="button" class="btn-crop-confirm" id="btn-crop-confirm">다음</button>
+          <button type="button" class="btn-crop-confirm" id="btn-crop-confirm">${t('common.next')}</button>
         </div>
       `;
       const wrapper = document.querySelector('.mobile-wrapper') || document.body;
@@ -686,7 +681,7 @@ export function renderEditorNew() {
       };
 
       image.onerror = () => {
-        showToast('이미지를 불러올 수 없어 편집이 제한됩니다.', 'error');
+        showToast(t('editor.crop_edit_limited'), 'error');
         if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
         unlockScroll();
         overlay.remove();
@@ -700,7 +695,7 @@ export function renderEditorNew() {
       // 자르기 완료 (다음) 버튼
       overlay.querySelector('#btn-crop-confirm').addEventListener('click', () => {
         const btn = overlay.querySelector('#btn-crop-confirm');
-        btn.textContent = '처리 중...';
+        btn.textContent = t('common.processing');
         btn.disabled = true;
 
         if(!cropper) return;
@@ -712,8 +707,8 @@ export function renderEditorNew() {
           imageSmoothingQuality: 'high',
         }).toBlob(async (blob) => {
           if (!blob) {
-            showToast('크롭 오류가 발생했습니다.', 'error');
-            btn.textContent = '다음';
+            showToast(t('editor.crop_error'), 'error');
+            btn.textContent = t('common.next');
             btn.disabled = false;
             return;
           }
@@ -741,13 +736,14 @@ export function renderEditorNew() {
       try {
         STATUS_EL.style.display = 'block';
         STATUS_EL.style.color = 'var(--color-primary)';
-        STATUS_EL.textContent = '사진을 업로드하는 중입니다... ⏳';
-        
+        STATUS_EL.dataset.done = '';
+        STATUS_EL.textContent = t('editor.uploading');
+
         blob.name = fallbackName;
         const uploadUid = auth?.currentUser?.uid || getState('user')?.id;
         if (!uploadUid) {
           STATUS_EL.style.color = 'var(--color-error)';
-          STATUS_EL.textContent = '로그인이 필요합니다.';
+          STATUS_EL.textContent = t('editor.upload_need_login');
           return;
         }
         const { image_url } = await uploadImage(blob, { uid: uploadUid, folder: 'editor_images' });
@@ -758,17 +754,18 @@ export function renderEditorNew() {
         if (imageInput) imageInput.value = image_url;
         if (thumbInput) thumbInput.value = image_thumb_url;
         updateImageEditBtn();
-        STATUS_EL.textContent = '업로드 완료! ✅';
+        STATUS_EL.textContent = t('editor.upload_done');
+        STATUS_EL.dataset.done = '1';
         STATUS_EL.style.color = 'var(--color-info)';
         unsavedChanges = true;
       } catch (err) {
         console.error('이미지 업로드 오류:', err);
         STATUS_EL.style.color = 'var(--color-error)';
-        STATUS_EL.textContent = '업로드 실패: ' + err.message;
-        showToast('이미지 업로드 실패: ' + err.message, 'error');
+        STATUS_EL.textContent = t('editor.status_upload_failed', { msg: err.message });
+        showToast(t('editor.toast_upload_failed', { msg: err.message }), 'error');
       } finally {
         setTimeout(() => {
-          if (STATUS_EL && STATUS_EL.textContent.includes('완료')) {
+          if (STATUS_EL && STATUS_EL.dataset.done === '1') {
             STATUS_EL.style.display = 'none';
           }
         }, 3000);
@@ -788,7 +785,7 @@ export function renderEditorNew() {
           showToast(err.message, 'warning');
           return;
         }
-        showToast(err?.message || '사진을 불러올 수 없습니다.', 'error');
+        showToast(err?.message || t('common.photo_load_failed'), 'error');
       }
     }
     document.getElementById('sf-image-gallery-btn')?.addEventListener('click', () => handleEditorImagePick('gallery'));
@@ -813,7 +810,7 @@ export function renderEditorNew() {
       if (!dateVal) {
         scheduleBtn.disabled = true;
         scheduleBtn.style.opacity = '0.4';
-        scheduleBtn.title = '발행일을 먼저 선택하세요';
+        scheduleBtn.title = t('editor.schedule_need_date');
         return;
       }
       const selected = new Date(dateVal + 'T00:00:00'); // 로컬 시간 기준으로 파싱
@@ -822,7 +819,7 @@ export function renderEditorNew() {
       const isFuture = selected > today;
       scheduleBtn.disabled = !isFuture;
       scheduleBtn.style.opacity = isFuture ? '1' : '0.4';
-      scheduleBtn.title = isFuture ? '' : '예약 발행일은 미래 날짜여야 합니다';
+      scheduleBtn.title = isFuture ? '' : t('editor.schedule_future_only');
     }
 
     /* 초기 상태 + 날짜 변경 시 업데이트 */
@@ -832,7 +829,7 @@ export function renderEditorNew() {
       if (selected) {
         const conflict = allStories.find(s => s.publish_date === selected && String(s.id) !== String(editingId));
         if (conflict) {
-          showToast('이미 등록된 일화가 있는 날짜입니다.', 'error');
+          showToast(t('common.date_exists'), 'error');
           e.target.value = '';
           unsavedChanges = true;
           updatePreview();
@@ -892,7 +889,7 @@ export function renderEditorNew() {
         title: titleKo,
         summary: '',
         body: (ko['sf-body'] || '').trim(),
-        historical_date: histYear ? `${histYear}년` : '',
+        historical_date: histYear ? t('date.year_only', { y: histYear }) : '',
         historical_year: histYear,
         country: (ko['sf-country'] || '').trim(),
         publish_date: document.getElementById('sf-publish-date').value,
@@ -914,15 +911,15 @@ export function renderEditorNew() {
       try {
         if (editingId) {
           await updateStory(editingId, data);
-          showToast('초안 저장 완료', 'success');
+          showToast(t('editor.saved_draft'), 'success');
         } else {
           await createStory(data);
-          showToast('초안 생성 완료', 'success');
+          showToast(t('editor.draft_created'), 'success');
         }
         history.back();
       } catch (err) {
         saving = false;
-        showToast('저장 실패: ' + err.message, 'error');
+        showToast(`${t('editor.save_failed')}: ${err.message}`, 'error');
       }
     });
 
@@ -935,22 +932,22 @@ export function renderEditorNew() {
       try {
         if (editingId) {
           await updateStory(editingId, data);
-          showToast('수정 및 발행 완료', 'success');
+          showToast(t('editor.saved_update'), 'success');
         } else {
           await createStory(data);
-          showToast('새 일화 발행 완료!', 'success');
+          showToast(t('editor.saved_publish'), 'success');
         }
         history.back();
       } catch (err) {
         saving = false;
-        showToast('발행 실패: ' + err.message, 'error');
+        showToast(`${t('editor.publish_failed')}: ${err.message}`, 'error');
       }
     });
 
     document.getElementById('sf-schedule')?.addEventListener('click', async () => {
       const data = getFormData();
       if (!data.publish_date) {
-        showToast('예약 발행일을 선택해주세요', 'error');
+        showToast(t('editor.schedule_pick_date'), 'error');
         return;
       }
 
@@ -967,11 +964,11 @@ export function renderEditorNew() {
         } else {
           await createStory(data);
         }
-        showToast(`${data.publish_date}에 발행 예약됨`, 'success');
+        showToast(t('editor.scheduled_at', { date: data.publish_date }), 'success');
         history.back();
       } catch (err) {
         saving = false;
-        showToast('예약 실패: ' + err.message, 'error');
+        showToast(`${t('editor.schedule_failed')}: ${err.message}`, 'error');
       }
     });
 
@@ -994,8 +991,8 @@ export function renderEditorNew() {
     const escapeHTML = str => (str || '').replace(/[&<>'"]/g,
       tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
 
-    const figureName = escapeHTML(figureNameRaw || '제목 없음');
-    const bodyText = (bodyRaw || '본문이 표시됩니다...').split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHTML(p)}</p>` : '<p><br></p>').join('');
+    const figureName = escapeHTML(figureNameRaw || t('common.no_title'));
+    const bodyText = (bodyRaw || t('editor.preview_body')).split(/\n|\\n/).map(p => p.trim() ? `<p>${escapeHTML(p)}</p>` : '<p><br></p>').join('');
     const histYear = escapeHTML(document.getElementById('sf-hist-year')?.value || '???');
     const country = escapeHTML(document.getElementById('sf-country')?.value || '');
 
@@ -1026,13 +1023,13 @@ export function renderEditorNew() {
                 <div class="card-top-right">
                   <div class="card-actions">
                     <!-- 미리보기용 비활성 액션 버튼 -->
-                    <button class="card-action-btn" aria-label="공유" disabled>
+                    <button class="card-action-btn" aria-label="${t('detail.share_button')}" disabled>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
                         <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                       </svg>
                     </button>
-                    <button class="card-action-btn" aria-label="보관함" disabled>
+                    <button class="card-action-btn" aria-label="${t('detail.bookmark_button')}" disabled>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                       </svg>
@@ -1053,15 +1050,15 @@ export function renderEditorNew() {
               <div class="back-title">${figureName}</div>
               <hr class="back-divider" />
               <div class="back-body">
-                ${bodyText || '<p>본문이 표시됩니다...</p>'}
+                ${bodyText || `<p>${t('editor.preview_body')}</p>`}
               </div>
               <div class="back-footer">
-                <button class="back-editor-btn" type="button" title="에디터 한마디" style="${editorComment && editorComment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
+                <button class="back-editor-btn" type="button" title="${t('editor.form_editor_comment')}" style="${editorComment && editorComment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
                   <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
                 </button>
                 <div class="back-date-actions">
-                  <div class="back-date">${histYear}년 ${month}월 ${day}일</div>
-                  <button class="card-detail-shortcut-btn" type="button" aria-label="상세 보기" title="상세 보기" disabled>상세 보기</button>
+                  <div class="back-date">${t('date.full', { y: histYear, m: month, d: day })}</div>
+                  <button class="card-detail-shortcut-btn" type="button" aria-label="${t('home.detail_button')}" title="${t('home.detail_button')}" disabled>${t('home.detail_button')}</button>
                 </div>
               </div>
             </div>
@@ -1135,7 +1132,7 @@ export function renderEditorNew() {
           }
           if (e.type === 'click' && Date.now() - lastEditorTouchAt < 650) return;
         }
-        const comment = document.getElementById('sf-editor-comment')?.value.trim() || '에디터 코멘트가 없습니다.';
+        const comment = document.getElementById('sf-editor-comment')?.value.trim() || t('editor.comment_empty');
         /* 이미 말풍선이 떠 있으면 다시 누른 것은 닫기 동작 (바깥 클릭과 동일) */
         const existing = previewArea.querySelector('.editor-comment-bubble');
         if (existing) {

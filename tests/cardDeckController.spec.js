@@ -15,6 +15,8 @@ const {
 
 vi.mock('../src/js/state.js', () => ({
   setState: setStateMock,
+  getState: () => 'ko',
+  subscribe: vi.fn(),
 }));
 
 vi.mock('../src/js/router.js', () => ({
@@ -30,7 +32,7 @@ vi.mock('../src/js/utils/cardSwiper.js', () => ({
 }));
 
 vi.mock('../src/js/pages/calendar.js', () => ({
-  WEEKDAYS: ['일', '월', '화', '수', '목', '금', '토'],
+  getWeekdays: () => ['일', '월', '화', '수', '목', '금', '토'],
   isAtCurrentMonth: vi.fn(() => true),
   renderGrid: renderGridMock,
 }));

@@ -1330,3 +1330,15 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - 테스트: `tests/translate_content.spec.js`에 `isTransientError`·`MODEL_CANDIDATES` 검증 추가, 모델 식별자 정적 검증을 index.js→lib/translate.js 로 이동(폴백 반영).
 - **변경파일**: `functions/lib/translate.js`, `functions/index.js`, `src/js/pages/editor.js`, `tests/translate_content.spec.js`, `docs/SESSION_LOG.md`.
 - **검증**: `npm test` 38 files, 356 passed / 6 skipped / 0 failed — 100% Green. `node --check`(index.js·lib) OK, `isTransientError` node 재확인. `npm run build`·`npx cap sync android` 성공. ⚠️ 적용하려면 함수 재배포 필요: `firebase deploy --only functions:translateContent`.
+
+## 2026-06-06 02:30 — Claude Opus 4.8
+
+- **요구사항**: i18n 코어는 활성화됐으나 UI(버튼·토스트·모달·aria-label 등)에 남아있던 하드코딩 한글을 4단계 파이프라인(스캔→매핑보고→치환→회귀테스트)으로 5개 국어(ko/en/ja/es/zh) i18n 키로 치환. 주석·`console.*`·내부 판정용 문자열·dev throw·dead code는 제외.
+- **구현방법**: 8개 모듈로 쪼개 점진 적용, 각 단계 `npm test` green 유지.
+  - **딕셔너리**: 5개 `src/i18n/*.json`에 신규 네임스페이스 `auth`·`mystory`·`profile`·`report`·`search`·`license`·`notification`·`update`·`share`·`camera` + `date`(weekdays 배열/full/year_month/year_only) 추가, `common`·`editor`·`detail`·`calendar`·`settings`·`bookmarks` 대폭 확장. (영/일/스/중은 직역 채움)
+  - **i18n 코어**: `i18n/index.js`에 배열 조회용 `tList(key)` 추가.
+  - **공용/페이지 치환**: pageHeader·confirmDialog·cardDeckController·widgetThemePreview·updateSheet·notificationSettingsSheet·settingsSections / login·editor·mystory·profile·report·search·license·detail·calendar·editorstory·bookmarks / services(notifications·sharing·camera·bookmarks)·router(404). 모듈 상수(NOTIFICATION_LABELS/PERIODS, CAMERA_PROMPT_LABELS, NOTIFICATION_META title·body, calendar WEEKDAYS)는 import 시점 고정을 피해 t()/tList() 호출 함수(`getWeekdays` 등)로 전환. aria-label 셀렉터는 동일 t() 값으로 매칭하도록 정정.
+  - **로직 버그 동시 수정**: editor 업로드 상태 판별을 한글 substring(`includes('완료')`)→`dataset.done` 플래그로 교체(다국어 안전).
+  - **테스트 정비**: `tests/setup.js`에 전역 `window.matchMedia` 스텁 추가(여러 모듈이 state.js를 전이 import). cardDeckController.spec state mock에 `getState`/`subscribe` 보강 + calendar mock `WEEKDAYS`→`getWeekdays`. view-toggle.spec `export const WEEKDAYS`→`export function getWeekdays` 정적검사 갱신.
+- **변경파일**: `src/i18n/{ko,en,ja,es,zh}.json`, `src/js/i18n/index.js`, `src/js/router.js`, `src/js/components/{pageHeader,confirmDialog,widgetThemePreview,updateSheet,notificationSettingsSheet,settingsSections}.js`, `src/js/components/cardDeck/cardDeckController.js`, `src/js/pages/{login,editor,mystory,profile,report,search,license,detail,calendar,editorstory,bookmarks}.js`, `src/js/services/{notifications,sharing,camera,bookmarks}.js`, `tests/{setup,cardDeckController.spec,view-toggle.spec}.js`, `docs/SESSION_LOG.md`.
+- **검증**: `npm test` 38 files, 356 passed / 6 skipped / 0 failed — 100% Green. `npm run build` 성공. 잔여 한글은 주석·`console`·dev throw(Firebase 미설정 등)·내부 취소감지 키워드·미사용 dead code(date.js formatDateKR/formatMonthYear)뿐으로 의도적 제외.

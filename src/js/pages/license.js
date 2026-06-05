@@ -7,6 +7,7 @@
 
 import { navigate } from '../router.js';
 import { fetchStoriesWithLicense } from '../services/stories.js';
+import { t } from '../i18n/index.js';
 
 export async function renderLicense() {
   const page = document.createElement('div');
@@ -20,7 +21,7 @@ export async function renderLicense() {
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </button>
-      <h1 class="page-header-title" style="margin:0; font-size:1.2rem; line-height:1;">이미지 출처 안내</h1>
+      <h1 class="page-header-title" style="margin:0; font-size:1.2rem; line-height:1;">${t('license.title')}</h1>
     </div>
 
     <!-- 로딩 스피너 -->
@@ -53,8 +54,8 @@ export async function renderLicense() {
       if (stories.length === 0) {
         listEl.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-title">등록된 라이선스가 없습니다</div>
-            <div class="empty-state-desc">이미지 출처 정보가 포함된 발행글이 없습니다.</div>
+            <div class="empty-state-title">${t('license.empty_title')}</div>
+            <div class="empty-state-desc">${t('license.empty_desc')}</div>
           </div>
         `;
         return;
@@ -81,7 +82,7 @@ export async function renderLicense() {
       console.error(err);
       loadingEl.style.display = 'none';
       listEl.style.display = 'flex';
-      listEl.innerHTML = `<div class="empty-state"><div class="empty-state-title">오류 발생</div></div>`;
+      listEl.innerHTML = `<div class="empty-state"><div class="empty-state-title">${t('common.error_occurred')}</div></div>`;
     }
   }, 0);
 

@@ -7,21 +7,20 @@ import { t } from '../i18n/index.js';
 import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
-const NOTIFICATION_LABELS = {
-  diary: {
-    title: '일기 알림',
-    subtitle: '나의 일기 쓰기',
-  },
-  editor: {
-    title: '에디터 알림',
-    subtitle: '오늘의 일화 확인',
-  },
-};
+/* 라벨/기간은 t() 로 동적 조회 — 언어 변경 시 재렌더에서 최신 값 반영 */
+function getNotificationLabel(type) {
+  return {
+    title: t(`notification.${type}_title`),
+    subtitle: t(`notification.${type}_subtitle`),
+  };
+}
 
-const PERIODS = [
-  { value: 'AM', label: '오전' },
-  { value: 'PM', label: '오후' },
-];
+function getPeriods() {
+  return [
+    { value: 'AM', label: t('notification.am') },
+    { value: 'PM', label: t('notification.pm') },
+  ];
+}
 
 export function renderNotificationListItem() {
   return `
@@ -35,7 +34,7 @@ export function renderNotificationListItem() {
         </svg>
       </div>
       <div class="list-item-content">
-        <div class="list-item-title">알림</div>
+        <div class="list-item-title">${t('notification.title')}</div>
         <div class="list-item-subtitle notification-settings-summary">${notificationSummary()}</div>
       </div>
       <div class="list-item-action">
@@ -50,7 +49,7 @@ export function renderNotificationListItem() {
 export function renderNotificationSettingsSection() {
   return `
     <div class="settings-section notification-settings-section">
-      <div class="settings-section-title">알림</div>
+      <div class="settings-section-title">${t('notification.title')}</div>
       ${renderNotificationListItem()}
     </div>
   `;
@@ -86,7 +85,7 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
   overlay.setAttribute('aria-labelledby', 'notification-settings-title');
   overlay.innerHTML = `
     <div class="notification-settings-sheet">
-      ${renderPageHeader({ title: '알림', titleId: 'notification-settings-title', icon: 'close', backLabel: '닫기' })}
+      ${renderPageHeader({ title: t('notification.title'), titleId: 'notification-settings-title', icon: 'close', backLabel: t('common.close') })}
       <div class="notification-settings-list">
         ${renderNotificationRow('diary')}
         ${renderNotificationRow('editor')}
@@ -150,7 +149,8 @@ export function openNotificationSettingsSheet(onChange = () => {}) {
 
 function renderNotificationRow(type) {
   const setting = getNotificationSettings()[type];
-  const label = NOTIFICATION_LABELS[type];
+  const label = getNotificationLabel(type);
+  const periods = getPeriods();
   const timeParts = splitTime(setting.time);
 
   return `
@@ -159,18 +159,18 @@ function renderNotificationRow(type) {
         <div class="notification-settings-row-title">${label.title}</div>
         <div class="notification-settings-row-subtitle">${label.subtitle}</div>
       </div>
-      <div class="notification-settings-time-control" data-notification-time-control="${type}" aria-label="${label.title} 시간">
-        <select class="notification-settings-time-select" data-notification-period="${type}" data-notification-type="${type}" aria-label="${label.title} 오전 오후">
-          ${PERIODS.map((period) => `<option value="${period.value}" ${timeParts.period === period.value ? 'selected' : ''}>${period.label}</option>`).join('')}
+      <div class="notification-settings-time-control" data-notification-time-control="${type}" aria-label="${t('notification.aria_time', { title: label.title })}">
+        <select class="notification-settings-time-select" data-notification-period="${type}" data-notification-type="${type}" aria-label="${t('notification.aria_ampm', { title: label.title })}">
+          ${periods.map((period) => `<option value="${period.value}" ${timeParts.period === period.value ? 'selected' : ''}>${period.label}</option>`).join('')}
         </select>
-        <select class="notification-settings-time-select" data-notification-hour="${type}" data-notification-type="${type}" aria-label="${label.title} 시">
+        <select class="notification-settings-time-select" data-notification-hour="${type}" data-notification-type="${type}" aria-label="${t('notification.aria_hour', { title: label.title })}">
           ${Array.from({ length: 12 }, (_, index) => index + 1).map((hour) => (
-            `<option value="${String(hour).padStart(2, '0')}" ${timeParts.hour === hour ? 'selected' : ''}>${hour}시</option>`
+            `<option value="${String(hour).padStart(2, '0')}" ${timeParts.hour === hour ? 'selected' : ''}>${t('notification.hour_unit', { h: hour })}</option>`
           )).join('')}
         </select>
-        <select class="notification-settings-time-select" data-notification-minute="${type}" data-notification-type="${type}" aria-label="${label.title} 분">
+        <select class="notification-settings-time-select" data-notification-minute="${type}" data-notification-type="${type}" aria-label="${t('notification.aria_minute', { title: label.title })}">
           ${Array.from({ length: 60 }, (_, minute) => (
-            `<option value="${String(minute).padStart(2, '0')}" ${timeParts.minute === minute ? 'selected' : ''}>${String(minute).padStart(2, '0')}분</option>`
+            `<option value="${String(minute).padStart(2, '0')}" ${timeParts.minute === minute ? 'selected' : ''}>${t('notification.minute_unit', { m: String(minute).padStart(2, '0') })}</option>`
           )).join('')}
         </select>
       </div>
@@ -203,8 +203,12 @@ function updateNotificationSummary(root) {
 
 function notificationSummary() {
   const settings = getNotificationSettings();
-  const diary = settings.diary.enabled ? `일기 ${formatTimeLabel(settings.diary.time)}` : '일기 꺼짐';
-  const editor = settings.editor.enabled ? `에디터 ${formatTimeLabel(settings.editor.time)}` : '에디터 꺼짐';
+  const diary = settings.diary.enabled
+    ? t('notification.summary_diary_on', { time: formatTimeLabel(settings.diary.time) })
+    : t('notification.summary_diary_off');
+  const editor = settings.editor.enabled
+    ? t('notification.summary_editor_on', { time: formatTimeLabel(settings.editor.time) })
+    : t('notification.summary_editor_off');
   return `${diary} · ${editor}`;
 }
 
@@ -231,7 +235,7 @@ function splitTime(time) {
 
 function formatTimeLabel(time) {
   const parts = splitTime(time);
-  const period = PERIODS.find((item) => item.value === parts.period)?.label || '오후';
+  const period = getPeriods().find((item) => item.value === parts.period)?.label || t('notification.pm');
   return `${period} ${parts.hour}:${String(parts.minute).padStart(2, '0')}`;
 }
 

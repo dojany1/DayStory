@@ -14,6 +14,7 @@ import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { showToast, dismissToast } from '../components/toast.js';
+import { t } from '../i18n/index.js';
 /* html2canvas 는 captureAndShareCard 안에서 동적 import — 초기 번들 분리. */
 
 /* 공유 URL 도메인. 실제 배포 도메인으로 변경 시 한 곳만 수정. */
@@ -180,7 +181,7 @@ export async function shareToKakao(story) {
       },
       buttons: [
         {
-          title: '앱에서 보기',
+          title: t('share.open_in_app'),
           link: { mobileWebUrl: link, webUrl: link },
         },
       ],
@@ -351,7 +352,7 @@ export async function captureAndShareCard(cardElement, options = {}) {
     return { ok: false, withImage: false, reason: 'no-element' };
   }
 
-  showToast('공유 이미지 생성 중...', 'info', 30000);
+  showToast(t('share.generating'), 'info', 30000);
 
   /* onclone 에서 올바른 카드를 찾기 위한 임시 식별자 */
   const captureId = `_cap_${Date.now()}`;
@@ -445,7 +446,7 @@ export async function captureAndShareCard(cardElement, options = {}) {
     dataUrl = canvas.toDataURL('image/png');
   } catch (err) {
     console.error('카드 캡처 실패:', err?.message || err);
-    showToast('이미지 공유에 실패했습니다.', 'error');
+    showToast(t('share.image_failed'), 'error');
     return { ok: false, withImage: false, reason: 'capture-failed' };
   } finally {
     /* ── Step 5: 원본 img src 복구 + 임시 식별자 제거 ── */
@@ -459,7 +460,7 @@ export async function captureAndShareCard(cardElement, options = {}) {
   }
 
   if (!dataUrl || dataUrl.length < 32) {
-    showToast('이미지 공유에 실패했습니다.', 'error');
+    showToast(t('share.image_failed'), 'error');
     return { ok: false, withImage: false, reason: 'empty-image' };
   }
 
@@ -474,7 +475,7 @@ export async function captureAndShareCard(cardElement, options = {}) {
 
   const title = options.title || 'DayStory';
   const text = options.text || '';
-  const dialogTitle = options.dialogTitle || '카드 공유';
+  const dialogTitle = options.dialogTitle || t('share.card_share');
   const fileName = `daystory_card_${Date.now()}.png`;
   const isNative = (typeof Capacitor !== 'undefined') && Capacitor.isNativePlatform?.();
 
@@ -590,7 +591,7 @@ export function showDebugPreviewOverlay(dataUrl) {
 
   /* 닫기 버튼 */
   const btn = document.createElement('button');
-  btn.textContent = '닫기';
+  btn.textContent = t('common.close');
   btn.style.cssText = [
     'padding:10px 32px', 'border:none', 'border-radius:8px',
     'background:#fff', 'color:#000',

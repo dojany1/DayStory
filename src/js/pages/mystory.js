@@ -29,6 +29,7 @@ import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderPageHeader, bindPageHeaderBack } from '../components/pageHeader.js';
 
 import { buildCardDeck } from '../components/cardDeck/cardDeckController.js';
+import { t } from '../i18n/index.js';
 import {
   cardShell, cardFront, cardFrontTop, cardImageWrap, cardBack, emptyCardFace, cardActionButton,
   bindCardBase, parseIsoDate, formatMonthNameDate, bodyToHtml, SHARE_ICON_SVG,
@@ -52,7 +53,7 @@ function getMyStoryAuthorNickname(story = {}) {
   const nickname = candidates
     .map((value) => (typeof value === 'string' ? value.trim() : ''))
     .find(Boolean);
-  return nickname || '사용자';
+  return nickname || t('common.default_user');
 }
 
 /* ─────────────────────────────────────────────
@@ -88,7 +89,7 @@ export function renderMyStory() {
     renderSlideHTML: (raw, iso) => buildMyStorySlideHTML(raw, iso),
     bindCard: (flip, raw, iso) => bindMyStoryCardEvents(flip, raw, iso),
 
-    errorHtml: () => '<div class="empty-state"><div class="empty-state-title">오류가 발생했습니다</div></div>',
+    errorHtml: () => `<div class="empty-state"><div class="empty-state-title">${t('common.error_occurred')}</div></div>`,
   });
 }
 
@@ -103,10 +104,10 @@ function buildMyStorySlideHTML(story, isoDateStr) {
   if (!story) {
     return emptyCardFace({
       day,
-      title: '이 날의 기록이 없습니다.',
+      title: t('mystory.empty_day'),
       dateStr: formatMonthNameDate(isoDateStr),
       extraHtml: `<button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
-              + 나의 일화 쓰기
+              + ${t('mystory.write')}
             </button>`,
       flipperClass: 'mystory-flipper',
     });
@@ -123,8 +124,8 @@ function buildMyStorySlideHTML(story, isoDateStr) {
                     <path d="m15 5 4 4"/>
                   </svg>`;
 
-  const actionsHtml = `${cardActionButton({ ariaLabel: '공유', svg: SHARE_ICON_SVG, extraClass: 'share-my-story-btn', dataId: story.id })}
-                ${cardActionButton({ ariaLabel: '수정', svg: editSvg, extraClass: 'edit-my-story-btn', dataId: story.id })}`;
+  const actionsHtml = `${cardActionButton({ ariaLabel: t('detail.share_button'), svg: SHARE_ICON_SVG, extraClass: 'share-my-story-btn', dataId: story.id })}
+                ${cardActionButton({ ariaLabel: t('common.modify'), svg: editSvg, extraClass: 'edit-my-story-btn', dataId: story.id })}`;
 
   const frontHtml = cardFront({
     topHtml: cardFrontTop({
@@ -141,7 +142,7 @@ function buildMyStorySlideHTML(story, isoDateStr) {
   const backHtml = cardBack({
     title: story.title,
     bodyHtml: bodyToHtml(story.body),
-    footerHtml: `<div class="back-date">${storyYear}년 ${storyMonth}월 ${storyDay}일</div>`,
+    footerHtml: `<div class="back-date">${t('date.full', { y: storyYear, m: storyMonth, d: storyDay })}</div>`,
   });
 
   return cardShell({ frontHtml, backHtml, flipperClass: 'mystory-flipper' });
@@ -173,7 +174,7 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
     const userObj = getState('user') || {};
     const uid = auth?.currentUser?.uid || userObj.id;
     if (!uid) {
-      showToast('로그인이 필요한 서비스입니다.', 'error');
+      showToast(t('mystory.toast_need_login'), 'error');
       location.hash = '#/login';
       return false;
     }
@@ -203,7 +204,7 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
         const res = await captureAndShareCard(cardEl, {
           title: story.title || 'DayStory',
           text: `[DayStory] ${story.title || ''}`.trim(),
-          dialogTitle: '나의 일화 공유',
+          dialogTitle: t('mystory.share'),
         });
         if (!res.ok && res.reason !== 'cancelled') {
           await shareStory(story, { kind: 'mystory', includeImage: false });
@@ -236,11 +237,11 @@ export function renderMyStoryNew() {
   const uid = auth?.currentUser?.uid || userObj.id;
   if (!uid) {
     page.innerHTML = `
-      ${renderPageHeader({ title: '권한 없음', backLabel: '뒤로' })}
+      ${renderPageHeader({ title: t('editor.no_permission'), backLabel: t('common.back') })}
       <div class="empty-state" style="padding-top: 100px;">
-        <div class="empty-state-title">로그인이 필요합니다</div>
-        <div class="empty-state-desc">나의 일화를 작성하려면 로그인해주세요.</div>
-        <button class="btn btn-primary" style="margin-top: 16px;" id="ms-no-auth-back">뒤로 가기</button>
+        <div class="empty-state-title">${t('mystory.need_login_title')}</div>
+        <div class="empty-state-desc">${t('mystory.need_login_desc')}</div>
+        <button class="btn btn-primary" style="margin-top: 16px;" id="ms-no-auth-back">${t('mystory.no_auth_back')}</button>
       </div>
     `;
     setTimeout(() => {
@@ -257,20 +258,20 @@ export function renderMyStoryNew() {
   let originalSnapshot = null;
 
   page.innerHTML = `
-    ${renderPageHeader({ title: editingId ? '나의 일화 수정' : '나의 일화 쓰기', backLabel: '뒤로' })}
+    ${renderPageHeader({ title: editingId ? t('mystory.edit') : t('mystory.write'), backLabel: t('common.back') })}
 
     <div class="editor-form-section section mystory-form-section">
       <form id="mystory-form" class="story-form">
         <!-- 1. 날짜 -->
         <div class="input-group">
-          <label class="input-label">날짜 *</label>
+          <label class="input-label">${t('mystory.label_date')} *</label>
           <input class="input-field" type="date" id="ms-date" required style="text-align:left; -webkit-appearance:none; appearance:none;" />
         </div>
         <!-- 2. 카드 이미지 -->
         <div class="input-group">
           <input type="hidden" id="ms-image" />
           <input type="hidden" id="ms-image-thumb" />
-          <div id="ms-image-upload-area" class="ms-image-upload-area" role="button" tabindex="0" aria-label="카드 이미지 업로드">
+          <div id="ms-image-upload-area" class="ms-image-upload-area" role="button" tabindex="0" aria-label="${t('mystory.upload_image')}">
             <div id="ms-image-placeholder" class="ms-image-upload-placeholder">
               <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/>
@@ -279,25 +280,25 @@ export function renderMyStoryNew() {
                 <circle cx="9" cy="9" r="2"/>
                 <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
               </svg>
-              <span>카드 이미지 업로드</span>
+              <span>${t('mystory.upload_image')}</span>
             </div>
-            <img id="ms-image-preview" class="ms-image-upload-preview" style="display:none;" alt="카드 이미지 미리보기" />
+            <img id="ms-image-preview" class="ms-image-upload-preview" style="display:none;" alt="${t('mystory.image_preview_alt')}" />
           </div>
         </div>
         <!-- 3. 단일 제목 -->
         <div class="input-group">
-          <label class="input-label">제목</label>
+          <label class="input-label">${t('mystory.label_title')}</label>
           <input class="input-field" id="ms-title" />
         </div>
         <!-- 4. 본문 -->
         <div class="input-group">
-          <label class="input-label">본문</label>
+          <label class="input-label">${t('mystory.label_body')}</label>
           <textarea class="input-field" id="ms-body" style="min-height:250px; resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
         </div>
         ${editingId ? `
           <!-- 편집 모드: 폼 하단 우측에 삭제 버튼 배치 -->
           <div class="mystory-form-inline-actions">
-            <button type="button" class="btn btn-secondary mystory-form-delete-btn" id="delete-my-story-edit">삭제</button>
+            <button type="button" class="btn btn-secondary mystory-form-delete-btn" id="delete-my-story-edit">${t('common.delete')}</button>
           </div>
         ` : ''}
       </form>
@@ -305,7 +306,7 @@ export function renderMyStoryNew() {
 
     <!-- 화면 하단 floating 액션 영역 (저장 버튼) -->
     <div class="mystory-form-actions">
-      <button type="submit" form="mystory-form" id="ms-save-btn" class="btn btn-primary btn-full">저장하기</button>
+      <button type="submit" form="mystory-form" id="ms-save-btn" class="btn btn-primary btn-full">${t('mystory.save_btn')}</button>
     </div>
   `;
 
@@ -330,10 +331,10 @@ export function renderMyStoryNew() {
     async function handleBack() {
       if (hasUnsavedChanges()) {
         const confirmed = await showConfirm({
-          title: '저장하지 않고 나가기',
-          message: '작성 중인 내용이 저장되지 않습니다.\n나가시겠습니까?',
-          confirmText: '나가기',
-          cancelText: '취소',
+          title: t('mystory.leave_title'),
+          message: t('mystory.leave_message'),
+          confirmText: t('editor.leave_confirm'),
+          cancelText: t('common.cancel'),
         });
         if (!confirmed) return;
       }
@@ -359,7 +360,7 @@ export function renderMyStoryNew() {
       if (selected) {
         const conflict = allStories.find(s => s.publish_date === selected && String(s.id) !== String(editingId));
         if (conflict) {
-          showToast('이미 등록된 일화가 있는 날짜입니다.', 'error');
+          showToast(t('common.date_exists'), 'error');
           e.target.value = '';
         }
       }
@@ -386,10 +387,10 @@ export function renderMyStoryNew() {
     document.getElementById('delete-my-story-edit')?.addEventListener('click', async () => {
       if (!editingId) return;
       const confirmed = await showConfirm({
-        title: '일화 삭제',
-        message: '이 일화를 삭제하시겠습니까?\n삭제한 일화는 복구할 수 없습니다.',
-        confirmText: '삭제',
-        cancelText: '취소',
+        title: t('mystory.delete_title'),
+        message: t('mystory.delete_message'),
+        confirmText: t('common.delete'),
+        cancelText: t('common.cancel'),
         danger: true,
       });
       if (!confirmed) return;
@@ -397,7 +398,7 @@ export function renderMyStoryNew() {
       try {
         await deleteMyStory(editingId);
         void syncDiaryStateFromList(allStories.filter((story) => String(story.id) !== String(editingId)));
-        showToast('일화가 삭제되었습니다.', 'success');
+        showToast(t('mystory.toast_deleted'), 'success');
         /* 진입 경로(/mystory, /profile, /editorstory 등)로 자연스럽게 복귀.
            PageHeader 뒤로가기 버튼과 동일한 history.back() 패턴을 사용한다.
            history 가 비어있는 외부 진입(직접 URL, 알림 등) 케이스를 위해
@@ -411,7 +412,7 @@ export function renderMyStoryNew() {
         window.addEventListener('hashchange', () => clearTimeout(fallbackTimer), { once: true });
         history.back();
       } catch (err) {
-        showToast('삭제 중 오류가 발생했습니다.', 'error');
+        showToast(t('mystory.toast_delete_error'), 'error');
       }
     });
 
@@ -421,7 +422,7 @@ export function renderMyStoryNew() {
       let localSrc = imageSrc;
       if (isCrossOrigin) {
         if (!isFirebaseStorageUrl(imageSrc)) {
-          showToast('외부 이미지는 편집할 수 없습니다.\n[사진 추가]로 새 이미지를 업로드해주세요.', 'error');
+          showToast(t('editor.crop_external_error'), 'error');
           return;
         }
         try {
@@ -433,7 +434,7 @@ export function renderMyStoryNew() {
           localSrc = URL.createObjectURL(blob);
         } catch (err) {
           console.error('이미지 fetch 실패:', err);
-          showToast('이미지를 불러올 수 없습니다. 다시 시도해주세요.', 'error');
+          showToast(t('editor.image_load_failed'), 'error');
           return;
         }
       }
@@ -443,12 +444,12 @@ export function renderMyStoryNew() {
 
       overlay.innerHTML = `
         <div class="crop-modal-header">
-          <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="닫기">
+          <button type="button" class="crop-modal-back-btn" id="btn-crop-back" aria-label="${t('common.close')}">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-          카드 이미지 편집
+          ${t('editor.crop_title')}
         </div>
         <div class="crop-modal-body">
           <img id="cropper-image" src="${localSrc}" style="max-width: 100%; display: block;" />
@@ -459,9 +460,9 @@ export function renderMyStoryNew() {
               <path d="M21 2v6h-6"/>
               <path d="M21 13a9 9 0 1 1-2.63-6.36L21 9"/>
             </svg>
-            회전
+            ${t('editor.rotate')}
           </button>
-          <button type="button" class="btn-crop-confirm" id="btn-crop-confirm">완료</button>
+          <button type="button" class="btn-crop-confirm" id="btn-crop-confirm">${t('common.done')}</button>
         </div>
       `;
       const wrapper = document.querySelector('.mobile-wrapper') || document.body;
@@ -501,7 +502,7 @@ export function renderMyStoryNew() {
       };
 
       image.onerror = () => {
-        showToast('이미지를 불러올 수 없어 편집이 제한됩니다.', 'error');
+        showToast(t('editor.crop_edit_limited'), 'error');
         if (isCrossOrigin && localSrc.startsWith('blob:')) URL.revokeObjectURL(localSrc);
         unlockScroll();
         overlay.remove();
@@ -513,7 +514,7 @@ export function renderMyStoryNew() {
 
       overlay.querySelector('#btn-crop-confirm').addEventListener('click', () => {
         const btn = overlay.querySelector('#btn-crop-confirm');
-        btn.textContent = '처리 중...';
+        btn.textContent = t('common.processing');
         btn.disabled = true;
 
         if(!cropper) return;
@@ -525,8 +526,8 @@ export function renderMyStoryNew() {
           imageSmoothingQuality: 'high',
         }).toBlob(async (blob) => {
           if (!blob) {
-            showToast('크롭 오류가 발생했습니다.', 'error');
-            btn.textContent = '다음';
+            showToast(t('editor.crop_error'), 'error');
+            btn.textContent = t('common.done');
             btn.disabled = false;
             return;
           }
@@ -552,7 +553,7 @@ export function renderMyStoryNew() {
       if (!btn) return;
       btn.disabled = true;
       btn.style.opacity = '0.5';
-      btn.innerHTML = `${ICON_SPINNER}업로드 중...`;
+      btn.innerHTML = `${ICON_SPINNER}${t('mystory.uploading_btn')}`;
     }
 
     function setSaveBtnDone() {
@@ -560,9 +561,9 @@ export function renderMyStoryNew() {
       if (!btn) return;
       btn.disabled = false;
       btn.style.opacity = '';
-      btn.innerHTML = `${ICON_CHECK}업로드 완료!`;
+      btn.innerHTML = `${ICON_CHECK}${t('mystory.upload_done_btn')}`;
       setTimeout(() => {
-        if (btn) btn.innerHTML = '저장하기';
+        if (btn) btn.innerHTML = t('mystory.save_btn');
       }, 2000);
     }
 
@@ -571,7 +572,7 @@ export function renderMyStoryNew() {
       if (!btn) return;
       btn.disabled = false;
       btn.style.opacity = '';
-      btn.innerHTML = '저장하기';
+      btn.innerHTML = t('mystory.save_btn');
     }
 
     async function processUploadBlob(blob, fallbackName) {
@@ -581,7 +582,7 @@ export function renderMyStoryNew() {
       try {
         setSaveBtnUploading();
         if (!uid) {
-          showToast('로그인이 필요합니다.', 'error');
+          showToast(t('editor.upload_need_login'), 'error');
           return;
         }
         blob.name = fallbackName;
@@ -596,7 +597,7 @@ export function renderMyStoryNew() {
       } catch (error) {
         console.error('이미지 업로드 오류:', error);
         setSaveBtnReady();
-        showToast('이미지 저장에 실패했습니다.', 'error');
+        showToast(t('mystory.toast_image_save_failed'), 'error');
       }
     }
 
@@ -628,7 +629,7 @@ export function renderMyStoryNew() {
           showToast(err.message, 'warning');
           return;
         }
-        showToast(err?.message || '사진을 불러올 수 없습니다.', 'error');
+        showToast(err?.message || t('common.photo_load_failed'), 'error');
       }
     }
     const uploadArea = document.getElementById('ms-image-upload-area');
@@ -643,7 +644,7 @@ export function renderMyStoryNew() {
       /* 이미지 업로드 중이면 저장 차단 (버튼 disabled 상태로 판단) */
       const saveBtnEl = document.getElementById('ms-save-btn');
       if (saveBtnEl?.disabled) {
-        showToast('사진 업로드가 완료될 때까지 기다려주세요', 'warning');
+        showToast(t('mystory.toast_wait_upload'), 'warning');
         return;
       }
 
@@ -657,16 +658,16 @@ export function renderMyStoryNew() {
         author_nickname: getMyStoryAuthorNickname()
       };
 
-      if (!data.publish_date) return showToast('날짜를 입력해주세요', 'warning');
-      if (!data.image_url) return showToast('카드 이미지를 추가해주세요', 'warning');
+      if (!data.publish_date) return showToast(t('mystory.toast_need_date'), 'warning');
+      if (!data.image_url) return showToast(t('mystory.toast_need_image'), 'warning');
 
       try {
         if (editingId) {
           await updateMyStory(editingId, data);
-          showToast('일화가 수정되었습니다', 'success');
+          showToast(t('mystory.toast_updated'), 'success');
         } else {
           await createMyStory(data);
-          showToast('새 일화가 작성되었습니다', 'success');
+          showToast(t('mystory.toast_created'), 'success');
         }
         const nextStories = editingId
           ? [...allStories.filter((story) => String(story.id) !== String(editingId)), { ...data, id: editingId }]
@@ -674,7 +675,7 @@ export function renderMyStoryNew() {
         void syncDiaryStateFromList(nextStories);
         navigate('/mystory', { date: data.publish_date });
       } catch (err) {
-        showToast('저장 중 오류 발생', 'error');
+        showToast(t('mystory.toast_save_error'), 'error');
       }
     });
 

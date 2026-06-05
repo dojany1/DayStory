@@ -39,6 +39,24 @@ function installStorage(name) {
 installStorage('localStorage');
 installStorage('sessionStorage');
 
+/* state.js 가 모듈 로드 시 applyTheme() → window.matchMedia 를 호출한다.
+   jsdom 에는 matchMedia 가 없어 i18n/state 를 전이적으로 import 하는 테스트가
+   터지므로 전역 스텁을 설치한다. */
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  const stub = (query) => ({
+    matches: false,
+    media: query,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+    dispatchEvent() { return false; },
+  });
+  try {
+    Object.defineProperty(window, 'matchMedia', { value: stub, configurable: true, writable: true });
+  } catch { /* 무시 */ }
+}
+
 /* @capacitor/haptics web: navigator.vibrate 부재 시 reject → unhandled rejection 방지 */
 if (typeof navigator !== 'undefined' && typeof navigator.vibrate !== 'function') {
   try {

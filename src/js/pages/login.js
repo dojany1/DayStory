@@ -14,7 +14,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { setState } from '../state.js';
 import { auth, db } from '../firebase.js';
-import { applyLangFromProfile, getCurrentLang } from '../i18n/index.js';
+import { applyLangFromProfile, getCurrentLang, t } from '../i18n/index.js';
 
 /*
  * Firebase 인증 함수 임포트
@@ -63,7 +63,7 @@ function resolveNickname(profileData, firebaseUser) {
     (profileData && profileData.nickname) ||
     firebaseUser?.displayName ||
     (email ? email.split('@')[0] : '') ||
-    '사용자'
+    t('common.default_user')
   );
 }
 
@@ -103,11 +103,11 @@ async function handleGoogleSignIn(e) {
   const btn = e?.currentTarget;
   const spanEl = btn?.querySelector('span');
   const originalText = spanEl?.textContent;
-  if (btn) { btn.disabled = true; if (spanEl) spanEl.textContent = '로그인 중...'; }
+  if (btn) { btn.disabled = true; if (spanEl) spanEl.textContent = t('auth.logging_in'); }
 
   if (!auth) {
     if (btn) { btn.disabled = false; if (spanEl) spanEl.textContent = originalText; }
-    return showToast('Firebase가 설정되지 않았습니다', 'error');
+    return showToast(t('auth.firebase_not_set'), 'error');
   }
 
   try {
@@ -115,15 +115,15 @@ async function handleGoogleSignIn(e) {
     if (Capacitor.isNativePlatform()) {
       const result = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true, useCredentialManager: false });
       const idToken = result.credential?.idToken;
-      if (!idToken) throw new Error('Google 인증 토큰을 받지 못했습니다.');
+      if (!idToken) throw new Error(t('auth.err_google_token'));
       const credential = GoogleAuthProvider.credential(idToken, result.credential?.accessToken);
       firebaseUser = (await signInWithCredential(auth, credential)).user;
     } else {
       firebaseUser = (await signInWithPopup(auth, googleProvider)).user;
     }
-    if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
+    if (!firebaseUser) throw new Error(t('auth.err_no_user'));
     const { isExisting, nickname } = await upsertProfileAndNavigate(firebaseUser);
-    showToast(isExisting ? `${nickname}님으로 로그인` : '구글 로그인 성공!', 'success');
+    showToast(isExisting ? t('auth.toast_login_as', { nickname }) : t('auth.toast_google_ok'), 'success');
   } catch (err) {
     const msg = (err.message || '').toLowerCase();
     console.error('[GoogleSignIn] 실패:', err.message, err.code);
@@ -132,11 +132,11 @@ async function handleGoogleSignIn(e) {
         || err.code === 'auth/popup-closed-by-user') {
       // 사용자 취소 — toast 없음
     } else if (msg.includes('10:') || msg.includes('developer_error') || msg.includes('sign_in_failed')) {
-      showToast('Google 로그인에 일시적 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error');
+      showToast(t('auth.toast_google_temp_error'), 'error');
     } else if (msg.includes('no credentials available')) {
-      showToast('기기 설정 > 계정에서 Google 계정을 추가한 뒤 다시 시도하세요.', 'error');
+      showToast(t('auth.toast_google_no_account'), 'error');
     } else {
-      showToast(err.message || 'Google 로그인 실패', 'error');
+      showToast(err.message || t('auth.toast_google_failed'), 'error');
     }
   } finally {
     if (btn) { btn.disabled = false; if (spanEl) spanEl.textContent = originalText; }
@@ -144,23 +144,23 @@ async function handleGoogleSignIn(e) {
 }
 
 async function handleAppleSignIn() {
-  if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
+  if (!auth) return showToast(t('auth.firebase_not_set'), 'error');
   try {
     let firebaseUser = null;
     if (Capacitor.isNativePlatform()) {
       const result = await FirebaseAuthentication.signInWithApple({ skipNativeAuth: true });
       const { idToken, nonce } = result.credential || {};
-      if (!idToken) throw new Error('Apple 인증 토큰을 받지 못했습니다.');
+      if (!idToken) throw new Error(t('auth.err_apple_token'));
       const credential = new OAuthProvider('apple.com').credential({ idToken, rawNonce: nonce });
       firebaseUser = (await signInWithCredential(auth, credential)).user;
     } else {
       firebaseUser = (await signInWithPopup(auth, appleProvider)).user;
     }
-    if (!firebaseUser) throw new Error('사용자 정보를 가져올 수 없습니다.');
+    if (!firebaseUser) throw new Error(t('auth.err_no_user'));
     const { isExisting, nickname } = await upsertProfileAndNavigate(firebaseUser);
-    showToast(isExisting ? `${nickname}님으로 로그인` : 'Apple 로그인 성공!', 'success');
+    showToast(isExisting ? t('auth.toast_login_as', { nickname }) : t('auth.toast_apple_ok'), 'success');
   } catch (err) {
-    showToast(err.message || 'Apple 로그인 실패', 'error');
+    showToast(err.message || t('auth.toast_apple_failed'), 'error');
   }
 }
 
@@ -177,50 +177,50 @@ export function renderLogin() {
     <!-- 로고 영역 -->
     <div class="auth-logo">
       <h1 class="auth-logo-title">DayStory</h1>
-      <p class="auth-logo-subtitle">매일 만나는 역사 카드</p>
+      <p class="auth-logo-subtitle">${t('auth.subtitle')}</p>
     </div>
 
     <!-- 로그인 폼 -->
     <form class="auth-form" id="login-form">
       <div class="input-group">
-        <label class="input-label" for="login-email">이메일</label>
+        <label class="input-label" for="login-email">${t('auth.email')}</label>
         <input class="input-field" type="email" id="login-email"
                placeholder="email@example.com" autocomplete="email" required />
       </div>
       <div class="input-group">
-        <label class="input-label" for="login-password">비밀번호</label>
+        <label class="input-label" for="login-password">${t('auth.password')}</label>
         <input class="input-field" type="password" id="login-password"
-               placeholder="비밀번호를 입력하세요" autocomplete="current-password" required />
+               placeholder="${t('auth.password_placeholder')}" autocomplete="current-password" required />
       </div>
       <button type="submit" class="btn btn-primary btn-full btn-large" id="login-submit">
-        <span id="login-btn-text">로그인</span>
+        <span id="login-btn-text">${t('auth.login')}</span>
       </button>
     </form>
 
     <!-- 구분선 -->
-    <div class="auth-divider">또는</div>
+    <div class="auth-divider">${t('auth.divider_or')}</div>
 
     <!-- Apple 소셜 로그인 (App Store 4.8 — Google과 동등 이상 위치) -->
     <button class="auth-social-btn auth-social-btn--apple" id="apple-login-btn">
       ${appleIcon}
-      <span>Apple로 계속하기</span>
+      <span>${t('auth.continue_apple')}</span>
     </button>
 
     <!-- Google 소셜 로그인 -->
     <button class="auth-social-btn" id="google-login-btn" style="margin-top: var(--space-3);">
       ${googleIcon}
-      <span>Google로 계속하기</span>
+      <span>${t('auth.continue_google')}</span>
     </button>
 
     <!-- 하단 링크 -->
     <div class="auth-footer">
-      <p>계정이 없으신가요? <button id="goto-signup">회원가입</button></p>
+      <p>${t('auth.no_account')}<button id="goto-signup">${t('auth.signup')}</button></p>
       <p style="margin-top:var(--space-2)">
 
     <!-- 버전 정보 -->
     <div class="auth-version-block">
       <div class="settings-privacy-link">
-        <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">개인정보처리방침</a>
+        <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">${t('settings.privacy_link')}</a>
       </div>
       <div class="settings-version">DayStory v${pkg.version}</div>
       <div class="settings-version">2026 DOKHU Team</div>
@@ -238,15 +238,15 @@ export function renderLogin() {
       const password = document.getElementById('login-password').value;
 
       if (!email || !password) {
-        return showToast('이메일과 비밀번호를 입력하세요', 'warning');
+        return showToast(t('auth.toast_need_credentials'), 'warning');
       }
 
       if (!auth) {
-        return showToast('Firebase가 설정되지 않았습니다', 'error');
+        return showToast(t('auth.firebase_not_set'), 'error');
       }
 
       const btnText = document.getElementById('login-btn-text');
-      btnText.textContent = '로그인 중...';
+      btnText.textContent = t('auth.logging_in');
 
       try {
         /*
@@ -277,12 +277,12 @@ export function renderLogin() {
         }
 
         const nickname = resolveNickname(profileData, firebaseUser);
-        showToast(`${nickname}님으로 로그인`, 'success');
+        showToast(t('auth.toast_login_as', { nickname }), 'success');
         document.getElementById('bottom-nav').style.display = 'flex';
         navigate('/editorstory');
       } catch (err) {
-        showToast(err.message || '로그인 실패', 'error');
-        btnText.textContent = '로그인';
+        showToast(err.message || t('auth.toast_login_failed'), 'error');
+        btnText.textContent = t('auth.login');
       }
     });
 
@@ -298,14 +298,14 @@ export function renderLogin() {
     /* 비밀번호 재설정 이메일 발송 */
     document.getElementById('forgot-pw')?.addEventListener('click', async () => {
       const email = document.getElementById('login-email').value.trim();
-      if (!email) return showToast('이메일을 먼저 입력하세요', 'warning');
-      if (!auth) return showToast('Firebase가 설정되지 않았습니다', 'error');
+      if (!email) return showToast(t('auth.toast_need_email'), 'warning');
+      if (!auth) return showToast(t('auth.firebase_not_set'), 'error');
 
       try {
         await sendPasswordResetEmail(auth, email);
-        showToast('비밀번호 재설정 이메일이 발송되었습니다', 'success');
+        showToast(t('auth.toast_reset_sent'), 'success');
       } catch (err) {
-        showToast(err.message || '이메일 발송 실패', 'error');
+        showToast(err.message || t('auth.toast_reset_failed'), 'error');
       }
     });
   }, 0);
@@ -324,7 +324,7 @@ export function renderSignup() {
 
   page.innerHTML = `
     <!-- 닫기 버튼 -->
-    <button id="close-signup-btn" class="close-auth-btn" aria-label="닫기">
+    <button id="close-signup-btn" class="close-auth-btn" aria-label="${t('common.close')}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M18 6L6 18M6 6l12 12"/>
       </svg>
@@ -332,63 +332,63 @@ export function renderSignup() {
 
     <!-- 로고 영역 -->
     <div class="auth-logo">
-      <h1 class="auth-logo-title">회원가입</h1>
-      <p class="auth-logo-subtitle">매일 만나는 역사 카드</p>
+      <h1 class="auth-logo-title">${t('auth.signup')}</h1>
+      <p class="auth-logo-subtitle">${t('auth.subtitle')}</p>
     </div>
 
     <!-- 회원가입 폼 -->
     <form class="auth-form" id="signup-form">
       <div class="input-group">
-        <label class="input-label" for="signup-email">이메일</label>
+        <label class="input-label" for="signup-email">${t('auth.email')}</label>
         <input class="input-field" type="email" id="signup-email"
                placeholder="email@example.com" autocomplete="email" required />
       </div>
       <div class="input-group">
-        <label class="input-label" for="signup-password">비밀번호</label>
+        <label class="input-label" for="signup-password">${t('auth.password')}</label>
         <input class="input-field" type="password" id="signup-password"
-               placeholder="8자 이상" autocomplete="new-password" minlength="8" required />
+               placeholder="${t('auth.password_min_placeholder')}" autocomplete="new-password" minlength="8" required />
       </div>
       <div class="input-group">
-        <label class="input-label" for="signup-password2">비밀번호 확인</label>
+        <label class="input-label" for="signup-password2">${t('auth.password_confirm')}</label>
         <input class="input-field" type="password" id="signup-password2"
-               placeholder="비밀번호를 한번 더 입력하세요" autocomplete="new-password" required />
+               placeholder="${t('auth.password_confirm_placeholder')}" autocomplete="new-password" required />
       </div>
 
       <!-- 이용약관 동의 -->
       <label style="display:flex;align-items:flex-start;gap:var(--space-2);font-size:var(--text-sm);color:var(--color-text-secondary);cursor:pointer;">
         <input type="checkbox" id="agree-terms" required style="margin-top:3px;" />
-        <span>이용약관 및 개인정보 처리방침에 동의합니다</span>
+        <span>${t('auth.agree_terms')}</span>
       </label>
 
       <button type="submit" class="btn btn-primary btn-full btn-large" id="signup-submit">
-        <span id="signup-btn-text">가입하기</span>
+        <span id="signup-btn-text">${t('auth.signup_submit')}</span>
       </button>
     </form>
 
     <!-- 구분선 -->
-    <div class="auth-divider">또는 소셜 계정으로 가입</div>
+    <div class="auth-divider">${t('auth.divider_or_social')}</div>
 
     <!-- Apple 소셜 (App Store 4.8 — 더 상단 위치) -->
     <button class="auth-social-btn auth-social-btn--apple" id="apple-signup-btn">
       ${appleIcon}
-      <span>Apple로 계속하기</span>
+      <span>${t('auth.continue_apple')}</span>
     </button>
 
     <!-- Google 소셜 -->
     <button class="auth-social-btn" id="google-signup-btn" style="margin-top: var(--space-3);">
       ${googleIcon}
-      <span>Google로 계속하기</span>
+      <span>${t('auth.continue_google')}</span>
     </button>
 
     <!-- 하단 링크 -->
     <div class="auth-footer">
-      <p>이미 계정이 있으신가요? <button id="goto-login">로그인</button></p>
+      <p>${t('auth.have_account')}<button id="goto-login">${t('auth.login')}</button></p>
     </div>
 
     <!-- 버전 정보 -->
     <div class="auth-version-block">
       <div class="settings-privacy-link">
-        <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">개인정보처리방침</a>
+        <a href="${PRIVACY_URL}" target="_blank" rel="noopener noreferrer">${t('settings.privacy_link')}</a>
       </div>
       <div class="settings-version">DayStory v${pkg.version}</div>
       <div class="settings-version">2026 DOKHU Team</div>
@@ -412,15 +412,15 @@ export function renderSignup() {
       const pw2 = document.getElementById('signup-password2').value;
 
       if (pw1 !== pw2) {
-        return showToast('비밀번호가 일치하지 않습니다', 'error');
+        return showToast(t('auth.toast_password_mismatch'), 'error');
       }
 
       if (!auth) {
-        return showToast('Firebase가 설정되지 않았습니다', 'error');
+        return showToast(t('auth.firebase_not_set'), 'error');
       }
 
       const btnText = document.getElementById('signup-btn-text');
-      btnText.textContent = '가입 중...';
+      btnText.textContent = t('auth.signing_up');
 
       try {
         /*
@@ -451,12 +451,12 @@ export function renderSignup() {
           applyLangFromProfile(profileData);
         }
 
-        showToast('회원가입 완료!', 'success');
+        showToast(t('auth.toast_signup_ok'), 'success');
         document.getElementById('bottom-nav').style.display = 'flex';
         navigate('/editorstory');
       } catch (err) {
-        showToast(err.message || '회원가입 실패', 'error');
-        btnText.textContent = '가입하기';
+        showToast(err.message || t('auth.toast_signup_failed'), 'error');
+        btnText.textContent = t('auth.signup_submit');
       }
     });
 

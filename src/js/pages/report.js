@@ -11,6 +11,7 @@
 
 import { navigate, getParams } from '../router.js';
 import { showToast } from '../components/toast.js';
+import { t } from '../i18n/index.js';
 
 
 /**
@@ -30,35 +31,35 @@ export function renderReport() {
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </button>
-      <h1 class="page-header-title" style="margin:0; font-size:1.2rem; line-height:1;">오류 신고</h1>
+      <h1 class="page-header-title" style="margin:0; font-size:1.2rem; line-height:1;">${t('report.title')}</h1>
     </div>
 
     <!-- 신고 유형 선택 -->
-    <div class="section-title" style="margin-top:var(--space-2);">신고 유형</div>
+    <div class="section-title" style="margin-top:var(--space-2);">${t('report.type')}</div>
     <div class="report-category-group" id="report-categories">
       <label class="report-category selected" data-value="typo">
         <div class="report-category-radio"></div>
-        <span>오탈자</span>
+        <span>${t('report.type_typo')}</span>
       </label>
       <label class="report-category" data-value="factual_error">
         <div class="report-category-radio"></div>
-        <span>사실 오류</span>
+        <span>${t('report.type_fact')}</span>
       </label>
       <label class="report-category" data-value="other">
         <div class="report-category-radio"></div>
-        <span>기타</span>
+        <span>${t('report.type_etc')}</span>
       </label>
     </div>
 
     <!-- 상세 설명 입력 -->
     <div class="input-group" style="margin-bottom:var(--space-6);">
-      <label class="input-label">상세 설명</label>
-      <textarea class="report-textarea" id="report-description" 
-                placeholder="발견한 오류를 자세히 설명해주세요..."></textarea>
+      <label class="input-label">${t('report.detail')}</label>
+      <textarea class="report-textarea" id="report-description"
+                placeholder="${t('report.placeholder')}"></textarea>
     </div>
 
     <!-- 제출 버튼 -->
-    <button class="btn btn-primary btn-full btn-large" id="report-submit">신고 제출</button>
+    <button class="btn btn-primary btn-full btn-large" id="report-submit">${t('report.submit')}</button>
   `;
 
   /* ---- 이벤트 리스너 연결 ---- */
@@ -79,10 +80,10 @@ export function renderReport() {
       const description = document.getElementById('report-description').value.trim();
 
       if (!description) {
-        return showToast('설명을 입력해주세요', 'warning');
+        return showToast(t('report.toast_need_detail'), 'warning');
       }
 
-      showToast('신고가 접수되었습니다. 감사합니다! ✅', 'success');
+      showToast(t('report.toast_done'), 'success');
 
       /* 1초 후 이전 페이지로 돌아감 */
       setTimeout(() => window.history.back(), 1000);

@@ -365,7 +365,7 @@ async function handleRoute() {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">🔍</div>
-        <div class="empty-state-title">페이지를 찾을 수 없습니다</div>
+        <div class="empty-state-title">${t('common.page_not_found')}</div>
       </div>`;
     currentRoute = path;
     targetRoute = null;
@@ -394,6 +394,7 @@ function updateNav(path) {
  * month/day 만 router 내부에서 분해해 사용. */
 import { getLocalToday } from './utils/date.js';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { t } from './i18n/index.js';
 
 function getLocalTodaySelection() {
   const date = getLocalToday();                       /* 'YYYY-MM-DD' */

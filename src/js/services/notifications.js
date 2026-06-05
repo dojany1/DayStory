@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { showToast } from '../components/toast.js';
+import { t } from '../i18n/index.js';
 
 const STORAGE_KEY = 'ds_notification_settings_v1';
 
@@ -9,18 +10,15 @@ const DEFAULT_SETTINGS = {
   editor: { enabled: false, time: '12:00' },
 };
 
+/* title/body 는 발송 시점에 t() 로 현재 언어로 조회한다 (notification.push_* 키) */
 const NOTIFICATION_META = {
   diary: {
     id: 1001,
     route: '/mystory',
-    title: '일기 쓸 시간이에요',
-    body: '오늘의 기록을 남겨보세요.',
   },
   editor: {
     id: 1002,
     route: '/editorstory',
-    title: '오늘의 일화가 도착했어요',
-    body: 'DayStory에서 오늘의 이야기를 확인해보세요.',
   },
 };
 
@@ -52,7 +50,7 @@ export async function updateNotificationSetting(type, patch) {
 
     if (!granted) {
       next.enabled = false;
-      showToast('알림 권한이 필요합니다', 'warning');
+      showToast(t('notification.toast_need_perm'), 'warning');
     }
   }
 
@@ -106,7 +104,7 @@ export async function syncNotificationSchedules(type = null) {
     await LocalNotifications.schedule({ notifications });
   } catch (err) {
     console.warn('알림 예약 실패:', err);
-    showToast('알림 예약에 실패했습니다', 'error');
+    showToast(t('notification.toast_schedule_failed'), 'error');
   }
 }
 
@@ -143,8 +141,8 @@ function buildNotificationRequest(type, setting) {
 
   return {
     id: meta.id,
-    title: meta.title,
-    body: meta.body,
+    title: t(`notification.push_${type}_title`),
+    body: t(`notification.push_${type}_body`),
     schedule: {
       on: { hour, minute },
       /* Doze 모드/절전에서도 발화하도록 — 그렇지 않으면 예약은 되지만 시간에 안 옴. */
@@ -170,8 +168,8 @@ async function ensureAndroidNotificationChannel() {
   try {
     await LocalNotifications.createChannel({
       id: 'daystory_default',
-      name: 'DayStory 알림',
-      description: '일기와 카드 알림',
+      name: t('notification.channel_name'),
+      description: t('notification.channel_desc'),
       importance: 4,        /* IMPORTANCE_HIGH */
       visibility: 1,        /* VISIBILITY_PUBLIC */
       vibration: true,
@@ -259,8 +257,8 @@ function showWebNotification(type) {
   if (!hasWebNotificationPermission()) return;
 
   const meta = NOTIFICATION_META[type];
-  const notification = new Notification(meta.title, {
-    body: meta.body,
+  const notification = new Notification(t(`notification.push_${type}_title`), {
+    body: t(`notification.push_${type}_body`),
     tag: `daystory-${type}`,
     data: {
       type,

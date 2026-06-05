@@ -7,6 +7,7 @@
 
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { t } from '../i18n/index.js';
 
 /* escapeText 는 escapeHtml 의 alias — 호출부 변경 최소화 (Wave 5 통합) */
 const escapeText = escapeHtml;
@@ -26,8 +27,8 @@ const escapeText = escapeHtml;
 export function showConfirm({
   title,
   message = '',
-  confirmText = '확인',
-  cancelText = '취소',
+  confirmText = t('common.confirm'),
+  cancelText = t('common.cancel'),
   danger = false,
   holdDuration = 0,
   holdMessage,
@@ -50,7 +51,7 @@ export function showConfirm({
     const totalSeconds = hold ? Math.ceil(holdDuration / 1000) : 0;
     const formatMessage = typeof holdMessage === 'function'
       ? holdMessage
-      : (secondsLeft) => `${secondsLeft}초간 누르고 계세요...`;
+      : (secondsLeft) => t('common.hold_to_confirm', { seconds: secondsLeft });
     const initialStatus = hold ? formatMessage(totalSeconds) : '';
 
     overlay.innerHTML = `

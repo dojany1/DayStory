@@ -17,6 +17,7 @@
 import { navigate } from '../router.js';
 import { searchStoriesDB, fetchStories } from '../services/stories.js';
 import { escapeHtml } from '../utils/sanitize.js';
+import { t } from '../i18n/index.js';
 
 
 /* ─────────────────────────────────────────────
@@ -34,7 +35,7 @@ export function renderSearch() {
   page.innerHTML = `
     <!-- 페이지 제목 -->
     <div class="page-header" style="height: 60px; padding: 0 16px; align-items:center; display:flex;">
-      <h1 class="page-header-title" style="margin:0; line-height:1;">검색</h1>
+      <h1 class="page-header-title" style="margin:0; line-height:1;">${t('search.title')}</h1>
     </div>
 
     <!-- 검색창 -->
@@ -42,7 +43,7 @@ export function renderSearch() {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" id="search-input" placeholder="인물, 사건, 국가로 검색..." autocomplete="off" />
+      <input type="text" id="search-input" placeholder="${t('search.placeholder')}" autocomplete="off" />
     </div>
 
     <!-- 검색 결과 목록 -->
@@ -54,8 +55,8 @@ export function renderSearch() {
 
     <!-- 검색 결과 없음 상태 -->
     <div id="search-empty" class="empty-state" style="display:none;">
-      <div class="empty-state-title">검색 결과가 없습니다</div>
-      <div class="empty-state-desc">다른 키워드로 검색해보세요</div>
+      <div class="empty-state-title">${t('search.empty_title')}</div>
+      <div class="empty-state-desc">${t('search.empty_desc')}</div>
     </div>
   `;
 
@@ -68,8 +69,8 @@ export function renderSearch() {
     if (allStories.length === 0) {
       resultsEl.style.display = 'none';
       if (emptyEl) {
-        emptyEl.querySelector('.empty-state-title').textContent = '아직 발행된 카드가 없어요';
-        emptyEl.querySelector('.empty-state-desc').textContent = '곧 첫 카드가 도착할 거예요';
+        emptyEl.querySelector('.empty-state-title').textContent = t('search.no_cards_title');
+        emptyEl.querySelector('.empty-state-desc').textContent = t('search.no_cards_desc');
         emptyEl.style.display = 'flex';
       }
       return;

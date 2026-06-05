@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 const CHEVRON_LEFT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
 const CLOSE_X = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
 const SPACER = `<div class="page-header-spacer" aria-hidden="true"></div>`;
@@ -17,7 +19,7 @@ const SPACER = `<div class="page-header-spacer" aria-hidden="true"></div>`;
 export function renderPageHeader({
   title,
   titleId = '',
-  backLabel = '뒤로',
+  backLabel = t('common.back'),
   icon = 'back',
   rightAction = SPACER,
 }) {

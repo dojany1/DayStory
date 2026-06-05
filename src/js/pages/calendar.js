@@ -18,7 +18,7 @@ import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date
 import { navigate } from '../router.js';
 import { shareStory, captureAndShareCard } from '../services/sharing.js';
 import { localizedStory } from '../utils/storyI18n.js';
-import { t } from '../i18n/index.js';
+import { t, tList } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { showConfirm } from '../components/confirmDialog.js';
 import { Capacitor } from '@capacitor/core';
@@ -29,7 +29,10 @@ import {
 } from '../components/cardDeck/cardFace.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
 
-export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+/* 요일 헤더는 t() 기반 — 언어 변경 시 재렌더에서 최신 값 반영 */
+export function getWeekdays() {
+  return tList('date.weekdays');
+}
 
 const LS_EDITOR_NOTES_KEY = 'readEditorNotes';
 
@@ -65,17 +68,17 @@ export function renderCalendar() {
     </div>
 
     <div class="calendar-month-nav">
-      <button type="button" class="calendar-month-arrow" id="cal-prev-month" aria-label="이전 달">
+      <button type="button" class="calendar-month-arrow" id="cal-prev-month" aria-label="${t('common.prev_month')}">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div class="calendar-month-label" id="cal-month-label">—</div>
-      <button type="button" class="calendar-month-arrow" id="cal-next-month" aria-label="다음 달">
+      <button type="button" class="calendar-month-arrow" id="cal-next-month" aria-label="${t('common.next_month')}">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
 
     <div class="calendar-weekdays">
-      ${WEEKDAYS.map((d, i) => `<div class="calendar-weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}
+      ${getWeekdays().map((d, i) => `<div class="calendar-weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}
     </div>
 
     <div class="calendar-grid" id="calendar-grid">
@@ -167,7 +170,7 @@ export function renderGrid(page, state, today) {
   const monthLabel = page.querySelector('#cal-month-label');
   if (!grid || !monthLabel) return;
 
-  monthLabel.textContent = `${state.year}년 ${state.month + 1}월`;
+  monthLabel.textContent = t('date.year_month', { y: state.year, m: state.month + 1 });
 
   const nextBtn = page.querySelector('#cal-next-month');
   if (nextBtn) {
@@ -446,7 +449,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       await shareStory(story, { kind, includeImage: kind === 'history' });
       return;
     }
-    const dialogTitle = kind === 'history' ? '역사 일화 공유' : '나의 일화 공유';
+    const dialogTitle = kind === 'history' ? t('calendar.share_history') : t('mystory.share');
     const text = `[DayStory] ${story.title || story.figure_name || ''}`.trim();
     const res = await captureAndShareCard(cardEl, {
       title: story.title || story.figure_name || 'DayStory',
@@ -484,8 +487,8 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
 
   /* 공유 / 북마크 버튼 — 역사 일화에만 표시 */
   if (mode === 'history') {
-    const shareBtn = overlay.querySelector('.card-action-btn[aria-label="공유"]');
-    const bookmarkBtn = overlay.querySelector('.card-action-btn[aria-label="보관함"]');
+    const shareBtn = overlay.querySelector(`.card-action-btn[aria-label="${t('detail.share_button')}"]`);
+    const bookmarkBtn = overlay.querySelector(`.card-action-btn[aria-label="${t('detail.bookmark_button')}"]`);
 
     if (shareBtn) {
       shareBtn.addEventListener('click', async (e) => {
@@ -530,18 +533,18 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
   const bookmarkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                   </svg>`;
-  const actionsHtml = `${cardActionButton({ ariaLabel: '공유', svg: SHARE_ICON_SVG })}
-                <button class="card-action-btn bookmark-btn${isBookmarked ? ' active' : ''}" aria-label="보관함">${bookmarkSvg}</button>`;
+  const actionsHtml = `${cardActionButton({ ariaLabel: t('detail.share_button'), svg: SHARE_ICON_SVG })}
+                <button class="card-action-btn bookmark-btn${isBookmarked ? ' active' : ''}" aria-label="${t('detail.bookmark_button')}">${bookmarkSvg}</button>`;
 
   const metaHtml = `${escapeHtml(story.country || '')}<br>
                 ${year} / ${String(month).padStart(2, '0')} / ${String(day).padStart(2, '0')}`;
 
   const footerHtml = `
-            <button class="back-editor-btn${!editorBtnHidden && story.id && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="에디터 한마디" data-story-id="${escapeHtml(story.id || '')}" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
+            <button class="back-editor-btn${!editorBtnHidden && story.id && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="${t('editor.form_editor_comment')}" data-story-id="${escapeHtml(story.id || '')}" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
               <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
-              <div class="back-date">${escapeHtml(story.historical_year || year)}년 ${month}월 ${day}일</div>
+              <div class="back-date">${t('date.full', { y: escapeHtml(story.historical_year || year), m: month, d: day })}</div>
               <button class="card-detail-shortcut-btn" type="button">${escapeHtml(t('home.detail_button'))}</button>
             </div>`;
 
@@ -573,7 +576,7 @@ function getMyCardNickname(story) {
     story.author?.nickname, story.author?.displayName,
     profile.nickname, user.displayName, emailName,
   ];
-  return candidates.map(v => typeof v === 'string' ? v.trim() : '').find(Boolean) || '사용자';
+  return candidates.map(v => typeof v === 'string' ? v.trim() : '').find(Boolean) || t('common.default_user');
 }
 
 function buildMyCardHtml(story, year, month, day, nickname = '') {
@@ -581,8 +584,8 @@ function buildMyCardHtml(story, year, month, day, nickname = '') {
                     <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
                     <path d="m15 5 4 4"/>
                   </svg>`;
-  const actionsHtml = `${cardActionButton({ ariaLabel: '공유', svg: SHARE_ICON_SVG, extraClass: 'share-my-story-btn', dataId: story.id || '' })}
-                ${cardActionButton({ ariaLabel: '수정', svg: editSvg, extraClass: 'edit-my-story-btn', dataId: story.id || '' })}`;
+  const actionsHtml = `${cardActionButton({ ariaLabel: t('detail.share_button'), svg: SHARE_ICON_SVG, extraClass: 'share-my-story-btn', dataId: story.id || '' })}
+                ${cardActionButton({ ariaLabel: t('common.modify'), svg: editSvg, extraClass: 'edit-my-story-btn', dataId: story.id || '' })}`;
 
   const frontHtml = cardFront({
     topHtml: cardFrontTop({
@@ -598,7 +601,7 @@ function buildMyCardHtml(story, year, month, day, nickname = '') {
   const backHtml = cardBack({
     title: story.title || '',
     bodyHtml: bodyToHtml(story.body),
-    footerHtml: `<div class="back-date">${year}년 ${month}월 ${day}일</div>`,
+    footerHtml: `<div class="back-date">${t('date.full', { y: year, m: month, d: day })}</div>`,
   });
 
   return cardShell({ frontHtml, backHtml, flipperClass: 'mystory-flipper' });

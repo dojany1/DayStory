@@ -67,19 +67,19 @@ function renderAttribution(story, sources) {
   if (!hasImageAttribution && !sources.length) return '';
 
   return `
-    <section class="detail-attribution" aria-label="이미지 출처 및 참고 자료">
+    <section class="detail-attribution" aria-label="${t('detail.attribution_aria')}">
       ${hasImageAttribution ? `
         <div class="detail-license">
-          <div class="detail-sources-title">이미지 출처</div>
+          <div class="detail-sources-title">${t('detail.image_source_title')}</div>
           <div class="detail-license-text">
-            ${imageSource ? `<div>출처: ${escapeHtml(imageSource)}</div>` : ''}
-            ${imageLicense ? `<div>라이선스: ${escapeHtml(imageLicense)}</div>` : ''}
+            ${imageSource ? `<div>${t('detail.source_label')}: ${escapeHtml(imageSource)}</div>` : ''}
+            ${imageLicense ? `<div>${t('detail.license_label')}: ${escapeHtml(imageLicense)}</div>` : ''}
           </div>
         </div>
       ` : ''}
       ${sources.length ? `
         <div class="detail-sources">
-          <div class="detail-sources-title">참고 자료</div>
+          <div class="detail-sources-title">${t('detail.refs_title')}</div>
           ${sources.map((source) => {
             const safeTitle = escapeHtml(source.title);
             const safeUrl = sanitizeUrl(source.url);
@@ -119,11 +119,11 @@ export function renderDetail(params) {
 
   /* 로딩 스피너를 먼저 보여주고, 데이터를 비동기로 불러옴 */
   page.innerHTML = `
-    <button type="button" class="detail-sheet-backdrop" aria-label="상세 닫기"></button>
-    <section class="detail-sheet" role="dialog" aria-modal="true" aria-label="일화 상세">
+    <button type="button" class="detail-sheet-backdrop" aria-label="${t('common.close')}"></button>
+    <section class="detail-sheet" role="dialog" aria-modal="true" aria-label="${t('detail.sheet_aria')}">
       <div class="detail-sheet-drag-zone">
         <div class="detail-sheet-handle" aria-hidden="true"></div>
-        <button type="button" class="detail-sheet-close" id="detail-close" aria-label="닫기">
+        <button type="button" class="detail-sheet-close" id="detail-close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -279,12 +279,12 @@ async function loadDetail(page, storyId) {
       <div class="detail-title-row">
         <h1 class="detail-figure-name">${escapeHtml(story.figure_name)}</h1>
         <div class="detail-title-actions">
-          <button class="btn-icon bookmark-btn ${bookmarked ? 'active' : ''}" id="detail-bookmark" aria-label="보관함">
+          <button class="btn-icon bookmark-btn ${bookmarked ? 'active' : ''}" id="detail-bookmark" aria-label="${t('detail.bookmark_button')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
             </svg>
           </button>
-          <button class="btn-icon" id="detail-share" aria-label="공유">
+          <button class="btn-icon" id="detail-share" aria-label="${t('detail.share_button')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
@@ -296,7 +296,7 @@ async function loadDetail(page, storyId) {
       <div class="detail-body">${bodyHtml}</div>
       <div class="detail-historical-date">${historicalMetaHtml}</div>
       ${editorComment ? `
-        <section class="detail-editor-note" aria-label="에디터의 말">
+        <section class="detail-editor-note" aria-label="${t('detail.editor_note_aria')}">
           <div class="detail-editor-note-header">
             <div class="detail-editor-avatar-wrap">
               <img class="detail-editor-avatar" src="/assets/editor_profile.png" alt="${escapeHtml(editorName)}" loading="lazy" decoding="async" />
@@ -332,7 +332,7 @@ async function loadDetail(page, storyId) {
       btn.classList.toggle('active', bookmarked);
     });
 
-    showToast(bookmarked ? '보관함에 저장했습니다' : '보관함에서 해제했습니다', 'success');
+    showToast(bookmarked ? t('detail.bookmark_saved') : t('toast.bookmark_removed'), 'success');
   };
   page.querySelector('#detail-bookmark')?.addEventListener('click', handleBookmark);
 
@@ -351,7 +351,7 @@ async function loadDetail(page, storyId) {
     try {
       const url = buildShareUrl(story.id);
       await navigator.clipboard.writeText(`[DayStory] ${story.figure_name}\n\n${story.summary || ''}\n${url}`);
-      showToast('클립보드에 복사했습니다', 'success');
+      showToast(t('detail.share_copied'), 'success');
     } catch { /* 사용자가 공유를 취소한 경우 무시 */ }
   };
   page.querySelector('#detail-share')?.addEventListener('click', shareAction);

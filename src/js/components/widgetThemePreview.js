@@ -1,6 +1,8 @@
+import { t } from '../i18n/index.js';
+
 export function renderWidgetThemeOption(theme, currentTheme) {
   const isDark = theme === 'dark';
-  const label = isDark ? '다크' : '화이트';
+  const label = isDark ? t('settings.theme_dark') : t('settings.theme_light');
   const activeClass = currentTheme === theme ? ' active' : '';
 
   return `

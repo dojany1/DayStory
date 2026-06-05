@@ -15,10 +15,11 @@
 
 import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { t } from '../i18n/index.js';
 
 export class CameraPermissionError extends Error {
-  constructor(message = '카메라 / 사진 접근 권한이 필요합니다. 설정에서 권한을 허용해주세요.') {
-    super(message);
+  constructor(message) {
+    super(message || t('camera.permission_message'));
     this.name = 'CameraPermissionError';
   }
 }
@@ -28,12 +29,15 @@ const CANCEL_HINTS = [
   'not available while running in simulator',
 ];
 const PERMISSION_HINTS = ['permission', 'denied', 'not authorized', 'unauthorized'];
-const CAMERA_PROMPT_LABELS_KO = {
-  promptLabelHeader: '사진 첨부',
-  promptLabelPhoto: '앨범에서 선택',
-  promptLabelPicture: '카메라로 촬영',
-  promptLabelCancel: '취소',
-};
+/* Capacitor Camera 액션시트 라벨 — 호출 시점에 현재 언어로 조회 */
+function getCameraPromptLabels() {
+  return {
+    promptLabelHeader: t('camera.prompt_header'),
+    promptLabelPhoto: t('camera.prompt_photo'),
+    promptLabelPicture: t('camera.prompt_picture'),
+    promptLabelCancel: t('camera.prompt_cancel'),
+  };
+}
 
 function isCancelError(err) {
   const msg = String(err?.message || err || '').toLowerCase();
@@ -50,7 +54,7 @@ async function pickViaCapacitor(source) {
     const photo = await Camera.getPhoto({
       source,
       resultType: CameraResultType.DataUrl,
-      ...CAMERA_PROMPT_LABELS_KO,
+      ...getCameraPromptLabels(),
       quality: 90,
       allowEditing: false,
       presentationStyle: 'fullscreen',
@@ -95,7 +99,7 @@ function pickViaInput({ capture }) {
       };
       reader.onerror = () => {
         cleanup();
-        reject(reader.error || new Error('파일을 읽을 수 없습니다.'));
+        reject(reader.error || new Error(t('camera.file_read_error')));
       };
       reader.readAsDataURL(file);
     });

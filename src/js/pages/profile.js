@@ -16,7 +16,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { showToast } from '../components/toast.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
-import { getCurrentLang } from '../i18n/index.js';
+import { getCurrentLang, t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -36,7 +36,7 @@ export function renderProfile() {
   const isAdmin = getState('isAdmin');
 
   const adminBtn = isAdmin
-    ? '<button type="button" id="goto-editor-btn" class="page-header-back" aria-label="콘텐츠 관리">'
+    ? `<button type="button" id="goto-editor-btn" class="page-header-back" aria-label="${t('editor.content_mgmt')}">`
       + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
       + '<path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"/>'
       + '<path d="M14.487 7.858A1 1 0 0 1 14 7V2"/>'
@@ -45,7 +45,7 @@ export function renderProfile() {
       + '</svg></button>'
     : '';
 
-  const gearBtn = '<button type="button" id="goto-settings-btn" class="page-header-back" aria-label="설정">'
+  const gearBtn = `<button type="button" id="goto-settings-btn" class="page-header-back" aria-label="${t('nav.settings')}">`
     + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
     + '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>'
     + '<circle cx="12" cy="12" r="3"/>'
@@ -55,7 +55,7 @@ export function renderProfile() {
     ? `<div class="page-header-actions" style="display:flex;align-items:center;">${adminBtn}${gearBtn}</div>`
     : gearBtn;
 
-  const profileHeader = renderPageHeader({ title: '마이 페이지', icon: 'none', rightAction });
+  const profileHeader = renderPageHeader({ title: t('profile.title'), icon: 'none', rightAction });
 
   page.innerHTML = `
     ${profileHeader}
@@ -79,12 +79,12 @@ export function renderProfile() {
           </div>
           <div class="settings-user-meta">
             <div class="settings-user-name">
-              ${(profile && profile.nickname) || user.displayName || (user.email ? user.email.split('@')[0] : '사용자')}
-              ${isAdmin ? '<span class="settings-user-badge">관리자</span>' : ''}
+              ${(profile && profile.nickname) || user.displayName || (user.email ? user.email.split('@')[0] : t('common.default_user'))}
+              ${isAdmin ? `<span class="settings-user-badge">${t('profile.admin_badge')}</span>` : ''}
             </div>
-            <div class="settings-user-email">${user.email || '이메일 정보 없음'}</div>
+            <div class="settings-user-email">${user.email || t('profile.no_email')}</div>
           </div>
-          <button id="profile-edit-btn" class="profile-edit-btn" aria-label="프로필 편집">
+          <button id="profile-edit-btn" class="profile-edit-btn" aria-label="${t('profile.edit_title')}">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -126,7 +126,7 @@ function syncProfileDom(next) {
     if (next.isEditor) {
       const badge = document.createElement('span');
       badge.className = 'settings-user-badge';
-      badge.textContent = '관리자';
+      badge.textContent = t('profile.admin_badge');
       nameEl.appendChild(badge);
     }
   }
@@ -179,8 +179,8 @@ function openProfileEditModal() {
   overlay.innerHTML = `
     <div class="profile-edit-modal" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
       <div class="profile-edit-header">
-        <span class="profile-edit-title" id="profile-edit-title">프로필 편집</span>
-        <button class="profile-edit-close" id="profile-edit-close" aria-label="닫기">
+        <span class="profile-edit-title" id="profile-edit-title">${t('profile.edit_title')}</span>
+        <button class="profile-edit-close" id="profile-edit-close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -196,7 +196,7 @@ function openProfileEditModal() {
                 : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
               }
             </div>
-            <button type="button" class="profile-edit-photo-icon" id="profile-edit-photo-btn" aria-label="프로필 사진 변경">
+            <button type="button" class="profile-edit-photo-icon" id="profile-edit-photo-btn" aria-label="${t('profile.change_photo')}">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
@@ -207,16 +207,16 @@ function openProfileEditModal() {
         </div>
 
         <div class="profile-edit-field">
-          <label class="profile-edit-label" for="profile-nickname-input">닉네임</label>
+          <label class="profile-edit-label" for="profile-nickname-input">${t('profile.nickname')}</label>
           <input type="text" class="profile-edit-input" id="profile-nickname-input"
-                 value="${escapeHtml(currentNickname)}" maxlength="20" placeholder="닉네임을 입력하세요" />
-          <div class="profile-edit-hint">최대 20자</div>
+                 value="${escapeHtml(currentNickname)}" maxlength="20" placeholder="${t('profile.nickname_placeholder')}" />
+          <div class="profile-edit-hint">${t('profile.max_hint')}</div>
         </div>
       </div>
 
       <div class="profile-edit-actions">
-        <button class="profile-edit-cancel" id="profile-edit-cancel" type="button">취소</button>
-        <button class="profile-edit-save" id="profile-edit-save" type="button">저장</button>
+        <button class="profile-edit-cancel" id="profile-edit-cancel" type="button">${t('common.cancel')}</button>
+        <button class="profile-edit-save" id="profile-edit-save" type="button">${t('common.save')}</button>
       </div>
     </div>
   `;
@@ -271,7 +271,7 @@ function openProfileEditModal() {
         showToast(err.message, 'warning');
         return;
       }
-      showToast(err?.message || '사진을 불러올 수 없습니다.', 'error');
+      showToast(err?.message || t('common.photo_load_failed'), 'error');
     }
   }
   overlay.querySelector('#profile-edit-photo-btn')?.addEventListener('click', () => handleProfilePhotoPick('gallery'));
@@ -281,11 +281,11 @@ function openProfileEditModal() {
     const nickname = overlay.querySelector('#profile-nickname-input').value.trim();
 
     if (!nickname) {
-      showToast('닉네임을 입력해주세요.', 'warning');
+      showToast(t('profile.toast_need_nickname'), 'warning');
       return;
     }
 
-    saveBtn.textContent = '저장 중...';
+    saveBtn.textContent = t('profile.saving');
     saveBtn.disabled = true;
 
     try {
@@ -320,12 +320,12 @@ function openProfileEditModal() {
          DOM 을 직접 패치한다. */
       syncProfileDom({ nickname, photoURL: updateData.photoURL, isEditor: getState('isAdmin') });
 
-      showToast('프로필이 수정되었습니다.', 'success');
+      showToast(t('profile.toast_updated'), 'success');
       closeModal();
     } catch (err) {
       console.error('프로필 저장 실패:', err);
-      showToast('프로필 저장에 실패했습니다.', 'error');
-      saveBtn.textContent = '저장';
+      showToast(t('profile.toast_save_failed'), 'error');
+      saveBtn.textContent = t('common.save');
       saveBtn.disabled = false;
     }
   });
@@ -342,12 +342,12 @@ function openCropperForProfile(imageSrc, onConfirm) {
 
   cropOverlay.innerHTML = `
     <div class="crop-modal-header">
-      <button type="button" class="crop-modal-back-btn" id="btn-profile-crop-back" aria-label="뒤로가기">
+      <button type="button" class="crop-modal-back-btn" id="btn-profile-crop-back" aria-label="${t('common.back')}">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m15 18-6-6 6-6"/>
         </svg>
       </button>
-      프로필 사진 자르기
+      ${t('profile.crop_title')}
     </div>
     <div class="crop-modal-body">
       <img id="profile-cropper-image" src="${imageSrc}" style="max-width: 100%; display: block;" />
@@ -358,9 +358,9 @@ function openCropperForProfile(imageSrc, onConfirm) {
           <path d="M21 2v6h-6"/>
           <path d="M21 13a9 9 0 1 1-2.63-6.36L21 9"/>
         </svg>
-        회전
+        ${t('editor.rotate')}
       </button>
-      <button type="button" class="btn-crop-confirm" id="btn-profile-crop-confirm">확인</button>
+      <button type="button" class="btn-crop-confirm" id="btn-profile-crop-confirm">${t('common.confirm')}</button>
     </div>
   `;
   const wrapper = document.querySelector('.mobile-wrapper') || document.body;
@@ -387,7 +387,7 @@ function openCropperForProfile(imageSrc, onConfirm) {
   };
 
   image.onerror = () => {
-    showToast('이미지를 불러올 수 없습니다.', 'error');
+    showToast(t('editor.image_load_failed'), 'error');
     cropOverlay.remove();
   };
 
@@ -406,7 +406,7 @@ function openCropperForProfile(imageSrc, onConfirm) {
 
   cropOverlay.querySelector('#btn-profile-crop-confirm').addEventListener('click', () => {
     const btn = cropOverlay.querySelector('#btn-profile-crop-confirm');
-    btn.textContent = '처리 중...';
+    btn.textContent = t('common.processing');
     btn.disabled = true;
 
     if (!cropper) return;
@@ -418,8 +418,8 @@ function openCropperForProfile(imageSrc, onConfirm) {
       imageSmoothingQuality: 'high',
     }).toBlob((blob) => {
       if (!blob) {
-        showToast('크롭 오류가 발생했습니다.', 'error');
-        btn.textContent = '확인';
+        showToast(t('editor.crop_error'), 'error');
+        btn.textContent = t('common.confirm');
         btn.disabled = false;
         return;
       }

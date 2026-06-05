@@ -46,9 +46,9 @@ describe('View toggle — calendar.js exports', () => {
     expect(src).toMatch(/export function isAtCurrentMonth/);
   });
 
-  it('exports WEEKDAYS', () => {
+  it('exports getWeekdays', () => {
     const src = readFileSync(root('src/js/pages/calendar.js'), 'utf8');
-    expect(src).toMatch(/export const WEEKDAYS/);
+    expect(src).toMatch(/export function getWeekdays/);
   });
 });
 

@@ -204,7 +204,7 @@ function renderStories(contentEl, list, tab, onClick, opts = {}) {
     const title = opts.searching
       ? t('bookmarks.empty_search')
       : tab === 'mine'
-        ? '아직 작성한 일화가 없습니다'
+        ? t('bookmarks.empty_authored')
         : t('bookmarks.empty_mine');
     contentEl.innerHTML = `
       <div class="empty-state">
@@ -259,7 +259,7 @@ function renderArchiveHeader(initialTab = 'history') {
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
-        <button type="button" class="calendar-toggle-btn${isMine ? ' active' : ''}" data-tab="mine" aria-label="나의 카드">
+        <button type="button" class="calendar-toggle-btn${isMine ? ' active' : ''}" data-tab="mine" aria-label="${escapeHtml(t('bookmarks.aria_mine_cards'))}">
           <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true" focusable="false">
             <circle cx="12" cy="8" r="5"/>
             <path d="M20 21a8 8 0 0 0-16 0"/>
@@ -302,7 +302,7 @@ function renderMiniCard(story) {
           <div class="mini-date">${monthLabel}${monthLabel !== '' && dayLabel !== '' ? '. ' : ''}${dayLabel}</div>
         </div>
         <div class="mini-top-right">
-          <button class="mini-bookmark-btn bookmark-btn active" data-story-id="${escapeHtml(story.id)}" aria-label="북마크">
+          <button class="mini-bookmark-btn bookmark-btn active" data-story-id="${escapeHtml(story.id)}" aria-label="${escapeHtml(t('bookmarks.section_label'))}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
             </svg>
@@ -340,7 +340,7 @@ function renderMyMiniCard(story) {
           <div class="mini-date">${month}${month !== '' && day !== '' ? '. ' : ''}${day}</div>
         </div>
         <div class="mini-top-right">
-          <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="수정">
+          <button class="card-action-btn edit-my-story-btn" data-id="${escapeHtml(story.id || '')}" aria-label="${escapeHtml(t('common.modify'))}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
               <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
               <path d="m15 5 4 4"/>

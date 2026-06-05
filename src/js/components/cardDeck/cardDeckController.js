@@ -23,8 +23,9 @@ import { setState } from '../../state.js';
 import { setOnUnmount } from '../../router.js';
 import { getLocalToday } from '../../utils/date.js';
 import { createCardSwiper } from '../../utils/cardSwiper.js';
-import { renderGrid, isAtCurrentMonth, WEEKDAYS } from '../../pages/calendar.js';
+import { renderGrid, isAtCurrentMonth, getWeekdays } from '../../pages/calendar.js';
 import { ICON_CALENDAR, ICON_CARD } from './cardFace.js';
+import { t } from '../../i18n/index.js';
 
 /* ── 페이지 shell 마크업 (휠 피커 + 카드 영역 + 캘린더 뷰) ── */
 function buildShellHtml({ idPrefix: P, headerHtml = '', initialYear, savedView }) {
@@ -35,7 +36,7 @@ function buildShellHtml({ idPrefix: P, headerHtml = '', initialYear, savedView }
       <div class="wheel-picker-wrapper">
         <div class="wheel-selection-box"></div>
         <div class="modern-wheel-scroll" id="${P}-month-scroll"></div>
-        <button type="button" class="view-toggle-btn" id="${P}-view-toggle" aria-label="보기 방식 변경">${savedView === 'calendar' ? ICON_CARD : ICON_CALENDAR}</button>
+        <button type="button" class="view-toggle-btn" id="${P}-view-toggle" aria-label="${t('common.view_toggle')}">${savedView === 'calendar' ? ICON_CARD : ICON_CALENDAR}</button>
       </div>
       <div class="wheel-picker-wrapper" id="${P}-day-picker">
         <div class="wheel-selection-box"></div>
@@ -52,16 +53,16 @@ function buildShellHtml({ idPrefix: P, headerHtml = '', initialYear, savedView }
 
     <div class="page-calendar-view" id="${P}-cal-view" hidden>
       <div class="calendar-month-nav">
-        <button type="button" class="calendar-month-arrow" id="cal-prev-month" aria-label="이전 달">
+        <button type="button" class="calendar-month-arrow" id="cal-prev-month" aria-label="${t('common.prev_month')}">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="calendar-month-label" id="cal-month-label">—</div>
-        <button type="button" class="calendar-month-arrow" id="cal-next-month" aria-label="다음 달">
+        <button type="button" class="calendar-month-arrow" id="cal-next-month" aria-label="${t('common.next_month')}">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
       <div class="calendar-weekdays">
-        ${WEEKDAYS.map((d, i) => `<div class="calendar-weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}
+        ${getWeekdays().map((d, i) => `<div class="calendar-weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('')}
       </div>
       <div class="calendar-grid" id="calendar-grid">
         <div class="calendar-grid-loading"><div class="loading-spinner"></div></div>
@@ -119,7 +120,7 @@ async function mountCardDeck(page, config) {
     /* 페이지별 데이터 로드 */
     const result = await config.loadData({ page, today, todayIso, localTodayStr });
     if (!result || result.isEmpty) {
-      page.innerHTML = (config.emptyHtml && config.emptyHtml()) || '<div class="empty-state"><div class="empty-state-title">표시할 카드가 없습니다</div></div>';
+      page.innerHTML = (config.emptyHtml && config.emptyHtml()) || `<div class="empty-state"><div class="empty-state-title">${t('common.empty_cards')}</div></div>`;
       return;
     }
 
@@ -434,6 +435,6 @@ async function mountCardDeck(page, config) {
     });
   } catch (err) {
     console.error('카드덱 로딩 실패:', err?.message || err);
-    page.innerHTML = (config.errorHtml && config.errorHtml(err)) || '<div class="empty-state"><div class="empty-state-title">오류가 발생했습니다</div></div>';
+    page.innerHTML = (config.errorHtml && config.errorHtml(err)) || `<div class="empty-state"><div class="empty-state-title">${t('common.error_occurred')}</div></div>`;
   }
 }

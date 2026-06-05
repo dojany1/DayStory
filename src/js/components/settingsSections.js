@@ -20,7 +20,7 @@ import { t, getCurrentLang, setLang } from '../i18n/index.js';
 import { saveLanguagePreference } from '../services/userProfile.js';
 import { forceRoute } from '../router.js';
 
-const LANGS = ['ko', 'en', 'ja'];
+const LANGS = ['ko', 'en', 'ja', 'es', 'zh'];
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import pkg from '../../../package.json';
 
@@ -67,6 +67,8 @@ export function renderSettingsSections() {
         ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
         ${renderLangOption('en', t('settings.lang_en'), currentLang)}
         ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
+        ${renderLangOption('es', t('settings.lang_es'), currentLang)}
+        ${renderLangOption('zh', t('settings.lang_zh'), currentLang)}
         <span class="theme-option-thumb" aria-hidden="true"></span>
       </div>
     </div>

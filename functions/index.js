@@ -12,10 +12,27 @@
      "/share/**" → 이 함수
    ===================================================================== */
 
-const { onRequest, onCall } = require('firebase-functions/v2/https');
+const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
+const {
+  SYSTEM_PROMPT,
+  TARGET_LANGS,
+  TRANSLATABLE_FIELDS,
+  MODEL_CANDIDATES,
+  buildUserPrompt,
+  parseTranslationResponse,
+  isTransientError,
+} = require('./lib/translate');
 
 admin.initializeApp();
+
+/* Gemini API 키 — Firebase Secret Manager 에 저장한다.
+   설정: firebase functions:secrets:set GEMINI_API_KEY */
+const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
+
+/* 재시도 백오프용 sleep */
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const APP_URL = 'https://daystory.app';
 const SITE_NAME = 'DayStory';
@@ -188,5 +205,93 @@ exports.syncAdminClaim = onCall(
     }
 
     return { admin: shouldBeAdmin };
+  }
+);
+
+
+/* =====================================================================
+   translateContent — 관리자 전용 자동 번역 (Gemini)
+   =====================================================================
+   에디터에서 한국어 원문 카드 필드를 전달하면 en/ja/es/zh 4개 국어로
+   동시에 번역해 돌려준다.
+     - 보안: Admin Custom Claim(token.admin === true) 필수.
+     - 모델: @google/genai SDK + gemini-2.5-flash
+     - 시스템 프롬프트(SYSTEM_PROMPT)가 줄바꿈(\n) 보존 + 코드블록 JSON 응답 강제.
+
+   요청  data: { fields: { title?, body?, country?, editor_comment? } }
+        (하위호환: { text: '<한국어 본문>' } 도 허용)
+   응답  { translations: { en:{…}, ja:{…}, es:{…}, zh:{…} } }
+
+   사전: firebase functions:secrets:set GEMINI_API_KEY
+   배포: firebase deploy --only functions:translateContent
+   ===================================================================== */
+exports.translateContent = onCall(
+  { region: 'asia-northeast3', secrets: [GEMINI_API_KEY], maxInstances: 5, timeoutSeconds: 120 },
+  async (request) => {
+    /* 1) 인가 — Admin Custom Claim 확인 (storage.rules / syncAdminClaim 과 동일 기준) */
+    if (request.auth?.token?.admin !== true) {
+      throw new HttpsError('permission-denied', '관리자만 사용할 수 있는 기능입니다.');
+    }
+
+    /* 2) 입력 검증 — fields(객체) 우선, 하위호환으로 text(문자열)도 허용 */
+    const data = request.data || {};
+    const fields = data.fields && typeof data.fields === 'object'
+      ? data.fields
+      : (typeof data.text === 'string' ? { body: data.text } : {});
+    const hasContent = TRANSLATABLE_FIELDS
+      .some((k) => typeof fields[k] === 'string' && fields[k].trim());
+    if (!hasContent) {
+      throw new HttpsError('invalid-argument', '번역할 한국어 원문이 없습니다.');
+    }
+
+    /* 3) Gemini 호출 (모델 폴백 + 일시오류 재시도) + 응답 파싱 */
+    try {
+      const { GoogleGenAI } = require('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY.value() });
+      const genConfig = {
+        contents: buildUserPrompt(fields),
+        config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.7 },
+      };
+
+      /* 모델 후보를 순회하며, 과부하(503)/한도(429)/내부오류(500) 같은 일시오류면
+         짧게 백오프 후 재시도하고, 모델이 계속 막히면 다음 후보로 폴백한다. */
+      let response = null;
+      let lastErr = null;
+      const ATTEMPTS_PER_MODEL = 2;
+      for (const model of MODEL_CANDIDATES) {
+        for (let attempt = 0; attempt < ATTEMPTS_PER_MODEL; attempt++) {
+          try {
+            response = await ai.models.generateContent({ model, ...genConfig });
+            lastErr = null;
+            break;
+          } catch (err) {
+            lastErr = err;
+            if (!isTransientError(err)) throw err; /* 영구 오류(키/요청 오류 등)는 즉시 중단 */
+            await sleep(500 * (attempt + 1)); /* 0.5s → 1.0s 백오프 */
+          }
+        }
+        if (response) break;
+      }
+
+      if (!response) {
+        /* 모든 모델이 일시오류로 실패 → 사용자에게 재시도 안내 (internal 아님) */
+        console.error('translateContent 일시오류(모든 모델 실패):', lastErr && lastErr.message);
+        throw new HttpsError('unavailable', 'AI 번역 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      const raw = response && typeof response.text === 'string' ? response.text : '';
+      const parsed = parseTranslationResponse(raw);
+
+      /* 대상 언어(en/ja/es/zh) 객체만 추려 반환 */
+      const translations = {};
+      TARGET_LANGS.forEach((lang) => {
+        if (parsed[lang] && typeof parsed[lang] === 'object') translations[lang] = parsed[lang];
+      });
+      return { translations };
+    } catch (err) {
+      if (err instanceof HttpsError) throw err;
+      console.error('translateContent 실패:', err);
+      throw new HttpsError('internal', '번역 처리 중 오류가 발생했습니다.');
+    }
   }
 );

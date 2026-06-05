@@ -8,12 +8,12 @@
 import { auth, db } from '../firebase.js';
 import { doc, setDoc } from 'firebase/firestore';
 
-const SUPPORTED_LANGS = ['ko', 'en', 'ja'];
+const SUPPORTED_LANGS = ['ko', 'en', 'ja', 'es', 'zh'];
 
 /**
  * saveLanguagePreference — 현재 로그인 사용자의 언어 설정을 Firestore 에 저장
  * profiles/{uid} 문서에 languagePreference 필드를 merge 로 기록한다.
- * @param {string} lang - 'ko' | 'en' | 'ja'
+ * @param {string} lang - 'ko' | 'en' | 'ja' | 'es' | 'zh'
  * @returns {Promise<boolean>} 저장 성공 여부 (게스트/미설정/오류 시 false)
  */
 export async function saveLanguagePreference(lang) {

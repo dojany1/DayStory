@@ -27,6 +27,7 @@ import {
 } from '../services/stories.js';
 import { uploadImage } from '../services/images.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
+import { translateContentApi } from '../services/translate.js';
 import { auth } from '../firebase.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
@@ -326,8 +327,11 @@ export function renderEditorNew() {
         <button type="button" class="editor-lang-tab active" data-lang="ko" role="tab" aria-selected="true">한국어</button>
         <button type="button" class="editor-lang-tab" data-lang="en" role="tab" aria-selected="false">English</button>
         <button type="button" class="editor-lang-tab" data-lang="ja" role="tab" aria-selected="false">日本語</button>
+        <button type="button" class="editor-lang-tab" data-lang="es" role="tab" aria-selected="false">Español</button>
+        <button type="button" class="editor-lang-tab" data-lang="zh" role="tab" aria-selected="false">中文</button>
       </div>
-      <div class="editor-lang-hint">한국어는 필수, 영어/일본어는 비우면 카드에서 한국어로 자동 표시됩니다.</div>
+      <div class="editor-lang-hint">한국어는 필수, 나머지 언어는 비우면 카드에서 한국어로 자동 표시됩니다.</div>
+      <button type="button" id="sf-auto-translate" class="btn btn-secondary" style="width:100%; margin:0 0 var(--space-3); padding:var(--space-3); font-size:var(--text-sm);">✨ 한국어 기준 자동 번역 (영·일·스·중)</button>
 
       <form id="story-form" class="story-form">
         <!-- 1. 제목 (가로 단독) -->
@@ -439,6 +443,8 @@ export function renderEditorNew() {
     ko: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
     en: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
     ja: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
+    es: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
+    zh: { 'sf-title': '', 'sf-body': '', 'sf-country': '', 'sf-editor-comment': '' },
   };
   let activeLang = 'ko';
   function captureCurrentLangValues() {
@@ -471,6 +477,64 @@ export function renderEditorNew() {
     });
   }
 
+  /* ── 자동 번역: 한국어 원문 → en/ja/es/zh (Cloud Function translateContent) ──
+     관리자 인가는 서버에서 검증한다. 결과를 formState 에 채우고 현재 탭을 갱신. */
+  function bindAutoTranslate() {
+    const btn = document.getElementById('sf-auto-translate');
+    if (!btn) return;
+    const KEYMAP = {
+      'sf-title': 'title',
+      'sf-body': 'body',
+      'sf-country': 'country',
+      'sf-editor-comment': 'editor_comment',
+    };
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      captureCurrentLangValues(); /* 보고 있던 탭 입력을 먼저 flush */
+      const ko = formState.ko;
+      const fields = {
+        title: (ko['sf-title'] || '').trim(),
+        body: (ko['sf-body'] || '').trim(),
+        country: (ko['sf-country'] || '').trim(),
+        editor_comment: (ko['sf-editor-comment'] || '').trim(),
+      };
+      if (!fields.title && !fields.body) {
+        showToast('먼저 한국어 제목 또는 본문을 입력해주세요.', 'warning');
+        return;
+      }
+
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '번역 중… ⏳';
+      try {
+        const { translations } = await translateContentApi({ fields });
+        let filled = 0;
+        ['en', 'ja', 'es', 'zh'].forEach((lang) => {
+          const tr = translations && translations[lang];
+          if (!tr || typeof tr !== 'object') return;
+          Object.entries(KEYMAP).forEach(([inputId, field]) => {
+            const v = typeof tr[field] === 'string' ? tr[field] : '';
+            if (v) { formState[lang][inputId] = v; filled += 1; }
+          });
+        });
+        applyLangValues(activeLang); /* 현재 보이는 탭 즉시 반영 */
+        updatePreview(true);
+        unsavedChanges = true;
+        showToast(filled ? '자동 번역 완료 (영·일·스·중)' : '번역 결과가 비어 있습니다.', filled ? 'success' : 'warning');
+      } catch (err) {
+        console.error('자동 번역 실패:', err);
+        let msg;
+        if (err?.code === 'functions/permission-denied') msg = '관리자만 사용할 수 있는 기능입니다.';
+        else if (err?.code === 'functions/unavailable') msg = 'AI 번역 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.';
+        else msg = err?.message || '번역에 실패했습니다. 잠시 후 다시 시도해주세요.';
+        showToast(msg, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    });
+  }
+
   setTimeout(async () => {
     let hasLoadedData = false;
     let allStories = [];
@@ -493,7 +557,7 @@ export function renderEditorNew() {
         formState.ko['sf-body'] = story.body || '';
         formState.ko['sf-country'] = story.country || '';
         formState.ko['sf-editor-comment'] = story.editor_comment || (story.editor && story.editor.comment) || '';
-        ['en', 'ja'].forEach((lang) => {
+        ['en', 'ja', 'es', 'zh'].forEach((lang) => {
           const tr = (story.i18n && story.i18n[lang]) || {};
           formState[lang]['sf-title'] = tr.title || tr.figure_name || '';
           formState[lang]['sf-body'] = tr.body || '';
@@ -508,7 +572,8 @@ export function renderEditorNew() {
     }
 
     bindLangTabs();
-    
+    bindAutoTranslate();
+
     // 뒤로가기
     document.getElementById('editor-new-back')?.addEventListener('click', () => {
       history.back();
@@ -814,9 +879,13 @@ export function renderEditorNew() {
       };
       const enTr = buildTranslation('en');
       const jaTr = buildTranslation('ja');
+      const esTr = buildTranslation('es');
+      const zhTr = buildTranslation('zh');
       const i18n = {};
       if (Object.keys(enTr).length) i18n.en = enTr;
       if (Object.keys(jaTr).length) i18n.ja = jaTr;
+      if (Object.keys(esTr).length) i18n.es = esTr;
+      if (Object.keys(zhTr).length) i18n.zh = zhTr;
 
       const data = {
         figure_name: titleKo,

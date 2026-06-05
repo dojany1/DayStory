@@ -1307,3 +1307,26 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **요구사항**: 이전 커밋에서 제외된 git 추적 중인 android/ios 빌드 파일(`android/app/src/main/assets/public/index.html`, `ios/App/App.xcodeproj/project.pbxproj`)을 추가 커밋.
 - **구현방법**: `.gitignore`에 의해 ignored 처리되지만 이미 추적 중인 파일이므로 `git add -f` 로 강제 스테이징 후 커밋.
 - **변경파일**: `android/app/src/main/assets/public/index.html`, `ios/App/App.xcodeproj/project.pbxproj`, `docs/SESSION_LOG.md`.
+
+## 2026-06-05 19:30 — Claude Opus 4.8
+
+- **요구사항**: 지원 언어를 3개(ko/en/ja) → 5개(+스페인어 es, 중국어 간체 zh)로 확장하고, 관리자가 한국어 원문을 작성하면 Gemini로 en/ja/es/zh 4개 국어를 동시 번역해 에디터 탭을 채우는 Cloud Function(`translateContent`)을 TDD로 구축. (SDK/모델은 사용자 결정에 따라 지정된 `@google/generative-ai`+`gemini-1.5-flash` 대신 최신 `@google/genai`+`gemini-2.5-flash` 채택, 지원종료 리스크 회피.)
+- **구현방법**:
+  - **프론트엔드 i18n 확장**: `src/i18n/es.json`·`zh.json` 신규(en.json 키 구조 100% 미러, 실제 스페인어/중국어 번역). 5개 언어 파일 `settings`에 `lang_es`("Español")·`lang_zh`("中文") 추가. `i18n/index.js`에 es/zh static import + `messages` 등록, `SUPPORTED_LANGS`·`OG_LOCALE_MAP`(es→es_ES, zh→zh_CN)·`detectInitialLang()` 분기 확장. `settingsSections.js` `LANGS` 확장 + `renderLangOption('es'/'zh')` 렌더(제너릭 헬퍼/바인딩은 그대로 재사용). `services/userProfile.js` `SUPPORTED_LANGS` 확장. `storyI18n.js`는 이미 locale-agnostic이라 무수정(es/zh 카드 콘텐츠 자동 렌더).
+  - **에디터 다국어 폼**: `editor.js`에 Español/中文 탭 2개, `formState` es/zh 항목, 로드 배열 `['en','ja']`→`['en','ja','es','zh']`, 직렬화 `buildTranslation('es'/'zh')` + `i18n.es`/`i18n.zh` 할당 추가.
+  - **Cloud Function**: `functions/lib/translate.js` 신규(순수 헬퍼 — `SYSTEM_PROMPT`[사용자 지정 로컬라이징 지침+줄바꿈 보존+마크다운 코드블록 JSON], `TARGET_LANGS`, `buildUserPrompt()`, `parseTranslationResponse()`). `functions/index.js`에 `translateContent` onCall(asia-northeast3) 추가 — `defineSecret('GEMINI_API_KEY')`, Admin Custom Claim(`token.admin===true`) 게이트, `@google/genai`+`gemini-2.5-flash` 호출, 코드블록 JSON 파싱. `functions/package.json`에 `@google/genai@^2.8.0` 추가.
+  - **클라이언트 배선**: `services/translate.js` 신규(admin.js 동적 import 패턴, `translateContentApi({fields})`). `editor.js`에 '✨ 한국어 기준 자동 번역' 버튼 + `bindAutoTranslate()` — 한국어 4개 필드를 한 번 호출로 en/ja/es/zh 번역해 `formState`에 채우고 현재 탭/프리뷰 갱신, 권한/네트워크 오류 토스트 처리.
+  - **TDD**: `tests/i18n_locale_expansion.spec.js`(키 패리티·og:locale·setLang·정적 연결 11건), `tests/translate_content.spec.js`(파서 줄바꿈 보존·프롬프트·함수 보안/SDK/모델 정적 12건) 신규. 두 스펙 모두 구현 전 red 확인 후 green.
+- **변경파일**: `src/i18n/es.json`(신규), `src/i18n/zh.json`(신규), `src/i18n/{ko,en,ja}.json`, `src/js/i18n/index.js`, `src/js/components/settingsSections.js`, `src/js/services/userProfile.js`, `src/js/services/translate.js`(신규), `src/js/pages/editor.js`, `functions/lib/translate.js`(신규), `functions/index.js`, `functions/package.json`, `tests/i18n_locale_expansion.spec.js`(신규), `tests/translate_content.spec.js`(신규), `docs/SESSION_LOG.md`.
+- **검증**: `npm test` 38 files, 353 passed / 6 skipped / 0 failed — 100% Green(신규 23건 포함). `npm run build` 성공. `functions/` `npm install`(+@google/genai 261 pkgs), `node --check` index.js·lib/translate.js OK, 파서 줄바꿈 보존 node 재확인. `npx cap sync android` 성공. ⚠️ 함수 실배포는 사용자 단계 필요: `firebase functions:secrets:set GEMINI_API_KEY` 후 `firebase deploy --only functions:translateContent`.
+
+## 2026-06-05 20:05 — Claude Opus 4.8
+
+- **요구사항**: 배포 후 자동 번역 호출이 500(`internal`)로 실패. `firebase functions:log` 확인 결과 원인은 코드 버그가 아니라 Gemini `gemini-2.5-flash` 모델의 일시적 과부하(`ApiError 503 UNAVAILABLE — "high demand"`). 일시 오류를 영구 실패로 처리하던 동작을 재시도·폴백으로 보완.
+- **구현방법**:
+  - `functions/lib/translate.js`: `MODEL_CANDIDATES = ['gemini-2.5-flash','gemini-2.0-flash']`(과부하 시 폴백)와 순수 판정 함수 `isTransientError(err)`(503/429/500·UNAVAILABLE/RESOURCE_EXHAUSTED/INTERNAL/"high demand" 등) 추가·export.
+  - `functions/index.js`: 단일 `generateContent` 호출을 모델 후보 × 2회 재시도 루프로 교체 — 일시 오류면 0.5s→1.0s 백오프 후 재시도하고 막히면 다음 모델로 폴백, 영구 오류는 즉시 중단. 모든 모델 실패 시 `internal` 대신 `HttpsError('unavailable', 'AI 번역 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.')`. `timeoutSeconds: 120` 상향, `sleep` 헬퍼 추가.
+  - `src/js/pages/editor.js`: 자동 번역 catch 에서 `functions/unavailable` 코드를 분기해 "혼잡합니다, 잠시 후 다시 시도" 토스트.
+  - 테스트: `tests/translate_content.spec.js`에 `isTransientError`·`MODEL_CANDIDATES` 검증 추가, 모델 식별자 정적 검증을 index.js→lib/translate.js 로 이동(폴백 반영).
+- **변경파일**: `functions/lib/translate.js`, `functions/index.js`, `src/js/pages/editor.js`, `tests/translate_content.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `npm test` 38 files, 356 passed / 6 skipped / 0 failed — 100% Green. `node --check`(index.js·lib) OK, `isTransientError` node 재확인. `npm run build`·`npx cap sync android` 성공. ⚠️ 적용하려면 함수 재배포 필요: `firebase deploy --only functions:translateContent`.

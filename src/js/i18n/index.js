@@ -1,5 +1,5 @@
 /* =====================================================================
-   i18n/index.js — 다국어(한국어/English/日本語) 핵심 모듈
+   i18n/index.js — 다국어(한국어/English/日本語/Español/中文) 핵심 모듈
    =====================================================================
    - getCurrentLang() / setLang() / t(key, vars)
    - 영/일 번역 누락 시 자동 한국어 폴백
@@ -10,10 +10,12 @@
 import koMessages from '../../i18n/ko.json';
 import enMessages from '../../i18n/en.json';
 import jaMessages from '../../i18n/ja.json';
+import esMessages from '../../i18n/es.json';
+import zhMessages from '../../i18n/zh.json';
 import { getState, setState, subscribe } from '../state.js';
 import { forceRoute } from '../router.js';
 
-const SUPPORTED_LANGS = ['ko', 'en', 'ja'];
+const SUPPORTED_LANGS = ['ko', 'en', 'ja', 'es', 'zh'];
 const DEFAULT_LANG = 'ko';
 
 /* OG 메타(og:locale)용 언어 → 로케일 매핑 */
@@ -21,12 +23,16 @@ const OG_LOCALE_MAP = {
   ko: 'ko_KR',
   en: 'en_US',
   ja: 'ja_JP',
+  es: 'es_ES',
+  zh: 'zh_CN',
 };
 
 const messages = {
   ko: koMessages,
   en: enMessages,
   ja: jaMessages,
+  es: esMessages,
+  zh: zhMessages,
 };
 
 /**
@@ -41,6 +47,8 @@ export function detectInitialLang() {
   const navLang = (typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage) || '').toLowerCase();
   if (navLang.startsWith('ko')) return 'ko';
   if (navLang.startsWith('ja')) return 'ja';
+  if (navLang.startsWith('es')) return 'es';
+  if (navLang.startsWith('zh')) return 'zh';
   return 'en';
 }
 

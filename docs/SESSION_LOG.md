@@ -1342,3 +1342,42 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - **테스트 정비**: `tests/setup.js`에 전역 `window.matchMedia` 스텁 추가(여러 모듈이 state.js를 전이 import). cardDeckController.spec state mock에 `getState`/`subscribe` 보강 + calendar mock `WEEKDAYS`→`getWeekdays`. view-toggle.spec `export const WEEKDAYS`→`export function getWeekdays` 정적검사 갱신.
 - **변경파일**: `src/i18n/{ko,en,ja,es,zh}.json`, `src/js/i18n/index.js`, `src/js/router.js`, `src/js/components/{pageHeader,confirmDialog,widgetThemePreview,updateSheet,notificationSettingsSheet,settingsSections}.js`, `src/js/components/cardDeck/cardDeckController.js`, `src/js/pages/{login,editor,mystory,profile,report,search,license,detail,calendar,editorstory,bookmarks}.js`, `src/js/services/{notifications,sharing,camera,bookmarks}.js`, `tests/{setup,cardDeckController.spec,view-toggle.spec}.js`, `docs/SESSION_LOG.md`.
 - **검증**: `npm test` 38 files, 356 passed / 6 skipped / 0 failed — 100% Green. `npm run build` 성공. 잔여 한글은 주석·`console`·dev throw(Firebase 미설정 등)·내부 취소감지 키워드·미사용 dead code(date.js formatDateKR/formatMonthYear)뿐으로 의도적 제외.
+
+## 2026-06-07 02:15 — Claude Opus 4.8
+
+- **요구사항**: '콘텐츠 관리(에디터)' 화면 다국어 개편 기획안(Gemini) 검토 후, 승인된 '더 나은 대안'만 적용. Master-Detail 2단 분할은 모바일 1순위 원칙 충돌로 전면 취소(전체화면 라우트 동선 유지). 채택: ① 캘린더 카드에 5개 국어 번역 현황 미니 배지 [K][E][J][S][Z] ② 좌측 툴바 "미번역" 필터 토글 ③ 발행/초안/예약 저장 시 "저장 중..." 상태 텍스트. 기존 캘린더/상태관리 코어는 미변경.
+- **구현방법**: 기존 캘린더를 갈아엎지 않고 표시 레이어만 추가하는 최소 변경.
+  - `editor.js`: 모듈 레벨 순수 함수 `getTranslationStatus(story)`(ko=최상위·en/ja/es/zh=`story.i18n[lang]`의 title|figure_name|body 존재 판정)·`isStoryUntranslated(story)` 신규 export. `renderI18nBadges(story)` 헬퍼로 `[K][E][J][S][Z]` 배지 HTML 생성(aria-label은 `t('editor.i18n_status_label')`), `renderCalendarStory`에 한 줄 삽입. `.editor-stats`에 `data-filter="untranslated"` 세그먼트 1개 추가(기존 클릭 핸들러 그대로 재사용), `getStoriesForDate` 필터 분기·`updateStats` 카운트 1줄씩 확장. 발행(submit)·초안(`sf-save-draft`)·예약(`sf-schedule`) 핸들러에 클릭 시 버튼 텍스트 `t('editor.saving')` + disable, 실패 시 원복.
+  - `pages.css`: `.editor-cal-i18n-badges`·`.i18n-badge.is-on`(채움=`--color-success`/텍스트 `--color-bg-primary`로 라이트·다크 대비)·`.is-off`(흐림=`--color-bg-secondary`/`--color-text-tertiary`/`--color-border`) 추가. 하드코딩 색상 없이 `var(--*)` 토큰만 사용.
+  - `i18n/{ko,en,ja,es,zh}.json`: `filter_untranslated`·`i18n_status_label`·`saving` 3개 키를 5개 파일에 균형 추가.
+  - 테스트: `tests/editor_management_calendar.spec.js`에 순수 함수 검증 + 배지 렌더(is-on/is-off 개수)·미번역 필터·stat 카운트 케이스 추가(TDD).
+- **변경파일**: `src/js/pages/editor.js`, `src/css/pages.css`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/editor_management_calendar.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/editor_management_calendar.spec.js` 6 passed/1 skipped. 전체 `npm test` 356 passed/6 skipped, **2 failed**(`tests/i18n_language_settings.spec.js`) — 이는 세션 시작 전부터 dirty 였던 `settingsSections.js`(구식 `bindLangOptions`/`renderLangOption` 기대) 관련 기존 실패로 본 작업과 무관. i18n 키 패리티(`i18n_locale_expansion`)·`css_tokens` 통과.
+
+## 2026-06-07 04:24 — Claude Opus 4.8
+
+- **요구사항**: 콘텐츠 관리 `editor-stats` 토글 구성 검토 후 "예약" 필터 재정의. 기존엔 `예약하기` 버튼으로 만든 `status==='scheduled'` 글만 "예약"으로 잡혀, 미래 날짜로 "발행"한(=아직 유저에게 노출 안 되는) 글이 "발행" 탭에 섞이는 문제. 발행일이 미래인 "업로드 예약" 글을 "예약"으로 분리.
+- **구현방법**: status 가 아니라 "지금 노출 중인가"(stories.js fetchStories: `published && publish_date<=오늘`만 노출) 기준으로 분류.
+  - `editor.js`: 모듈 레벨 순수 함수 `getEditorBucket(story, today)` 신규 export — `draft→초안`, `archived→보관`, `status==='scheduled' || (발행글 && publish_date>오늘)→예약`, 그 외 발행글→`발행`. `getLocalToday` import 추가, `renderEditor` 클로저에 `const today` 1회 계산.
+  - `updateStats`(발행/예약/초안 카운트)·`getStoriesForDate`(발행/예약/초안 필터)를 `s.status===filter`→`getEditorBucket(s,today)===filter` 로 교체. 캘린더 카드 상태 배지도 `getStatusBadge(getEditorBucket(...))` 로 바꿔 미래 발행글이 "예약" 배지로 표시되도록 일치. `예약하기` 버튼·`전체`·`미번역` 필터는 그대로.
+  - 테스트: `tests/editor_management_calendar.spec.js`에 date util `getLocalToday`만 '2026-06-07'로 고정하는 mock(나머지 실제 유지) 추가, `getEditorBucket` 분류 단위 테스트 + 미래 발행글이 예약 카운트/배지/필터로 분리되는 렌더 테스트 추가.
+- **변경파일**: `src/js/pages/editor.js`, `tests/editor_management_calendar.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/editor_management_calendar.spec.js` 8 passed/1 skipped. 전체 `npm test` 358 passed/6 skipped, 2 failed(`i18n_language_settings.spec.js`) — 세션 전부터 dirty 였던 `settingsSections.js` 관련 기존 실패로 본 작업과 무관.
+
+## 2026-06-07 04:34 — Claude Opus 4.8
+
+- **요구사항**: `editor-new-page`(새 일화 작성/수정)에서 새로 작성하거나 기존 글을 수정한 미저장 변경이 있을 때, 떠나기 전 경고 모달을 띄운다. 기존엔 라우터 가드(`pushBeforeNavigate`)가 SPA 네비/하드웨어백에서만 모달을 띄웠고, 상단 뒤로가기 버튼은 `history.back()`만 호출해 딥링크·새로고침 진입 시 hashchange 가드가 안 걸려 경고 없이 빠져나가는 구멍이 있었음.
+- **구현방법**:
+  - `editor.js` `renderEditorNew`: 미저장 변경 시 경고 모달을 띄우고 떠나도 되는지 반환하는 공유 함수 `confirmLeaveIfDirty()` 추가(`saving || !unsavedChanges`면 즉시 통과). 라우터 가드를 인라인 로직 → `pushBeforeNavigate(() => confirmLeaveIfDirty())`로 위임(중복 제거). 상단 뒤로가기 버튼(`#editor-new-back`)을 `history.back()` 직접 호출 → `confirmLeaveIfDirty()` 확인 후에만 떠나도록 변경하고, 확인 시 `unsavedChanges=false`로 내려 네비 가드가 모달을 두 번 띄우지 않게 함.
+  - 테스트: `tests/editor_management_calendar.spec.js`에 `confirmDialog.showConfirm` mock 추가, 뒤로가기 시 (1)변경없음→모달없이 즉시 (2)취소→머무름 (3)확인→떠남 시나리오 검증.
+- **변경파일**: `src/js/pages/editor.js`, `tests/editor_management_calendar.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/editor_management_calendar.spec.js` 9 passed/1 skipped. 전체 `npm test` 359 passed/6 skipped, 2 failed(`i18n_language_settings.spec.js`) — 세션 전부터 dirty 였던 `settingsSections.js` 관련 기존 실패로 본 작업과 무관.
+
+## 2026-06-07 04:42 — Claude Opus 4.8
+
+- **요구사항**: 직전까지 빨간불이던 `i18n_language_settings.spec.js` 2건(`renderLangOption`·`bindLangOptions(page)` 기대) 정정. 언어 설정 UI가 인라인 버튼 → 리스트 항목+바텀시트 패턴으로 리팩터링되면서 함수명이 바뀌었는데 테스트가 옛 이름을 검사하고 있었음. 동시에 리팩터링 잔재(죽은 코드) 정리.
+- **구현방법**:
+  - `settingsSections.js`: 호출되지 않는 죽은 함수 `bindLangOptions`(옛 `.lang-option` 인라인 버튼 바인더 — 현재 마크업엔 `.lang-sheet-option`만 존재) 제거. 그 함수 주석에서만 참조되던 미사용 `forceRoute` import 제거. (`LANGS` 상수는 `i18n_locale_expansion.spec.js`가 검증하므로 유지, 뷰모드 코드는 무관하여 미변경.)
+  - `tests/i18n_language_settings.spec.js`: 작업1의 2개 정적검사를 현재 구현에 맞게 갱신 — `renderLangOption` 호출 검사 → `renderLanguageListItem` 호출 검사(정의+호출 2회 이상), `bindSettingsSections` 본문 `bindLangOptions(page)` → `bindLanguageItem(page)` 검사. 의도(설정 페이지 언어 UI 렌더+바인딩 연결)는 보존.
+- **변경파일**: `src/js/components/settingsSections.js`, `tests/i18n_language_settings.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/i18n_language_settings.spec.js` 18 passed. 전체 `npm test` **38 files, 361 passed / 6 skipped / 0 failed — 100% Green**(세션 중 첫 전체 그린). `npm run build` 성공.

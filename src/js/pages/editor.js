@@ -30,6 +30,7 @@ import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../servi
 import { translateContentApi } from '../services/translate.js';
 import { auth } from '../firebase.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
+import { getLocalToday } from '../utils/date.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
 import { t, tList } from '../i18n/index.js';
 
@@ -37,6 +38,80 @@ import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
+
+/* ─────────────────────────────────────────────
+   다국어 번역 현황 (캘린더 배지 / 필터용 순수 함수)
+   데이터 모델: 한국어는 story 최상위, en/ja/es/zh 는 story.i18n[lang]
+   ───────────────────────────────────────────── */
+
+/* 캘린더 셀에 표시할 5개 국어 이니셜 배지 정의 ([K][E][J][S][Z]) */
+const I18N_BADGE_LANGS = [
+  ['ko', 'K'],
+  ['en', 'E'],
+  ['ja', 'J'],
+  ['es', 'S'],
+  ['zh', 'Z'],
+];
+
+/**
+ * getTranslationStatus — 스토리의 5개 국어 번역 채움 여부를 판정한다.
+ * title(또는 figure_name) 혹은 body 가 있으면 "채워짐"으로 본다.
+ * @param {Object} story
+ * @returns {{ko:boolean, en:boolean, ja:boolean, es:boolean, zh:boolean}}
+ */
+export function getTranslationStatus(story) {
+  const has = (o) => !!(o && ((o.title || o.figure_name) || o.body));
+  const i18n = (story && story.i18n) || {};
+  return {
+    ko: has(story),
+    en: has(i18n.en),
+    ja: has(i18n.ja),
+    es: has(i18n.es),
+    zh: has(i18n.zh),
+  };
+}
+
+/**
+ * isStoryUntranslated — en/ja/es/zh 중 하나라도 비어 있으면 true ("미번역" 필터용).
+ * @param {Object} story
+ * @returns {boolean}
+ */
+export function isStoryUntranslated(story) {
+  const s = getTranslationStatus(story);
+  return !(s.en && s.ja && s.es && s.zh);
+}
+
+/**
+ * getEditorBucket — 콘텐츠 관리 목록 분류(발행/예약/초안/보관).
+ * status 가 아니라 "지금 유저에게 노출 중인가"를 기준으로 발행/예약을 나눈다.
+ * 유저 앱은 status==='published' && publish_date<=오늘 인 글만 노출하므로
+ * (stories.js fetchStories), 발행 처리됐어도 날짜가 미래면 "업로드 예약" 상태다.
+ *   - draft      : 작성 중 (업로드 예약 아님)
+ *   - archived   : 보관됨
+ *   - scheduled  : 업로드 예약 — status==='scheduled' 거나, 발행글인데 날짜가 미래
+ *   - published  : 이미 노출 중 — 발행글이면서 날짜가 오늘이거나 과거
+ * @param {Object} story
+ * @param {string} today 'YYYY-MM-DD' (로컬 기준, getLocalToday())
+ * @returns {'published'|'scheduled'|'draft'|'archived'}
+ */
+export function getEditorBucket(story, today) {
+  if (!story) return 'published';
+  if (story.status === 'draft') return 'draft';
+  if (story.status === 'archived') return 'archived';
+  const pd = typeof story.publish_date === 'string' ? story.publish_date : '';
+  const isFuture = /^\d{4}-\d{2}-\d{2}$/.test(pd) && pd > today;
+  if (story.status === 'scheduled' || isFuture) return 'scheduled';
+  return 'published';
+}
+
+/** 캘린더 카드 하단에 들어갈 [K][E][J][S][Z] 미니 배지 HTML 을 만든다. */
+function renderI18nBadges(story) {
+  const status = getTranslationStatus(story);
+  const badges = I18N_BADGE_LANGS
+    .map(([lang, letter]) => `<span class="i18n-badge ${status[lang] ? 'is-on' : 'is-off'}">${letter}</span>`)
+    .join('');
+  return `<span class="editor-cal-i18n-badges" aria-label="${escapeHtml(t('editor.i18n_status_label'))}">${badges}</span>`;
+}
 
 
 /* ─────────────────────────────────────────────
@@ -74,6 +149,7 @@ export function renderEditor() {
       <button type="button" class="editor-stat" data-filter="published"><span class="editor-stat-label">${t('editor.filter_published')}</span><span class="editor-stat-value" id="stat-published">-</span></button>
       <button type="button" class="editor-stat" data-filter="scheduled"><span class="editor-stat-label">${t('editor.filter_scheduled')}</span><span class="editor-stat-value" id="stat-scheduled">-</span></button>
       <button type="button" class="editor-stat" data-filter="draft"><span class="editor-stat-label">${t('editor.filter_draft')}</span><span class="editor-stat-value" id="stat-draft">-</span></button>
+      <button type="button" class="editor-stat" data-filter="untranslated"><span class="editor-stat-label">${t('editor.filter_untranslated')}</span><span class="editor-stat-value" id="stat-untranslated">-</span></button>
     </div>
 
     <div class="calendar-month-nav editor-month-nav">
@@ -97,6 +173,7 @@ export function renderEditor() {
 
   let allStories = [];
   let currentFilter = 'all';
+  const today = getLocalToday();
   const now = new Date();
   let visibleYear = now.getFullYear();
   let visibleMonth = now.getMonth();
@@ -115,9 +192,10 @@ export function renderEditor() {
     const el = (id) => document.getElementById(id);
     if(!el('stat-total')) return;
     el('stat-total').textContent = allStories.length;
-    el('stat-published').textContent = allStories.filter(s => s.status === 'published').length;
-    el('stat-draft').textContent = allStories.filter(s => s.status === 'draft').length;
-    el('stat-scheduled').textContent = allStories.filter(s => s.status === 'scheduled').length;
+    el('stat-published').textContent = allStories.filter(s => getEditorBucket(s, today) === 'published').length;
+    el('stat-draft').textContent = allStories.filter(s => getEditorBucket(s, today) === 'draft').length;
+    el('stat-scheduled').textContent = allStories.filter(s => getEditorBucket(s, today) === 'scheduled').length;
+    if (el('stat-untranslated')) el('stat-untranslated').textContent = allStories.filter(isStoryUntranslated).length;
   }
 
   function renderCalendar() {
@@ -183,7 +261,12 @@ export function renderEditor() {
   function getStoriesForDate(isoDate) {
     return allStories
       .filter((story) => story.publish_date === isoDate)
-      .filter((story) => currentFilter === 'all' || story.status === currentFilter);
+      .filter((story) => {
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'untranslated') return isStoryUntranslated(story);
+        /* 발행/예약/초안 — status 가 아니라 노출 시점 기준 분류(getEditorBucket) */
+        return getEditorBucket(story, today) === currentFilter;
+      });
   }
 
   function renderCalendarStory(story) {
@@ -191,7 +274,8 @@ export function renderEditor() {
     const country = escapeHtml(story.country || '');
     const imageUrl = sanitizeUrl(story.image_url || '');
     const imageAttrs = imageUrl ? `src="${escapeHtml(imageUrl)}"` : '';
-    const badge = getStatusBadge(story.status);
+    /* 배지도 필터와 동일한 분류 기준 — 미래 발행글은 "예약"으로 표시 */
+    const badge = getStatusBadge(getEditorBucket(story, today));
 
     return `
       <button type="button" class="editor-calendar-story" data-id="${escapeHtml(story.id)}">
@@ -201,6 +285,7 @@ export function renderEditor() {
         <span class="editor-calendar-story-title">${title}</span>
         <span class="editor-calendar-story-meta">${country}</span>
         ${badge}
+        ${renderI18nBadges(story)}
         <span class="editor-calendar-actions" aria-hidden="true"></span>
       </button>
     `;
@@ -397,7 +482,21 @@ export function renderEditorNew() {
 
   let unsavedChanges = false;
   let saving = false; // 방어 로직 우회용
-  
+
+  /* 미저장(새로 작성/수정) 변경이 있으면 경고 모달을 띄우고 "떠나도 되는지" 여부를 반환한다.
+     상단 뒤로가기 버튼과 라우터 이동 가드가 함께 쓰는 단일 진입점(중복 모달·로직 방지). */
+  async function confirmLeaveIfDirty() {
+    if (saving || !unsavedChanges) return true;
+    const confirmLeave = await showConfirm({
+      title: t('editor.leave_title'),
+      message: t('editor.leave_message'),
+      confirmText: t('editor.leave_confirm'),
+      cancelText: t('editor.leave_cancel'),
+      danger: true,
+    });
+    return confirmLeave === true;
+  }
+
   // 브라우저 닫기/새로고침 방지 (PC 웹)
   const blockClose = (e) => {
     if (unsavedChanges && !saving) {
@@ -411,19 +510,7 @@ export function renderEditorNew() {
   // audit 4-1: 전역 단일 가드(setBeforeNavigate)를 덮어쓰지 않고 스택에 push 한다.
   // (이전에는 떠날 때 setBeforeNavigate(null) 로 main.js 의 인증/네비 가드까지 지워버려,
   //  에디터를 한 번 방문하면 앱 전역 가드가 리로드 전까지 비활성화되는 버그가 있었다.)
-  const removeNavGuard = pushBeforeNavigate(async () => {
-    if (!saving && unsavedChanges) {
-      const confirmLeave = await showConfirm({
-        title: t('editor.leave_title'),
-        message: t('editor.leave_message'),
-        confirmText: t('editor.leave_confirm'),
-        cancelText: t('editor.leave_cancel'),
-        danger: true,
-      });
-      if (!confirmLeave) return false;
-    }
-    return true;
-  });
+  const removeNavGuard = pushBeforeNavigate(() => confirmLeaveIfDirty());
 
   // 페이지를 떠날 때 정리 — 전역 인증/네비 가드는 그대로 유지된다.
   setOnUnmount(() => {
@@ -569,8 +656,11 @@ export function renderEditorNew() {
     bindLangTabs();
     bindAutoTranslate();
 
-    // 뒤로가기
-    document.getElementById('editor-new-back')?.addEventListener('click', () => {
+    // 뒤로가기 — 미저장 변경이 있으면 경고 모달을 먼저 띄우고, 확인해야만 떠난다.
+    // (history.back() 만 호출하면 딥링크/새로고침 진입 시 hashchange 가드가 안 걸려 경고 없이 빠져나간다.)
+    document.getElementById('editor-new-back')?.addEventListener('click', async () => {
+      if (!(await confirmLeaveIfDirty())) return; // 취소 → 머무름
+      unsavedChanges = false; // 확인됨 → 네비 가드가 모달을 다시 띄우지 않도록 플래그 해제
       history.back();
     });
 
@@ -906,6 +996,9 @@ export function renderEditorNew() {
 
     document.getElementById('sf-save-draft')?.addEventListener('click', async () => {
       saving = true;
+      const btn = document.getElementById('sf-save-draft');
+      const originalText = btn?.textContent;
+      if (btn) { btn.disabled = true; btn.textContent = t('editor.saving'); }
       const data = getFormData();
       data.status = 'draft';
       try {
@@ -919,6 +1012,7 @@ export function renderEditorNew() {
         history.back();
       } catch (err) {
         saving = false;
+        if (btn) { btn.disabled = false; btn.textContent = originalText; }
         showToast(`${t('editor.save_failed')}: ${err.message}`, 'error');
       }
     });
@@ -926,6 +1020,9 @@ export function renderEditorNew() {
     formEl?.addEventListener('submit', async (e) => {
       e.preventDefault();
       saving = true;
+      const submitBtn = formEl.querySelector('button[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('editor.saving'); }
       const data = getFormData();
       data.status = 'published';
       data.published_at = new Date().toISOString();
@@ -940,6 +1037,7 @@ export function renderEditorNew() {
         history.back();
       } catch (err) {
         saving = false;
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText; }
         showToast(`${t('editor.publish_failed')}: ${err.message}`, 'error');
       }
     });
@@ -957,6 +1055,9 @@ export function renderEditorNew() {
       data.scheduled_date = data.publish_date;
 
       saving = true;
+      const btn = document.getElementById('sf-schedule');
+      const originalText = btn?.textContent;
+      if (btn) { btn.disabled = true; btn.textContent = t('editor.saving'); }
       data.status = 'scheduled';
       try {
         if (editingId) {
@@ -968,6 +1069,8 @@ export function renderEditorNew() {
         history.back();
       } catch (err) {
         saving = false;
+        if (btn) { btn.textContent = originalText; }
+        updateScheduleBtn();
         showToast(`${t('editor.schedule_failed')}: ${err.message}`, 'error');
       }
     });

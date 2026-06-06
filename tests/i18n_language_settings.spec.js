@@ -30,11 +30,11 @@ vi.stubGlobal('matchMedia', vi.fn().mockImplementation((query) => ({
 describe('작업1 — 설정 페이지 언어 선택 UI 연결', () => {
   const src = () => readFileSync(root('src/js/components/settingsSections.js'), 'utf8');
 
-  it('renderSettingsSections 가 renderLangOption 을 실제로 호출한다', () => {
+  it('renderSettingsSections 가 renderLanguageListItem 을 실제로 호출한다', () => {
     const s = src();
-    /* 함수 정의("function renderLangOption")가 아니라 호출("renderLangOption(")이 본문에 존재해야 함 */
-    const callMatches = s.match(/renderLangOption\(/g) || [];
-    /* 정의부 1회 + 호출부 최소 1회 → 총 2회 이상 등장 */
+    /* 언어 UI 가 리스트 항목+바텀시트 패턴으로 리팩터링됨 (renderLangOption → renderLanguageListItem).
+       정의("function renderLanguageListItem")가 아니라 호출도 본문에 있어야 함 → 2회 이상 등장 */
+    const callMatches = s.match(/renderLanguageListItem\(/g) || [];
     expect(callMatches.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -46,13 +46,14 @@ describe('작업1 — 설정 페이지 언어 선택 UI 연결', () => {
     expect(s).toMatch(/settings\.section_language/);
   });
 
-  it('bindSettingsSections 가 bindLangOptions(page) 를 호출한다', () => {
+  it('bindSettingsSections 가 bindLanguageItem(page) 를 호출한다', () => {
     const s = src();
-    /* bindSettingsSections 함수 본문 내부에서 bindLangOptions 가 호출되는지 확인 */
+    /* bindSettingsSections 함수 본문 내부에서 bindLanguageItem 이 호출되는지 확인
+       (언어 선택 행 클릭 → openLanguageSheet 바텀시트 연결) */
     const fnStart = s.indexOf('export function bindSettingsSections');
     expect(fnStart).toBeGreaterThan(-1);
     const fnBody = s.slice(fnStart, fnStart + 600);
-    expect(fnBody).toMatch(/bindLangOptions\(\s*page\s*\)/);
+    expect(fnBody).toMatch(/bindLanguageItem\(\s*page\s*\)/);
   });
 
   it('언어 변경 시 Firestore 저장(saveLanguagePreference)을 트리거한다', () => {

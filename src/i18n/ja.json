@@ -166,6 +166,9 @@
     "filter_published": "公開",
     "filter_scheduled": "予約",
     "filter_draft": "下書き",
+    "filter_untranslated": "未翻訳",
+    "i18n_status_label": "翻訳状況",
+    "saving": "保存中...",
     "status_published": "公開済み",
     "status_draft": "下書き",
     "status_scheduled": "予約",
@@ -312,6 +315,7 @@
   "settings": {
     "section_display": "表示",
     "section_language": "言語",
+    "section_accessibility": "アクセシビリティ",
     "section_editor_tools": "エディターツール",
     "section_account": "アカウント",
     "section_app_info": "アプリ情報",

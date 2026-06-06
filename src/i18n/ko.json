@@ -165,6 +165,9 @@
     "filter_published": "발행",
     "filter_scheduled": "예약",
     "filter_draft": "초안",
+    "filter_untranslated": "미번역",
+    "i18n_status_label": "번역 현황",
+    "saving": "저장 중...",
     "status_published": "발행됨",
     "status_draft": "초안",
     "status_scheduled": "예약",
@@ -311,6 +314,7 @@
   "settings": {
     "section_display": "디스플레이",
     "section_language": "언어",
+    "section_accessibility": "접근성",
     "section_editor_tools": "관리자 도구",
     "section_account": "계정",
     "section_app_info": "앱 정보",

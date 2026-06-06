@@ -18,7 +18,6 @@ import {
 } from '../services/userCleanup.js';
 import { t, getCurrentLang, setLang } from '../i18n/index.js';
 import { saveLanguagePreference } from '../services/userProfile.js';
-import { forceRoute } from '../router.js';
 
 const LANGS = ['ko', 'en', 'ja', 'es', 'zh'];
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -34,7 +33,6 @@ export function renderSettingsSections() {
   const currentTheme = getState('theme');
   const currentLang = getCurrentLang();
   const themeActiveIdx = Math.max(0, ['light', 'dark', 'system'].indexOf(currentTheme));
-  const langActiveIdx = Math.max(0, LANGS.indexOf(currentLang));
 
   return `
     ${getState('isAdmin') ? `
@@ -63,14 +61,7 @@ export function renderSettingsSections() {
 
     <div class="settings-section">
       <div class="settings-section-title">${t('settings.section_language')}</div>
-      <div class="theme-option-group" role="group" aria-label="${t('settings.section_language')}" data-active="${langActiveIdx}">
-        ${renderLangOption('ko', t('settings.lang_ko'), currentLang)}
-        ${renderLangOption('en', t('settings.lang_en'), currentLang)}
-        ${renderLangOption('ja', t('settings.lang_ja'), currentLang)}
-        ${renderLangOption('es', t('settings.lang_es'), currentLang)}
-        ${renderLangOption('zh', t('settings.lang_zh'), currentLang)}
-        <span class="theme-option-thumb" aria-hidden="true"></span>
-      </div>
+      ${renderLanguageListItem()}
     </div>
 
     <div class="settings-section">
@@ -125,7 +116,7 @@ export function renderSettingsSections() {
 export function bindSettingsSections(page) {
   bindNotificationSettingsSection(page);
   bindThemeOptions(page);
-  bindLangOptions(page);
+  bindLanguageItem(page);
   bindViewModeItem(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => showToast(t('settings.toast_coming_soon'), 'info'));
@@ -145,12 +136,122 @@ function renderThemeOption(theme, label, currentTheme, icon) {
   `;
 }
 
-function renderLangOption(lang, label, currentLang) {
+function renderLanguageListItem() {
+  const currentLang = getCurrentLang();
+  const langLabels = {
+    ko: t('settings.lang_ko'),
+    en: t('settings.lang_en'),
+    ja: t('settings.lang_ja'),
+    es: t('settings.lang_es'),
+    zh: t('settings.lang_zh'),
+  };
+  const currentLangLabel = langLabels[currentLang] || langLabels['ko'];
   return `
-    <button type="button" class="theme-option lang-option ${currentLang === lang ? 'active' : ''}" data-lang="${lang}" aria-pressed="${currentLang === lang ? 'true' : 'false'}">
-      <span class="theme-option-label">${label}</span>
-    </button>
+    <div class="list-item" id="setting-language" role="button" tabindex="0">
+      <div class="list-item-icon">${globeIcon()}</div>
+      <div class="list-item-content">
+        <div class="list-item-title" id="language-summary">${currentLangLabel}</div>
+      </div>
+      <div class="list-item-action">${chevronIcon()}</div>
+    </div>
   `;
+}
+
+function openLanguageSheet(onChange = () => {}) {
+  if (document.querySelector('.language-settings-overlay')) return;
+
+  const currentLang = getCurrentLang();
+  const LANG_LIST = [
+    { code: 'ko', label: t('settings.lang_ko') },
+    { code: 'en', label: t('settings.lang_en') },
+    { code: 'ja', label: t('settings.lang_ja') },
+    { code: 'es', label: t('settings.lang_es') },
+    { code: 'zh', label: t('settings.lang_zh') },
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'notification-settings-overlay language-settings-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = `
+    <div class="notification-settings-sheet">
+      ${renderPageHeader({ title: t('settings.section_language'), icon: 'close', backLabel: t('common.close') })}
+      <div class="notification-settings-list" role="radiogroup">
+        ${LANG_LIST.map(({ code, label }) => `
+          <button type="button" class="list-item lang-sheet-option view-mode-option ${currentLang === code ? 'active' : ''}" data-lang="${code}" role="radio" aria-checked="${currentLang === code}">
+            <div class="list-item-content">
+              <div class="list-item-title">${label}</div>
+            </div>
+            <div class="list-item-action">
+              <svg class="view-mode-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  const wrapper = document.querySelector('.mobile-wrapper') || document.body;
+  wrapper.appendChild(overlay);
+  lockScroll();
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+
+  let isClosing = false;
+  const close = () => {
+    if (isClosing) return;
+    isClosing = true;
+    unlockScroll();
+    overlay.classList.remove('visible');
+    overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 450);
+  };
+  bindPageHeaderBack(overlay, close);
+
+  overlay.querySelectorAll('.lang-sheet-option[data-lang]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const selected = btn.dataset.lang;
+      if (getCurrentLang() === selected) return;
+      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+      overlay.querySelectorAll('.lang-sheet-option').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-checked', 'true');
+      setLang(selected);
+      showToast(t('settings.lang_changed'), 'success');
+      const profile = getState('profile');
+      if (profile) setState('profile', { ...profile, languagePreference: selected });
+      saveLanguagePreference(selected);
+      updateLanguageSummary(document);
+      const titleEl = overlay.querySelector('.page-header-title');
+      if (titleEl) titleEl.textContent = t('settings.section_language');
+      onChange();
+    });
+  });
+}
+
+function updateLanguageSummary(container) {
+  const el = container.querySelector('#language-summary');
+  if (!el) return;
+  const langLabels = {
+    ko: t('settings.lang_ko'),
+    en: t('settings.lang_en'),
+    ja: t('settings.lang_ja'),
+    es: t('settings.lang_es'),
+    zh: t('settings.lang_zh'),
+  };
+  el.textContent = langLabels[getCurrentLang()] || langLabels['ko'];
+}
+
+function bindLanguageItem(page) {
+  const item = page.querySelector('#setting-language');
+  if (!item) return;
+  const open = () => openLanguageSheet(() => updateLanguageSummary(page));
+  item.addEventListener('click', open);
+  item.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+  });
 }
 
 function renderViewOption(view, label, currentView) {
@@ -191,28 +292,6 @@ function bindThemeOptions(page) {
       btn.classList.add('active');
       btn.setAttribute('aria-pressed', 'true');
       group.dataset.active = btns.indexOf(btn);
-    });
-  });
-}
-
-function bindLangOptions(page) {
-  page.querySelectorAll('.lang-option[data-lang]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (btn.closest('.theme-option-group--disabled')) return;
-      const selectedLang = btn.dataset.lang;
-      if (getCurrentLang() === selectedLang) return;
-      Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
-      const group = btn.closest('.theme-option-group');
-      const btns = [...group.querySelectorAll('.lang-option[data-lang]')];
-      group.dataset.active = btns.indexOf(btn);
-      setLang(selectedLang);
-      /* setLang → state 발행 → i18n init이 등록한 forceRoute() 자동 호출됨 → 페이지 재렌더 */
-      showToast(t('settings.lang_changed'), 'success');
-
-      /* 로그인 사용자라면 Firestore 에 영구 저장 + 전역 profile 상태 동기화 (게스트는 로컬에만 보관) */
-      const profile = getState('profile');
-      if (profile) setState('profile', { ...profile, languagePreference: selectedLang });
-      saveLanguagePreference(selectedLang);
     });
   });
 }
@@ -472,4 +551,8 @@ function mailIcon() {
 
 function layoutIcon() {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="1"/><path d="M5 12s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5"/></svg>';
+}
+
+function globeIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>';
 }

@@ -166,6 +166,9 @@
     "filter_published": "Published",
     "filter_scheduled": "Scheduled",
     "filter_draft": "Draft",
+    "filter_untranslated": "Untranslated",
+    "i18n_status_label": "Translation status",
+    "saving": "Saving...",
     "status_published": "Published",
     "status_draft": "Draft",
     "status_scheduled": "Scheduled",
@@ -312,6 +315,7 @@
   "settings": {
     "section_display": "Display",
     "section_language": "Language",
+    "section_accessibility": "Accessibility",
     "section_editor_tools": "Editor tools",
     "section_account": "Account",
     "section_app_info": "About",

@@ -166,6 +166,9 @@
     "filter_published": "已发布",
     "filter_scheduled": "已排程",
     "filter_draft": "草稿",
+    "filter_untranslated": "未翻译",
+    "i18n_status_label": "翻译状态",
+    "saving": "保存中...",
     "status_published": "已发布",
     "status_draft": "草稿",
     "status_scheduled": "已排程",
@@ -312,6 +315,7 @@
   "settings": {
     "section_display": "显示",
     "section_language": "语言",
+    "section_accessibility": "辅助功能",
     "section_editor_tools": "编辑工具",
     "section_account": "账户",
     "section_app_info": "关于",

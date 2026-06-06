@@ -450,6 +450,11 @@
   word-break: keep-all;
 }
 
+/* 빈 줄(<p><br></p>) 높이만 줄임 — 텍스트 줄 간격은 유지 */
+.back-body p:has(> br:only-child) {
+  line-height: 1.1;
+}
+
 /* 뒷면 하단 바 — 에디터 프로필(좌) + 날짜(우) */
 .back-footer {
   display: flex;

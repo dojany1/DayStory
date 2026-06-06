@@ -1437,7 +1437,7 @@
 .editor-stats {
   display: inline-flex;
   align-self: center;
-  width: min(100%, 300px);
+  width: min(100%, 340px);
   padding: 4px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -1450,13 +1450,14 @@
   flex: 1;
   display: inline-flex;
   align-items: center;
+  /* 세로 배치 + 가운데 정렬 */
+  flex-direction: column;
   justify-content: center;
-  gap: 4px;
   min-height: 32px;
-  padding: var(--space-1) var(--space-2);
   text-align: center;
   color: var(--color-text-secondary);
   background: transparent;
+  padding: 2px 4px;
   border: 0;
   border-radius: var(--radius-full);
   cursor: pointer;

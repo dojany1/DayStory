@@ -1506,3 +1506,12 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - 회귀 테스트를 추가하고, 기존 캘린더 CSS 검사 정규식이 먼저 잡는 `.editor-calendar-grid .cal-cell` 블록에 flex 선언을 명시해 전체 테스트를 통과시킴.
 - **변경파일**: `index.html`, `src/css/variables.css`, `src/css/base.css`, `src/css/pages.css`, `src/js/services/sharing.js`, `tests/css_tokens.spec.js`, `public/fonts/LINE_SeedEN/Web/WOFF2/*`, `docs/SESSION_LOG.md`.
 - **검증**: `npm run build` 성공, `npm test` 38 files/369 passed/6 skipped.
+
+## 2026-06-07 20:59 — Codex
+
+- **요구사항**: `editor-comment-bubble` 내부의 일본어/다국어 긴 문장이 말풍선 밖으로 넘치는 문제 수정.
+- **구현방법**:
+  - `.editor-comment-bubble`의 중복 `word-break: keep-all`을 제거하고 `white-space: normal`, `word-break: normal`, `overflow-wrap: anywhere`, `box-sizing: border-box`를 추가해 공백이 적은 다국어 문장도 말풍선 내부에서 줄바꿈되도록 변경.
+  - 긴 다국어 에디터 코멘트가 말풍선 내부에서 줄바꿈되어야 한다는 CSS 회귀 테스트 추가.
+- **변경파일**: `src/css/components.css`, `tests/editorstory.ui.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/editorstory.ui.spec.js` 21 passed, `npm run build` 성공, `npm test` 38 files/370 passed/6 skipped.

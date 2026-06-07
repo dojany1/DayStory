@@ -158,6 +158,17 @@ describe('Editor Story comment styles', () => {
     expect(bubbleBlockMatch?.[0]).toMatch(/pointer-events:\s*auto/);
   });
 
+  it('Given a long multilingual editor comment, when bubble styles are inspected, then text should wrap inside the bubble instead of overflowing', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/css/components.css'), 'utf8');
+    const bubbleBlock = css.match(/\.editor-comment-bubble\s*\{[\s\S]*?\}/)?.[0] || '';
+
+    expect(bubbleBlock).toMatch(/box-sizing:\s*border-box/);
+    expect(bubbleBlock).toMatch(/white-space:\s*normal/);
+    expect(bubbleBlock).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(bubbleBlock).toMatch(/word-break:\s*normal/);
+    expect(bubbleBlock).not.toMatch(/word-break:\s*keep-all/);
+  });
+
   it('Given an admin profile photo exists, when editor surfaces are inspected, then editor avatar should prefer the profile image over auth fallback', () => {
     const editor = readFileSync(resolve(process.cwd(), 'src/js/pages/editor.js'), 'utf8');
 

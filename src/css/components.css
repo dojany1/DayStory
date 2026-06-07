@@ -338,7 +338,7 @@
 .card-year {
   font-family: var(--font-body);
   font-size: 1.75rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--color-text-primary);
   line-height: 1;
@@ -348,7 +348,7 @@
 .card-date {
   font-family: var(--font-body);
   font-size: 3.55rem;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 0.9;
   letter-spacing: -0.04em;
   color: var(--color-text-primary);
@@ -451,7 +451,7 @@
   color: #fff;
   font-family: var(--font-sans);
   font-size: 2.8rem;
-  font-weight: 900;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -0.04em;
   word-break: keep-all;
@@ -475,7 +475,7 @@
 .back-title {
   font-family: var(--font-sans);
   font-size: 1.25rem;
-  font-weight: 800;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -608,6 +608,7 @@
   position: absolute;
   bottom: calc(100% + 18px); /* 버튼 바로 위에 위치 */
   left: -1px;
+  box-sizing: border-box;
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
@@ -617,14 +618,16 @@
   border: 2px solid var(--color-text-secondary);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  max-width: 260px;
+  max-width: 330px;
   min-width: 230px;
-  word-break: keep-all;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  line-break: auto;
   text-align: left;
   animation: editorBubbleIn 0.25s ease;
   z-index: 10;
   pointer-events: auto;
-  word-break: keep-all; /* 단어 끊김 방지 */
 }
 
 /* 말풍선 아래 꼬리 */
@@ -706,7 +709,7 @@
 .mini-year {
   font-family: var(--font-body);
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -715,7 +718,7 @@
 .mini-date {
   font-family: var(--font-body);
   font-size: 1.7rem;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 0.9;
   letter-spacing: -0.04em;
   margin-top: 2px;
@@ -807,7 +810,7 @@
   /* 3. Typography */
   color: white;
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 600;
   text-shadow: 0 1px 3px rgba(0,0,0,0.6);
   line-height: 1.2;
   line-clamp: 2;
@@ -1880,13 +1883,13 @@
 .widget-preview-weekday {
   letter-spacing:.04em;
   font-size:28px;
-  font-weight:800;
+  font-weight:600;
   line-height:1}
 
 .widget-preview-day {
   margin-top:10px;
   font-size:76px;
-  font-weight:900;
+  font-weight:600;
   line-height:.9}
 
 .widget-preview-month {
@@ -1895,7 +1898,7 @@
   white-space:nowrap;
   margin-top:22px;
   font-size:20px;
-  font-weight:800;
+  font-weight:600;
   line-height:1}
 
 .widget-preview-envelope {

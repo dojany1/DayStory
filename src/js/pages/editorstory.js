@@ -58,6 +58,14 @@ const BOOKMARK_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentC
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                   </svg>`;
 
+/* 관리자 전용 "콘텐츠 관리" 아이콘 — 설정 화면 editIcon() 과 동일 (발행 카드 즉시 수정 진입용) */
+const ADMIN_EDIT_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"/>
+                    <path d="M14.487 7.858A1 1 0 0 1 14 7V2"/>
+                    <path d="M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516"/>
+                    <path d="M8 18h1"/>
+                  </svg>`;
+
 
 /* ─────────────────────────────────────────────
    섹션 1: 페이지 렌더링 (공통 컨트롤러 + 역사 카드 config)
@@ -193,7 +201,13 @@ function buildSlideHTML(rawStory, isoDate) {
     footerHtml,
   });
 
-  return cardShell({ frontHtml, backHtml });
+  /* 관리자(Custom Claim token.admin)면 카드 위쪽 여백에 "콘텐츠 관리" 플로팅 버튼을 띄운다.
+     flipper 와 형제(=카드 면과 분리)라 회전·기본 카드 레이아웃에 영향을 주지 않는다. */
+  const adminFloatHtml = getState('isAdmin') === true
+    ? `<button type="button" class="card-admin-edit-float" data-id="${escapeHtml(story.id)}" aria-label="${escapeHtml(t('editor.content_mgmt'))}" title="${escapeHtml(t('editor.content_mgmt'))}">${ADMIN_EDIT_ICON_SVG}</button>`
+    : '';
+
+  return cardShell({ frontHtml, backHtml, extraHtml: adminFloatHtml });
 }
 
 
@@ -247,6 +261,16 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
     detailBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       navigate(`/detail/${story.id}`);
+    });
+  }
+
+  /* 관리자 "콘텐츠 관리" 플로팅 버튼 → 해당 카드의 에디터 수정 화면으로 즉시 진입 */
+  const adminEditBtn = flipContainer.querySelector('.card-admin-edit-float');
+  if (adminEditBtn && story) {
+    adminEditBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigate(`/editor/new?edit=${encodeURIComponent(story.id)}`);
     });
   }
 

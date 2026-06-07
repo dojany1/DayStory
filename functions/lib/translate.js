@@ -90,8 +90,8 @@ function parseTranslationResponse(raw) {
 }
 
 /* 우선순위 모델 — 앞 모델이 과부하(503)면 다음 모델로 폴백한다.
-   gemini-2.5-flash(최고 품질) → gemini-2.0-flash(안정적·여유 용량). */
-const MODEL_CANDIDATES = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+   gemini-3.1-pro-preview(최고 품질) → gemini-2.5-flash(안정적·여유 용량). */
+const MODEL_CANDIDATES = ['gemini-3.1-pro-preview', 'gemini-2.5-flash'];
 
 /**
  * isTransientError — Gemini API 의 일시적 오류(재시도/모델 폴백 대상) 여부.
@@ -108,6 +108,18 @@ function isTransientError(err) {
     || /UNAVAILABLE|RESOURCE_EXHAUSTED|INTERNAL|overloaded|high demand|try again later/i.test(msg);
 }
 
+/**
+ * isQuotaError — 재시도해도 풀리지 않는 "요금/지출 한도 초과"(spend cap) 오류인지.
+ * 일반 일시오류(503 과부하/RPM 레이트리밋)와 달리, 한도가 리셋·상향될 때까지 계속 429 가 난다.
+ * 관측 메시지: "Your project has exceeded its monthly spending cap..."
+ * @param {*} err
+ * @returns {boolean}
+ */
+function isQuotaError(err) {
+  const msg = String((err && err.message) || '');
+  return /spending cap|spend cap|exceeded its monthly|billing/i.test(msg);
+}
+
 module.exports = {
   TARGET_LANGS,
   TRANSLATABLE_FIELDS,
@@ -116,4 +128,5 @@ module.exports = {
   buildUserPrompt,
   parseTranslationResponse,
   isTransientError,
+  isQuotaError,
 };

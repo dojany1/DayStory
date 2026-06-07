@@ -59,10 +59,10 @@
 
   <!--
     ===== 웹 폰트 로딩 =====
-    1) Inter       : 영문 본문용 산세리프 폰트
-    2) Noto Serif KR : 한글 제목용 세리프 폰트 (사용하지 않을 수도 있음)
-    3) Playfair Display : 영문 제목용 고급 세리프 폰트 (Day Story 로고 등)
-    4) LINESeedKR  : 한글 본문용 폰트 (아래 @font-face로 직접 로딩)
+    1) Inter / Noto Serif KR / Playfair Display : 기존 fallback 및 일부 장식용 폰트
+    2) LINESeedKR : 한국어 기본 폰트
+    3) LINESeedEN : 영어/스페인어 기본 폰트
+    4) LINESeedJP : 일본어 기본 폰트
   -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -70,29 +70,102 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Serif+KR:wght@300;400;500;600;700;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
     rel="stylesheet" />
 
-  <!-- LINE Seed 한글 폰트 (CDN에서 직접 로딩) -->
+  <!-- LINE Seed 다국어 폰트 -->
   <style>
-    /* 일반 굵기 (400) */
     @font-face {
       font-family: 'LINESeedKR';
       src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Rg.woff2') format('woff2');
       font-weight: 400;
       font-style: normal;
+      font-display: swap;
     }
 
-    /* 굵은 글씨 (700) */
     @font-face {
       font-family: 'LINESeedKR';
       src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Bd.woff2') format('woff2');
       font-weight: 700;
       font-style: normal;
+      font-display: swap;
     }
-    /* 얇은 글씨 (100) */
+
     @font-face {
       font-family: 'LINESeedKR';
       src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_11-01@1.0/LINESeedKR-Th.woff2') format('woff2');
       font-weight: 100;
       font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedEN';
+      src: url('/fonts/LINE_SeedEN/Web/WOFF2/LINESeedSans_W_Th.woff2') format('woff2');
+      font-weight: 100;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedEN';
+      src: url('/fonts/LINE_SeedEN/Web/WOFF2/LINESeedSans_W_Rg.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedEN';
+      src: url('/fonts/LINE_SeedEN/Web/WOFF2/LINESeedSans_W_Bd.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedEN';
+      src: url('/fonts/LINE_SeedEN/Web/WOFF2/LINESeedSans_W_XBd.woff2') format('woff2');
+      font-weight: 800;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedEN';
+      src: url('/fonts/LINE_SeedEN/Web/WOFF2/LINESeedSans_W_He.woff2') format('woff2');
+      font-weight: 900;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('https://cdn.jsdelivr.net/npm/line-seed-jp@0.0.5/woff2/LINESeedJP_OTF_Th.woff2') format('woff2');
+      font-weight: 100;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('https://cdn.jsdelivr.net/npm/line-seed-jp@0.0.5/woff2/LINESeedJP_OTF_Rg.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('https://cdn.jsdelivr.net/npm/line-seed-jp@0.0.5/woff2/LINESeedJP_OTF_Bd.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'LINESeedJP';
+      src: url('https://cdn.jsdelivr.net/npm/line-seed-jp@0.0.5/woff2/LINESeedJP_OTF_Eb.woff2') format('woff2');
+      font-weight: 800;
+      font-style: normal;
+      font-display: swap;
     }
   </style>
 

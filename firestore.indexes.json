@@ -9,6 +9,14 @@
       ]
     },
     {
+      "collectionGroup": "stories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "publish_date", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "userStories",
       "queryScope": "COLLECTION",
       "fields": [

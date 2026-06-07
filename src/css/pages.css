@@ -1510,6 +1510,14 @@
   flex-direction: column;
 }
 
+/* 관리자 콘텐츠 관리 캘린더 셀 비율 (홈/일기 캘린더 .cal-cell 은 그대로).
+   전역 .cal-cell 규칙이 더 뒤에 정의돼 덮어쓰므로, 에디터 그리드로 스코프해 우선순위를 높인다. */
+.editor-calendar-grid .cal-cell {
+  aspect-ratio: 2 / 4;
+  display: flex;
+  flex-direction: column;
+}
+
 .editor-calendar-cell:not(.editor-calendar-cell-blank):active {
   transform: scale(.96);
 }
@@ -1522,6 +1530,13 @@
 
 .editor-calendar-cell-empty {
   background: var(--color-bg-card);
+}
+
+/* 번역 완료(5개 국어) 날짜는 날짜 텍스트를 초록색으로 표시.
+   주말 색상 `.cal-cell.sun/.sat .cal-cell-day` 가 특이성 (0,3,0) 이라, 토/일도 이기려면
+   셀의 `cal-cell` 까지 묶어 (0,4,0) 으로 올린다. (예: 토요일 발행 날짜도 초록 유지) */
+.editor-calendar-cell.cal-cell .cal-cell-day.cal-cell-day-translated {
+  color: var(--color-success);
 }
 
 .editor-calendar-stories {
@@ -1564,7 +1579,7 @@
 }
 
 .editor-calendar-story-title {
-  font-size: .68rem;
+  font-size: .6rem;
   font-weight: 700;
   line-height: 1.15;
   white-space: nowrap;
@@ -1610,7 +1625,9 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;                                               /* 가로 스크롤 방지 */
-  padding-top: env(safe-area-inset-top, 0px);                      /* 노치 대응 */
+  /* safe-area-inset-top 은 sticky 헤더가 padding-top 으로 직접 처리한다.
+     여기서 또 padding-top 을 주면 이중 적용되어, 스크롤 시 헤더 위쪽에
+     safe-area 만큼 틈이 생기고 그 사이로 미리보기 카드가 새어 보인다. */
   scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 52px); /* sticky 헤더 뒤 가려짐 방지 */
 
   background: var(--color-bg-primary);
@@ -1626,13 +1643,16 @@
 
 /* 상단 헤더 (뒤로가기 + 제목) */
 .editor-new-header {
-  position: sticky;
-  top: env(safe-area-inset-top, 0px); /* 노치 바로 아래에 고정 */
-  z-index: 10;
-
+  position: fixed;
+  top: 0;
+  z-index: var(--z-nav);
   display: flex;
   align-items: center;
-  padding: var(--space-2) var(--space-4);
+  width: min(100%, var(--mobile-max-width));
+  box-sizing: border-box;
+  /* safe-area-inset-top 을 padding-top 에 포함시켜, 헤더 배경이 노치를
+     가리면서 실제 콘텐츠(뒤로가기·제목)는 노치 아래에 놓이게 한다. */
+  padding: calc(env(safe-area-inset-top, 0px) + var(--space-2)) var(--space-4) var(--space-2);
 
   background: var(--color-bg-primary);
   border-bottom: 1px solid var(--color-border-light);
@@ -1642,19 +1662,21 @@
 .story-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-4) 0;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-2);
 }
 
 .editor-form-section {
-  padding-bottom: 6rem;
+  /* 하단 고정 액션 바(.editor-form-actions, 발행+임시저장/예약 2단)에 마지막 입력이
+     가려지지 않도록 바 높이만큼 확보. safe-area 는 바와 별개로 추가 여유. */
+  padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* 에디터 폼: 언어 탭 (한/영/일) */
 .editor-lang-tabs {
   display: flex;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 var(--space-1);
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
   flex-wrap: wrap;
 }
 
@@ -1699,9 +1721,9 @@
 .editor-preview-section {
   position: relative;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  padding: var(--space-6) var(--space-5);
+  padding: calc(var(--space-12) + 22px) var(--space-6) var(--space-4);
 }
 
 /* 홈 카드와 동일한 .flip-container를 감싸는 스케일 래퍼 */
@@ -1792,6 +1814,24 @@
 /* 스피너 회전 애니메이션 */
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* 버튼 인라인 로딩 스피너 (예: 자동 번역 "번역 중…" 우측) — 버튼 텍스트 색을 따른다 */
+.btn-translating {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;       /* 한쪽을 비워 회전이 보이게 */
+  border-radius: 50%;
+  opacity: 0.75;
+  animation: spin 0.7s linear infinite;
 }
 
 /* ============================================
@@ -1911,8 +1951,8 @@
   width: min(100%, var(--mobile-max-width));
   box-sizing: border-box;
   margin: 0 auto;
-  padding: var(--space-4) var(--space-5);
-  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  padding: var(--space-2) var(--space-5);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 
   /* 3. Typography */
 
@@ -1930,6 +1970,36 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+}
+
+/* 일화 작성/수정 — 하단 floating 액션 영역 (발행/임시저장/예약)
+   .mystory-form-actions 와 동일하게 .mobile-wrapper 폭에 맞춰 화면 하단 고정 */
+.editor-form-actions {
+  /* 1. Positioning */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-nav);
+
+  /* 2. Display & Box Model */
+  display: flex;
+  gap: var(--space-3);
+  width: min(100%, var(--mobile-max-width));
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-5);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2)); /* 홈 인디케이터 대응 */
+
+  /* 4. Visuals */
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-divider);
+}
+
+/* 임시저장 / 예약발행 — 2분할 행 (각 .btn-full 이 50%씩 차지) */
+.editor-form-actions-row {
+  display: flex;
+  gap: var(--space-3);
 }
 
 

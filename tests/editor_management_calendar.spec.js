@@ -37,6 +37,7 @@ vi.mock('../src/js/router.js', () => ({
 
 vi.mock('../src/js/state.js', () => ({
   getState: getStateMock,
+  setState: vi.fn(),
 }));
 
 vi.mock('../src/js/components/toast.js', () => ({
@@ -184,7 +185,7 @@ describe('May 4 editor management recovery', () => {
     expect(page.querySelector('.editor-calendar-header .calendar-title')?.textContent).toBe('콘텐츠 관리');
     expect(page.querySelector('.editor-calendar-grid')).not.toBeNull();
     expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-04"] .editor-calendar-story-title')?.textContent).toContain('May Story');
-    expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-12"] .badge-draft')?.textContent).toContain('초안');
+    expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-12"] .badge-draft')?.textContent).toContain('임시저장');
     expect(page.querySelector('#editor-new')).toBeNull();
     expect(page.querySelector('.editor-new-btn')).toBeNull();
     expect(page.querySelector('.editor-calendar-empty-mark')).toBeNull();
@@ -262,7 +263,7 @@ describe('May 4 editor management recovery', () => {
     expect(isStoryUntranslated(partial)).toBe(true); /* ja/es/zh 비어있음 */
   });
 
-  it('renders [K][E][J][S][Z] translation badges and supports the untranslated filter', async () => {
+  it('marks fully-translated dates green (cal-cell-day-translated) and supports the untranslated filter', async () => {
     fetchAllStoriesEditorMock.mockResolvedValue([
       {
         id: 'story-full',
@@ -292,14 +293,13 @@ describe('May 4 editor management recovery', () => {
     document.body.appendChild(page);
     await flushEditor();
 
+    /* 5개 국어 완번역 날짜 → 날짜 텍스트 초록색 클래스 부여 */
     const fullCell = page.querySelector('.editor-calendar-cell[data-date="2026-05-04"]');
-    const fullBadges = fullCell.querySelectorAll('.editor-cal-i18n-badges .i18n-badge');
-    expect(fullBadges.length).toBe(5);
-    expect(fullCell.querySelectorAll('.i18n-badge.is-on').length).toBe(5);
+    expect(fullCell.querySelector('.cal-cell-day').classList.contains('cal-cell-day-translated')).toBe(true);
 
+    /* ko만 채워진 날짜 → 초록색 클래스 없음 */
     const koCell = page.querySelector('.editor-calendar-cell[data-date="2026-05-12"]');
-    expect(koCell.querySelectorAll('.i18n-badge.is-on').length).toBe(1); /* ko만 채워짐 */
-    expect(koCell.querySelectorAll('.i18n-badge.is-off').length).toBe(4);
+    expect(koCell.querySelector('.cal-cell-day').classList.contains('cal-cell-day-translated')).toBe(false);
 
     /* 미번역 필터 카운트 */
     expect(page.querySelector('#stat-untranslated')?.textContent).toBe('1');

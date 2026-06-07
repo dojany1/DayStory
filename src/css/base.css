@@ -589,34 +589,10 @@ ul, ol {
 
 
 /* ============================================
-   언어별 폰트 & 줄바꿈 (:lang() 동적 적용)
+   언어별 줄바꿈 (:lang() 동적 적용)
    setLang() → applyHtmlLang() → <html lang> 변경 시 자동 반영
+   폰트 스택은 variables.css 의 :root:lang() 토큰 재정의에서 관리한다.
    ============================================ */
-
-/* 한국어 — 기존 변수 그대로 유지 */
-:lang(ko) {
-  font-family: var(--font-ui);
-}
-
-/* 영어/스페인어 — Inter 우선, 한글 전용 폰트 불필요 */
-:lang(en),
-:lang(es) {
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-}
-
-/* 일본어 — iOS/macOS: Hiragino Sans, Windows: Meiryo, 웹: Noto Sans JP */
-:lang(ja) {
-  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
-               'Yu Gothic', 'Meiryo', 'Noto Sans JP',
-               system-ui, -apple-system, sans-serif;
-}
-
-/* 중국어 간체 — iOS/macOS: PingFang SC, Windows: Microsoft YaHei */
-:lang(zh) {
-  font-family: -apple-system, 'PingFang SC', 'Hiragino Sans GB',
-               'Microsoft YaHei', 'Noto Sans SC',
-               system-ui, sans-serif;
-}
 
 /* ── word-break 언어별 오버라이드 ── */
 
@@ -648,4 +624,3 @@ ul, ol {
   word-break: normal;
   overflow-wrap: break-word;
 }
-

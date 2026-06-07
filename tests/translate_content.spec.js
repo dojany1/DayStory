@@ -110,11 +110,11 @@ describe('isTransientError / MODEL_CANDIDATES — 과부하 재시도·폴백', 
     expect(isTransientError(null)).toBe(false);
   });
 
-  it('MODEL_CANDIDATES 는 폴백용으로 2개 이상이고 gemini-2.5-flash 를 우선한다', async () => {
+  it('MODEL_CANDIDATES 는 폴백용으로 2개 이상이고 gemini-3.1-pro-preview 를 우선한다', async () => {
     const { MODEL_CANDIDATES } = await loadLib();
     expect(Array.isArray(MODEL_CANDIDATES)).toBe(true);
     expect(MODEL_CANDIDATES.length).toBeGreaterThanOrEqual(2);
-    expect(MODEL_CANDIDATES[0]).toBe('gemini-2.5-flash');
+    expect(MODEL_CANDIDATES[0]).toBe('gemini-3.1-pro-preview');
   });
 });
 
@@ -144,10 +144,17 @@ describe('translateContent 함수 — 보안/SDK/모델 정적 검증', () => {
     expect(s).toMatch(/@google\/genai/);
     expect(s).toMatch(/asia-northeast3/);
     expect(s).toMatch(/MODEL_CANDIDATES/);
-    /* 실제 모델 식별자는 lib/translate.js 에 정의 (2.5-flash → 2.0-flash 폴백) */
+    /* 실제 모델 식별자는 lib/translate.js 에 정의 (3.1-pro-preview → 2.5-flash 폴백) */
     const lib = readFileSync(root('functions/lib/translate.js'), 'utf8');
+    expect(lib).toMatch(/gemini-3\.1-pro-preview/);
     expect(lib).toMatch(/gemini-2\.5-flash/);
-    expect(lib).toMatch(/gemini-2\.0-flash/);
+  });
+
+  it('응답에 실제 사용된 모델(model)과 적용 시각(translatedAt)을 함께 반환한다', () => {
+    const s = fn();
+    /* 루프에서 성공한 모델을 usedModel 로 추적하고, 반환 객체에 model·translatedAt 포함 */
+    expect(s).toMatch(/usedModel\s*=\s*model/);
+    expect(s).toMatch(/return\s*\{\s*translations\s*,\s*model:\s*usedModel\s*,\s*translatedAt:/);
   });
 
   it('functions/package.json 의존성에 @google/genai 가 있다', () => {

@@ -56,14 +56,17 @@ export function bodyToHtml(body) {
 
 /* ── 마크업 빌더 ── */
 
-/* 카드 외피: flip-container > flipper > (front)(back?) */
-export function cardShell({ frontHtml, backHtml = '', flipperClass = '' } = {}) {
+/* 카드 외피: flip-container > flipper > (front)(back?)
+   extraHtml 은 flipper 와 형제로 flip-container 안에 들어가 카드 면(앞/뒤)과 분리되어
+   회전하지 않는 오버레이(예: 관리자 플로팅 버튼)를 띄울 때 쓴다. */
+export function cardShell({ frontHtml, backHtml = '', flipperClass = '', extraHtml = '' } = {}) {
   return `
     <div class="flip-container">
       <div class="flipper${flipperClass ? ` ${flipperClass}` : ''}">
         ${frontHtml}
         ${backHtml}
       </div>
+      ${extraHtml}
     </div>
   `;
 }

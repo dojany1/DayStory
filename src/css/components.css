@@ -123,7 +123,7 @@
   padding: var(--space-3) var(--space-4);
   background: var(--color-bg-secondary);
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-size: var(--text-base);
   color: var(--color-text-primary);
   transition: border-color var(--transition-fast);
@@ -137,6 +137,25 @@
 /* 입력 필드 플레이스홀더 — 힌트 텍스트 색상 */
 .input-field::placeholder {
   color: var(--color-text-tertiary);
+}
+
+/* 날짜 입력 — iOS 네이티브 date 컨트롤의 intrinsic width 때문에
+   필드가 좌우로 비정상적으로 늘어나거나 정렬이 깨지는 문제 방지.
+   editor(sf-publish-date)·mystory(ms-date) 등 모든 date 입력에 공통 적용. */
+.input-field[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;       /* iOS intrinsic min-width 제거 → width:100% 존중 */
+  text-align: left;
+}
+
+.input-field[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;          /* 기본 마진 제거로 값이 좌우로 벌어지지 않게 */
+}
+
+.input-field[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: auto;  /* 캘린더 아이콘은 오른쪽 정렬 유지 */
 }
 
 /* 입력 에러 메시지 — 빨간 작은 텍스트 */
@@ -165,6 +184,37 @@
   width: 100%;
   min-width: 280px;
   margin: 0 auto;                      /* 수평 중앙 정렬 */
+  position: relative;                  /* flipper 형제 오버레이(.card-admin-edit-float) 의 위치 기준 */
+}
+
+/* 관리자 전용 "콘텐츠 관리" 플로팅 버튼 — 카드 위쪽 여백에 띄워 기본 카드 레이아웃과 분리 */
+.card-admin-edit-float {
+  position: absolute;
+  top: -42px;
+  right: 2px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.card-admin-edit-float:active {
+  transform: scale(0.94);
+  transition: transform 0.15s ease;
+}
+
+.card-admin-edit-float svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* 카드 앞/뒤를 감싸는 회전 컨테이너

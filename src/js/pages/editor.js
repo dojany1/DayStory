@@ -16,14 +16,15 @@
 import { navigate, pushBeforeNavigate, setOnUnmount } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
-import { getState } from '../state.js';
+import { getState, setState } from '../state.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import {
   fetchAllStoriesEditor,
   createStory,
   updateStory,
-  fetchStoryById
+  fetchStoryById,
+  deleteStory,
 } from '../services/stories.js';
 import { uploadImage } from '../services/images.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
@@ -40,18 +41,9 @@ import 'cropperjs/dist/cropper.css';
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
 /* ─────────────────────────────────────────────
-   다국어 번역 현황 (캘린더 배지 / 필터용 순수 함수)
+   다국어 번역 현황 (캘린더 날짜 색상 / 필터용 순수 함수)
    데이터 모델: 한국어는 story 최상위, en/ja/es/zh 는 story.i18n[lang]
    ───────────────────────────────────────────── */
-
-/* 캘린더 셀에 표시할 5개 국어 이니셜 배지 정의 ([K][E][J][S][Z]) */
-const I18N_BADGE_LANGS = [
-  ['ko', 'K'],
-  ['en', 'E'],
-  ['ja', 'J'],
-  ['es', 'S'],
-  ['zh', 'Z'],
-];
 
 /**
  * getTranslationStatus — 스토리의 5개 국어 번역 채움 여부를 판정한다.
@@ -102,15 +94,6 @@ export function getEditorBucket(story, today) {
   const isFuture = /^\d{4}-\d{2}-\d{2}$/.test(pd) && pd > today;
   if (story.status === 'scheduled' || isFuture) return 'scheduled';
   return 'published';
-}
-
-/** 캘린더 카드 하단에 들어갈 [K][E][J][S][Z] 미니 배지 HTML 을 만든다. */
-function renderI18nBadges(story) {
-  const status = getTranslationStatus(story);
-  const badges = I18N_BADGE_LANGS
-    .map(([lang, letter]) => `<span class="i18n-badge ${status[lang] ? 'is-on' : 'is-off'}">${letter}</span>`)
-    .join('');
-  return `<span class="editor-cal-i18n-badges" aria-label="${escapeHtml(t('editor.i18n_status_label'))}">${badges}</span>`;
 }
 
 
@@ -179,10 +162,19 @@ export function renderEditor() {
   let visibleMonth = now.getMonth();
   async function loadStories() {
     allStories = await fetchAllStoriesEditor();
-    const initial = getLatestStoryDate(allStories);
-    if (initial) {
-      visibleYear = initial.year;
-      visibleMonth = initial.monthIndex;
+    /* 마지막으로 보던/수정한 달로 복귀 (수정→뒤로 시 최신 달로 점프하는 불편 해소).
+       저장된 값이 없을 때만 최신 글 날짜로 초기화. */
+    const saved = getState('editorCalendarDate');
+    if (typeof saved === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(saved)) {
+      const [y, m] = saved.split('-').map(Number);
+      visibleYear = y;
+      visibleMonth = m - 1;
+    } else {
+      const initial = getLatestStoryDate(allStories);
+      if (initial) {
+        visibleYear = initial.year;
+        visibleMonth = initial.monthIndex;
+      }
     }
     updateStats();
     renderCalendar();
@@ -223,10 +215,15 @@ export function renderEditor() {
       const weekday = new Date(visibleYear, visibleMonth, day).getDay();
       const weekdayClass = weekday === 0 ? ' sun' : weekday === 6 ? ' sat' : '';
       const storyClass = stories.length ? ' editor-calendar-cell-has-story' : ' editor-calendar-cell-empty';
+      /* 해당 날짜의 모든 글이 5개 국어 번역 완료면 날짜 텍스트를 초록색으로 표시.
+         현재 필터(발행/예약/초안 등)와 무관하게 그 날짜 전체 글 기준으로 판정한다. */
+      const dateStories = allStories.filter((s) => s.publish_date === isoDate);
+      const allTranslated = dateStories.length > 0 && dateStories.every((s) => !isStoryUntranslated(s));
+      const dayClass = allTranslated ? ' cal-cell-day-translated' : '';
 
       cells.push(`
         <div class="editor-calendar-cell cal-cell${weekdayClass}${storyClass}" data-date="${isoDate}" role="button" tabindex="0">
-          <div class="cal-cell-day">${day}</div>
+          <div class="cal-cell-day${dayClass}">${day}</div>
           <div class="editor-calendar-stories">
             ${stories.map(renderCalendarStory).join('')}
           </div>
@@ -237,7 +234,10 @@ export function renderEditor() {
     gridEl.innerHTML = cells.join('');
 
     gridEl.querySelectorAll('.editor-calendar-cell[data-date]').forEach((cell) => {
-      const openNewStory = () => navigate(`/editor/new?date=${cell.dataset.date}`);
+      const openNewStory = () => {
+        setState('editorCalendarDate', cell.dataset.date); /* 복귀 시 이 날짜의 달로 */
+        navigate(`/editor/new?date=${cell.dataset.date}`);
+      };
       cell.addEventListener('click', (event) => {
         if (event.target.closest('.editor-calendar-story')) return;
         openNewStory();
@@ -253,6 +253,9 @@ export function renderEditor() {
     gridEl.querySelectorAll('.editor-calendar-story').forEach((storyEl) => {
       storyEl.addEventListener('click', (event) => {
         event.stopPropagation();
+        /* 수정 후 돌아올 때 그 글의 날짜가 있는 달로 복귀하도록 기억 */
+        const cellDate = storyEl.closest('.editor-calendar-cell[data-date]')?.dataset.date;
+        if (cellDate) setState('editorCalendarDate', cellDate);
         navigate(`/editor/new?edit=${storyEl.dataset.id}`);
       });
     });
@@ -285,7 +288,6 @@ export function renderEditor() {
         <span class="editor-calendar-story-title">${title}</span>
         <span class="editor-calendar-story-meta">${country}</span>
         ${badge}
-        ${renderI18nBadges(story)}
         <span class="editor-calendar-actions" aria-hidden="true"></span>
       </button>
     `;
@@ -340,6 +342,7 @@ export function renderEditor() {
         visibleMonth = 11;
         visibleYear -= 1;
       }
+      setState('editorCalendarDate', formatIsoDate(visibleYear, visibleMonth, 1));
       renderCalendar();
     });
 
@@ -349,6 +352,7 @@ export function renderEditor() {
         visibleMonth = 0;
         visibleYear += 1;
       }
+      setState('editorCalendarDate', formatIsoDate(visibleYear, visibleMonth, 1));
       renderCalendar();
     });
 
@@ -411,31 +415,32 @@ export function renderEditorNew() {
         <button type="button" class="editor-lang-tab" data-lang="zh" role="tab" aria-selected="false">中文</button>
       </div>
       <div class="editor-lang-hint">${t('editor.lang_hint')}</div>
-      <button type="button" id="sf-auto-translate" class="btn btn-secondary" style="width:100%; margin:0 0 var(--space-3); padding:var(--space-3); font-size:var(--text-sm);">${t('editor.auto_translate_btn')}</button>
+      <button type="button" id="sf-auto-translate" class="btn btn-secondary" style="width:100%; margin:0 0 6px; padding:var(--space-3); font-size:var(--text-sm);">${t('editor.auto_translate_btn')}</button>
+      <div class="translate-meta" id="sf-translate-meta" style="display:none; flex-direction:column; align-items:center; gap:1px; margin:0 0 var(--space-3); font-size:11px; line-height:1.4; opacity:0.7; text-align:center;"></div>
 
       <form id="story-form" class="story-form">
-        <!-- 1. 제목 (가로 단독) -->
+        <!-- 1. 발행일 -->
+        <div class="input-group">
+          <label class="input-label">${t('editor.form_publish_date')} *</label>
+          <input class="input-field" type="date" id="sf-publish-date" required />
+        </div>
+
+        <!-- 2. 제목 (가로 단독) -->
         <div class="input-group">
           <label class="input-label">${t('editor.form_title')} *</label>
           <input class="input-field" id="sf-title" placeholder="${t('editor.title_placeholder')}" required />
         </div>
 
-        <!-- 2. 역사적 연도 / 발행일 -->
+        <!-- 3. 역사적 연도 / 국가 -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
           <div class="input-group">
             <label class="input-label">${t('editor.form_hist_year')}</label>
             <input class="input-field" type="number" id="sf-hist-year" placeholder="1666" />
           </div>
           <div class="input-group">
-            <label class="input-label">${t('editor.form_publish_date')} *</label>
-            <input class="input-field" type="date" id="sf-publish-date" required />
+            <label class="input-label">${t('editor.form_country')}</label>
+            <input class="input-field" id="sf-country" placeholder="${t('editor.country_placeholder')}" />
           </div>
-        </div>
-
-        <!-- 3. 국가 -->
-        <div class="input-group">
-          <label class="input-label">${t('editor.form_country')}</label>
-          <input class="input-field" id="sf-country" placeholder="${t('editor.country_placeholder')}" />
         </div>
 
         <!-- 4. 본문 -->
@@ -447,7 +452,7 @@ export function renderEditorNew() {
         <!-- 4-1. 에디터 한마디 -->
         <div class="input-group">
           <label class="input-label">${t('editor.form_editor_comment')}</label>
-          <textarea class="input-field" id="sf-editor-comment" placeholder="${t('editor.comment_placeholder')}" rows="3" style="resize:vertical; line-height:1.6; font-family:var(--font-body);"></textarea>
+          <textarea class="input-field" id="sf-editor-comment" placeholder="${t('editor.comment_placeholder')}" rows="3" style="resize:vertical; line-height:1.6; font-family:var(--font-body); min-height:200px;"></textarea>
         </div>
 
         <!-- 5. 이미지 업로드/URL -->
@@ -469,19 +474,29 @@ export function renderEditorNew() {
           <input class="input-field" id="sf-image-source" placeholder="${t('editor.image_source_placeholder')}" />
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);margin-top:var(--space-6);margin-bottom:var(--space-10);">
-          <button type="submit" class="btn btn-primary btn-full" style="font-size:var(--text-md); padding:var(--space-4);">${t('editor.btn_publish')}</button>
-          <div style="display:flex;gap:var(--space-3);">
-            <button type="button" class="btn btn-secondary btn-full" id="sf-save-draft">${t('editor.btn_save_draft')}</button>
-            <button type="button" class="btn btn-full" id="sf-schedule" style="background:var(--color-info);color:#fff;border:none;">${t('editor.btn_schedule')}</button>
-          </div>
-        </div>
       </form>
+
+      ${editingId ? `
+      <div class="mystory-form-inline-actions" style="margin-top:var(--space-6);">
+        <button type="button" class="btn btn-secondary mystory-form-delete-btn" id="sf-delete-story">${t('common.delete')}</button>
+      </div>` : ''}
+    </div>
+
+    <!-- 화면 하단 floating 액션 영역 (발행/임시저장) — .mystory-form-actions 와 동일 패턴.
+         form 밖이라 발행 버튼은 form="story-form" 으로 제출 폼을 명시한다.
+         미래 날짜 선택 후 발행하면 자동으로 예약 발행 처리됨. -->
+    <div class="editor-form-actions">
+      <div class="editor-form-actions-row">
+        <button type="button" class="btn btn-secondary btn-full" id="sf-save-draft">${t('editor.btn_save_draft')}</button>
+      </div>
+      <button type="submit" form="story-form" id="sf-publish" class="btn btn-primary btn-full" style="font-size:var(--text-md); padding:var(--space-4);">${t('editor.btn_publish')}</button>
     </div>
   `;
 
   let unsavedChanges = false;
   let saving = false; // 방어 로직 우회용
+  /* 자동 번역 메타: { model, translatedAt(ISO) } — 번역이 적용된 글에 한해 버튼 하단 서브라벨로 표시 */
+  let translationMeta = null;
 
   /* 미저장(새로 작성/수정) 변경이 있으면 경고 모달을 띄우고 "떠나도 되는지" 여부를 반환한다.
      상단 뒤로가기 버튼과 라우터 이동 가드가 함께 쓰는 단일 진입점(중복 모달·로직 방지). */
@@ -559,6 +574,32 @@ export function renderEditorNew() {
     });
   }
 
+  /* translationMeta.translatedAt(ISO) → 'YYYY-MM-DD HH:mm' 로컬 시각 표기 */
+  function formatTranslatedAt(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  /* 번역 버튼 하단 서브라벨: 번역이 적용된 글에 한해 사용 모델 ID + 적용 시각을 표시.
+     translationMeta 가 없으면(미번역) 숨긴다. */
+  function renderTranslateMeta() {
+    const metaEl = document.getElementById('sf-translate-meta');
+    if (!metaEl) return;
+    if (!translationMeta || !translationMeta.model) {
+      metaEl.style.display = 'none';
+      metaEl.textContent = '';
+      return;
+    }
+    const timeStr = formatTranslatedAt(translationMeta.translatedAt);
+    const lines = [escapeHtml(t('editor.translate_meta_model', { model: translationMeta.model }))];
+    if (timeStr) lines.push(escapeHtml(t('editor.translate_meta_time', { time: timeStr })));
+    metaEl.innerHTML = lines.map((l) => `<span>${l}</span>`).join('');
+    metaEl.style.display = 'flex';
+  }
+
   /* ── 자동 번역: 한국어 원문 → en/ja/es/zh (Cloud Function translateContent) ──
      관리자 인가는 서버에서 검증한다. 결과를 formState 에 채우고 현재 탭을 갱신. */
   function bindAutoTranslate() {
@@ -587,9 +628,10 @@ export function renderEditorNew() {
 
       const originalLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = t('editor.translating');
+      /* "번역 중…" 텍스트 + 회전 로딩 스피너 (모래시계 대신 로딩 중임을 명확히 표시) */
+      btn.innerHTML = `<span class="btn-translating">${escapeHtml(t('editor.translating'))}<span class="btn-spinner" aria-hidden="true"></span></span>`;
       try {
-        const { translations } = await translateContentApi({ fields });
+        const { translations, model, translatedAt } = await translateContentApi({ fields });
         let filled = 0;
         ['en', 'ja', 'es', 'zh'].forEach((lang) => {
           const tr = translations && translations[lang];
@@ -602,11 +644,17 @@ export function renderEditorNew() {
         applyLangValues(activeLang); /* 현재 보이는 탭 즉시 반영 */
         updatePreview(true);
         unsavedChanges = true;
+        if (filled && model) {
+          /* 번역이 실제 적용된 경우에만 메타 갱신 (서버 시각이 없으면 클라 시각으로 폴백) */
+          translationMeta = { model, translatedAt: translatedAt || new Date().toISOString() };
+          renderTranslateMeta();
+        }
         showToast(filled ? t('editor.translate_done') : t('editor.translate_empty'), filled ? 'success' : 'warning');
       } catch (err) {
         console.error('자동 번역 실패:', err);
         let msg;
         if (err?.code === 'functions/permission-denied') msg = t('editor.translate_err_permission');
+        else if (err?.code === 'functions/resource-exhausted') msg = t('editor.translate_err_quota');
         else if (err?.code === 'functions/unavailable') msg = t('editor.translate_err_unavailable');
         else msg = err?.message || t('editor.translate_err_generic');
         showToast(msg, 'error');
@@ -646,6 +694,13 @@ export function renderEditorNew() {
           formState[lang]['sf-country'] = tr.country || '';
           formState[lang]['sf-editor-comment'] = tr.editor_comment || '';
         });
+        /* 이전에 자동 번역이 적용된 글이면 버튼 하단 서브라벨로 모델/시각을 복원 표시 */
+        if (story.translation_meta && story.translation_meta.model) {
+          translationMeta = {
+            model: story.translation_meta.model,
+            translatedAt: story.translation_meta.translatedAt || story.translation_meta.translated_at || '',
+          };
+        }
         applyLangValues('ko');
         hasLoadedData = true;
       }
@@ -655,6 +710,7 @@ export function renderEditorNew() {
 
     bindLangTabs();
     bindAutoTranslate();
+    renderTranslateMeta(); /* 로드된 글의 번역 메타(있으면) 서브라벨 표시 */
 
     // 뒤로가기 — 미저장 변경이 있으면 경고 모달을 먼저 띄우고, 확인해야만 떠난다.
     // (history.back() 만 호출하면 딥링크/새로고침 진입 시 hashchange 가드가 안 걸려 경고 없이 빠져나간다.)
@@ -890,30 +946,8 @@ export function renderEditorNew() {
       });
     });
 
-    /* 예약 발행 버튼 활성/비활성 상태 관리 */
-    const scheduleBtn = document.getElementById('sf-schedule');
+    /* 발행일 중복 검사 */
     const publishDateInput = document.getElementById('sf-publish-date');
-
-    function updateScheduleBtn() {
-      if (!scheduleBtn || !publishDateInput) return;
-      const dateVal = publishDateInput.value;
-      if (!dateVal) {
-        scheduleBtn.disabled = true;
-        scheduleBtn.style.opacity = '0.4';
-        scheduleBtn.title = t('editor.schedule_need_date');
-        return;
-      }
-      const selected = new Date(dateVal + 'T00:00:00'); // 로컬 시간 기준으로 파싱
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const isFuture = selected > today;
-      scheduleBtn.disabled = !isFuture;
-      scheduleBtn.style.opacity = isFuture ? '1' : '0.4';
-      scheduleBtn.title = isFuture ? '' : t('editor.schedule_future_only');
-    }
-
-    /* 초기 상태 + 날짜 변경 시 업데이트 */
-    updateScheduleBtn();
     publishDateInput?.addEventListener('change', (e) => {
       const selected = e.target.value;
       if (selected) {
@@ -925,7 +959,6 @@ export function renderEditorNew() {
           updatePreview();
         }
       }
-      updateScheduleBtn();
     });
 
     /* 저장 로직 */
@@ -991,6 +1024,13 @@ export function renderEditorNew() {
         editor_comment: (ko['sf-editor-comment'] || '').trim(),
       };
       if (Object.keys(i18n).length) data.i18n = i18n;
+      /* 자동 번역 메타(사용 모델/적용 시각) 보존 — 재진입 시 서브라벨 복원용 */
+      if (translationMeta && translationMeta.model) {
+        data.translation_meta = {
+          model: translationMeta.model,
+          translatedAt: translationMeta.translatedAt || '',
+        };
+      }
       return data;
     }
 
@@ -1020,7 +1060,7 @@ export function renderEditorNew() {
     formEl?.addEventListener('submit', async (e) => {
       e.preventDefault();
       saving = true;
-      const submitBtn = formEl.querySelector('button[type="submit"]');
+      const submitBtn = document.getElementById('sf-publish'); // 발행 버튼은 form 밖(하단 고정 바)에 있어 id 로 조회
       const originalText = submitBtn?.textContent;
       if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('editor.saving'); }
       const data = getFormData();
@@ -1042,36 +1082,22 @@ export function renderEditorNew() {
       }
     });
 
-    document.getElementById('sf-schedule')?.addEventListener('click', async () => {
-      const data = getFormData();
-      if (!data.publish_date) {
-        showToast(t('editor.schedule_pick_date'), 'error');
-        return;
-      }
+    /* 삭제 버튼 — editingId 일 때만 DOM 에 존재함 */
+    document.getElementById('sf-delete-story')?.addEventListener('click', async () => {
+      const confirmed = await showConfirm({
+        title: t('mystory.delete_title'),
+        message: t('mystory.delete_message'),
+        confirmText: t('common.delete'),
+        danger: true,
+      });
+      if (!confirmed) return;
 
-      /* 예약 날짜를 YYYY-MM-DD 형식으로 정규화 (시간 정보 제거) */
-      data.publish_date = data.publish_date.split('T')[0];
-      /* 원래 예약일을 별도 필드에 기록 (추후 추적용) */
-      data.scheduled_date = data.publish_date;
-
-      saving = true;
-      const btn = document.getElementById('sf-schedule');
-      const originalText = btn?.textContent;
-      if (btn) { btn.disabled = true; btn.textContent = t('editor.saving'); }
-      data.status = 'scheduled';
       try {
-        if (editingId) {
-          await updateStory(editingId, data);
-        } else {
-          await createStory(data);
-        }
-        showToast(t('editor.scheduled_at', { date: data.publish_date }), 'success');
+        await deleteStory(editingId);
+        showToast(t('mystory.toast_deleted'), 'success');
         history.back();
       } catch (err) {
-        saving = false;
-        if (btn) { btn.textContent = originalText; }
-        updateScheduleBtn();
-        showToast(`${t('editor.schedule_failed')}: ${err.message}`, 'error');
+        showToast(`${t('mystory.toast_delete_error')}: ${err.message}`, 'error');
       }
     });
 

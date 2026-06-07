@@ -65,15 +65,15 @@
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
   --shadow-xl: 0 18px 48px rgba(0, 0, 0, 0.15);
-  --shadow-card: 0 6px 30px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.36);
   --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.2);
 
   /* ── 타이포그래피 (폰트 패밀리) ── */
-  --font-display: 'LINESeedKR', 'Inter', sans-serif;           /* 제목용 (산세리프로 통일) */
-  --font-heading: 'LINESeedKR', 'Inter', sans-serif;           /* 소제목용 (산세리프로 통일) */
-  --font-body: 'LINESeedKR', 'Inter', sans-serif;              /* 본문용 산세리프 */
-  --font-ui: 'LINESeedKR', 'Inter', sans-serif;                /* UI 요소용 산세리프 */
-  --font-sans: 'LINESeedKR', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; /* 일반 산세리프 (15곳에서 참조하던 누락 토큰) */
+  --font-ui: 'LINESeedKR', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; /* UI 요소용 산세리프 */
+  --font-body: var(--font-ui);     /* 본문용 산세리프 */
+  --font-heading: var(--font-ui);  /* 소제목용 */
+  --font-display: var(--font-ui);  /* 제목용 */
+  --font-sans: var(--font-ui);     /* 일반 산세리프 */
 
   /* ── 폰트 크기 ──
      rem 단위: html의 font-size(16px) 기준 상대 크기 */
@@ -138,6 +138,46 @@
   --safe-area-top: env(safe-area-inset-top, 0px); /* 상단 안전 영역 (노치 대응) */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px); /* 하단 안전 영역 (홈 바 대응) */
 
+}
+
+/* ── 언어별 폰트 토큰 ──
+   components.css / pages.css 의 var(--font-*) 지정이 <html lang> 변경에 따라
+   같은 우선순위로 자연스럽게 바뀌도록 :root:lang() 에서 토큰만 재정의한다. */
+:root:lang(ko) {
+  --font-ui: 'LINESeedKR', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: var(--font-ui);
+  --font-heading: var(--font-ui);
+  --font-display: var(--font-ui);
+  --font-sans: var(--font-ui);
+}
+
+:root:lang(en),
+:root:lang(es) {
+  --font-ui: 'LINESeedEN', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: var(--font-ui);
+  --font-heading: var(--font-ui);
+  --font-display: var(--font-ui);
+  --font-sans: var(--font-ui);
+}
+
+:root:lang(ja) {
+  --font-ui: 'LINESeedJP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+             'Yu Gothic', 'Meiryo', 'Noto Sans JP',
+             system-ui, -apple-system, sans-serif;
+  --font-body: var(--font-ui);
+  --font-heading: var(--font-ui);
+  --font-display: var(--font-ui);
+  --font-sans: var(--font-ui);
+}
+
+:root:lang(zh) {
+  --font-ui: -apple-system, 'PingFang SC', 'Hiragino Sans GB',
+             'Microsoft YaHei', 'Noto Sans SC',
+             system-ui, sans-serif;
+  --font-body: var(--font-ui);
+  --font-heading: var(--font-ui);
+  --font-display: var(--font-ui);
+  --font-sans: var(--font-ui);
 }
 
 

@@ -23,6 +23,7 @@ const {
   buildUserPrompt,
   parseTranslationResponse,
   isTransientError,
+  isQuotaError,
 } = require('./lib/translate');
 
 admin.initializeApp();
@@ -215,7 +216,7 @@ exports.syncAdminClaim = onCall(
    에디터에서 한국어 원문 카드 필드를 전달하면 en/ja/es/zh 4개 국어로
    동시에 번역해 돌려준다.
      - 보안: Admin Custom Claim(token.admin === true) 필수.
-     - 모델: @google/genai SDK + gemini-2.5-flash
+     - 모델: @google/genai SDK + gemini-3.1-pro-preview (폴백: gemini-2.5-flash)
      - 시스템 프롬프트(SYSTEM_PROMPT)가 줄바꿈(\n) 보존 + 코드블록 JSON 응답 강제.
 
    요청  data: { fields: { title?, body?, country?, editor_comment? } }
@@ -257,12 +258,14 @@ exports.translateContent = onCall(
          짧게 백오프 후 재시도하고, 모델이 계속 막히면 다음 후보로 폴백한다. */
       let response = null;
       let lastErr = null;
+      let usedModel = null; /* 실제 응답을 받은 모델 ID — 클라이언트 메타 표시용 */
       const ATTEMPTS_PER_MODEL = 2;
       for (const model of MODEL_CANDIDATES) {
         for (let attempt = 0; attempt < ATTEMPTS_PER_MODEL; attempt++) {
           try {
             response = await ai.models.generateContent({ model, ...genConfig });
             lastErr = null;
+            usedModel = model;
             break;
           } catch (err) {
             lastErr = err;
@@ -274,7 +277,15 @@ exports.translateContent = onCall(
       }
 
       if (!response) {
-        /* 모든 모델이 일시오류로 실패 → 사용자에게 재시도 안내 (internal 아님) */
+        /* 요금/지출 한도 초과(spend cap)는 재시도로 안 풀리므로 별도 코드·메시지로 안내 */
+        if (isQuotaError(lastErr)) {
+          console.error('translateContent 한도 초과(spend cap):', lastErr && lastErr.message);
+          throw new HttpsError(
+            'resource-exhausted',
+            'AI 번역 사용량(요금) 한도를 초과했습니다. Google AI Studio 의 지출 한도를 확인·상향하거나 다음 달 리셋을 기다려주세요.'
+          );
+        }
+        /* 그 외 모든 모델이 일시오류로 실패 → 사용자에게 재시도 안내 (internal 아님) */
         console.error('translateContent 일시오류(모든 모델 실패):', lastErr && lastErr.message);
         throw new HttpsError('unavailable', 'AI 번역 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.');
       }
@@ -287,7 +298,8 @@ exports.translateContent = onCall(
       TARGET_LANGS.forEach((lang) => {
         if (parsed[lang] && typeof parsed[lang] === 'object') translations[lang] = parsed[lang];
       });
-      return { translations };
+      /* model: 실제 번역에 사용된 Gemini 모델 ID, translatedAt: 서버 기준 적용 시각(ISO) */
+      return { translations, model: usedModel, translatedAt: new Date().toISOString() };
     } catch (err) {
       if (err instanceof HttpsError) throw err;
       console.error('translateContent 실패:', err);

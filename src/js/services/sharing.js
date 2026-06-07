@@ -273,7 +273,7 @@ function buildWatermarkElement(doc = document) {
     'background:rgba(0,0,0,0.55)',
     'border-radius:999px',
     'color:#fff',
-    'font-family:-apple-system,sans-serif',
+    'font-family:var(--font-ui)',
     'font-size:12px',
     'font-weight:700',
     'letter-spacing:0.01em',
@@ -584,7 +584,7 @@ export function showDebugPreviewOverlay(dataUrl) {
 
   /* 치수 레이블 */
   const label = document.createElement('div');
-  label.style.cssText = 'color:#fff;font-size:13px;font-family:monospace;opacity:0.8';
+  label.style.cssText = 'color:#fff;font-size:13px;font-family:var(--font-ui);opacity:0.8';
   img.onload = () => {
     label.textContent = `${img.naturalWidth} × ${img.naturalHeight}px`;
   };

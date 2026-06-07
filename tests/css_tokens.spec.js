@@ -51,6 +51,57 @@ describe('Wave 3 — variables.css 토큰 누락 보강', () => {
   });
 });
 
+describe('Language font tokens — LINE Seed multilingual stack', () => {
+  const variables = readCss('src/css/variables.css');
+  const base = readCss('src/css/base.css');
+  const indexHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+  const sharing = readCss('src/js/services/sharing.js');
+
+  it('Given LINE Seed multilingual fonts, when index.html is inspected, then EN and JP webfont faces are loaded', () => {
+    expect(indexHtml).toMatch(/font-family:\s*'LINESeedEN'/);
+    expect(indexHtml).toMatch(/LINESeedSans_W_Rg\.woff2/);
+    expect(indexHtml).toMatch(/font-family:\s*'LINESeedJP'/);
+    expect(indexHtml).toMatch(/LINESeedJP_OTF_Rg\.woff2/);
+  });
+
+  it('Given the Korean locale, when :root:lang(ko) tokens are inspected, then LINE Seed KR is the first UI font', () => {
+    const block = variables.match(/:root:lang\(ko\)\s*\{([^}]*)\}/);
+    expect(block).not.toBeNull();
+    expect(block[1]).toMatch(/--font-ui\s*:\s*'LINESeedKR'/);
+    expect(block[1]).toMatch(/--font-body\s*:\s*var\(--font-ui\)/);
+  });
+
+  it('Given Latin locales, when :root:lang(en|es) tokens are inspected, then LINE Seed EN is the first UI font', () => {
+    const block = variables.match(/:root:lang\(en\),\s*:root:lang\(es\)\s*\{([^}]*)\}/);
+    expect(block).not.toBeNull();
+    expect(block[1]).toMatch(/--font-ui\s*:\s*'LINESeedEN'/);
+    expect(block[1]).toMatch(/--font-sans\s*:\s*var\(--font-ui\)/);
+  });
+
+  it('Given the Japanese locale, when :root:lang(ja) tokens are inspected, then LINE Seed JP is the first UI font', () => {
+    const block = variables.match(/:root:lang\(ja\)\s*\{([^}]*)\}/);
+    expect(block).not.toBeNull();
+    expect(block[1]).toMatch(/--font-ui\s*:\s*'LINESeedJP'/);
+  });
+
+  it('Given the Chinese locale, when :root:lang(zh) tokens are inspected, then system CJK fonts remain first to avoid tofu', () => {
+    const block = variables.match(/:root:lang\(zh\)\s*\{([^}]*)\}/);
+    expect(block).not.toBeNull();
+    expect(block[1]).toMatch(/--font-ui\s*:\s*-apple-system,\s*'PingFang SC'/);
+  });
+
+  it('Given language-specific font tokens, when base :lang rules are inspected, then they do not hardcode competing font stacks', () => {
+    expect(base).not.toMatch(/:lang\(en\),\s*\n:lang\(es\)\s*\{\s*font-family:\s*'Inter'/);
+    expect(base).not.toMatch(/:lang\(ja\)\s*\{\s*font-family:\s*'Hiragino Sans'/);
+    expect(base).not.toMatch(/:lang\(zh\)\s*\{\s*font-family:\s*-apple-system/);
+  });
+
+  it('Given share capture watermark UI, when styles are inspected, then hardcoded system sans is replaced with the UI token', () => {
+    expect(sharing).not.toMatch(/font-family:-apple-system,sans-serif/);
+    expect(sharing).toMatch(/font-family:var\(--font-ui\)/);
+  });
+});
+
 describe('Wave 3 — base.css 접근성 글로벌 블록', () => {
   const base = readCss('src/css/base.css');
 

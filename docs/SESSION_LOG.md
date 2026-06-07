@@ -1381,3 +1381,128 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - `tests/i18n_language_settings.spec.js`: 작업1의 2개 정적검사를 현재 구현에 맞게 갱신 — `renderLangOption` 호출 검사 → `renderLanguageListItem` 호출 검사(정의+호출 2회 이상), `bindSettingsSections` 본문 `bindLangOptions(page)` → `bindLanguageItem(page)` 검사. 의도(설정 페이지 언어 UI 렌더+바인딩 연결)는 보존.
 - **변경파일**: `src/js/components/settingsSections.js`, `tests/i18n_language_settings.spec.js`, `docs/SESSION_LOG.md`.
 - **검증**: `tests/i18n_language_settings.spec.js` 18 passed. 전체 `npm test` **38 files, 361 passed / 6 skipped / 0 failed — 100% Green**(세션 중 첫 전체 그린). `npm run build` 성공.
+
+## 2026-06-07 16:34 — Claude Opus 4.8
+
+- **요구사항**: 자동 번역(translateContent)에 쓰는 Gemini 모델을 `gemini-3.1-pro` 로 변경. 단 과부하 폴백은 유지.
+- **구현방법**:
+  - `functions/lib/translate.js`: `MODEL_CANDIDATES` 를 `['gemini-2.5-flash','gemini-2.0-flash']` → `['gemini-3.1-pro','gemini-2.5-flash']` 로 교체(Pro 우선 + flash 폴백). 주석 갱신. `generateContent` config(systemInstruction/temperature 0.7)는 모델 무관하여 그대로.
+  - `functions/index.js`: translateContent 헤더 주석의 모델 표기 갱신.
+  - `tests/translate_content.spec.js`: 모델 우선순위/식별자 정적 검사를 `gemini-3.1-pro` 우선 + `gemini-2.5-flash` 폴백 기준으로 갱신.
+- **변경파일**: `functions/lib/translate.js`, `functions/index.js`, `tests/translate_content.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/translate_content.spec.js` 15 passed. (프로덕션 반영은 `firebase deploy --only functions:translateContent` 필요 — 미실행.)
+
+## 2026-06-07 16:43 — Claude Opus 4.8
+
+- **요구사항**: 직전 작업에서 넣은 `gemini-3.1-pro` 가 실서비스에서 500(`404 models/gemini-3.1-pro is not found`)을 내는 문제 정정. 404는 isTransientError=false라 flash 폴백도 안 타고 즉시 throw.
+- **구현방법**: ListModels API(`generativelanguage v1beta/models`)로 실제 가용 모델 조회 → 올바른 ID는 `gemini-3.1-pro-preview`. `MODEL_CANDIDATES[0]` 및 index.js 주석·테스트를 `gemini-3.1-pro` → `gemini-3.1-pro-preview` 로 교체. `generateContent` 스모크 테스트로 ID 유효성 확인("text":"OK") 후 재배포.
+- **변경파일**: `functions/lib/translate.js`, `functions/index.js`, `tests/translate_content.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: 모델 스모크테스트 통과, `tests/translate_content.spec.js` 15 passed, `firebase deploy --only functions:translateContent` 성공.
+
+## 2026-06-07 17:24 — Claude Opus 4.8
+
+- **요구사항**: (1) 일화 수정 에디터 「에디터 한마디」 textarea 최소 높이 200px. (2) 관리자 번역 사용성 — 자동 번역이 적용된 글에 한해 번역 버튼 내부 하단에 서브라벨로 ① 번역에 사용된 Gemini 모델 ID ② 번역 적용 시각 표시.
+- **구현방법**:
+  - `editor.js` #sf-editor-comment 인라인 스타일에 `min-height:200px` 추가.
+  - `functions/index.js` translateContent: 루프에서 실제 성공 모델을 `usedModel` 로 추적, 반환값을 `{ translations }` → `{ translations, model: usedModel, translatedAt: ISO }` 로 확장. (재배포 완료)
+  - `editor.js`: 상태 `translationMeta={model,translatedAt}` 추가. 번역 버튼을 `.translate-main`(메인 라벨)+`.translate-meta`(서브라벨, 기본 hidden) 2단 flex 구조로 변경. 헬퍼 `formatTranslatedAt`(ISO→'YYYY-MM-DD HH:mm'), `renderTranslateMeta`(메타 없으면 숨김, 있으면 모델/시각 2줄 표시) 추가. 번역 성공(filled&&model) 시 메타 갱신+렌더, 진행중 라벨 토글은 main span만 변경. 기존 글 로드 시 `story.translation_meta` 복원, `getFormData` 저장 데이터에 `translation_meta` 포함. 마운트 시 `renderTranslateMeta()` 호출.
+  - i18n 5개 파일에 `editor.translate_meta_model`/`translate_meta_time` 키 추가.
+  - `tests/translate_content.spec.js`: 응답에 model·translatedAt 반환 정적 검증 추가.
+- **변경파일**: `src/js/pages/editor.js`, `functions/index.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/translate_content.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/translate_content.spec.js` 16 passed, `tests/editor_management_calendar.spec.js` 9 passed/1 skipped, `npm run build` 성공, `firebase deploy --only functions:translateContent` 성공.
+
+## 2026-06-07 18:40 — Claude Opus 4.8
+
+- **요구사항**: (1) 홈 카드 우상단 관리자 "콘텐츠 관리" 버튼 — 기본 카드 형태 유지하며 카드 위쪽 여백에 레이아웃 영향 없이 플로팅. 설정 editIcon()과 동일 아이콘. (2) "예약 발행 자동 전환 실패: The query requires an index" Firestore 복합 인덱스 에러 수정.
+- **구현방법**:
+  - `cardFace.js` `cardShell()`에 `extraHtml` 파라미터 추가(flipper 형제 = 카드 면과 분리, 비회전 오버레이).
+  - `editorstory.js`: 관리자(`getState('isAdmin')`)일 때만 `.card-admin-edit-float` 버튼을 extraHtml로 주입, 클릭 시 `/editor/new?edit=<id>` 이동. 아이콘은 설정 editIcon()과 동일 SVG. (이전 card-actions 내 버전은 제거하고 카드 공통 형태 복원.)
+  - `components.css`: `.flip-container { position:relative }`(오버레이 기준), `.card-admin-edit-float`(absolute; top:-42px; right:2px; 토큰 색/그림자/반경).
+  - `firestore.indexes.json`: autoPublishScheduled 쿼리(`status== & publish_date<=`)는 inequality 암묵 ASC 정렬이라 기존 DESC 인덱스와 불일치 → `stories: status ASC, publish_date ASC` 복합 인덱스 추가 후 `firebase deploy --only firestore:indexes` 배포.
+- **변경파일**: `src/js/components/cardDeck/cardFace.js`, `src/js/pages/editorstory.js`, `src/css/components.css`, `firestore.indexes.json`, `docs/SESSION_LOG.md`.
+- **검증**: `npm run build` 성공, firestore 인덱스 배포 성공(빌드까지 수 분 소요).
+
+## 2026-06-07 18:33 — Claude Opus 4.8
+
+- **요구사항**: 콘텐츠 관리 캘린더에서 번역 완료 날짜의 `cal-cell-day`가 초록색(`cal-cell-day-translated`)으로 표시되지 않는 현상 확인·해결.
+- **구현방법**:
+  - 진단: CSS 규칙(`.editor-calendar-cell .cal-cell-day.cal-cell-day-translated{color:var(--color-success)}`, 특이성 0,3,0)·로직·번들·단위테스트 모두 정상 확인. 충돌/override·!important 없음.
+  - 실제 결함: `allTranslated` 판정이 `getStoriesForDate()`(현재 필터 적용 결과) 기준이라, 발행/예약/초안/미번역 등 필터가 활성화되면 완번역 글이 필터에서 빠져 날짜가 초록색이 안 되는 문제. → 필터와 무관하게 `allStories.filter(s => s.publish_date === isoDate)` 전체 글 기준으로 판정하도록 변경.
+- **변경파일**: `src/js/pages/editor.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/editor_management_calendar.spec.js` 9 passed/1 skipped, `npm run build` 성공.
+
+## 2026-06-07 18:55 — Claude Opus 4.8
+
+- **요구사항**: 번역 시 "AI 번역 서버가 혼잡합니다"가 지속 표시되는 원인 규명 및 대응.
+- **구현방법**:
+  - 원인: 함수 로그 확인 결과 실제 에러는 `429 RESOURCE_EXHAUSTED: "Your project has exceeded its monthly spending cap"` — 서버 혼잡이 아니라 **Gemini API 프로젝트 월 지출 한도 초과**. 기존 코드가 429를 일시오류로 분류해 '혼잡'으로 잘못 안내.
+  - 사용자 결정: 모델(gemini-3.1-pro-preview)은 유지, 메시지만 정확히.
+  - `functions/lib/translate.js`: `isQuotaError(err)` 추가(메시지에 spending cap/billing/exceeded its monthly 포함 여부)·export.
+  - `functions/index.js`: 모든 모델 실패 후 `isQuotaError(lastErr)`면 `HttpsError('resource-exhausted', '...사용량(요금) 한도 초과...')` 로 분기, 그 외만 기존 'unavailable' 혼잡 메시지.
+  - `editor.js`: catch 에 `functions/resource-exhausted` → `t('editor.translate_err_quota')` 매핑 추가.
+  - i18n 5개 파일에 `translate_err_quota` 키 추가.
+- **변경파일**: `functions/lib/translate.js`, `functions/index.js`, `src/js/pages/editor.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `docs/SESSION_LOG.md`.
+- **검증**: JSON 검증 통과, `npm run build` 성공, `firebase deploy --only functions:translateContent` 성공. (근본 해결은 사용자가 AI Studio 지출 한도 상향 필요.)
+
+## 2026-06-07 19:20 — Claude Opus 4.8
+
+- **요구사항**: 번역 완료된 글(예: 7/4 영구결번)이 모든 탭 내용 있고 저장했는데도 캘린더 날짜가 초록색이 안 되는 버그 수정.
+- **구현방법**: 원인은 CSS 특이성 충돌. 7/4는 토요일이며 주말 규칙 `.cal-cell.sun/.sat .cal-cell-day`는 클래스 3개 = (0,3,0)인데, 초록 규칙 `.editor-calendar-cell .cal-cell-day.cal-cell-day-translated`도 (0,3,0)으로 동일 → 파일 뒤쪽 주말 규칙이 이겨 토/일 번역 날짜만 검은색(평일은 정상 초록). selector를 `.editor-calendar-cell.cal-cell .cal-cell-day.cal-cell-day-translated`(0,4,0)으로 올려 해결. 주석의 특이성 표기도 정정.
+- **변경파일**: `src/css/pages.css`, `docs/SESSION_LOG.md`.
+- **검증**: dist 번들에 (0,4,0) 규칙 반영 확인, `tests/editor_management_calendar.spec.js` 통과, `npm run build` 성공.
+
+## 2026-06-07 19:25 — Claude Opus 4.8
+
+- **요구사항**: editor-new-page에서 뒤로가기/저장으로 editor-page(콘텐츠 관리)로 복귀할 때 항상 최신 날짜(마지막 달)로 점프해 불편(예: 4/1 수정 후 7월로). 보던/수정하던 달로 복귀하게.
+- **구현방법**: 원인은 `loadStories()`가 매번 `getLatestStoryDate(allStories)`로 visibleYear/Month 초기화. → 상태키 `editorCalendarDate`(ISO) 도입: (1) `loadStories`가 저장값 있으면 그 달로, 없을 때만 최신 폴백. (2) 빈 셀 클릭(`openNewStory`)·기존 글 클릭(closest cell data-date)·이전/다음 달 네비 시 `setState('editorCalendarDate', iso)` 기록. `state.js`에서 `setState` import 추가.
+  - 테스트: `vi.mock('../src/js/state.js')`에 누락된 `setState: vi.fn()` 추가(없어서 런타임 에러났음). getStateMock은 `editorCalendarDate`에 null 반환→최신 폴백 유지로 기존 5월 기대 테스트 통과.
+- **변경파일**: `src/js/pages/editor.js`, `tests/editor_management_calendar.spec.js`, `docs/SESSION_LOG.md`.
+- **검증**: `tests/editor_management_calendar.spec.js` 9 passed/1 skipped, `npm run build` 성공.
+
+## 2026-06-07 19:42 — Claude Opus 4.8
+
+- **요구사항**: editor-new-page(새 일화 작성/수정) iOS 버그 2건 수정. (1) editor-new-header가 safe-area 비정상 배치로 헤더 위쪽에 카드가 새어 보임. (2) 발행일 date input이 iOS에서 좌우로 늘어남.
+- **구현방법**:
+  - (1) safe-area 이중 적용이 원인. `.editor-new-page`가 `padding-top: env(safe-area-inset-top)`로 한 번, `.editor-new-header`가 `position:sticky; top: env(safe-area-inset-top)`로 또 한 번 내려가, 스크롤 시 헤더 위쪽에 safe-area 높이의 틈이 생기고 그 사이로 미리보기 카드가 노출. → 페이지 `padding-top` 제거, 헤더는 `top:0`으로 최상단 고정 + `padding-top`에 `env(safe-area-inset-top)` 포함해 배경이 노치까지 덮도록 변경.
+  - (2) editor의 `type=date` 입력에 iOS appearance 보정 누락(mystory의 ms-date는 inline으로 처리돼 있었음). → `components.css`에 재사용 규칙 `.input-field[type=\"date\"]` 추가: `-webkit-appearance:none; appearance:none; min-width:0; text-align:left` + `::-webkit-date-and-time-value{margin:0}` + 캘린더 아이콘 우측 정렬. editor·mystory 공통 적용.
+- **변경파일**: `src/css/pages.css`, `src/css/components.css`, `docs/SESSION_LOG.md`.
+- **검증**: `npm run build` 성공, `npm test` 361 passed(기존 dirty 상태의 `calendar.ui.spec.js` 1건 실패는 본 변경과 무관한 선존재 이슈). CSS 변경만이라 cap sync 불필요.
+
+## 2026-06-07 19:55 — Claude Opus 4.8
+
+- **요구사항**: 일화 수정(editor-new-page)의 발행하기/임시저장/예약발행 버튼을 mystory-form-actions처럼 화면 하단에 고정.
+- **구현방법**:
+  - `editor.js`: 액션 버튼 묶음을 `<form>` 밖으로 빼내 `.editor-form-actions`(form 형제, page 직속)로 이동. 발행 버튼은 form 밖에서도 제출되도록 `form=\"story-form\"` + `id=\"sf-publish\"` 부여, 2단(발행 / 임시저장·예약 행) 구조 유지.
+  - `editor.js` submit 핸들러: 발행 버튼이 form 밖으로 나가 `formEl.querySelector(button[type=submit])`가 null이 되므로 `document.getElementById(\"sf-publish\")`로 조회하도록 변경(저장중 비활성·텍스트 유지).
+  - `pages.css`: `.mystory-form-actions`와 동일 규칙으로 `.editor-form-actions`(position:fixed; bottom:0; mobile-max-width 중앙정렬; safe-area-inset-bottom 패딩) + `.editor-form-actions-row` 추가. `.editor-form-section` 하단 패딩을 `calc(9rem + safe-area)`로 늘려 마지막 입력이 고정 바에 가려지지 않게 함.
+- **변경파일**: `src/js/pages/editor.js`, `src/css/pages.css`, `docs/SESSION_LOG.md`.
+- **검증**: `npm run build` 성공, `tests/editor_management_calendar.spec.js` 9 passed/1 skipped, 전체 361 passed(기존 무관 `calendar.ui.spec.js` 1건 실패 유지).
+
+## 2026-06-07 19:58 — Claude Opus 4.8
+
+- **요구사항**: editor-form-actions 내부 버튼을 임시저장 / 발행하기 순서로 재배치.
+- **구현방법**: `editor.js`에서 `.editor-form-actions` 자식 순서만 변경 — `.editor-form-actions-row`(임시저장·예약발행)를 위로, 발행하기(submit, full-width)를 아래로 이동. 핸들러·id·form 속성·CSS는 그대로.
+- **변경파일**: `src/js/pages/editor.js`, `docs/SESSION_LOG.md`.
+- **검증**: `npm run build` 성공.
+
+## 2026-06-07 20:09 — Claude Sonnet 4.6
+
+- **요구사항**: editor-new-page(일화 수정 모드)의 폼 최하단 우측에 삭제 버튼 추가, 클릭 시 재확인 모달(기존 showConfirm) 표시 후 삭제.
+- **구현방법**:
+  - `editor.js` import: `deleteStory` 추가.
+  - 마크업: `editingId` 존재 시에만 `</form>` 직후에 `.mystory-form-inline-actions`(기존 우측 정렬 컨테이너) + `.btn.btn-secondary.mystory-form-delete-btn`(기존 빨간 테두리 스타일) 조합으로 삭제 버튼 렌더링.
+  - 핸들러: `#sf-delete-story` 클릭 → `showConfirm({ danger:true })` → `deleteStory(editingId)` → toast → `history.back()`.
+  - 새 CSS 불필요. 기존 `.mystory-form-inline-actions`, `.mystory-form-delete-btn`, `showConfirm`, `deleteStory` 재활용.
+- **변경파일**: `src/js/pages/editor.js`, `docs/SESSION_LOG.md`.
+- **검증**: `npm run build` 성공, `tests/editor_management_calendar.spec.js` 9 passed/1 skipped.
+
+## 2026-06-07 20:48 — Codex
+
+- **요구사항**: DayStory 메인 폰트인 LINE Seed 패밀리를 다국어 환경에 맞게 확장하고, CSS 전역 토큰이 언어별 폰트 스택을 반영하도록 수정.
+- **구현방법**:
+  - `index.html`에 LINESeedEN/LINESeedJP `@font-face`를 추가하고, 기존 LINESeedKR에도 `font-display: swap`을 보강. EN 웹폰트는 repo의 LINE Seed EN WOFF2 파일을 `public/fonts`로 노출해 빌드 산출물에 포함.
+  - `variables.css`에서 `:root:lang(ko/en/es/ja/zh)` 토큰 재정의를 추가해 `--font-ui`, `--font-body`, `--font-heading`, `--font-display`, `--font-sans`가 언어별 폰트 스택을 바라보도록 변경.
+  - `base.css`의 기존 언어별 직접 `font-family` 선언은 제거하고 줄바꿈 규칙만 유지. 공유 캡처 워터마크의 하드코딩 폰트도 `var(--font-ui)`로 교체.
+  - 회귀 테스트를 추가하고, 기존 캘린더 CSS 검사 정규식이 먼저 잡는 `.editor-calendar-grid .cal-cell` 블록에 flex 선언을 명시해 전체 테스트를 통과시킴.
+- **변경파일**: `index.html`, `src/css/variables.css`, `src/css/base.css`, `src/css/pages.css`, `src/js/services/sharing.js`, `tests/css_tokens.spec.js`, `public/fonts/LINE_SeedEN/Web/WOFF2/*`, `docs/SESSION_LOG.md`.
+- **검증**: `npm run build` 성공, `npm test` 38 files/369 passed/6 skipped.

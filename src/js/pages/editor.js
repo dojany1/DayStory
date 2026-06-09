@@ -29,7 +29,7 @@ import {
 import { uploadImage } from '../services/images.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { translateContentApi } from '../services/translate.js';
-import { auth } from '../firebase.js';
+import { auth } from '../services/firebase.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
 import { getLocalToday } from '../utils/date.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
@@ -215,6 +215,7 @@ export function renderEditor() {
       const weekday = new Date(visibleYear, visibleMonth, day).getDay();
       const weekdayClass = weekday === 0 ? ' sun' : weekday === 6 ? ' sat' : '';
       const storyClass = stories.length ? ' editor-calendar-cell-has-story' : ' editor-calendar-cell-empty';
+      const todayClass = isoDate === today ? ' cal-cell-today' : '';
       /* 해당 날짜의 모든 글이 5개 국어 번역 완료면 날짜 텍스트를 초록색으로 표시.
          현재 필터(발행/예약/초안 등)와 무관하게 그 날짜 전체 글 기준으로 판정한다. */
       const dateStories = allStories.filter((s) => s.publish_date === isoDate);
@@ -222,7 +223,7 @@ export function renderEditor() {
       const dayClass = allTranslated ? ' cal-cell-day-translated' : '';
 
       cells.push(`
-        <div class="editor-calendar-cell cal-cell${weekdayClass}${storyClass}" data-date="${isoDate}" role="button" tabindex="0">
+        <div class="editor-calendar-cell cal-cell${weekdayClass}${storyClass}${todayClass}" data-date="${isoDate}" role="button" tabindex="0">
           <div class="cal-cell-day${dayClass}">${day}</div>
           <div class="editor-calendar-stories">
             ${stories.map(renderCalendarStory).join('')}

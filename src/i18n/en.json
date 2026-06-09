@@ -104,6 +104,7 @@
     "tab_mine": "My Diary",
     "card_tap_hint": "Tap the card to flip it",
     "card_collected_hint": "Collected — tap to flip",
+    "card_swipe_hint": "Swipe left or right to browse cards",
     "collect_button": "Collect",
     "collected_button": "Collected ✦",
     "collect_success_text": "Card collected!",
@@ -259,6 +260,7 @@
     "title": "My Page",
     "admin_badge": "Admin",
     "no_email": "No email",
+    "modal_title": "Profile",
     "edit_title": "Edit profile",
     "change_photo": "Change profile photo",
     "nickname": "Nickname",
@@ -281,6 +283,23 @@
     "submit": "Submit report",
     "toast_need_detail": "Please enter a description",
     "toast_done": "Your report has been submitted. Thank you! ✅"
+  },
+  "inquiry": {
+    "title": "Contact & Suggestions",
+    "menu_card_report": "Report an error or typo",
+    "type_label": "Inquiry type",
+    "type_bug": "Bug",
+    "type_typo": "Typo",
+    "type_feature": "Feature request",
+    "type_etc": "Other",
+    "content_label": "Message",
+    "placeholder": "Feel free to share your feedback or any issue you found...",
+    "submit": "Send",
+    "notice": "Your feedback is used to improve the service.",
+    "toast_need_content": "Please enter a message",
+    "toast_done": "Thanks for your feedback! We'll use it to improve the service ✅",
+    "toast_cooldown": "Please try again later. You've sent too many in a short time.",
+    "toast_error": "Failed to send. Please try again later."
   },
   "search": {
     "title": "Search",
@@ -356,7 +375,7 @@
     "notification_saved": "Notification settings saved",
     "section_app_settings": "App settings",
     "section_support": "Support",
-    "row_contact": "Contact",
+    "row_contact": "Contact & Suggestions",
     "toast_coming_soon": "This feature is coming soon. Stay tuned!",
     "withdraw_title": "Delete account",
     "withdraw_message": "Are you sure you want to delete your account?\nYour account and all data (stories, archive, uploaded photos, etc.) will be permanently deleted and cannot be recovered.",
@@ -364,7 +383,10 @@
     "withdraw_hold": "Hold for {seconds}s to delete...",
     "withdraw_hold_done": "Deleting...",
     "toast_reauth": "For security, please log in again before deleting your account.",
-    "toast_withdraw_error": "An error occurred while deleting your account."
+    "toast_withdraw_error": "An error occurred while deleting your account.",
+    "row_tutorial": "Replay tutorial",
+    "row_tutorial_subtitle": "See the app intro guide from the start",
+    "toast_tutorial_reset": "Restarting the tutorial"
   },
   "toast": {
     "login_required": "You need to log in to use this feature.",
@@ -395,5 +417,19 @@
     "prompt_picture": "Take a photo",
     "prompt_cancel": "Cancel",
     "file_read_error": "Couldn't read the file."
+  },
+  "onboarding": {
+    "cta_start": "Get started",
+    "editor_title": "Today in History",
+    "editor_line1": "Discover a story from this day in history, every day, as a card.",
+    "editor_line2": "Tap a card to flip it and read the full story.",
+    "mystory_title": "My Diary",
+    "mystory_line1": "Capture your day like a diary and keep it as a card.",
+    "mystory_line2": "Look back on past entries at a glance from the calendar.",
+    "tip_card_flip": "Tap to flip",
+    "welcome_card_title": "Welcome to DayStory!",
+    "welcome_card_body": "DayStory collects a slice of history and a piece of your day, all as cards.\n\nWrite your first entry in the 'My Diary' tab, and save the cards you love as images to share with friends. Shall we start telling your story today?",
+    "welcome_tip": "Your first card has arrived in your library 🎉",
+    "mystory_empty_hint": "Write your first entry for today ✏️"
   }
 }

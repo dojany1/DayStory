@@ -58,7 +58,7 @@ vi.mock('../src/js/services/stories.js', () => ({
   fetchStoryById: fetchStoryByIdMock,
 }));
 
-vi.mock('../src/js/firebase.js', () => ({
+vi.mock('../src/js/services/firebase.js', () => ({
   db: null,
   storage: null,
   auth: {

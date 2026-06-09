@@ -93,7 +93,7 @@
   2. Claude가 출력을 읽고 step을 직접 구현 (Explore/Plan/구현/검증)
   3. `phases/{phase}/step{N}.result.json` 작성
   4. `npm run harness:commit -- <phase> <stepN>` 실행 → index.json 업데이트 + 커밋
-  5. docs/SESSION_LOG.md append
+  5. SESSION_LOG.md append
 - `npm run harness:auto` 실행 후 재귀 호출 금지. 환경변수 `DAYSTORY_HARNESS_ACTIVE=1`이 설정되면 harness를 다시 실행하지 않는다.
 - 수동 실행이 필요하면 `npm run harness -- <phase-dir>`를 사용한다.
 - `npm run harness:status` — 현재 phase 목록과 상태만 출력 (dry-run).
@@ -113,7 +113,7 @@
 
 ## 10. Session Log
 
-- **CRITICAL**: AI가 이 세션에서 파일을 1개라도 변경했다면, 세션 종료 직전 `docs/SESSION_LOG.md` 맨 아래에 한 항목을 **append** 한다 (Edit/Write 도구로). 형식·규칙·템플릿은 그 파일 상단을 참고.
+- **CRITICAL**: AI가 이 세션에서 파일을 1개라도 변경했다면, 세션 종료 직전 `SESSION_LOG.md` 맨 아래에 한 항목을 **append** 한다 (Edit/Write 도구로). 형식·규칙·템플릿은 그 파일 상단을 참고.
 - 항목 필수 필드: `날짜 시간 — 에이전트`, `요구사항`, `구현방법`, `변경파일`. 24시간제 로컬 시각.
 - 기존 항목은 수정하지 않는다. 정정이 필요하면 새 항목을 추가한다.
 - 순수 질문/설명/리뷰 세션(파일 변경 0개)은 기록하지 않는다.

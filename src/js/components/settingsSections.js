@@ -6,7 +6,7 @@ import { bindNotificationSettingsSection, renderNotificationListItem } from './n
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
 import { escapeHtml } from '../utils/sanitize.js';
-import { auth } from '../firebase.js';
+import { auth } from '../services/firebase.js';
 
 /* escapeText 는 escapeHtml alias (Wave 5 통합) */
 const escapeText = escapeHtml;
@@ -18,6 +18,9 @@ import {
 } from '../services/userCleanup.js';
 import { t, getCurrentLang, setLang } from '../i18n/index.js';
 import { saveLanguagePreference } from '../services/userProfile.js';
+import { resetOnboarding } from '../services/onboarding.js';
+import { refreshWelcomeBadge } from './navBadge.js';
+import { showInquirySheet } from './inquirySheet.js';
 
 const LANGS = ['ko', 'en', 'ja', 'es', 'zh'];
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -77,6 +80,12 @@ export function renderSettingsSections() {
         title: t('settings.row_contact'),
         icon: mailIcon(),
       })}
+      ${renderSettingsRow({
+        id: 'setting-tutorial',
+        title: t('settings.row_tutorial'),
+        subtitle: t('settings.row_tutorial_subtitle'),
+        icon: tutorialIcon(),
+      })}
     </div>
 
     ${user ? `
@@ -120,9 +129,19 @@ export function bindSettingsSections(page) {
   bindViewModeItem(page);
   bindRow(page, '#setting-editor', () => navigate('/editor'));
   bindRow(page, '#setting-about', () => showToast(t('settings.toast_coming_soon'), 'info'));
-  bindRow(page, '#setting-contact', () => showToast(t('settings.toast_coming_soon'), 'info'));
+  bindRow(page, '#setting-contact', () => showInquirySheet());
+  bindRow(page, '#setting-tutorial', handleReplayTutorial);
   bindRow(page, '#setting-logout', handleLogout);
   bindRow(page, '#setting-withdraw', handleWithdraw);
+}
+
+/* 튜토리얼 다시 보기 — 온보딩 플래그를 초기화하고 홈으로 이동해
+   에디터 인트로 모달부터 다시 노출시킨다. (웰컴 배지는 재가입이 아니므로 다시 띄우지 않음) */
+function handleReplayTutorial() {
+  resetOnboarding();
+  refreshWelcomeBadge();   /* 남아있을 수 있는 'N' 배지 DOM 정리 */
+  showToast(t('settings.toast_tutorial_reset'), 'success');
+  navigate('/editorstory');
 }
 
 /* escapeText 내부 구현은 utils/sanitize.js 의 escapeHtml 로 통일 (Wave 5) */
@@ -547,6 +566,10 @@ function bookIcon() {
 
 function mailIcon() {
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
+}
+
+function tutorialIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>';
 }
 
 function layoutIcon() {

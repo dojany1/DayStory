@@ -104,6 +104,7 @@
     "tab_mine": "日記",
     "card_tap_hint": "カードをタップするとめくれます",
     "card_collected_hint": "収集済みのカード — タップでめくれます",
+    "card_swipe_hint": "左右にスワイプしてカードを切り替えられます",
     "collect_button": "収集する",
     "collected_button": "収集済み ✦",
     "collect_success_text": "収集しました！",
@@ -259,6 +260,7 @@
     "title": "マイページ",
     "admin_badge": "管理者",
     "no_email": "メール情報なし",
+    "modal_title": "プロフィール",
     "edit_title": "プロフィール編集",
     "change_photo": "プロフィール写真を変更",
     "nickname": "ニックネーム",
@@ -281,6 +283,23 @@
     "submit": "報告を送信",
     "toast_need_detail": "説明を入力してください",
     "toast_done": "報告を受け付けました。ありがとうございます！✅"
+  },
+  "inquiry": {
+    "title": "お問い合わせ・ご提案",
+    "menu_card_report": "誤り・誤字脱字を報告",
+    "type_label": "お問い合わせの種類",
+    "type_bug": "不具合",
+    "type_typo": "誤字脱字",
+    "type_feature": "機能のご提案",
+    "type_etc": "その他",
+    "content_label": "内容",
+    "placeholder": "ご意見や見つかった問題を自由にご記入ください...",
+    "submit": "送信",
+    "notice": "いただいたご意見はサービス改善に利用します。",
+    "toast_need_content": "内容を入力してください",
+    "toast_done": "貴重なご意見ありがとうございます！サービス改善に役立てます ✅",
+    "toast_cooldown": "しばらくしてからもう一度お試しください。短時間に送りすぎています。",
+    "toast_error": "送信に失敗しました。しばらくしてからもう一度お試しください。"
   },
   "search": {
     "title": "検索",
@@ -356,7 +375,7 @@
     "notification_saved": "通知設定を保存しました",
     "section_app_settings": "アプリ設定",
     "section_support": "サポート",
-    "row_contact": "お問い合わせ",
+    "row_contact": "お問い合わせ・ご提案",
     "toast_coming_soon": "準備中の機能です。アップデートをお待ちください！",
     "withdraw_title": "アカウント削除",
     "withdraw_message": "本当にアカウントを削除しますか?\nアカウントとすべてのデータ（話、保管庫、アップロード写真など）が完全に削除され、復元できません。",
@@ -364,7 +383,10 @@
     "withdraw_hold": "削除まで{seconds}秒間押し続けてください...",
     "withdraw_hold_done": "削除を実行します...",
     "toast_reauth": "セキュリティポリシーにより、再度ログインしてから退会できます。",
-    "toast_withdraw_error": "アカウント削除の処理中にエラーが発生しました。"
+    "toast_withdraw_error": "アカウント削除の処理中にエラーが発生しました。",
+    "row_tutorial": "チュートリアルをもう一度見る",
+    "row_tutorial_subtitle": "アプリの使い方ガイドを最初から表示します",
+    "toast_tutorial_reset": "チュートリアルを再開します"
   },
   "toast": {
     "login_required": "ログインが必要な機能です。",
@@ -395,5 +417,19 @@
     "prompt_picture": "カメラで撮影",
     "prompt_cancel": "キャンセル",
     "file_read_error": "ファイルを読み込めませんでした。"
+  },
+  "onboarding": {
+    "cta_start": "はじめる",
+    "editor_title": "今日の歴史",
+    "editor_line1": "毎日、歴史の中の「今日」の物語をカードでお届けします。",
+    "editor_line2": "カードをタップすると裏面で詳しい物語が読めます。",
+    "mystory_title": "わたしの日記",
+    "mystory_line1": "今日一日を日記のように記録し、カードとして保存しましょう。",
+    "mystory_line2": "カレンダーから過去の記録を一目で振り返れます。",
+    "tip_card_flip": "タップしてめくる",
+    "welcome_card_title": "DayStoryへようこそ！",
+    "welcome_card_body": "DayStoryは、毎日の歴史のひとかけらとあなたの一日をカードで集める場所です。\n\n「わたしの日記」タブで最初の日記を書いて、お気に入りのカードは画像として保存し、友だちと共有しましょう。今日からあなたの物語を記録してみませんか？",
+    "welcome_tip": "最初のカードがライブラリに届きました 🎉",
+    "mystory_empty_hint": "今日の最初の日記を書いてみましょう ✏️"
   }
 }

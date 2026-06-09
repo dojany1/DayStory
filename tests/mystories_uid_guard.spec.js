@@ -5,7 +5,7 @@ const { getDocsMock } = vi.hoisted(() => ({
   getDocsMock: vi.fn(),
 }));
 
-vi.mock('../src/js/firebase.js', () => ({
+vi.mock('../src/js/services/firebase.js', () => ({
   db: { _mockDb: true },
   storage: null,
 }));

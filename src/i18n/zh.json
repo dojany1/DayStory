@@ -104,6 +104,7 @@
     "tab_mine": "我的日记",
     "card_tap_hint": "点击卡片翻面",
     "card_collected_hint": "已收集 — 点击翻面",
+    "card_swipe_hint": "左右滑动可切换卡片",
     "collect_button": "收集",
     "collected_button": "已收集 ✦",
     "collect_success_text": "卡片已收集！",
@@ -259,6 +260,7 @@
     "title": "我的页面",
     "admin_badge": "管理员",
     "no_email": "无邮箱信息",
+    "modal_title": "个人资料",
     "edit_title": "编辑资料",
     "change_photo": "更换头像",
     "nickname": "昵称",
@@ -281,6 +283,23 @@
     "submit": "提交举报",
     "toast_need_detail": "请输入说明",
     "toast_done": "举报已提交，谢谢！✅"
+  },
+  "inquiry": {
+    "title": "意见与建议",
+    "menu_card_report": "报告错误或错别字",
+    "type_label": "咨询类型",
+    "type_bug": "故障",
+    "type_typo": "错别字",
+    "type_feature": "功能建议",
+    "type_etc": "其他",
+    "content_label": "内容",
+    "placeholder": "欢迎自由填写你的意见或发现的问题...",
+    "submit": "发送",
+    "notice": "你提供的意见将用于改善服务。",
+    "toast_need_content": "请输入内容",
+    "toast_done": "感谢你的宝贵意见！我们会用于改善服务 ✅",
+    "toast_cooldown": "请稍后再试，短时间内发送太多了。",
+    "toast_error": "发送失败，请稍后再试。"
   },
   "search": {
     "title": "搜索",
@@ -356,7 +375,7 @@
     "notification_saved": "通知设置已保存",
     "section_app_settings": "应用设置",
     "section_support": "支持",
-    "row_contact": "联系我们",
+    "row_contact": "意见与建议",
     "toast_coming_soon": "功能即将推出，敬请期待！",
     "withdraw_title": "注销账户",
     "withdraw_message": "确定要注销账户吗？\n账户及所有数据（故事、收藏、上传的照片等）将被永久删除且无法恢复。",
@@ -364,7 +383,10 @@
     "withdraw_hold": "请按住 {seconds} 秒以注销...",
     "withdraw_hold_done": "正在注销...",
     "toast_reauth": "出于安全考虑，请重新登录后再注销账户。",
-    "toast_withdraw_error": "注销账户时出错。"
+    "toast_withdraw_error": "注销账户时出错。",
+    "row_tutorial": "重新查看教程",
+    "row_tutorial_subtitle": "从头查看应用使用引导",
+    "toast_tutorial_reset": "正在重新开始教程"
   },
   "toast": {
     "login_required": "使用此功能需要登录。",
@@ -395,5 +417,19 @@
     "prompt_picture": "用相机拍摄",
     "prompt_cancel": "取消",
     "file_read_error": "无法读取文件。"
+  },
+  "onboarding": {
+    "cta_start": "开始",
+    "editor_title": "历史上的今天",
+    "editor_line1": "每天以卡片形式发现历史上这一天的故事。",
+    "editor_line2": "点击卡片即可翻面阅读完整故事。",
+    "mystory_title": "我的日记",
+    "mystory_line1": "像写日记一样记录今天，并保存为卡片。",
+    "mystory_line2": "在日历中一目了然地回顾过往记录。",
+    "tip_card_flip": "点击翻面",
+    "welcome_card_title": "欢迎来到 DayStory！",
+    "welcome_card_body": "DayStory 将每天的一段历史和你的一天都收藏成卡片。\n\n在「我的日记」标签里写下第一篇记录，把喜欢的卡片保存为图片与朋友分享。今天就开始记录你的故事吧？",
+    "welcome_tip": "你的第一张卡片已送达收藏库 🎉",
+    "mystory_empty_hint": "写下今天的第一篇日记吧 ✏️"
   }
 }

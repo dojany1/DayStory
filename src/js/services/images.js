@@ -1,5 +1,5 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase.js';
+import { storage } from './firebase.js';
 
 const IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 

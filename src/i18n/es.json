@@ -104,6 +104,7 @@
     "tab_mine": "Mi diario",
     "card_tap_hint": "Toca la tarjeta para girarla",
     "card_collected_hint": "Coleccionada — toca para girar",
+    "card_swipe_hint": "Desliza izquierda o derecha para cambiar de tarjeta",
     "collect_button": "Coleccionar",
     "collected_button": "Coleccionada ✦",
     "collect_success_text": "¡Tarjeta coleccionada!",
@@ -259,6 +260,7 @@
     "title": "Mi página",
     "admin_badge": "Administrador",
     "no_email": "Sin correo",
+    "modal_title": "Perfil",
     "edit_title": "Editar perfil",
     "change_photo": "Cambiar foto de perfil",
     "nickname": "Apodo",
@@ -281,6 +283,23 @@
     "submit": "Enviar reporte",
     "toast_need_detail": "Introduce una descripción",
     "toast_done": "Tu reporte se ha enviado. ¡Gracias! ✅"
+  },
+  "inquiry": {
+    "title": "Contacto y sugerencias",
+    "menu_card_report": "Reportar un error o errata",
+    "type_label": "Tipo de consulta",
+    "type_bug": "Error",
+    "type_typo": "Errata",
+    "type_feature": "Sugerencia de función",
+    "type_etc": "Otro",
+    "content_label": "Mensaje",
+    "placeholder": "Comparte tu opinión o cualquier problema que hayas encontrado...",
+    "submit": "Enviar",
+    "notice": "Tus comentarios se usan para mejorar el servicio.",
+    "toast_need_content": "Introduce un mensaje",
+    "toast_done": "¡Gracias por tu opinión! La usaremos para mejorar el servicio ✅",
+    "toast_cooldown": "Inténtalo de nuevo más tarde. Has enviado demasiados en poco tiempo.",
+    "toast_error": "No se pudo enviar. Inténtalo de nuevo más tarde."
   },
   "search": {
     "title": "Buscar",
@@ -356,7 +375,7 @@
     "notification_saved": "Ajustes de notificación guardados",
     "section_app_settings": "Ajustes de la app",
     "section_support": "Soporte",
-    "row_contact": "Contacto",
+    "row_contact": "Contacto y sugerencias",
     "toast_coming_soon": "Función en camino. ¡Mantente atento!",
     "withdraw_title": "Eliminar cuenta",
     "withdraw_message": "¿Seguro que quieres eliminar tu cuenta?\nTu cuenta y todos los datos (historias, archivo, fotos subidas, etc.) se eliminarán permanentemente y no se podrán recuperar.",
@@ -364,7 +383,10 @@
     "withdraw_hold": "Mantén pulsado {seconds}s para eliminar...",
     "withdraw_hold_done": "Eliminando...",
     "toast_reauth": "Por seguridad, vuelve a iniciar sesión antes de eliminar tu cuenta.",
-    "toast_withdraw_error": "Se produjo un error al eliminar tu cuenta."
+    "toast_withdraw_error": "Se produjo un error al eliminar tu cuenta.",
+    "row_tutorial": "Ver el tutorial de nuevo",
+    "row_tutorial_subtitle": "Vuelve a ver la guía de introducción",
+    "toast_tutorial_reset": "Reiniciando el tutorial"
   },
   "toast": {
     "login_required": "Debes iniciar sesión para usar esta función.",
@@ -395,5 +417,19 @@
     "prompt_picture": "Tomar una foto",
     "prompt_cancel": "Cancelar",
     "file_read_error": "No se pudo leer el archivo."
+  },
+  "onboarding": {
+    "cta_start": "Empezar",
+    "editor_title": "Hoy en la historia",
+    "editor_line1": "Descubre cada día una historia de este día en la historia, como una tarjeta.",
+    "editor_line2": "Toca una tarjeta para girarla y leer la historia completa.",
+    "mystory_title": "Mi diario",
+    "mystory_line1": "Captura tu día como un diario y guárdalo como tarjeta.",
+    "mystory_line2": "Revisa tus entradas anteriores de un vistazo desde el calendario.",
+    "tip_card_flip": "Toca para girar",
+    "welcome_card_title": "¡Bienvenido a DayStory!",
+    "welcome_card_body": "DayStory reúne un fragmento de la historia y un trozo de tu día, todo en forma de tarjetas.\n\nEscribe tu primera entrada en la pestaña 'Mi diario' y guarda como imagen las tarjetas que más te gusten para compartirlas con tus amigos. ¿Empezamos a contar tu historia hoy?",
+    "welcome_tip": "Tu primera tarjeta llegó a tu colección 🎉",
+    "mystory_empty_hint": "Escribe tu primera entrada de hoy ✏️"
   }
 }

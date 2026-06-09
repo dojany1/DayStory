@@ -4,11 +4,13 @@
    Firestore의 userStories 컬렉션에서 사용자 일화 데이터를 관리합니다.
    ===================================================================== */
 
-import { db, storage } from '../firebase.js';
+import { db, storage } from './firebase.js';
 import { collection, doc, query, where, orderBy, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { withTimeout } from '../utils/timeout.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
+import { t } from '../i18n/index.js';
+import { getLocalToday } from '../utils/date.js';
 
 /* ─── myStories in-memory 캐시 ─── */
 const MYSTORIES_CACHE_TTL_MS = 60_000; // 60초
@@ -75,6 +77,28 @@ export async function createMyStory(data) {
     updated_at: serverTimestamp()
   });
   invalidateMyStoriesCache(data.uid);
+}
+
+/**
+ * seedWelcomeStory — 최초 가입 시 환영(웰컴) 카드 1장을 userStories 에 주입한다.
+ * Firestore 보안 규칙(request.auth.uid == userId)을 만족하도록
+ * 호출부에서 인증이 완료된 uid 를 넘긴다.
+ * 실패 시 throw 하여 호출부가 'N' 배지 설정을 건너뛸 수 있게 한다 (배지만 뜨고 카드 없음 방지).
+ * @param {string} uid
+ * @returns {Promise<void>}
+ */
+export async function seedWelcomeStory(uid) {
+  if (!db || !uid) return;
+  await createMyStory({
+    uid,
+    title: t('onboarding.welcome_card_title'),
+    body: t('onboarding.welcome_card_body'),
+    publish_date: getLocalToday(),
+    image_url: '',          /* 이미지 없음 — cardImageWrap 이 FALLBACK_IMG 로 렌더 */
+    image_thumb_url: '',
+    author_nickname: '',     /* 렌더 시 프로필 닉네임으로 폴백 */
+    is_welcome: true,
+  });
 }
 
 export async function updateMyStory(id, data) {

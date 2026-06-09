@@ -12,7 +12,7 @@ vi.mock('../src/js/state.js', () => ({
   getState: getStateMock,
 }));
 
-vi.mock('../src/js/firebase.js', () => ({
+vi.mock('../src/js/services/firebase.js', () => ({
   db: { _mockDb: true },
   auth: null,
   storage: null,

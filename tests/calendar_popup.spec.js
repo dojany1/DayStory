@@ -38,7 +38,7 @@ vi.mock('../src/js/components/toast.js', () => ({
   showToast: vi.fn(),
 }));
 
-vi.mock('../src/js/firebase.js', () => ({
+vi.mock('../src/js/services/firebase.js', () => ({
   auth: { currentUser: null },
 }));
 

@@ -85,7 +85,7 @@ vi.mock('../src/js/utils/scrollLock.js', () => ({
   unlockScroll: vi.fn(),
 }));
 
-vi.mock('../src/js/firebase.js', () => ({
+vi.mock('../src/js/services/firebase.js', () => ({
   auth: {
     currentUser: { uid: 'user-1' },
   },

@@ -10,7 +10,7 @@ import { navigate } from '../router.js';
 import { renderPageHeader } from '../components/pageHeader.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getState, setState } from '../state.js';
-import { auth, db, storage } from '../firebase.js';
+import { auth, db, storage } from '../services/firebase.js';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { showToast } from '../components/toast.js';
@@ -18,6 +18,8 @@ import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../servi
 import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
 import { getCurrentLang, t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
+import { dismissWelcomeBadge } from '../components/navBadge.js';
+import { hasSeen, markSeen, ONBOARDING_FLAGS } from '../services/onboarding.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -86,8 +88,7 @@ export function renderProfile() {
           </div>
           <button id="profile-edit-btn" class="profile-edit-btn" aria-label="${t('profile.edit_title')}">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
             </svg>
           </button>
         </div>
@@ -105,6 +106,16 @@ export function renderProfile() {
   }, 0);
 
   initArchiveSection(page, { myStoryClickMode: 'popup' });
+
+  /* 보관함(프로필) 방문 = 웰컴 카드 도착 확인.
+     배지가 대기 중이었다면 최초 1회 축하 피드백을 보이고, 'N' 배지를 해제한다. */
+  const welcomeWasPending = hasSeen(ONBOARDING_FLAGS.WELCOME_BADGE);
+  dismissWelcomeBadge();
+  if (welcomeWasPending && !hasSeen(ONBOARDING_FLAGS.TIP_WELCOME_CARD)) {
+    markSeen(ONBOARDING_FLAGS.TIP_WELCOME_CARD);
+    /* 보관함이 렌더된 직후 축하 토스트 (라우터 마운트 타이밍과 분리) */
+    setTimeout(() => showToast(t('onboarding.welcome_tip'), 'success'), 400);
+  }
 
   return page;
 }
@@ -179,7 +190,7 @@ function openProfileEditModal() {
   overlay.innerHTML = `
     <div class="profile-edit-modal" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
       <div class="profile-edit-header">
-        <span class="profile-edit-title" id="profile-edit-title">${t('profile.edit_title')}</span>
+        <span class="profile-edit-title" id="profile-edit-title">${t('profile.modal_title')}</span>
         <button class="profile-edit-close" id="profile-edit-close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
@@ -211,6 +222,7 @@ function openProfileEditModal() {
           <input type="text" class="profile-edit-input" id="profile-nickname-input"
                  value="${escapeHtml(currentNickname)}" maxlength="20" placeholder="${t('profile.nickname_placeholder')}" />
           <div class="profile-edit-hint">${t('profile.max_hint')}</div>
+          <button class="profile-logout-btn" id="profile-logout-btn" type="button">${t('settings.row_logout')}</button>
         </div>
       </div>
 
@@ -252,6 +264,23 @@ function openProfileEditModal() {
   document.addEventListener('keydown', onKey);
   overlay.querySelector('#profile-edit-close').addEventListener('click', closeModal);
   overlay.querySelector('#profile-edit-cancel').addEventListener('click', closeModal);
+  overlay.querySelector('#profile-logout-btn').addEventListener('click', async () => {
+    closeModal();
+    try {
+      if (auth) {
+        const { signOut } = await import('firebase/auth');
+        await Promise.race([signOut(auth), new Promise(r => setTimeout(r, 2000))]);
+      }
+    } catch (err) {
+      console.warn('로그아웃 오류 (무시됨):', err);
+    }
+    setState('user', null);
+    setState('profile', null);
+    const nav = document.getElementById('bottom-nav');
+    if (nav) nav.style.display = 'none';
+    window.location.hash = '#/login';
+    showToast(t('toast.logged_out'), 'success');
+  });
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeModal();
   });

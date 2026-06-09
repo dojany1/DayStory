@@ -12,7 +12,7 @@
      - (에디터 전용) CRUD 함수들
    ===================================================================== */
 
-import { db, storage, auth } from '../firebase.js';
+import { db, storage, auth } from './firebase.js';
 import { getLocalToday } from '../utils/date.js';
 import { withTimeout } from '../utils/timeout.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';

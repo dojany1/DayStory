@@ -21,6 +21,7 @@ import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { showInquirySheet } from '../components/inquirySheet.js';
 
 function normalizeSourceItem(source) {
   if (!source) return null;
@@ -72,8 +73,8 @@ function renderAttribution(story, sources) {
         <div class="detail-license">
           <div class="detail-sources-title">${t('detail.image_source_title')}</div>
           <div class="detail-license-text">
-            ${imageSource ? `<div>${t('detail.source_label')}: ${escapeHtml(imageSource)}</div>` : ''}
-            ${imageLicense ? `<div>${t('detail.license_label')}: ${escapeHtml(imageLicense)}</div>` : ''}
+            ${imageSource ? `<div>${t('detail.source_label')}: <span class="detail-license-value">${escapeHtml(imageSource)}</span></div>` : ''}
+            ${imageLicense ? `<div>${t('detail.license_label')}: <span class="detail-license-value">${escapeHtml(imageLicense)}</span></div>` : ''}
           </div>
         </div>
       ` : ''}
@@ -291,6 +292,12 @@ async function loadDetail(page, storyId) {
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
             </svg>
           </button>
+          <button class="btn-icon" id="detail-report" aria-label="${t('inquiry.menu_card_report')}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </button>
         </div>
       </div>
       <div class="detail-body">${bodyHtml}</div>
@@ -355,5 +362,10 @@ async function loadDetail(page, storyId) {
     } catch { /* 사용자가 공유를 취소한 경우 무시 */ }
   };
   page.querySelector('#detail-share')?.addEventListener('click', shareAction);
+
+  /* 오류 및 오탈자 제보 — 유형 'typo' 프리셋 + 현재 카드 ID 첨부로 문의 시트 오픈 */
+  page.querySelector('#detail-report')?.addEventListener('click', () => {
+    showInquirySheet({ presetType: 'typo', entryCardId: storyId });
+  });
 
 }

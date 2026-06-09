@@ -28,7 +28,7 @@ import { ICON_CALENDAR, ICON_CARD } from './cardFace.js';
 import { t } from '../../i18n/index.js';
 
 /* ── 페이지 shell 마크업 (휠 피커 + 카드 영역 + 캘린더 뷰) ── */
-function buildShellHtml({ idPrefix: P, headerHtml = '', initialYear, savedView }) {
+function buildShellHtml({ idPrefix: P, headerHtml = '', initialYear, savedView, calendarTitle = '' }) {
   return `
     ${headerHtml}
     <div class="wheel-pickers-container">
@@ -52,6 +52,7 @@ function buildShellHtml({ idPrefix: P, headerHtml = '', initialYear, savedView }
     </div>
 
     <div class="page-calendar-view" id="${P}-cal-view" hidden>
+      ${calendarTitle ? `<div class="calendar-page-title">${calendarTitle}</div>` : ''}
       <div class="calendar-month-nav">
         <button type="button" class="calendar-month-arrow" id="cal-prev-month" aria-label="${t('common.prev_month')}">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
@@ -92,7 +93,7 @@ export function buildCardDeck(config) {
   const savedView = sessionStorage.getItem('ds_session_view') ?? (localStorage.getItem('ds_default_view') || 'card');
   const initialYear = new Date().getFullYear();
 
-  page.innerHTML = buildShellHtml({ idPrefix: P, headerHtml: config.headerHtml || '', initialYear, savedView });
+  page.innerHTML = buildShellHtml({ idPrefix: P, headerHtml: config.headerHtml || '', initialYear, savedView, calendarTitle: config.calendarTitle || '' });
 
   if (savedView === 'calendar') {
     page.querySelector(`#${P}-day-picker`).hidden = true;

@@ -43,6 +43,12 @@ vi.mock('../src/js/router.js', () => ({
   getParams: getParamsMock,
   setOnUnmount: vi.fn(),
   getPreviousRoute: vi.fn(() => null),
+  getCurrentPath: vi.fn(() => '/mystory'),
+}));
+
+/* 카드 스와이프 회귀만 검증 — 진입 온보딩(인트로 모달)은 no-op 으로 막는다. */
+vi.mock('../src/js/utils/pageLifecycle.js', () => ({
+  afterPageEnter: vi.fn(),
 }));
 
 /* jsdom 은 레이아웃이 없어 실제 Swiper 가 카드 슬라이드를 활성화하지 못한다.
@@ -108,7 +114,7 @@ vi.mock('../src/js/components/confirmDialog.js', () => ({
   showConfirm: showConfirmMock,
 }));
 
-vi.mock('../src/js/firebase.js', () => ({
+vi.mock('../src/js/services/firebase.js', () => ({
   auth: {
     currentUser: { uid: 'user-1' },
   },
@@ -325,7 +331,8 @@ describe('Regression bugs', () => {
     expect(page.querySelector('.page-header-title')?.textContent?.trim()).toBe('설정');
     expect(page.querySelector('.theme-option-group')).not.toBeNull();
     expect(page.querySelector('#setting-logout')).not.toBeNull();
-    expect(page.querySelector('#setting-tutorial')).toBeNull();
+    /* 신규 논블로킹 튜토리얼 '다시 보기' 행 (구 스포트라이트 투어와는 다른 구현) */
+    expect(page.querySelector('#setting-tutorial')).not.toBeNull();
     expect(page.querySelector('#setting-about')).not.toBeNull();
     expect(page.querySelector('#setting-widget-theme')).toBeNull();
   });
@@ -358,16 +365,17 @@ describe('Regression bugs', () => {
     expect(themeOptionRule).toMatch(/background:\s*transparent/);
   });
 
-  it('Given tutorials are removed, when app sources are inspected, then no tutorial runner or replay setting should remain', () => {
+  it('Given the legacy spotlight tour was removed, when app sources are inspected, then the old tour runner/markup should not return (new non-blocking onboarding is separate)', () => {
     const router = readFileSync(resolve(process.cwd(), 'src/js/router.js'), 'utf8');
     const settingsSections = readFileSync(resolve(process.cwd(), 'src/js/components/settingsSections.js'), 'utf8');
     const editorStory = readFileSync(resolve(process.cwd(), 'src/js/pages/editorstory.js'), 'utf8');
     const pagesCss = readFileSync(resolve(process.cwd(), 'src/css/pages.css'), 'utf8');
 
+    /* 구 스포트라이트 "투어" 구현(제거됨)이 되살아나는지 가드.
+       신규 온보딩은 introSheet/coachMark/onboarding 으로 별개 구현이라 아래 심볼을 쓰지 않는다. */
     expect(router).not.toMatch(/tutorialTour/);
     expect(router).not.toMatch(/renderTutorialTourForRoute/);
     expect(settingsSections).not.toMatch(/startTutorialTour/);
-    expect(settingsSections).not.toMatch(/setting-tutorial/);
     expect(editorStory).not.toMatch(/showTutorial/);
     expect(editorStory).not.toMatch(/tutorial_done/);
     expect(pagesCss).not.toMatch(/tutorial-panel/);

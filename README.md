@@ -16,14 +16,14 @@
 처음 들어왔다면 이 순서로:
 
 1. **이 README** — 전체 그림
-2. **[PRD.md](./PRD.md)** — 만들고 있는 게 무엇인지 (1분)
-3. **[UI_GUIDE.md](./UI_GUIDE.md)** — 디자인 토큰 + AI 슬롭 금지 목록 (3분)
+2. **[PRD.md](./docs/PRD.md)** — 만들고 있는 게 무엇인지 (1분)
+3. **[UI_GUIDE.md](./docs/UI_GUIDE.md)** — 디자인 토큰 + AI 슬롭 금지 목록 (3분)
 4. **[SESSION_LOG.md](./SESSION_LOG.md)** 맨 아래부터 — 최근 무슨 작업이 있었는지
 
 조금 더 깊이 들어가야 한다면:
 
-5. **[audit/2026-05-22/](./audit/2026-05-22/)** — 출시 후 첫 종합 감사 결과 + 액션 리스트
-6. **[_archive/](./_archive/)** — 옛 정통 SW 문서 (ARCHITECTURE / CODE_MAP / ADR). 빠른 답은 grep으로 충분, 이건 백업.
+5. **[audit/2026-05-22/](./docs/audit/2026-05-22/)** — 출시 후 첫 종합 감사 결과 + 액션 리스트
+6. **[_archive/](./docs/_archive/)** — 옛 정통 SW 문서 (ARCHITECTURE / CODE_MAP / ADR). 빠른 답은 grep으로 충분, 이건 백업.
 
 ---
 
@@ -161,13 +161,13 @@ firebase deploy --only firestore:rules,storage   # 보안 룰 배포 (변경 시
 | 5 | 안전한 리팩토링 (`withTimeout` · `isFirebaseStorageUrl` · `escapeText` 중복 제거) |
 | 6 | 카카오톡 공유 SDK 인프라 |
 
-자세한 내용: [audit/2026-05-22/](./audit/2026-05-22/) + [SESSION_LOG.md](./SESSION_LOG.md)
+자세한 내용: [audit/2026-05-22/](./docs/audit/2026-05-22/) + [SESSION_LOG.md](./SESSION_LOG.md)
 
 ---
 
 ## 개인 메모
 
-- **[dokhu.md](./dokhu.md)** — DayStory 시작 이유에 대한 개발자 에세이. 코드와 무관, 마음의 기록.
+- **[dokhu.md](./docs/dokhu.md)** — DayStory 시작 이유에 대한 개발자 에세이. 코드와 무관, 마음의 기록.
 
 ---
 

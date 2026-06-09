@@ -16,7 +16,7 @@ const {
   deleteObjectMock: vi.fn(),
 }));
 
-vi.mock('../src/js/firebase.js', () => ({
+vi.mock('../src/js/services/firebase.js', () => ({
   db: { __type: 'fake-db' },
   storage: { __type: 'fake-storage' },
   auth: null,

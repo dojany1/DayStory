@@ -13,7 +13,7 @@
 import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { setState } from '../state.js';
-import { auth, db } from '../firebase.js';
+import { auth, db } from '../services/firebase.js';
 import { applyLangFromProfile, getCurrentLang, t } from '../i18n/index.js';
 
 /*
@@ -38,6 +38,9 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import pkg from '../../../package.json';
+import { seedWelcomeStory } from '../services/mystories.js';
+import { markSeen, ONBOARDING_FLAGS } from '../services/onboarding.js';
+import { refreshWelcomeBadge } from '../components/navBadge.js';
 
 const PRIVACY_URL = 'https://0729.notion.site/336c0180451480a4b0a8c60dba754daf?source=copy_link';
 
@@ -67,6 +70,20 @@ function resolveNickname(profileData, firebaseUser) {
   );
 }
 
+/**
+ * provisionNewUser — 최초 가입 1회 셋업: 웰컴 카드 주입 + 'N' 배지 대기 ON.
+ * 웰컴 카드 주입이 성공해야만 배지를 켠다 (배지만 뜨고 카드 없음 방지 — QA Q5).
+ */
+async function provisionNewUser(uid) {
+  try {
+    await seedWelcomeStory(uid);
+    markSeen(ONBOARDING_FLAGS.WELCOME_BADGE);
+    refreshWelcomeBadge();
+  } catch (e) {
+    console.warn('웰컴 카드 주입 실패 — 배지 생략:', e?.message || e);
+  }
+}
+
 async function upsertProfileAndNavigate(firebaseUser) {
   setState('user', { id: firebaseUser.uid, email: firebaseUser.email });
 
@@ -84,6 +101,7 @@ async function upsertProfileAndNavigate(firebaseUser) {
 
       if (!isExisting) {
         await setDoc(profileRef, profileData);
+        await provisionNewUser(firebaseUser.uid);
       }
       setState('profile', profileData);
       /* DB 에 저장된 언어 설정을 기기 상태에 동기화 (로그인 시 덮어쓰기) */
@@ -444,6 +462,7 @@ export function renderSignup() {
 
           if (!profileSnap.exists()) {
             await setDoc(profileRef, profileData);
+            await provisionNewUser(firebaseUser.uid);
           }
 
           setState('profile', profileData);

@@ -43,6 +43,13 @@ vi.mock('../src/js/router.js', () => ({
   navigate: navigateMock,
   setOnUnmount: vi.fn(),
   getPreviousRoute: vi.fn(() => null),
+  getCurrentPath: vi.fn(() => '/editorstory'),
+}));
+
+/* 이 스펙은 카드 동작만 검증한다 — 진입 온보딩(인트로 모달/코치마크)은 no-op 으로
+   막아 setTimeout 부수효과로 DOM 이 오염되지 않게 한다. */
+vi.mock('../src/js/utils/pageLifecycle.js', () => ({
+  afterPageEnter: vi.fn(),
 }));
 
 vi.mock('@capacitor/share', () => ({

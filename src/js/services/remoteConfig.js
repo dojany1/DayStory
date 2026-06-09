@@ -13,7 +13,7 @@
    않고 null 또는 fallback 을 반환한다. 호출부는 항상 null 가능성을 가정한다.
    ===================================================================== */
 
-import { app } from '../firebase.js';
+import { app } from './firebase.js';
 
 /* fetch 단일화: 동시 호출 / 재호출 시 같은 promise 재사용 (불필요 네트워크 차단) */
 let activatedPromise = null;

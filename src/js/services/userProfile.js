@@ -5,7 +5,7 @@
    (CLAUDE.md 아키텍처 규칙) 프로필 부분 갱신을 이 레이어로 모은다.
    ===================================================================== */
 
-import { auth, db } from '../firebase.js';
+import { auth, db } from './firebase.js';
 import { doc, setDoc } from 'firebase/firestore';
 
 const SUPPORTED_LANGS = ['ko', 'en', 'ja', 'es', 'zh'];

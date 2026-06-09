@@ -102,7 +102,9 @@ body {
   overflow: hidden;                    /* 앱 외부로 요소가 나가는 것만 방지 */
   box-shadow: var(--shadow-wrapper); /* 데스크톱에서 약간의 그림자 효과 */
 }
-
+[data-theme="dark"] .mobile-wrapper {
+  box-shadow: none; /* 다크 테마는 그림자 없음 */
+}
 
 /* ─────────────────────────────────────────────
    기본 HTML 요소 리셋
@@ -217,6 +219,16 @@ ul, ol {
   border-radius: var(--radius-full);
 }
 
+/* 헤더가 있는 페이지: page-container 가 헤더 하단(48px)부터 시작하도록
+   app-container 의 padding-top 을 늘린다.
+   — iOS 네이티브 스크롤 인디케이터는 ::webkit-scrollbar margin 을 무시하므로
+     스크롤 컨테이너의 frame 자체를 헤더 아래로 내리는 것이 유일한 확실한 수정법이다. */
+.app-container:has(.page-header),
+.app-container:has(.page-header-with-back),
+.app-container:has(.editor-new-header) {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 48px);
+}
+
 /* 텍스트 선택 시 하이라이트 색상 */
 ::selection {
   background: var(--color-accent);
@@ -240,8 +252,21 @@ ul, ol {
   flex-direction: column;
   width: 100%;
   min-width: var(--mobile-min-width);
+  overflow: hidden; /* iOS: overflow-y:auto 가 scroll-context 를 만들어 position:fixed 자식(bottom-nav)을
+                       viewport 대신 컨테이너 기준으로 묶음 → safe-area 재계산 루프 발생. hidden 으로 변경 */
   height: 100vh;
   height: 100dvh;
+  /* 스크롤바가 status-bar-spacer / bottom-nav 뒤로 가리지 않도록
+     page-container 의 실제 경계를 fixed 요소 안쪽으로 제한한다.
+     box-sizing: border-box 이므로 padding 은 100dvh 안에서 소비된다. */
+  padding-top: env(safe-area-inset-top, 0px);          /* 기본: 헤더 없는 페이지 */
+  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+}
+
+/* 네비게이션 바가 숨겨진 페이지 (settings, detail, login 등):
+   nav-height 예약 제거, safe-area 만 유지. page-container 가 full height 를 차지한다. */
+.app-container.no-nav {
+  padding-bottom: 0;
 }
 
 /* 상태바 여백 — bottom-nav와 대칭: position:fixed로 status bar 영역을 항상 bg-primary로 덮음 */
@@ -258,26 +283,31 @@ ul, ol {
 }
 
 /* 페이지 컨테이너 — 라우터가 각 페이지를 삽입하는 메인 영역
-   flex: 1로 남은 수직 공간을 모두 차지합니다 */
+   flex: 1로 남은 수직 공간을 모두 차지합니다.
+   app-container 의 padding-bottom 이 nav-height + safe-area 를 이미 예약하므로
+   nav 있는 페이지에서 page-container 에 safe-area 를 다시 추가하면 카드 영역이
+   safe-area(34px) 만큼 불필요하게 짧아짐 → 기본값 0 으로 유지.
+   no-nav 페이지에서는 .app-container.no-nav .page-container 로 safe-area 부여. */
 .page-container {
   position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding-top: env(safe-area-inset-top, 0px);                        /* status bar 아래에서 콘텐츠 시작 */
-  padding-bottom: calc(var(--nav-height) + var(--safe-area-bottom)); /* 하단 바에 가리지 않도록 패딩 */
+  padding-bottom: 0;
   overflow-y: auto;                    /* 세로 스크롤 허용 */
   overflow-x: hidden;                  /* 가로 스크롤 방지 */
-  background: var(--color-bg-primary); /* bottom-nav와 동일한 배경색 */
+  background: var(--color-bg-primary);
   min-width: var(--mobile-min-width);
 }
 
-/* sticky 헤더가 있는 페이지: 프로그래밍 방식 스크롤(scrollIntoView, focus 등) 시
-   헤더(safe-area + 48px) 뒤로 콘텐츠가 가려지지 않도록 scroll-padding-top 확보.
-   padding-top을 늘리면 sticky가 아래로 밀리므로 scroll-padding-top만 사용. */
-.page-container:has(.page-header-with-back) {
-  scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 48px);
+/* nav 없는 페이지: app-container.padding-bottom = 0 이므로 page-container 가
+   safe-area(홈 인디케이터 영역)를 직접 담당한다. */
+.app-container.no-nav .page-container {
+  padding-bottom: var(--safe-area-bottom);
 }
+
+/* 헤더가 있는 페이지: app-container padding 으로 page-container 자체가
+   헤더 아래에서 시작하므로 scroll-padding-top 추가 확보 불필요. */
 
 /* 개별 페이지 — 각 페이지(홈, 설정 등)의 공통 래퍼
    페이지 전환 시 아래에서 위로 페이드인 애니메이션 적용 */
@@ -409,7 +439,7 @@ ul, ol {
 .splash-title {
   font-family: var(--font-sans);
   font-size: var(--text-5xl);
-  font-weight: 800;
+  font-weight: 600;
   color: var(--color-text-primary);
   letter-spacing: -0.04em;
   margin-bottom: var(--space-2);
@@ -462,6 +492,7 @@ ul, ol {
   position: fixed;
   bottom: 0;
   left: 50%;
+  border-top: 1px solid var(--color-border-light);
   z-index: var(--z-nav);               /* 페이지 콘텐츠 위에 표시 */
   display: flex;
   align-items: center;
@@ -472,7 +503,7 @@ ul, ol {
   min-width: var(--mobile-min-width);
   height: calc(var(--nav-height) + var(--safe-area-bottom));
 
-  padding: 0 var(--space-10) 0; /* 상하 패딩 조정, 하단 패딩은 safe-area만큼 확보 */
+  padding: 0 var(--space-10) 0;
   padding-bottom: calc(var(--space-1) + var(--safe-area-bottom)); /* 홈 바 영역까지 배경색 확장 */
 
   background: var(--color-bg-primary); /* 항상 불투명 — backdrop-filter 미지원 환경에서 뒤가 비치지 않도록 */
@@ -507,8 +538,19 @@ ul, ol {
   border-radius: var(--radius-md);
 }
 
+/* 두 아이콘을 같은 위치에 겹쳐 쌓는 래퍼 — 레이아웃 재계산 없이 opacity만 토글 */
+.bottom-nav.redesigned-nav .nav-icon-wrap {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
 /* 리디자인된 내비게이션의 아이콘 */
 .bottom-nav.redesigned-nav .nav-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 28px;
   height: 28px;
   stroke-width: 1.5px;
@@ -518,6 +560,14 @@ ul, ol {
 .bottom-nav.redesigned-nav .nav-item.active .nav-icon {
   color: var(--color-accent);
 }
+
+/* 기본 상태: default 표시, active 숨김 */
+.bottom-nav.redesigned-nav .nav-icon-active  { opacity: 0; }
+.bottom-nav.redesigned-nav .nav-icon-default { opacity: 1; }
+
+/* 활성 상태: default 숨김, active 표시 */
+.bottom-nav.redesigned-nav .nav-item.active .nav-icon-default { opacity: 0; }
+.bottom-nav.redesigned-nav .nav-item.active .nav-icon-active  { opacity: 1; }
 
 
 /* ============================================

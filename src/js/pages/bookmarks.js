@@ -107,11 +107,14 @@ async function loadCollection(page, options = DEFAULT_ARCHIVE_OPTIONS) {
       state.activeTab,
       (story) => {
         if (state.activeTab === 'history') {
-          onCardClick(state, story);
+          onCardClick(state, story, list);
           return;
         }
         if (options.myStoryClickMode === 'popup') {
-          openCardPopup(story, 'mine', [], {});
+          openCardPopup(story, 'mine', [], {
+            stories: list,
+            currentIndex: list.indexOf(story),
+          });
           return;
         }
         navigate('/mystory');
@@ -178,14 +181,16 @@ async function loadCollection(page, options = DEFAULT_ARCHIVE_OPTIONS) {
     });
   }
 
-  function onCardClick(stateRef, story) {
+  function onCardClick(stateRef, story, displayList = []) {
     openCardPopup(story, 'history', stateRef.bookmarks.map(s => s.id), {
-      hideHint: true,
+      stories: displayList,
+      currentIndex: displayList.indexOf(story),
       onBookmarkChange: (storyId, bookmarked) => {
         if (!bookmarked) {
           stateRef.bookmarks = stateRef.bookmarks.filter(s => s.id !== storyId);
         } else if (!stateRef.bookmarks.some(s => s.id === storyId)) {
-          stateRef.bookmarks.push(story);
+          /* 스와이프로 다른 카드를 보는 중일 수 있으므로 storyId로 정확히 조회 */
+          stateRef.bookmarks.push(displayList.find(s => s.id === storyId) || story);
         }
         const miniBtn = document.querySelector(`.mini-bookmark-btn[data-story-id="${storyId}"]`);
         if (miniBtn) miniBtn.classList.toggle('active', bookmarked);

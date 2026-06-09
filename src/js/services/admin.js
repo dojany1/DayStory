@@ -12,7 +12,7 @@
    storage.rules 의 `request.auth.token.admin == true` 와 완벽 호환된다.
    ===================================================================== */
 
-import { app, auth } from '../firebase.js';
+import { app, auth } from './firebase.js';
 
 /**
  * readAdminClaim — 현재 사용자 ID 토큰의 admin 클레임을 읽는다.

@@ -205,6 +205,7 @@
   color: var(--color-text-secondary);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
+  opacity: 0.7;
 }
 
 .card-admin-edit-float:active {
@@ -249,10 +250,12 @@
 }
 
 /* 눌린 상태: 즉각 반응(0.05s), 복귀는 base .flipper 의 0.3s cubic-bezier 적용 */
+/*
 .flipper.is-pressed {
   scale: 0.98;
   transition: scale 0.3s ease-out;
 }
+*/
 
 /* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */
 .flipper.flipped {
@@ -311,7 +314,7 @@
   color: var(--color-text-primary);
   font-family: var(--font-ui);
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
@@ -395,7 +398,8 @@
 
 .card-action-btn:active {
   background: var(--color-bg-primary);
-  transform: scale(0.95);
+  color: var(--color-text-primary);
+  transform: scale(0.9);
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
@@ -605,7 +609,11 @@
 
 /* 에디터 한마디 말풍선 */
 .editor-comment-bubble {
+  /* 내부 요소 상 하 균등 배치 */
+  display: flex;
+  flex-direction: column;
   position: absolute;
+  gap: var(--space-2);
   bottom: calc(100% + 18px); /* 버튼 바로 위에 위치 */
   left: -1px;
   box-sizing: border-box;
@@ -614,12 +622,12 @@
   font-size: var(--text-sm);
   line-height: 1.25rem;
   letter-spacing: 0.02em;
-  padding: var(--space-4) var(--space-4) var(--space-2);
+  padding: var(--space-4);
   border: 2px solid var(--color-text-secondary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   max-width: 330px;
-  min-width: 230px;
+  min-width: 260px;
   white-space: normal;
   word-break: normal;
   overflow-wrap: anywhere;
@@ -845,19 +853,27 @@
    뒤로가기 버튼 + 제목으로 구성됩니다.
 */
 
-/* 페이지 헤더 — 좌우로 요소 배치 */
+/* 페이지 헤더 — 좌우로 요소 배치
+   position: fixed 로 스크롤 컨테이너(page-container) 바깥에 위치시켜
+   iOS 네이티브 스크롤 인디케이터가 헤더 뒤에 가려지지 않도록 한다.
+   app-container:has(.page-header) 규칙이 page-container 를 48px 아래로 내려
+   헤더와 스크롤 인디케이터 범위가 겹치지 않는다. */
 .page-header {
-  position: sticky;
-  top: env(safe-area-inset-top, 0px); /* status-bar-spacer 바로 아래 고정 */
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--mobile-max-width);
+  z-index: 50;
   height: 48px;
   padding: 0 var(--space-4) 0 var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   background: var(--color-bg-primary);
-  box-shadow: var(--color-bg-primary) 0px 6px 20px;
   min-width: var(--mobile-min-width);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 /* 페이지 헤더 제목 — line-height:1 및 미세 이동으로 한글 폰트 수직 중앙 정렬 완벽 보정 */
@@ -1105,9 +1121,9 @@
   max-width: var(--mobile-max-width);
   max-height: 85vh;                    /* 화면 85%까지만 차지 */
   background: var(--color-bg-primary);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0; /* 상단만 둥글게 */
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0; /* 상단만 둥글게 */
   padding: 0 var(--space-6);
-  padding-bottom: calc(var(--space-6) + var(--safe-area-bottom));
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: slideUp 0.3s var(--transition-spring);
@@ -1239,7 +1255,7 @@
 .update-sheet-title {
   font-family: var(--font-body);
   font-size: var(--text-lg);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 var(--space-2);
   letter-spacing: -0.01em;
@@ -1423,7 +1439,7 @@
   flex-shrink: 0;
   /* 3. Typography */
   font-size: var(--text-lg);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-primary);
   /* 4. Visuals */
   border-bottom: 1px solid var(--color-divider);
@@ -1737,7 +1753,16 @@
 
 /* ===== 알림 설정 시트 (5월 1일 AAB) ===== */
 
+/* notification-settings-overlay 는 transform 을 사용하므로
+   fixed 자식은 overlay 좌표계 기준이 된다. overlay 내부 스크롤 컨테이너
+   (.notification-settings-sheet) 안에서는 sticky 가 올바른 동작. */
 .notification-settings-sheet .page-header {
+  position: sticky;
+  top: 0;
+  left: auto;
+  transform: none;
+  max-width: none;
+  z-index: auto;
   margin-bottom: var(--space-4);
 }
 
@@ -2022,4 +2047,424 @@
 }
 .card-img-fade.img-loaded {
   opacity: 1;
+}
+
+
+/* ============================================
+   온보딩 — 탭 진입 인트로 바텀시트 (introSheet.js)
+   ============================================
+   앱 표준 .modal-overlay + .modal-sheet 골격을 재사용하고
+   인트로 전용 콘텐츠(아이콘/제목/본문/CTA)만 얹는다.
+   토스 스타일: 핸들바 고정 + 스크롤 영역 분리 + 드래그-투-클로즈. */
+
+/* 시트 컨테이너 — flex column으로 핸들/스크롤 영역 분리 */
+.intro-sheet {
+  position: relative; /* close 버튼 absolute 기준점 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0; /* .modal-sheet 의 padding 을 덮어씌움 — 내부 영역이 각자 처리 */
+}
+
+/* 핸들바 고정 영역 — 스크롤과 무관하게 항상 최상단에 표시 */
+.intro-sheet-handle-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 0 10px;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.intro-sheet-handle-area:active { cursor: grabbing; }
+
+/* 알약형 핸들 바 — 40×5px, 토스 스타일 */
+.intro-sheet-handle {
+  width: 40px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-handle);
+  flex-shrink: 0;
+}
+
+/* 스크롤 가능한 콘텐츠 영역 */
+.intro-sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--space-6) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+}
+
+/* 닫기(X) 버튼 — 시트 우상단 (핸들 영역과 같은 높이) */
+.intro-sheet-close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.intro-sheet-icon {
+  font-size: 2.75rem;
+  line-height: 1;
+  margin: var(--space-3) 0 var(--space-4);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.intro-sheet-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
+}
+
+.intro-sheet-body {
+  margin: 0 auto var(--space-12);
+}
+
+.intro-sheet-line {
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
+}
+
+.intro-sheet-cta {
+  margin-top: var(--space-2);
+}
+
+/* 등장/퇴장은 .visible 토글 + transition 으로 직접 제어한다.
+   .modal-overlay/.modal-sheet 의 keyframe(fadeIn/slideUp)은 삽입 첫 페인트에
+   최종 위치로 번쩍였다가 다시 아래에서 슬라이드되는 문제가 있어 무력화한다. */
+.intro-sheet-overlay {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.intro-sheet-overlay .intro-sheet {
+  animation: none;
+  transform: translateY(100%);
+  /* var(--transition-spring) 은 '800ms ...' 라 transition 단축에서 delay 로 잡힌다 → 리터럴 easing 사용 */
+  transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.intro-sheet-overlay.visible {
+  opacity: 1;
+}
+.intro-sheet-overlay.visible .intro-sheet {
+  transform: translateY(0);
+}
+
+/* 드래그 중에는 transition 을 끄고 손가락 위치를 즉시 추종 */
+.intro-sheet-overlay .intro-sheet.is-dragging {
+  transition: none;
+}
+
+
+/* ============================================
+   문의/건의 바텀시트 (inquirySheet.js)
+   ============================================
+   intro-sheet 와 동일한 토스 스타일 골격(핸들/스크롤/드래그-투-클로즈)에
+   폼(유형 드롭다운 + 내용 textarea + 안내문구 + 제출)을 얹는다.
+   상세 시트(--z-overlay) 위에서도 떠야 하므로 오버레이 z-index 를 한 단계 높인다. */
+.inquiry-sheet-overlay {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  z-index: calc(var(--z-overlay) + 1);   /* detail-sheet(--z-overlay) 위로 */
+}
+.inquiry-sheet-overlay .inquiry-sheet {
+  animation: none;
+  transform: translateY(100%);
+  transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.inquiry-sheet-overlay.visible {
+  opacity: 1;
+}
+.inquiry-sheet-overlay.visible .inquiry-sheet {
+  transform: translateY(0);
+}
+.inquiry-sheet-overlay .inquiry-sheet.is-dragging {
+  transition: none;
+}
+
+/* 시트 컨테이너 — flex column 으로 핸들/스크롤 분리 (intro-sheet 동일) */
+.inquiry-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.inquiry-sheet-handle-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 0 10px;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.inquiry-sheet-handle-area:active { cursor: grabbing; }
+
+.inquiry-sheet-handle {
+  width: 40px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-handle);
+  flex-shrink: 0;
+}
+
+.inquiry-sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--space-6) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+}
+
+.inquiry-sheet-close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.inquiry-sheet-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: var(--space-2) 0 var(--space-6);
+}
+
+/* 폼 필드 (라벨 + 입력) */
+.inquiry-field {
+  margin-bottom: var(--space-5);
+}
+.inquiry-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+/* 유형 드롭다운 — 커스텀 드롭다운 (transform 부모 안에서도 정상 표시) */
+.inquiry-select-wrap {
+  position: relative;
+}
+
+/* 커스텀 드롭다운 트리거 버튼 */
+.inquiry-custom-select {
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+.inquiry-custom-select:focus,
+.inquiry-custom-select.open {
+  border-color: var(--color-accent);
+  outline: none;
+}
+.inquiry-custom-select-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 커스텀 드롭다운 chevron */
+.inquiry-select-chevron {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+.inquiry-custom-select.open .inquiry-select-chevron {
+  transform: rotate(180deg);
+}
+
+/* 옵션 목록 — position:fixed 로 transform 부모 영향 없이 뷰포트 기준 배치 */
+.inquiry-select-options {
+  position: fixed;
+  z-index: calc(var(--z-overlay) + 10);
+  background: var(--color-bg-elevated, var(--color-bg-secondary));
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  overflow: hidden;
+  animation: inquiryDropdownIn 0.16s ease;
+}
+@keyframes inquiryDropdownIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.inquiry-select-option {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: background var(--transition-fast);
+}
+.inquiry-select-option:hover,
+.inquiry-select-option:focus {
+  background: var(--color-bg-hover, var(--color-bg-tertiary));
+}
+.inquiry-select-option.selected {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* 내용 textarea — report-textarea 스타일을 재사용하되 하단 여백만 보강 */
+.inquiry-textarea {
+  margin-bottom: 0;
+}
+
+/* 도배 방지 안내 문구 — 작고 옅게 */
+.inquiry-notice {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+  margin: 0 0 var(--space-5);
+}
+
+.inquiry-submit {
+  margin-top: var(--space-2);
+}
+
+
+/* ============================================
+   온보딩 — 맥락형 코치마크 (Pulse + 툴팁, coachMark.js)
+   ============================================
+   카드 영역 컨테이너(position:relative)에 앵커. 카드 탭을 가로채지 않도록
+   pointer-events:none. nav 위·modal 아래(--z-coach)라 인트로 모달이 덮는다. */
+.coach-mark {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%) translateY(8px);
+  z-index: var(--z-coach);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: none;            /* 카드 flip 을 막지 않음 (데드락 방지) */
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.coach-mark.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Pulse 점 — 은은하게 번지는 강조 점 */
+.coach-pulse {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  box-shadow: 0 0 0 0 var(--color-accent);
+  animation: coachPulse 1.8s ease-out infinite;
+}
+
+@keyframes coachPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.35); }
+  70%  { box-shadow: 0 0 0 16px rgba(0, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+[data-theme="dark"] .coach-pulse {
+  animation-name: coachPulseDark;
+}
+@keyframes coachPulseDark {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  70%  { box-shadow: 0 0 0 16px rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+/* 툴팁 말풍선 */
+.coach-tooltip {
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+}
+
+
+/* ============================================
+   온보딩 — 하단 네비 'N' 배지 (웰컴 카드 알림)
+   ============================================
+   nav-item 우상단에 떠서 보관함(프로필) 미방문을 알린다. */
+.nav-item {
+  position: relative;
+}
+.nav-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 22px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text-on-image);
+  background: var(--color-error);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
 }

@@ -11,7 +11,7 @@ import { fetchMyStories } from '../services/mystories.js';
 import { toggleBookmark, getBookmarkedStoryIds } from '../services/bookmarks.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
 import { showToast } from '../components/toast.js';
-import { auth } from '../firebase.js';
+import { auth } from '../services/firebase.js';
 import { getState } from '../state.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { getDaysInMonth, getLocalToday, toLocalDateFromIso } from '../utils/date.js';
@@ -250,6 +250,9 @@ export function renderGrid(page, state, today) {
 
   grid.innerHTML = html;
 
+  const sortedMonthStories = [...currentMonthStories].sort((a, b) =>
+    (a.publish_date || '').localeCompare(b.publish_date || ''));
+
   grid.querySelectorAll('.cal-cell-has-story').forEach(cell => {
     cell.addEventListener('click', () => {
       const date = cell.dataset.date;
@@ -259,7 +262,11 @@ export function renderGrid(page, state, today) {
       if (typeof state.onStoryOpen === 'function') {
         state.onStoryOpen(story, date);
       }
-      openCardPopup(story, state.mode, state.bookmarkedIds);
+      const idx = sortedMonthStories.findIndex(s => s.publish_date === date);
+      openCardPopup(story, state.mode, state.bookmarkedIds, {
+        stories: sortedMonthStories,
+        currentIndex: Math.max(0, idx),
+      });
     });
   });
 
@@ -289,40 +296,18 @@ function renderCellPeek(story, mode) {
 
 /* ─────────────────────────────────────────────
    카드 모달 — 선택한 날짜의 카드를 띄워서 보여줍니다
+   options.stories / options.currentIndex 를 전달하면 팝업 내에서 좌우 스와이프로 카드를 넘길 수 있음
    ───────────────────────────────────────────── */
 export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   document.querySelectorAll('.calendar-card-popup').forEach(p => p.remove());
-
-  /* 현재 언어로 펼치기 (역사 카드만 다국어; 내 일기는 사용자 작성이라 그대로) */
-  if (mode === 'history') story = localizedStory(story);
-
-  const dateObj = toLocalDateFromIso(story.publish_date || '');
-  const validDate = !!dateObj;
-  const month = validDate ? dateObj.getMonth() + 1 : '';
-  const day = validDate ? dateObj.getDate() : '';
-  const year = validDate ? dateObj.getFullYear() : '';
-
-  let collected = mode === 'history' && story.id ? isCollected(story.id) : false;
-
-  /* 지난 카드를 열어보면 영구 수집 처리 */
-  if (mode === 'history' && !collected && story.id && story.publish_date && !canCollect(story.publish_date)) {
-    const res = collect(story.id, story.publish_date, { bypass: true });
-    if (res.ok) collected = true;
-  }
-
-  const collectible = mode === 'history' && story.publish_date ? canCollect(story.publish_date) : false;
-  const locked = false;
 
   const overlay = document.createElement('div');
   overlay.className = 'calendar-card-popup';
   overlay.innerHTML = `
     <div class="calendar-card-popup-inner">
-      <div class="calendar-card-popup-stage">
-        ${mode === 'history'
-          ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected)
-          : buildMyCardHtml(story, year, month, day, getMyCardNickname(story))}
-      </div>
-      ${options.hideHint ? '' : `<div class="calendar-card-popup-hint">${collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint')}</div>`}
+      <div class="calendar-card-popup-stage"></div>
+      ${options.hideHint ? '' : `<div class="calendar-card-popup-hint"></div>`}
+      <div class="calendar-card-popup-nav"></div>
     </div>
   `;
 
@@ -336,12 +321,87 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 240);
   };
 
-
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay || e.target.classList.contains('calendar-card-popup-inner')) close();
   });
 
-  /* 카드 플립 — 수집된 카드 또는 오늘 카드만 뒤집을 수 있음 */
+  const stories = options.stories || [];
+  const navState = { idx: Math.max(0, options.currentIndex ?? 0) };
+
+  const showCard = (targetStory, animate) => {
+    _mountCardInPopup(overlay, targetStory, mode, bookmarkedIds, options, close, animate);
+    _updatePopupNav(overlay, stories, navState.idx);
+  };
+
+  showCard(story, false);
+
+  /* 스와이프 감지 — stories 가 2개 이상일 때만 활성화 */
+  if (stories.length > 1) {
+    let startX = 0, startY = 0;
+    overlay.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    overlay.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      /* 수평 스와이프만 반응 (최소 60px, 수직 이동보다 커야 함) */
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+      const newIdx = navState.idx + (dx < 0 ? 1 : -1);
+      if (newIdx < 0 || newIdx >= stories.length) return;
+      navState.idx = newIdx;
+      showCard(stories[newIdx], true);
+    }, { passive: true });
+  }
+}
+
+function _mountCardInPopup(overlay, story, mode, bookmarkedIds, options, close, animate) {
+  if (mode === 'history') story = localizedStory(story);
+
+  const dateObj = toLocalDateFromIso(story.publish_date || '');
+  const validDate = !!dateObj;
+  const month = validDate ? dateObj.getMonth() + 1 : '';
+  const day = validDate ? dateObj.getDate() : '';
+  const year = validDate ? dateObj.getFullYear() : '';
+
+  let collected = mode === 'history' && story.id ? isCollected(story.id) : false;
+  if (mode === 'history' && !collected && story.id && story.publish_date && !canCollect(story.publish_date)) {
+    const res = collect(story.id, story.publish_date, { bypass: true });
+    if (res.ok) collected = true;
+  }
+
+  const cardHtml = mode === 'history'
+    ? buildHistoryCardHtml(story, year, month, day, bookmarkedIds, collected)
+    : buildMyCardHtml(story, year, month, day, getMyCardNickname(story));
+
+  const stage = overlay.querySelector('.calendar-card-popup-stage');
+  const hint = overlay.querySelector('.calendar-card-popup-hint');
+
+  const applyContent = () => {
+    stage.innerHTML = cardHtml;
+    if (hint && !options.hideHint) {
+      const hasMultiple = (options.stories || []).length > 1;
+      hint.textContent = hasMultiple
+        ? t('calendar.card_swipe_hint')
+        : (collected ? t('calendar.card_collected_hint') : t('calendar.card_tap_hint'));
+    }
+    _wireCardListeners(overlay, story, mode, bookmarkedIds, options, close);
+  };
+
+  if (animate) {
+    stage.classList.add('popup-card-fading');
+    setTimeout(() => {
+      applyContent();
+      stage.classList.remove('popup-card-fading');
+    }, 120);
+  } else {
+    applyContent();
+  }
+}
+
+function _wireCardListeners(overlay, story, mode, bookmarkedIds, options, close) {
+  /* 카드 플립 */
   const flipper = overlay.querySelector('.flipper');
   if (flipper) {
     flipper.addEventListener('click', (e) => {
@@ -350,7 +410,6 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       if (e.target.closest('.back-editor-btn')) return;
       if (e.target.closest('.editor-comment-bubble')) return;
       if (e.target.closest('.collect-btn')) return;
-
       if (flipper.classList.contains('is-flipping')) return;
       flipper.classList.add('is-flipping');
       flipper.classList.toggle('flipped');
@@ -369,20 +428,17 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
         showToast(t('calendar.collect_locked_toast'), 'info');
         return;
       }
-      /* 수집 성공 — 토스트로 안내 + 버튼 상태 전환 */
       collectBtn.classList.add('collect-btn--done');
       collectBtn.disabled = true;
       collectBtn.textContent = t('calendar.collected_button');
       showToast(t('calendar.collect_success_text'), 'success');
-      /* 팝업 힌트 업데이트 */
       const hint = overlay.querySelector('.calendar-card-popup-hint');
       if (hint) hint.textContent = t('calendar.card_collected_hint');
-      /* 플립 허용 */
       overlay._collected = true;
     });
   }
 
-  /* 상세 보기 버튼은 역사 일화에만 있음 */
+  /* 상세 보기 버튼 */
   const detailBtn = overlay.querySelector('.card-detail-shortcut-btn');
   if (detailBtn && mode === 'history' && story.id) {
     detailBtn.addEventListener('click', (e) => {
@@ -391,7 +447,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     });
   }
 
-  /* 에디터 한마디 버튼 — 클릭 시 말풍선 표시 (역사 모드에만 존재) */
+  /* 에디터 한마디 버튼 */
   const editorBtn = overlay.querySelector('.back-editor-btn');
   if (editorBtn) {
     let removeOutsideListener = null;
@@ -442,7 +498,7 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
     editorBtn.addEventListener('click', showEditorBubble);
   }
 
-  /* 카드 캡처 공유 헬퍼 — overlay 안의 .history-card-front 를 PNG로 캡처. */
+  /* 캡처 공유 헬퍼 */
   const shareCardCapture = async (kind) => {
     const cardEl = overlay.querySelector('.history-card-front');
     if (!cardEl) {
@@ -521,6 +577,13 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
       });
     }
   }
+}
+
+function _updatePopupNav(overlay, stories, currentIdx) {
+  const nav = overlay.querySelector('.calendar-card-popup-nav');
+  if (!nav) return;
+  if (stories.length <= 1) { nav.textContent = ''; return; }
+  nav.textContent = `${currentIdx + 1} / ${stories.length}`;
 }
 
 function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], collected = false) {

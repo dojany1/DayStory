@@ -82,6 +82,13 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // ---------- inquiries/{id} — 문의/건의 (UGC 신고 뼈대) ----------
+    // 로그인 사용자는 생성만 가능, 조회/수정/삭제는 어드민만 (reports 와 동일 정책).
+    match /inquiries/{id} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
     // ---------- 그 외 모든 경로는 기본 거부 ----------
     match /{document=**} {
       allow read, write: if false;

@@ -14,7 +14,7 @@
      - reauthenticateUser(user)
    ===================================================================== */
 
-import { db, storage } from '../firebase.js';
+import { db, storage } from './firebase.js';
 import {
   doc, collection, query, where,
   getDocs, deleteDoc, writeBatch,

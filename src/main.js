@@ -33,7 +33,8 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
 import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
 import { initI18n } from './js/i18n/index.js';
-import { auth, db } from './js/firebase.js';
+import { auth, db } from './js/services/firebase.js';
+import { refreshWelcomeBadge } from './js/components/navBadge.js';
 import pkg from '../package.json';
 
 /* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
@@ -134,6 +135,9 @@ setBeforeNavigate((path) => {
   if (nav) {
     const shouldHideNav = !isAuthed || path.startsWith('/detail/') || path === '/report' || path === '/login' || path === '/signup' || path === '/license' || path === '/settings' || path === '/about' || path === '/mystory/new';
     nav.style.display = shouldHideNav ? 'none' : 'flex';
+    /* no-nav: app-container 의 nav-height 예약 padding 제거 → nav 없는 페이지 하단 빈 영역 방지 */
+    const appContainer = document.getElementById('app-container');
+    if (appContainer) appContainer.classList.toggle('no-nav', shouldHideNav);
   }
 
   /* 비로그인 사용자가 공개 경로 외 접근 시 → /login 강제 */
@@ -289,6 +293,9 @@ if (auth) {
         const nav = document.getElementById('bottom-nav');
         if (nav) nav.style.display = 'flex';
 
+        /* 웰컴 카드 'N' 배지를 영속 상태에 맞춰 복원 (재시작 후에도 미방문이면 유지) */
+        refreshWelcomeBadge();
+
         const currentHash = window.location.hash;
         if (currentHash === '#/login' || currentHash === '#/signup' || !currentHash) {
           navigate('/editorstory');
@@ -325,7 +332,39 @@ if (auth) {
    섹션 7: 앱 초기화 함수
    ─────────────────────────────────────────────
 */
+
+/* iOS WebView 에서 스크롤 컨테이너 레이아웃 재계산 시 env(safe-area-inset-bottom) 값이
+   흔들려 bottom-nav 높이가 변동하는 버그를 막기 위해, 앱 시작 시 safe-area 값을
+   한 번 측정하여 정적 픽셀값으로 --safe-area-bottom 변수를 고정한다. */
+function freezeSafeAreaVars() {
+  function measure() {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;bottom:0;left:0;width:1px;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;';
+    document.documentElement.appendChild(probe);
+    const sa = Math.round(probe.getBoundingClientRect().height);
+    probe.remove();
+    return sa;
+  }
+  function apply(sa) {
+    document.documentElement.style.setProperty('--safe-area-bottom', `${sa}px`);
+  }
+  requestAnimationFrame(() => {
+    const sa = measure();
+    apply(sa);
+    // 초기 측정이 0이면 iOS WKWebView 가 아직 safe-area 를 보고하지 않은 것 → 200ms 후 재측정
+    if (sa === 0) {
+      setTimeout(() => {
+        const sa2 = measure();
+        if (sa2 > 0) apply(sa2);
+      }, 200);
+    }
+  });
+}
+
 async function initApp() {
+  /* 0) safe-area-bottom 을 정적 픽셀값으로 고정 — iOS 레이아웃 재계산 시 nav 높이 흔들림 방지 */
+  freezeSafeAreaVars();
+
   /* 1) 저장된 테마 설정 적용 */
   applyTheme();
 

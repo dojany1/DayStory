@@ -220,30 +220,61 @@
           data-route 속성을 보고 router.js에서 해당 경로로 이동합니다.
         -->
         <nav id="bottom-nav" class="bottom-nav redesigned-nav" style="display:none;">
-          <!-- 에디터 일화 탭 — Lucide BookMarked -->
+          <!-- 에디터 일화 탭 -->
           <button class="nav-item active" data-route="/editorstory" id="nav-editorstory" aria-label="에디터 일화">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-              <polyline points="10 2 10 10 13 7 16 10 16 2"/>
-            </svg>
+            <span class="nav-icon-wrap">
+              <!-- 기본(비활성): 수정 전 Lucide BookMarked outline -->
+              <svg class="nav-icon nav-icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                <polyline points="10 2 10 10 13 7 16 10 16 2"/>
+              </svg>
+              <!-- 활성: Figma 커스텀 filled BookMarked -->
+              <svg class="nav-icon nav-icon-active" viewBox="0 0 24 24" fill="none">
+                <path d="M4 19.5V4.5C4 3.83696 4.26339 3.20107 4.73223 2.73223C5.20107 2.26339 5.83696 2 6.5 2H10H16H19C19.2652 2 19.5196 2.10536 19.7071 2.29289C19.8946 2.48043 20 2.73478 20 3V17V21C20 21.2652 19.8946 21.5196 19.7071 21.7071C19.5196 21.8946 19.2652 22 19 22H6.5C5.83696 22 5.20107 21.7366 4.73223 21.2678C4.26339 20.7989 4 20.163 4 19.5Z" fill="currentColor"/>
+                <path d="M4 19.5V4.5C4 3.83696 4.26339 3.20107 4.73223 2.73223C5.20107 2.26339 5.83696 2 6.5 2M4 19.5C4 20.163 4.26339 20.7989 4.73223 21.2678C5.20107 21.7366 5.83696 22 6.5 22H19C19.2652 22 19.5196 21.8946 19.7071 21.7071C19.8946 21.5196 20 21.2652 20 21V17M4 19.5C4 18.837 4.26339 18.2011 4.73223 17.7322C5.20107 17.2634 5.83696 17 6.5 17H20M6.5 2H19M6.5 2H10H16H19M19 2C19.2652 2 19.5196 2.10536 19.7071 2.29289C19.8946 2.48043 20 2.73478 20 3V17" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19.7071 21.7071C19.8946 21.5196 20 21.2652 20 21V20.5V17H6.5C5.83696 17 5.20107 17.2634 4.73223 17.7322C4.26339 18.2011 4 18.837 4 19.5C4 20.163 4.26339 20.7989 4.73223 21.2678C5.20107 21.7366 5.83696 22 6.5 22H19C19.2652 22 19.5196 21.8946 19.7071 21.7071Z" fill="var(--color-bg-primary)" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 2H13H10V10L13 7L16 10V2Z" fill="currentColor" stroke="var(--color-bg-primary)" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6.5 2H19" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
           </button>
 
-          <!-- 나의 일화 탭 — Lucide BookUser -->
+          <!-- 나의 일화 탭 -->
           <button class="nav-item" data-route="/mystory" id="nav-mystory" aria-label="나의 일화">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-              <circle cx="12" cy="8" r="2"/>
-              <path d="M15 13a3 3 0 1 0-6 0"/>
-            </svg>
+            <span class="nav-icon-wrap">
+              <!-- 기본(비활성): Lucide BookUser outline -->
+              <svg class="nav-icon nav-icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                <circle cx="12" cy="8" r="2"/>
+                <path d="M15 13a3 3 0 1 0-6 0"/>
+              </svg>
+              <!-- 활성: Figma 커스텀 filled BookUser -->
+              <svg class="nav-icon nav-icon-active" viewBox="0 0 24 24" fill="none">
+                <path d="M4 19.5V4.5C4 3.83696 4.26339 3.20107 4.73223 2.73223C5.20107 2.26339 5.83696 2 6.5 2H19C19.2652 2 19.5196 2.10536 19.7071 2.29289C19.8946 2.48043 20 2.73478 20 3V17V21C20 21.2652 19.8946 21.5196 19.7071 21.7071C19.5196 21.8946 19.2652 22 19 22H6.5C5.83696 22 5.20107 21.7366 4.73223 21.2678C4.26339 20.7989 4 20.163 4 19.5Z" fill="currentColor"/>
+                <path d="M4 19.5V4.5C4 3.83696 4.26339 3.20107 4.73223 2.73223C5.20107 2.26339 5.83696 2 6.5 2H19C19.2652 2 19.5196 2.10536 19.7071 2.29289C19.8946 2.48043 20 2.73478 20 3V21C20 21.2652 19.8946 21.5196 19.7071 21.7071C19.5196 21.8946 19.2652 22 19 22H6.5C5.83696 22 5.20107 21.7366 4.73223 21.2678C4.26339 20.7989 4 20.163 4 19.5ZM4 19.5C4 18.837 4.26339 18.2011 4.73223 17.7322C5.20107 17.2634 5.83696 17 6.5 17H20" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19.7071 21.7071C19.8946 21.5196 20 21.2652 20 21V20.5V17H6.5C5.83696 17 5.20107 17.2634 4.73223 17.7322C4.26339 18.2011 4 18.837 4 19.5C4 20.163 4.26339 20.7989 4.73223 21.2678C5.20107 21.7366 5.83696 22 6.5 22H19C19.2652 22 19.5196 21.8946 19.7071 21.7071Z" fill="var(--color-bg-primary)" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 13C15 12.2044 14.6839 11.4413 14.1213 10.8787C13.5587 10.3161 12.7956 10 12 10C11.2044 10 10.4413 10.3161 9.87868 10.8787C9.31607 11.4413 9 12.2044 9 13" stroke="var(--color-bg-primary)" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 10C13.1046 10 14 9.10457 14 8C14 6.89543 13.1046 6 12 6C10.8954 6 10 6.89543 10 8C10 9.10457 10.8954 10 12 10Z" fill="currentColor" stroke="var(--color-bg-primary)" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
           </button>
 
-          <!-- 프로필 탭 — Lucide Menu -->
+          <!-- 프로필 탭 -->
           <button class="nav-item" data-route="/profile" id="nav-profile" aria-label="프로필">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="4" x2="20" y1="6" y2="6"/>
-              <line x1="4" x2="20" y1="12" y2="12"/>
-              <line x1="4" x2="20" y1="18" y2="18"/>
-            </svg>
+            <span class="nav-icon-wrap">
+              <!-- 기본(비활성): Lucide Menu outline (3선) -->
+              <svg class="nav-icon nav-icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" x2="20" y1="6" y2="6"/>
+                <line x1="4" x2="20" y1="12" y2="12"/>
+                <line x1="4" x2="20" y1="18" y2="18"/>
+              </svg>
+              <!-- 활성: pill 직사각형 3선 (filled) -->
+              <svg class="nav-icon nav-icon-active" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="4" y="5" width="16" height="2.5" rx="1.25"/>
+                <rect x="4" y="10.75" width="16" height="2.5" rx="1.25"/>
+                <rect x="4" y="16.5" width="16" height="2.5" rx="1.25"/>
+              </svg>
+            </span>
           </button>
         </nav>
 

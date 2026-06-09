@@ -16,7 +16,7 @@ import { App as CapApp } from '@capacitor/app';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
-import { auth, storage } from '../firebase.js';
+import { auth, storage } from '../services/firebase.js';
 import { ref as fsRef, getBlob } from 'firebase/storage';
 import { shareStory, captureAndShareCard } from '../services/sharing.js';
 import Cropper from 'cropperjs';
@@ -34,6 +34,11 @@ import {
   cardShell, cardFront, cardFrontTop, cardImageWrap, cardBack, emptyCardFace, cardActionButton,
   bindCardBase, parseIsoDate, formatMonthNameDate, bodyToHtml, SHARE_ICON_SVG,
 } from '../components/cardDeck/cardFace.js';
+import { afterPageEnter } from '../utils/pageLifecycle.js';
+import { showIntroSheet } from '../components/introSheet.js';
+import { hasSeen, ONBOARDING_FLAGS } from '../services/onboarding.js';
+import { getCurrentPath } from '../router.js';
+import { getLocalToday } from '../utils/date.js';
 
 const CARD_IMAGE_CROP_ASPECT_RATIO = 4 / 5;
 
@@ -62,10 +67,15 @@ function getMyStoryAuthorNickname(story = {}) {
 export function renderMyStory() {
   const prev = getPreviousRoute();
   console.log('[mystory] renderMyStory called, previousRoute =', prev);
-  return buildCardDeck({
+  /* 기록이 0개인 신규 사용자면 오늘 빈 카드의 글쓰기 CTA 를 강화(Pulse·안내문)한다.
+     loadData 에서 채워지고 renderSlideHTML 클로저가 최신값을 본다 (데이터 상태로만 게이트). */
+  let isFirstTimeEmpty = false;
+
+  const page = buildCardDeck({
     idPrefix: 'mystory',
     pageClass: 'mystory-page',
     headerHtml: '',
+    calendarTitle: '나의 일화',
     enterDir: ['/settings', '/profile'].includes(prev) ? 'from-left' : 'from-right',
     calMode: 'mine',
     lastDateKey: 'lastMyStoryDate',
@@ -75,6 +85,7 @@ export function renderMyStory() {
       /* Firebase Auth 실제 UID 우선 (Firestore 보안 규칙 request.auth.uid 일치) */
       const uid = auth?.currentUser?.uid || user?.id;
       const allStories = await fetchMyStories(uid);
+      isFirstTimeEmpty = Array.isArray(allStories) && allStories.length === 0;
       void syncDiaryStateFromList(allStories);
       const params = getParams();
       return {
@@ -86,10 +97,26 @@ export function renderMyStory() {
       };
     },
 
-    renderSlideHTML: (raw, iso) => buildMyStorySlideHTML(raw, iso),
+    renderSlideHTML: (raw, iso) => buildMyStorySlideHTML(raw, iso, isFirstTimeEmpty),
     bindCard: (flip, raw, iso) => bindMyStoryCardEvents(flip, raw, iso),
 
     errorHtml: () => `<div class="empty-state"><div class="empty-state-title">${t('common.error_occurred')}</div></div>`,
+  });
+
+  /* 진입 애니메이션 종료 후 최초 1회 인트로 모달. 닫으면 뒤의 강화된 빈 카드가 드러난다. */
+  afterPageEnter(page, () => runMyStoryOnboarding());
+  return page;
+}
+
+/* '나의 일화' 탭 최초 진입 인트로 모달 (논블로킹). */
+function runMyStoryOnboarding() {
+  if (getCurrentPath() !== '/mystory') return;          /* 빠른 탭 왕복 방어 (QA Q1) */
+  if (hasSeen(ONBOARDING_FLAGS.INTRO_MYSTORY)) return;
+  showIntroSheet({
+    flag: ONBOARDING_FLAGS.INTRO_MYSTORY,
+    icon: '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><circle cx="12" cy="8" r="2"/><path d="M15 13a3 3 0 1 0-6 0"/></svg>',
+    title: t('onboarding.mystory_title'),
+    lines: [t('onboarding.mystory_line1'), t('onboarding.mystory_line2')],
   });
 }
 
@@ -98,15 +125,19 @@ export function renderMyStory() {
    섹션 1-2: 슬라이드 HTML 빌더 (Swiper Virtual용)
    ───────────────────────────────────────────── */
 
-function buildMyStorySlideHTML(story, isoDateStr) {
+function buildMyStorySlideHTML(story, isoDateStr, firstTimeEmpty = false) {
   const { month, day, year: displayYear } = parseIsoDate(isoDateStr);
 
   if (!story) {
+    /* 신규 사용자(기록 0개)의 '오늘' 빈 카드에서만 글쓰기 CTA 를 강화한다 (B안). */
+    const showHint = firstTimeEmpty && isoDateStr === getLocalToday();
     return emptyCardFace({
       day,
       title: t('mystory.empty_day'),
       dateStr: formatMonthNameDate(isoDateStr),
-      extraHtml: `<button class="btn btn-primary mystory-write-btn" data-date="${isoDateStr}">
+      extraHtml: `
+            ${showHint ? `<p class="mystory-empty-hint">${t('onboarding.mystory_empty_hint')}</p>` : ''}
+            <button class="btn btn-primary mystory-write-btn${showHint ? ' is-pulsing' : ''}" data-date="${isoDateStr}">
               + ${t('mystory.write')}
             </button>`,
       flipperClass: 'mystory-flipper',

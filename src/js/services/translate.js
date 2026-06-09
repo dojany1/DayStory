@@ -9,7 +9,7 @@
    - firebase/functions SDK 는 동적 import 로 초기 번들 부담을 0 으로 둔다 (admin.js 패턴).
    ===================================================================== */
 
-import { app } from '../firebase.js';
+import { app } from './firebase.js';
 
 /**
  * translateContentApi — 한국어 원문 필드를 en/ja/es/zh 로 자동 번역.

@@ -103,6 +103,7 @@
     "tab_mine": "나의 일화",
     "card_tap_hint": "탭 하면 카드가 뒤집힙니다.",
     "card_collected_hint": "탭 하면 카드가 뒤집힙니다.",
+    "card_swipe_hint": "좌 • 우로 스와이프 해서 카드를 넘길 수 있습니다.",
     "collect_button": "수집하기",
     "collected_button": "수집됨 ✦",
     "collect_success_text": "수집되었어요!",
@@ -258,6 +259,7 @@
     "title": "마이 페이지",
     "admin_badge": "관리자",
     "no_email": "이메일 정보 없음",
+    "modal_title": "프로필",
     "edit_title": "프로필 편집",
     "change_photo": "프로필 사진 변경",
     "nickname": "닉네임",
@@ -280,6 +282,23 @@
     "submit": "신고 제출",
     "toast_need_detail": "설명을 입력해주세요",
     "toast_done": "신고가 접수되었습니다. 감사합니다! ✅"
+  },
+  "inquiry": {
+    "title": "문의 및 건의하기",
+    "menu_card_report": "오류 및 오탈자 제보",
+    "type_label": "문의 유형",
+    "type_bug": "버그",
+    "type_typo": "오탈자",
+    "type_feature": "기능 제안",
+    "type_etc": "기타",
+    "content_label": "내용",
+    "placeholder": "의견이나 발견한 문제를 자유롭게 적어주세요...",
+    "submit": "보내기",
+    "notice": "보내주신 의견은 서비스 개선에 사용됩니다.",
+    "toast_need_content": "내용을 입력해주세요",
+    "toast_done": "소중한 의견 감사합니다! 서비스 개선에 반영하겠습니다 ✅",
+    "toast_cooldown": "잠시 후 다시 시도해주세요. 짧은 시간에 너무 많이 보냈어요.",
+    "toast_error": "전송에 실패했습니다. 잠시 후 다시 시도해주세요."
   },
   "search": {
     "title": "검색",
@@ -355,7 +374,7 @@
     "notification_saved": "알림 설정을 저장했습니다",
     "section_app_settings": "앱 설정",
     "section_support": "지원",
-    "row_contact": "문의",
+    "row_contact": "문의 및 건의하기",
     "toast_coming_soon": "준비중인 기능입니다. 업데이트를 기다려주세요!",
     "withdraw_title": "회원 탈퇴",
     "withdraw_message": "정말로 회원을 탈퇴하시겠습니까?\n계정과 모든 데이터(일화, 보관함, 업로드 사진 등)가 영구적으로 삭제되며 복구할 수 없습니다.",
@@ -363,7 +382,10 @@
     "withdraw_hold": "탈퇴까지 {seconds}초간 누르고 계세요...",
     "withdraw_hold_done": "탈퇴를 진행합니다...",
     "toast_reauth": "보안 정책에 따라 다시 로그인한 뒤 탈퇴하실 수 있습니다.",
-    "toast_withdraw_error": "회원 탈퇴 처리 중 오류가 발생했습니다."
+    "toast_withdraw_error": "회원 탈퇴 처리 중 오류가 발생했습니다.",
+    "row_tutorial": "튜토리얼 다시 보기",
+    "row_tutorial_subtitle": "앱 사용법 안내를 처음부터 다시 봅니다",
+    "toast_tutorial_reset": "튜토리얼을 다시 시작합니다"
   },
   "toast": {
     "login_required": "로그인이 필요한 기능입니다.",
@@ -394,5 +416,19 @@
     "prompt_picture": "카메라로 촬영",
     "prompt_cancel": "취소",
     "file_read_error": "파일을 읽을 수 없습니다."
+  },
+  "onboarding": {
+    "cta_start": "시작하기",
+    "editor_title": "오늘, 역사 속에서",
+    "editor_line1": "매일 역사 속 '오늘'의 이야기를 카드로 만나보세요.",
+    "editor_line2": "카드를 탭하면 뒷면에서 자세한 이야기가 펼쳐져요.",
+    "mystory_title": "나의 일화",
+    "mystory_line1": "오늘 하루를 일기처럼 기록하고 카드로 보관하세요.",
+    "mystory_line2": "달력에서 지난 기록을 한눈에 돌아볼 수 있어요.",
+    "tip_card_flip": "탭해서 뒤집어보세요",
+    "welcome_card_title": "DayStory에 오신 걸 환영해요!",
+    "welcome_card_body": "DayStory는 매일의 역사 한 조각과 당신의 하루를 카드로 모아주는 공간이에요.\n\n'나의 일화' 탭에서 첫 일기를 써보고, 마음에 드는 카드는 이미지로 저장해 친구들과 나눠보세요. 오늘부터 당신의 이야기를 기록해볼까요?",
+    "welcome_tip": "첫 카드가 보관함에 도착했어요 🎉",
+    "mystory_empty_hint": "오늘의 첫 일기를 남겨보세요 ✏️"
   }
 }

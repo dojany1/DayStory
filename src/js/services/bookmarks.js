@@ -12,7 +12,7 @@
      - getBookmarkCount()    : 북마크 총 개수 조회
    ===================================================================== */
 
-import { db } from '../firebase.js';
+import { db } from './firebase.js';
 import { getState } from '../state.js';
 import {
   collection, doc, query, where, orderBy,

@@ -30,6 +30,11 @@ import {
   FALLBACK_IMG, SHARE_ICON_SVG,
 } from '../components/cardDeck/cardFace.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { afterPageEnter } from '../utils/pageLifecycle.js';
+import { showIntroSheet } from '../components/introSheet.js';
+import { showCardFlipCoach } from '../components/coachMark.js';
+import { hasSeen, ONBOARDING_FLAGS } from '../services/onboarding.js';
+import { getCurrentPath } from '../router.js';
 
 const FLIP_DURATION_MS = 400;
 
@@ -76,10 +81,11 @@ export function renderEditorStory() {
   let bookmarkedIds = [];
   let bookmarksPromise = null;
 
-  return buildCardDeck({
+  const page = buildCardDeck({
     idPrefix: 'editorstory',
     pageClass: 'editorstory-page',
     headerHtml: '<div class="editorstory-header"><h1 class="editorstory-title"></h1></div>',
+    calendarTitle: '에디터 일화',
     /* 다른 페이지에서 진입 시에만 좌→우, 최초 로드는 기본값(아래→위) */
     enterDir: getPreviousRoute() ? 'from-left' : null,
     calMode: 'history',
@@ -146,6 +152,49 @@ export function renderEditorStory() {
         </button>
       </div>
     `,
+  });
+
+  /* 진입 애니메이션이 끝난 시점에 온보딩(인트로 모달 → 카드 뒤집기 코치마크)을 실행한다. */
+  afterPageEnter(page, () => runEditorOnboarding(page));
+  return page;
+}
+
+
+/* ─────────────────────────────────────────────
+   섹션 1-1: 신규 사용자 온보딩 (논블로킹 튜토리얼)
+   ───────────────────────────────────────────── */
+
+/* 인트로 모달(최초 1회) → 닫으면 카드 뒤집기 Pulse·툴팁. 둘 다 hasSeen 으로 게이트. */
+function runEditorOnboarding(page) {
+  /* 빠른 탭 왕복 방어: 콜백 시점에 여전히 이 탭인지 확인 (QA Q1) */
+  if (getCurrentPath() !== '/editorstory') return;
+
+  if (!hasSeen(ONBOARDING_FLAGS.INTRO_EDITOR)) {
+    showIntroSheet({
+      flag: ONBOARDING_FLAGS.INTRO_EDITOR,
+      icon: '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><polyline points="10 2 10 10 13 7 16 10 16 2"/></svg>',
+      title: t('onboarding.editor_title'),
+      lines: [t('onboarding.editor_line1'), t('onboarding.editor_line2')],
+      onClose: () => maybeShowFlipCoach(page),
+    });
+  } else {
+    maybeShowFlipCoach(page);
+  }
+}
+
+/* 카드 뒤집기 코치마크 — 카드 뷰일 때만, 카드 영역이 실재할 때만 (QA Q8) */
+function maybeShowFlipCoach(page) {
+  if (getCurrentPath() !== '/editorstory') return;
+  if (hasSeen(ONBOARDING_FLAGS.TIP_CARD_FLIP)) return;
+
+  const cardArea = page.querySelector('#editorstory-card-area');
+  /* isEmpty 면 카드 영역 자체가 없고, 캘린더 뷰면 hidden → 표시하지 않음 */
+  if (!cardArea || cardArea.hidden) return;
+
+  showCardFlipCoach({
+    container: cardArea,
+    flag: ONBOARDING_FLAGS.TIP_CARD_FLIP,
+    text: t('onboarding.tip_card_flip'),
   });
 }
 

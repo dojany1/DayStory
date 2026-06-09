@@ -32,9 +32,9 @@
 - Do not commit from inside a harness step. `scripts/codex-harness.mjs` creates separated code and metadata commits.
 
 ## Session Log
-- If this session changed any file, append one entry to the bottom of `docs/SESSION_LOG.md` before ending the session. Use Edit/Write — never skip.
+- If this session changed any file, append one entry to the bottom of `SESSION_LOG.md` before ending the session. Use Edit/Write — never skip.
 - Required fields per entry: `YYYY-MM-DD HH:MM — <agent>`, `요구사항`, `구현방법`, `변경파일`. Use the user's local 24-hour time.
-- Format, rules, and template live at the top of `docs/SESSION_LOG.md`. Follow it exactly.
+- Format, rules, and template live at the top of `SESSION_LOG.md`. Follow it exactly.
 - Do not edit existing entries. If a previous entry was wrong, add a new corrective entry.
 - Skip the log for pure question / explanation / review sessions where no files changed.
 - Inside a harness step, base the entry on that step's requirement, implementation, and changed files.
@@ -42,7 +42,7 @@
 ## Session Checkpoint
 - At the end of every file-changing session, save all changes to GitHub through `scripts/session-checkpoint.sh`.
 - Claude Code runs this automatically through `.claude/settings.json` Stop hook.
-- Codex CLI, Cursor, and other agents must run this manually after appending `docs/SESSION_LOG.md`:
+- Codex CLI, Cursor, and other agents must run this manually after appending `SESSION_LOG.md`:
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/session-checkpoint.ps1
   ```

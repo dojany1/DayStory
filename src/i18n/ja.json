@@ -176,6 +176,7 @@
     "filter_scheduled": "予約",
     "filter_draft": "下書き",
     "filter_untranslated": "未翻訳",
+    "filter_duplicate": "重複",
     "saving": "保存中...",
     "status_published": "公開済み",
     "status_draft": "下書き",

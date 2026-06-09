@@ -133,6 +133,7 @@ export function renderEditor() {
       <button type="button" class="editor-stat" data-filter="scheduled"><span class="editor-stat-label">${t('editor.filter_scheduled')}</span><span class="editor-stat-value" id="stat-scheduled">-</span></button>
       <button type="button" class="editor-stat" data-filter="draft"><span class="editor-stat-label">${t('editor.filter_draft')}</span><span class="editor-stat-value" id="stat-draft">-</span></button>
       <button type="button" class="editor-stat" data-filter="untranslated"><span class="editor-stat-label">${t('editor.filter_untranslated')}</span><span class="editor-stat-value" id="stat-untranslated">-</span></button>
+      <button type="button" class="editor-stat" data-filter="duplicate"><span class="editor-stat-label">${t('editor.filter_duplicate')}</span><span class="editor-stat-value" id="stat-duplicate">-</span></button>
     </div>
 
     <div class="calendar-month-nav editor-month-nav">
@@ -156,6 +157,8 @@ export function renderEditor() {
 
   let allStories = [];
   let currentFilter = 'all';
+  /* 같은 publish_date 가 2건 이상인 날짜 집합 — '중복' 필터/통계용. renderCalendar 에서 갱신. */
+  let duplicateDates = new Set();
   const today = getLocalToday();
   const now = new Date();
   let visibleYear = now.getFullYear();
@@ -188,9 +191,24 @@ export function renderEditor() {
     el('stat-draft').textContent = allStories.filter(s => getEditorBucket(s, today) === 'draft').length;
     el('stat-scheduled').textContent = allStories.filter(s => getEditorBucket(s, today) === 'scheduled').length;
     if (el('stat-untranslated')) el('stat-untranslated').textContent = allStories.filter(isStoryUntranslated).length;
+    if (el('stat-duplicate')) el('stat-duplicate').textContent = getDuplicateDateSet().size;
+  }
+
+  /* getDuplicateDateSet — publish_date 가 2건 이상 겹치는 날짜(iso)들의 Set 을 반환.
+     같은 날짜에 글이 여러 개 쌓인 정리 대상 날짜를 식별하는 데 사용한다. */
+  function getDuplicateDateSet() {
+    const counts = new Map();
+    for (const s of allStories) {
+      const d = s?.publish_date;
+      if (isIsoDate(d)) counts.set(d, (counts.get(d) || 0) + 1);
+    }
+    const dups = new Set();
+    for (const [d, n] of counts) if (n >= 2) dups.add(d);
+    return dups;
   }
 
   function renderCalendar() {
+    duplicateDates = getDuplicateDateSet();
     const gridEl = page.querySelector('#editor-calendar-grid');
     const labelEl = page.querySelector('#editor-month-label');
     if (!gridEl || !labelEl) return;
@@ -268,6 +286,8 @@ export function renderEditor() {
       .filter((story) => {
         if (currentFilter === 'all') return true;
         if (currentFilter === 'untranslated') return isStoryUntranslated(story);
+        /* 중복 — 같은 날짜에 2건 이상인 날짜의 모든 글을 노출(상태 무관)해 비교·삭제하게 함 */
+        if (currentFilter === 'duplicate') return duplicateDates.has(story.publish_date);
         /* 발행/예약/초안 — status 가 아니라 노출 시점 기준 분류(getEditorBucket) */
         return getEditorBucket(story, today) === currentFilter;
       });
@@ -333,6 +353,19 @@ export function renderEditor() {
         page.querySelectorAll('.editor-stat').forEach(s => s.classList.remove('active'));
         stat.classList.add('active');
         currentFilter = stat.dataset.filter;
+        /* '중복' 선택 시 현재 달에 중복이 없으면 가장 이른 중복 날짜의 달로 점프 (빈 화면 방지) */
+        if (currentFilter === 'duplicate') {
+          const dups = [...getDuplicateDateSet()].sort();
+          const inView = dups.some((d) => {
+            const [y, m] = d.split('-').map(Number);
+            return y === visibleYear && m === visibleMonth + 1;
+          });
+          if (!inView && dups.length) {
+            const [y, m] = dups[0].split('-').map(Number);
+            visibleYear = y;
+            visibleMonth = m - 1;
+          }
+        }
         renderCalendar();
       });
     });

@@ -57,7 +57,7 @@
   z-index: 10;
 }
 .close-auth-btn:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary-pressed);
 }
 
 /* 로고 영역 — 페이지 상단 중앙 */
@@ -627,7 +627,7 @@
 
 .detail-sheet-close:active {
   color: var(--color-text-primary);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary-pressed);
   transform: scale(0.96);
 }
 
@@ -1075,7 +1075,7 @@
 
 /* 검색 결과 아이템 터치 시 — 배경 하이라이트 */
 .search-result-item:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary-pressed);
 }
 
 /* 검색 결과 썸네일 — 72x72 정사각형 */
@@ -1297,7 +1297,7 @@
 }
 
 .theme-option:not(.active):active {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-primary-pressed);
   transform: scale(0.96);
 }
 
@@ -2053,12 +2053,12 @@
   border-radius: 50%;
   /* 5. Misc */
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: 400ms;
 }
 
 .profile-edit-btn:active {
-  background: var(--color-accent);
-  color: var(--color-bg-primary);
+  background: var(--color-bg-primary-pressed);
+  transition: 100ms;
 }
 
 /* 프로필 편집 오버레이 (모바일 래퍼 너비에 맞춤) */
@@ -2107,7 +2107,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-4) var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-5);
   border-bottom: 1px solid var(--color-divider);
   flex-shrink: 0;
 }
@@ -2134,7 +2134,7 @@
 }
 
 .profile-edit-close:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary-pressed);
 }
 
 /* 본문 영역 — 컨텐츠가 길어지면 내부 스크롤 */
@@ -2147,8 +2147,8 @@
 /* 하단 액션 영역 — 취소 / 저장 */
 .profile-edit-actions {
   display: flex;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-5) var(--space-4);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--color-divider);
   flex-shrink: 0;
 }
@@ -2245,16 +2245,20 @@
   justify-content: center;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-bg-overlay);
+  border: none;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   padding: 0;
+}
+.profile-edit-photo-icon:active {
+  background: var(--color-bg-primary-pressed);
 }
 
 /* 닉네임 입력 필드 영역 */
 .profile-edit-field {
-  padding: 0 var(--space-5) var(--space-3);
+  padding: 0 var(--space-4) var(--space-4);
+  gap: var(--space-2);
 }
 
 /* 입력 필드 라벨 */
@@ -2384,13 +2388,13 @@
   text-align: enter;
   white-space: nowrap;
   cursor: pointer;
-  transition: color var(--transition-fast), transform var(--transition-fast);
   -webkit-tap-highlight-color: transparent;
   background: 0 0;
   border: 0;
   flex: 1 1 0;
   font-weight: 600;
   position: relative;
+  transition: 400ms;
 }
 
 .calendar-toggle-btn.active {
@@ -2399,8 +2403,9 @@
 }
 
 .calendar-toggle-btn:not(.active):active {
-  background:var(--color-bg-primary);
-  transform:scale(0.96);
+  background: var(--color-bg-primary-pressed);
+  transform: scale(0.96);
+  transition: 100ms;
 }
 
 .calendar-toggle-thumb {
@@ -2440,7 +2445,8 @@
   display:flex}
 
 .calendar-month-arrow:active {
-  background:var(--color-bg-secondary)}
+  background: var(--color-bg-primary-pressed);
+}
 
 .calendar-month-arrow:disabled,.calendar-month-arrow.disabled {
   opacity:.3;
@@ -2611,13 +2617,13 @@
   padding-top:calc(var(--space-5) + var(--safe-area-top));
   padding-bottom:calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
   background:var(--color-bg-overlay);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(4px);
   opacity:0;
   pointer-events:none;
   justify-content:center;
   align-items:center;
-  transition:opacity .22s;
+  transition: 200ms ease-in-out;
   display:flex;
   position:fixed;
   inset:0;
@@ -2625,21 +2631,25 @@
 
 .calendar-card-popup.open {
   opacity:1;
-  pointer-events:auto}
+  pointer-events:auto;
+  transition: 200ms ease-in;
+}
 
 .calendar-card-popup-inner {
-  align-items:center;
-  gap:var(--space-3);
-  flex-direction:column;
-  width:100%;
-  max-width:400px;
-  transition:transform .28s cubic-bezier(.16,1,.3,1);
-  display:flex;
-  position:relative;
-  transform:translateY(24px)scale(0.9)}
+  align-items: center;
+  gap: var(--space-3);
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  position: relative;
+  transform: translateY(24px)scale(0.9);
+  transition: transform 500ms ease;
+}
 
 .calendar-card-popup.open .calendar-card-popup-inner {
-  transform: translateY(0)scale(1)}
+  transform: translateY(0)scale(1);
+}
 
 .calendar-card-popup-close {
   color:#fff;
@@ -2655,39 +2665,47 @@
   justify-content:center;
   align-self:flex-end;
   align-items:center;
-  display:flex
+  display:flex;
 }
 .calendar-card-popup-close:active {
-  background:#ffffff38
+  background:#ffffff38;
 }
 
 .calendar-card-popup-stage {
   width:100%;
-  transition:opacity .12s ease}
+  transition:opacity 180ms ease-in;
+}
 
 .calendar-card-popup-stage.popup-card-fading {
-  opacity:0}
+  opacity:0;
+  transition: 50ms;
+}
 
 .calendar-card-popup-stage .flip-container {
   width:100%;
   min-width:0;
-  aspect-ratio:var(--card-aspect-ratio)}
+  aspect-ratio:var(--card-aspect-ratio);
+}
 
 .calendar-card-popup-stage .flipper {
   width:100%;
   height:100%;
-  aspect-ratio:unset}
+  aspect-ratio:unset;
+}
 
 .calendar-card-popup .back-footer {
-  justify-content:flex-end}
+  justify-content:flex-end;
+}
 
 .calendar-card-popup .back-date-actions {
   align-items:flex-end;
   max-width:58%;
-  margin-left:auto}
+  margin-left:auto;
+}
 
 .calendar-card-popup .card-detail-shortcut-btn {
-  max-width:100%}
+  max-width:100%;
+}
 
 .calendar-card-popup-hint {
   font-size:var(--text-xs);
@@ -2949,11 +2967,12 @@
   z-index: 10;
   color: var(--color-text-inverse);
   -webkit-tap-highlight-color: transparent;
-  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+  transition: 400ms;
 }
 .view-toggle-btn:active {
   transform: translateY(-50%) scale(0.88);
   background: var(--color-accent-light);
+  transition: 100ms;
 }
 
 /* ══════════════════════════════════════════

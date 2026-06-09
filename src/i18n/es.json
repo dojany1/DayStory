@@ -176,6 +176,7 @@
     "filter_scheduled": "Programado",
     "filter_draft": "Borrador",
     "filter_untranslated": "Sin traducir",
+    "filter_duplicate": "Duplicado",
     "saving": "Guardando...",
     "status_published": "Publicado",
     "status_draft": "Borrador",

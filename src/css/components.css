@@ -65,7 +65,7 @@
 
 /* 고스트 버튼 터치 시 — 배경이 살짝 나타남 */
 .btn-ghost:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary-pressed);
 }
 
 /* 전폭(Full Width) 버튼 — 부모 너비 100% */
@@ -231,8 +231,8 @@
      이전엔 base 에 항상 활성이라 Swiper 의 wrapper translate3d 와 충돌해
      iOS GPU 컴포지터가 두 애니메이션 동시 합성 → WebContent process 살해.
      scale 은 transform 과 독립된 shorthand 라 flip rotateY 와 충돌 없이 press 피드백에 사용. */
-  transition: scale 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 복귀: 쫀득한 ease-out */
   transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 (flip 동작에 필수) */
+  transition: transform 0.5s  scale 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 복귀: 쫀득한 ease-out */
   /* GPU promotion 힌트는 의도적으로 제외 (iOS WKWebView 의 GPU process 살해 회피).
      pages.css 의 .swiper-slide-active/-next/-prev .flipper 셀렉터로 가시 슬라이드에만 부여. */
   cursor: pointer;
@@ -246,21 +246,19 @@
    FLIP_DURATION_MS 후 remove → swipe 시점엔 is-flipping 없으므로 충돌 차단) */
 .flipper.is-flipping {
   pointer-events: none !important;
-  transition: transform 0.4s ease-out 0.05s, scale 0.2s;
+  transition: transform 0.5s ease-in-out 0.05s, scale 0.2s;
 }
 
 /* 눌린 상태: 즉각 반응(0.05s), 복귀는 base .flipper 의 0.3s cubic-bezier 적용 */
-/*
 .flipper.is-pressed {
   scale: 0.98;
-  transition: scale 0.3s ease-out;
+  transition: scale 0.1s ease-out;
 }
-*/
 
 /* 카드가 뒤집혔을 때 — Y축 기준 180도 회전 */
 .flipper.flipped {
   transform: rotateY(180deg);
-  transition: transform 0.4s ease-out, scale 0.4s;
+  transition: transform 0.5s ease-in-out 0.05s, scale 0.2s;
 }
 
 /* 카드 앞면/뒷면 공통 스타일
@@ -397,7 +395,7 @@
 }
 
 .card-action-btn:active {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-primary-pressed);
   color: var(--color-text-primary);
   transform: scale(0.9);
   transition: transform 0.2s ease, background 0.2s ease;
@@ -682,11 +680,10 @@
   background: var(--color-bg-card);
   box-shadow: var(--shadow-md);
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: var(--transition-spring);
   display: flex;
   flex-direction: column;
   aspect-ratio: 3 / 4.8;              /* 메인 카드와 동일한 비율 */
-  transition: cubic-bezier(0.175, 0.885, 0.32, 1.275) cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 스프링 효과 */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -694,6 +691,7 @@
 /* 미니 카드 터치 시 — 축소 + 그림자 줄어듦 */
 .history-card-mini:active {
   transform: scale(0.95);
+  transition: var(--transition-fast);
   box-shadow: var(--shadow-card-hover);
 }
 
@@ -893,7 +891,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);
-  transition: background var(--transition-fast);
+  transition: 400ms;
   position: relative; /* ::before 의 기준 */
 }
 
@@ -907,7 +905,8 @@
 
 /* 뒤로가기 버튼 터치 시 — 배경색 표시 */
 .page-header-back:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary-pressed);
+  transition: 100ms;
 }
 
 /* 뒤로가기 버튼 아이콘 크기 */
@@ -953,13 +952,14 @@
   gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-divider);
-  transition: background var(--transition-fast);
   cursor: pointer;
+  transition: background 400ms;
 }
 
 /* 리스트 아이템 터치 시 — 배경 하이라이트 */
 .list-item:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary-pressed);
+  transition: background 100ms;
 }
 
 /* 리스트 아이콘 — 40x40 둥근 사각형 */
@@ -1160,7 +1160,6 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y; /* 세로 스크롤 허용 */
-  padding-top: 48px; /* 헤더 높이만큼 패딩 */
   padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
@@ -1692,10 +1691,14 @@
   cursor:pointer;
   flex:1;
   font-weight:600;
-  transition:background .15s}
+  transition:background .15s;
+}
 
 .confirm-dialog-btn:active {
-  transform:scale(.98)}
+  opacity:0.6;
+  transform: scale(.95);
+  transition: transform 200ms;
+}
 
 .confirm-dialog-confirm {
   background:var(--color-accent);

@@ -175,6 +175,7 @@
     "filter_scheduled": "예약",
     "filter_draft": "임시저장",
     "filter_untranslated": "미번역",
+    "filter_duplicate": "중복",
     "saving": "저장 중...",
     "status_published": "발행됨",
     "status_draft": "임시저장",

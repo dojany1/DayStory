@@ -1267,3 +1267,46 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: `src/css/variables.css`에서 `--z-toast` 값을 300 → 600으로 상향, 순서를 `--z-overlay` 아래로 재배치. 토스트가 모든 오버레이·시트 위에 항상 표시됨.
 - **변경파일**: `src/css/variables.css`, `SESSION_LOG.md`.
 - **검증**: `npm run build` 성공.
+
+---
+
+## 2026-06-09
+
+### 17:45 — Claude (claude-sonnet-4-6)
+
+- **요구사항**: 인터넷 연결 없는 오프라인 상태에서도 유저 프로필 이미지가 정상 표시되도록 로컬 캐싱 구현.
+- **구현방법**:
+  - `src/js/utils/avatarCache.js` (신규) — Firebase Storage URL 이미지를 fetch → FileReader로 base64 data URL 변환 → `localStorage('ds_av_{uid}')` 저장. `saveAvatarToCache` / `loadAvatarFromCache` / `clearAvatarCache` 3개 함수. `navigator.onLine=false`이면 fetch 생략(best-effort).
+  - `src/js/pages/profile.js` — ① import 추가. ② `renderProfile()` 첫머리에 `rawUrl`·`cachedUrl`·`effectiveUrl` 계산(`!navigator.onLine && cachedUrl`이면 캐시 URL 우선). ③ `setTimeout` 블록에 img `error` 핸들러(캐시 시도 → 없으면 SVG 폴백) + img `load` 핸들러(`once`, Firebase URL 로드 성공 시 캐시 갱신) 추가. ④ 편집 모달 미리보기도 `effectiveCurrentPhoto`로 캐시 우선. ⑤ 로그아웃 핸들러에서 `clearAvatarCache(uid)` 호출.
+  - `src/main.js` — `saveAvatarToCache` import 추가. 로그인 후 Firestore 프로필 로드 시 `profileData.photoURL`이 있으면 `void saveAvatarToCache(uid, photoURL)` fire-and-forget으로 사전 캐싱.
+  - `tests/avatar_cache_offline.spec.js` (신규, TDD) — 유틸 유닛 테스트 9건 + profile.js·main.js 정적 분석 6건, 총 17테스트 전 통과.
+- **변경파일**: `src/js/utils/avatarCache.js`, `src/js/pages/profile.js`, `src/main.js`, `tests/avatar_cache_offline.spec.js`.
+- **검증**: `npm test` — 신규 17테스트 전통과, 기존 실패 4건(detail_nav 2·inquiry_ui 2)은 변경 전부터 존재하던 것으로 회귀 없음.
+
+### 19:35 — Claude (claude-opus-4-8)
+
+- **요구사항**: 캘린더 카드 팝업에서 "1월 23일 카드가 여러 장" 넘어가는 중복 문제(1월인데 35장 등) 검토·해결.
+- **원인**: `src/js/pages/calendar.js`의 `renderGrid`에서 캘린더 셀은 `storyByDate`(publish_date 키 Map, 날짜당 1건)로 그리지만, 스와이프 팝업 묶음 `currentMonthStories`는 `stories.filter(...)`로 만들어 중복 제거가 안 됨. Firestore에 같은 `publish_date` 스토리가 여러 건 발행돼 있으면 셀엔 1장만 보여도 팝업 스와이프엔 중복분이 그대로 들어가 같은 날짜 카드가 여러 장으로 넘어감.
+- **구현방법**: `currentMonthStories`를 `stories.filter` 대신 `[...storyByDate.values()].filter(...)`(날짜당 1건)에서 파생시켜 캘린더 셀과 동일 소스로 통일. `sortedMonthStories`도 자동으로 중복 제거됨.
+- **변경파일**: `src/js/pages/calendar.js`, `tests/calendar_popup_dedup.spec.js`(신규 TDD).
+- **검증**: 신규 dedup 테스트 RED("3 / 5") → 수정 후 GREEN("3 / 3"). 기존 `calendar_popup`·`calendar.ui` 포함 캘린더 테스트 전통과. 전체 스위트의 잔여 실패 5건(detail_nav 2·inquiry_ui 2·ios_gpu_webp_guard 1)은 워크트리 진행 중 작업의 기존 실패로 본 변경과 무관.
+
+### 20:02 — Claude (claude-opus-4-8)
+
+- **요구사항**: 중복 데이터(같은 publish_date 스토리 다건)를 점검·정리할 수 있게, 에디터 콘텐츠 관리에 '중복' 필터 추가.
+- **구현방법**: `src/js/pages/editor.js` — ① 상단 필터 줄에 `data-filter="duplicate"` 칩(stat-duplicate) 추가. ② `getDuplicateDateSet()` 헬퍼(publish_date 카운트 2건 이상 날짜 Set). ③ `updateStats()`에 중복 날짜 수 표시. ④ `renderCalendar()` 시작에서 `duplicateDates` 갱신. ⑤ `getStoriesForDate()`에 `duplicate` 분기(중복 날짜의 모든 글을 상태 무관 노출). ⑥ 필터 클릭 시 현재 달에 중복이 없으면 가장 이른 중복 날짜의 달로 점프. i18n `editor.filter_duplicate` 키 5개 국어(ko 중복/en Duplicate/ja 重複/zh 重复/es Duplicado) 추가. 관리자는 이 필터로 중복 날짜를 모아 보고 각 글을 눌러 기존 삭제 플로우로 정리.
+- **변경파일**: `src/js/pages/editor.js`, `src/i18n/{ko,en,ja,zh,es}.json`, `tests/editor_duplicate_filter.spec.js`(신규 TDD).
+- **검증**: 신규 테스트 2건(중복 카운트·필터 노출 / 중복 없을 때 0) GREEN. `editor_management_calendar`·`i18n_locale_expansion` 등 관련 스위트 전통과. `npm run build` 성공.
+
+## 2026-06-09
+
+### — Claude (claude-sonnet-4-6)
+
+- **요구사항**: 탭/터치 pressed 상태 전용 컬러 토큰 `--color-bg-primary-pressed` 신설 및 전체 CSS `:active` 규칙에 일괄 적용.
+- **구현방법**:
+  - `src/css/variables.css` — `:root`에 `--color-bg-primary-pressed: #D9D8D6`, `[data-theme="dark"]`에 `--color-bg-primary-pressed: #4B4B4F` 추가.
+  - 기존 `:active`에서 `var(--color-bg-primary)` 사용 중이던 3곳 값 변경: `.card-action-btn`(components.css), `.theme-option:not(.active)`·`.calendar-toggle-btn:not(.active)`(pages.css).
+  - 기존 `:active`에서 `var(--color-bg-secondary)` 사용 중이던 8곳 값 변경: `.btn-ghost`·`.page-header-back`·`.list-item`(components.css), `.close-auth-btn`·`.detail-sheet-close`·`.search-result-item`·`.profile-edit-close`·`.calendar-month-arrow`(pages.css).
+  - `.nav-item:active`(base.css) — `var(--color-bg-card-dark)` → `var(--color-bg-primary-pressed)` 변경.
+  - `.profile-edit-photo-icon:active`(pages.css) 신규 추가.
+- **변경파일**: `src/css/variables.css`, `src/css/base.css`, `src/css/components.css`, `src/css/pages.css`.

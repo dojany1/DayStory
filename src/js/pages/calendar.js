@@ -185,8 +185,10 @@ export function renderGrid(page, state, today) {
   stories.forEach(s => {
     if (s && s.publish_date) storyByDate.set(s.publish_date, s);
   });
-  const currentMonthStories = stories.filter((story) => {
-    if (!story?.publish_date) return false;
+  /* 스와이프 묶음은 캘린더 셀과 동일하게 storyByDate(날짜당 1건)에서 파생시킨다.
+     stories.filter 를 직접 쓰면 publish_date 가 같은 중복 발행분이 그대로 새어
+     같은 날짜 카드가 여러 장으로 넘어가는 버그가 발생한다. */
+  const currentMonthStories = [...storyByDate.values()].filter((story) => {
     const [year, month] = story.publish_date.split('-');
     return Number(year) === state.year && Number(month) === state.month + 1;
   });

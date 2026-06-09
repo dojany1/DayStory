@@ -176,6 +176,7 @@
     "filter_scheduled": "已排程",
     "filter_draft": "草稿",
     "filter_untranslated": "未翻译",
+    "filter_duplicate": "重复",
     "saving": "保存中...",
     "status_published": "已发布",
     "status_draft": "草稿",

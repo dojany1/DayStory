@@ -35,6 +35,7 @@ import { getState, setState, applyTheme } from './js/state.js';
 import { initI18n } from './js/i18n/index.js';
 import { auth, db } from './js/services/firebase.js';
 import { refreshWelcomeBadge } from './js/components/navBadge.js';
+import { saveAvatarToCache } from './js/utils/avatarCache.js';
 import pkg from '../package.json';
 
 /* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
@@ -274,6 +275,11 @@ if (auth) {
               setState('profile', profileData);
               if (profileData.theme) setState('theme', profileData.theme);
               if (profileData.font_size) setState('fontSize', profileData.font_size);
+
+              /* 오프라인 대비 아바타 사전 캐싱 (fire-and-forget) */
+              if (profileData.photoURL) {
+                void saveAvatarToCache(firebaseUser.uid, profileData.photoURL);
+              }
 
               /* Custom Claims 미배포 폴백: syncAdminClaim Cloud Function 이 아직 배포되지
                  않아 isAdmin = false 가 됐더라도, Firestore 프로필에 role:'editor' 가 있으면

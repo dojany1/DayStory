@@ -176,6 +176,7 @@
     "filter_scheduled": "Scheduled",
     "filter_draft": "Draft",
     "filter_untranslated": "Untranslated",
+    "filter_duplicate": "Duplicate",
     "saving": "Saving...",
     "status_published": "Published",
     "status_draft": "Draft",

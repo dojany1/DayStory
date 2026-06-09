@@ -515,7 +515,7 @@ ul, ol {
   display: flex;
   align-items: center;
   color: var(--color-text-tertiary);   /* 비활성 상태: 연한 회색 */
-  transition: color var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
+  transition: 400ms;
   position: relative;
 }
 
@@ -524,9 +524,8 @@ ul, ol {
 /* 내비게이션 아이템 터치 시 — 살짝 축소 애니메이션 */
 .nav-item:active {
   transform: scale(0.92);
-  transition: transform 200ms;
-  color: var(--color-accent);
-  background: var(--color-bg-card-dark);
+   transition: 100ms;
+  background: var(--color-bg-primary-pressed);
 }
 
 /* 리디자인된 내비게이션의 아이템 — 더 넓은 터치 영역 및 사이즈 확보 */

@@ -20,6 +20,7 @@ import { getCurrentLang, t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { dismissWelcomeBadge } from '../components/navBadge.js';
 import { hasSeen, markSeen, ONBOARDING_FLAGS } from '../services/onboarding.js';
+import { saveAvatarToCache, loadAvatarFromCache, clearAvatarCache } from '../utils/avatarCache.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -34,6 +35,12 @@ export function renderProfile() {
 
   const user = getState('user');
   const profile = getState('profile');
+
+  /* 아바타 URL — 오프라인이면 localStorage 캐시를 우선 사용 */
+  const uid = user?.id || '';
+  const rawUrl = (profile && profile.photoURL) || user?.photoURL || '';
+  const cachedUrl = uid ? loadAvatarFromCache(uid) : null;
+  const effectiveUrl = (!navigator.onLine && cachedUrl) ? cachedUrl : rawUrl;
 
   const isAdmin = getState('isAdmin');
 
@@ -70,12 +77,11 @@ export function renderProfile() {
             ${(() => {
               /* legacy WebP 포함 photoURL 을 그대로 사용한다.
                  이전엔 isWebpUrl 차단으로 기존 유저 아바타가 fallback 으로 보이는 버그 발생.
-                 디코드 실패 시 onerror 핸들러가 img 를 숨기고 옆 SVG 를 노출한다. */
-              const rawUrl = (profile && profile.photoURL) || user.photoURL || '';
-              const fallbackSvg = `<svg class="profile-avatar-fallback" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"${rawUrl ? ' style="display:none"' : ''}><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`;
-              const imgOnError = "this.style.display='none';this.nextElementSibling.style.display='block';";
-              return rawUrl
-                ? `<img src="${escapeHtml(rawUrl)}" alt="" onerror="${imgOnError}" />${fallbackSvg}`
+                 오프라인 시: effectiveUrl = localStorage 캐시 data URL.
+                 onerror / load 핸들러는 renderProfile() setTimeout 블록에서 등록한다. */
+              const fallbackSvg = `<svg class="profile-avatar-fallback" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"${effectiveUrl ? ' style="display:none"' : ''}><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`;
+              return effectiveUrl
+                ? `<img src="${escapeHtml(effectiveUrl)}" alt="" />${fallbackSvg}`
                 : fallbackSvg;
             })()}
           </div>
@@ -103,6 +109,30 @@ export function renderProfile() {
     page.querySelector('#profile-edit-btn')?.addEventListener('click', () => openProfileEditModal());
     page.querySelector('#goto-settings-btn')?.addEventListener('click', () => navigate('/settings'));
     page.querySelector('#goto-editor-btn')?.addEventListener('click', () => navigate('/editor'));
+
+    /* 아바타 이미지 오프라인 캐시 핸들러 */
+    if (uid) {
+      const avatarImg = page.querySelector('.profile-avatar-wrap img');
+      if (avatarImg) {
+        /* 네트워크 로드 실패 시 → 캐시 시도 → 없으면 SVG 폴백 */
+        avatarImg.addEventListener('error', () => {
+          const cached = loadAvatarFromCache(uid);
+          if (cached && avatarImg.src !== cached) {
+            avatarImg.src = cached;
+          } else {
+            avatarImg.style.display = 'none';
+            const fallback = avatarImg.nextElementSibling;
+            if (fallback) fallback.style.display = 'block';
+          }
+        });
+        /* Firebase URL 로드 성공 시 → 캐시 갱신 (오프라인 대비) */
+        if (rawUrl && !effectiveUrl.startsWith('data:')) {
+          avatarImg.addEventListener('load', () => {
+            void saveAvatarToCache(uid, rawUrl);
+          }, { once: true });
+        }
+      }
+    }
   }, 0);
 
   initArchiveSection(page, { myStoryClickMode: 'popup' });
@@ -182,6 +212,10 @@ function openProfileEditModal() {
   if (document.querySelector('.profile-edit-overlay')) return;
 
   const currentPhoto = profile.photoURL || user.photoURL || '';
+  const modalUid = user.id;
+  const modalCached = loadAvatarFromCache(modalUid);
+  /* 오프라인이면 편집 모달 미리보기도 캐시 URL 사용 */
+  const effectiveCurrentPhoto = (!navigator.onLine && modalCached) ? modalCached : currentPhoto;
   const currentNickname = profile.nickname || user.displayName || (user.email ? user.email.split('@')[0] : '');
 
   const overlay = document.createElement('div');
@@ -202,16 +236,16 @@ function openProfileEditModal() {
         <div class="profile-edit-avatar-section">
           <div class="profile-edit-avatar-wrap">
             <div class="profile-edit-avatar" id="profile-edit-avatar">
-              ${currentPhoto
-                ? `<img src="${currentPhoto}" />`
+              ${effectiveCurrentPhoto
+                ? `<img src="${effectiveCurrentPhoto}" />`
                 : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
               }
             </div>
             <button type="button" class="profile-edit-photo-icon" id="profile-edit-photo-btn" aria-label="${t('profile.change_photo')}">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path fill="currentColor" stroke="none" d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                <circle cx="19" cy="5" r="1.6" fill="var(--color-bg-primary)"/>
+                <path stroke="var(--color-bg-primary)" stroke-width="1.5" d="m15 5 4 4"/>
               </svg>
             </button>
           </div>
@@ -265,6 +299,8 @@ function openProfileEditModal() {
   overlay.querySelector('#profile-edit-close').addEventListener('click', closeModal);
   overlay.querySelector('#profile-edit-cancel').addEventListener('click', closeModal);
   overlay.querySelector('#profile-logout-btn').addEventListener('click', async () => {
+    /* 로그아웃 시 아바타 캐시 삭제 */
+    clearAvatarCache(modalUid);
     closeModal();
     try {
       if (auth) {

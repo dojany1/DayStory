@@ -365,15 +365,15 @@
 .empty-story-day-circle {
   width: 80px;
   height: 80px;
-  border-radius: 50%;
-  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-full);
+  border: 1px dashed var(--color-text-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-sans);
   font-size: 2.2rem;
   font-weight: 400;
-  color: var(--color-text-tertiary);     /* 테마 대응: 하드코딩 #c0c0c0 → 변수 */
+  color: var(--color-text-secondary);
 }
 
 /* 빈 상태 카드 제목 */

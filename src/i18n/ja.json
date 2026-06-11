@@ -332,7 +332,15 @@
     "title": "ユーザー問い合わせ",
     "aria_open": "ユーザー問い合わせを開く",
     "empty": "届いた問い合わせはありません",
-    "user_label": "送信者"
+    "user_label": "送信者",
+    "meta_app_version": "アプリバージョン",
+    "meta_entry_card_id": "カードID",
+    "meta_locale": "言語",
+    "meta_platform": "プラットフォーム",
+    "meta_os": "OS",
+    "meta_model": "端末モデル",
+    "meta_manufacturer": "メーカー",
+    "meta_user_id": "ユーザーID"
   },
   "search": {
     "title": "検索",

@@ -20,6 +20,14 @@ vi.mock('../src/js/i18n/index.js', () => ({
     'adminInquiry.title': '사용자 문의',
     'adminInquiry.aria_open': '사용자 문의 목록 열기',
     'adminInquiry.empty': '접수된 문의가 없습니다',
+    'adminInquiry.meta_app_version': '앱 버전',
+    'adminInquiry.meta_entry_card_id': '카드 ID',
+    'adminInquiry.meta_locale': '언어',
+    'adminInquiry.meta_platform': '플랫폼',
+    'adminInquiry.meta_os': 'OS',
+    'adminInquiry.meta_model': '기기 모델',
+    'adminInquiry.meta_manufacturer': '제조사',
+    'adminInquiry.meta_user_id': '사용자 ID',
     'notificationCenter.loading': '불러오는 중...',
     'notificationCenter.load_more': '더 보기',
     'notificationCenter.error': '불러오지 못했어요. 잠시 후 다시 시도해주세요.',
@@ -89,7 +97,20 @@ describe('adminInquirySheet — 관리자 문의 알람 탭', () => {
   it('문의 항목 클릭 시 상세 보기만 열고 답변 입력 UI는 열지 않는다', async () => {
     fetchAdminInquiriesMock.mockResolvedValue({
       items: [
-        { id: 'i1', type: 'feature', content: '위젯이 있으면 좋겠어요', status: 'pending', answer: '', createdAtMs: 1000 },
+        {
+          id: 'i1',
+          type: 'feature',
+          content: '위젯이 있으면 좋겠어요',
+          status: 'pending',
+          answer: '',
+          userId: 'user-1',
+          appVersion: '1.5.0',
+          entryCardId: 'story-9',
+          locale: 'ko',
+          platform: 'web',
+          os: { operatingSystem: 'android', osVersion: 'Android 15', model: 'Pixel 9', manufacturer: 'Google Inc.' },
+          createdAtMs: 1000,
+        },
       ],
       cursor: null,
       hasMore: false,
@@ -105,6 +126,16 @@ describe('adminInquirySheet — 관리자 문의 알람 탭', () => {
       body: '위젯이 있으면 좋겠어요',
       answerLabel: '',
       answer: '',
+      details: [
+        { label: '앱 버전', value: '1.5.0' },
+        { label: '카드 ID', value: 'story-9' },
+        { label: '언어', value: 'ko' },
+        { label: '플랫폼', value: 'web' },
+        { label: 'OS', value: 'android Android 15' },
+        { label: '기기 모델', value: 'Pixel 9' },
+        { label: '제조사', value: 'Google Inc.' },
+        { label: '사용자 ID', value: 'user-1' },
+      ],
     });
   });
 });

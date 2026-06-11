@@ -332,7 +332,15 @@
     "title": "用户咨询",
     "aria_open": "打开用户咨询列表",
     "empty": "暂无收到的咨询",
-    "user_label": "发送者"
+    "user_label": "发送者",
+    "meta_app_version": "应用版本",
+    "meta_entry_card_id": "卡片 ID",
+    "meta_locale": "语言",
+    "meta_platform": "平台",
+    "meta_os": "OS",
+    "meta_model": "设备型号",
+    "meta_manufacturer": "制造商",
+    "meta_user_id": "用户 ID"
   },
   "search": {
     "title": "搜索",

@@ -2712,6 +2712,34 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+.notif-detail-info {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+}
+.notif-detail-info-row {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.38fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+.notif-detail-info-label {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+.notif-detail-info-value {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  word-break: break-word;
+}
 .notif-detail-answer {
   margin-top: var(--space-6);
   padding: var(--space-4);

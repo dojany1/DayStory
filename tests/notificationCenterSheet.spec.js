@@ -26,7 +26,7 @@ vi.mock('../src/js/state.js', () => ({
   subscribe: vi.fn(),
 }));
 
-const { renderNotificationBell, showNotificationCenter } =
+const { renderNotificationBell, showNotificationCenter, openNotifDetailSheet } =
   await import('../src/js/components/notificationCenterSheet.js');
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -156,6 +156,25 @@ describe('상세 바텀시트', () => {
     const detail = document.querySelector('.notif-detail-overlay');
     expect(detail.querySelector('script')).toBeNull();
     expect(detail.innerHTML).toContain('&lt;script&gt;');
+  });
+
+  it('관리자 문의 메타 정보를 상세 시트의 키-값 블록으로 렌더한다', async () => {
+    openNotifDetailSheet({
+      title: '문의',
+      body: '내용',
+      details: [
+        { label: '앱 버전', value: '1.5.0' },
+        { label: '카드 ID', value: '<story-9>' },
+      ],
+    });
+    await flush();
+
+    const detail = document.querySelector('.notif-detail-overlay');
+    expect(detail.querySelector('.notif-detail-info')).not.toBeNull();
+    expect(detail.textContent).toContain('앱 버전');
+    expect(detail.textContent).toContain('1.5.0');
+    expect(detail.querySelector('.notif-detail-info-value')?.innerHTML).not.toContain('<story-9>');
+    expect(detail.innerHTML).toContain('&lt;story-9&gt;');
   });
 });
 

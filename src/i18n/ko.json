@@ -331,7 +331,15 @@
     "title": "사용자 문의",
     "aria_open": "사용자 문의 목록 열기",
     "empty": "접수된 문의가 없습니다",
-    "user_label": "보낸 사용자"
+    "user_label": "보낸 사용자",
+    "meta_app_version": "앱 버전",
+    "meta_entry_card_id": "카드 ID",
+    "meta_locale": "언어",
+    "meta_platform": "플랫폼",
+    "meta_os": "OS",
+    "meta_model": "기기 모델",
+    "meta_manufacturer": "제조사",
+    "meta_user_id": "사용자 ID"
   },
   "search": {
     "title": "검색",

@@ -167,7 +167,21 @@ describe('fetchMyInquiries — 본인 문의만 로드', () => {
 describe('fetchAdminInquiries — 관리자 문의 알람 탭 목록', () => {
   it('전체 inquiries 를 최신순으로 페이지 조회한다', async () => {
     getDocsMock.mockResolvedValue(snap([
-      { id: 'i1', data: { type: 'feature', content: '기능 제안', status: 'pending', userId: 'u1', createdAt: { toMillis: () => 300 } } },
+      {
+        id: 'i1',
+        data: {
+          type: 'feature',
+          content: '기능 제안',
+          status: 'pending',
+          userId: 'u1',
+          appVersion: '1.5.0',
+          entryCardId: 'story-9',
+          locale: 'ko',
+          platform: 'web',
+          os: { operatingSystem: 'android', osVersion: 'Android 15', model: 'Pixel 9', manufacturer: 'Google Inc.' },
+          createdAt: { toMillis: () => 300 },
+        },
+      },
       { id: 'i2', data: { type: 'bug', content: '버그', status: 'answered', answer: '확인 완료', userId: 'u2', createdAt: { toMillis: () => 200 }, answeredAt: { toMillis: () => 250 } } },
     ]));
 
@@ -177,7 +191,19 @@ describe('fetchAdminInquiries — 관리자 문의 알람 탭 목록', () => {
     expect(orderByMock).toHaveBeenCalledWith('createdAt', 'desc');
     expect(limitMock).toHaveBeenCalledWith(20);
     expect(res.items).toHaveLength(2);
-    expect(res.items[0]).toMatchObject({ id: 'i1', type: 'feature', content: '기능 제안', status: 'pending', userId: 'u1', createdAtMs: 300 });
+    expect(res.items[0]).toMatchObject({
+      id: 'i1',
+      type: 'feature',
+      content: '기능 제안',
+      status: 'pending',
+      userId: 'u1',
+      appVersion: '1.5.0',
+      entryCardId: 'story-9',
+      locale: 'ko',
+      platform: 'web',
+      os: { operatingSystem: 'android', osVersion: 'Android 15', model: 'Pixel 9', manufacturer: 'Google Inc.' },
+      createdAtMs: 300,
+    });
     expect(res.items[1]).toMatchObject({ id: 'i2', status: 'answered', answer: '확인 완료', answeredAtMs: 250 });
   });
 

@@ -262,8 +262,21 @@ export function showNotificationCenter() {
 /* =====================================================================
    상세 바텀시트 — introSheet/inquirySheet 의 토스 스타일 드래그-투-클로즈 재사용
    ===================================================================== */
-export function openNotifDetailSheet({ title, meta = '', body = '', answerLabel = '', answer = '' }) {
+export function openNotifDetailSheet({ title, meta = '', body = '', answerLabel = '', answer = '', details = [] }) {
   if (document.querySelector('.notif-detail-overlay')) return null;
+
+  const detailRows = Array.isArray(details)
+    ? details.filter((row) => row?.label && row?.value != null && String(row.value).trim() !== '')
+    : [];
+  const detailsHtml = detailRows.length
+    ? `<dl class="notif-detail-info">
+        ${detailRows.map((row) => `
+          <div class="notif-detail-info-row">
+            <dt class="notif-detail-info-label">${escapeHtml(row.label)}</dt>
+            <dd class="notif-detail-info-value">${escapeHtml(String(row.value))}</dd>
+          </div>`).join('')}
+      </dl>`
+    : '';
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay notif-detail-overlay';
@@ -281,6 +294,7 @@ export function openNotifDetailSheet({ title, meta = '', body = '', answerLabel 
         <h2 class="notif-detail-title">${escapeHtml(title)}</h2>
         ${meta ? `<div class="notif-detail-meta">${escapeHtml(meta)}</div>` : ''}
         <div class="notif-detail-body">${escapeHtml(body)}</div>
+        ${detailsHtml}
         ${answer ? `
           <div class="notif-detail-answer">
             <div class="notif-detail-answer-label">${escapeHtml(answerLabel)}</div>

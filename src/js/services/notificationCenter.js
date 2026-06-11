@@ -76,6 +76,7 @@ function normalizeNotice(docSnap, lang) {
 function normalizeInquiry(docSnap) {
   const raw = docSnap.data() || {};
   const createdAtMs = toMillis(raw.createdAt) || (raw.createdAtIso ? Date.parse(raw.createdAtIso) || 0 : 0);
+  const os = raw.os && typeof raw.os === 'object' ? raw.os : {};
   return {
     id: docSnap.id,
     type: raw.type || 'etc',
@@ -83,6 +84,16 @@ function normalizeInquiry(docSnap) {
     status: raw.status === 'answered' ? 'answered' : 'pending',
     answer: raw.answer || '',
     userId: raw.userId || '',
+    appVersion: raw.appVersion || '',
+    entryCardId: raw.entryCardId || '',
+    locale: raw.locale || '',
+    platform: raw.platform || '',
+    os: {
+      operatingSystem: os.operatingSystem || '',
+      osVersion: os.osVersion || '',
+      model: os.model || '',
+      manufacturer: os.manufacturer || '',
+    },
     createdAtMs,
     answeredAtMs: toMillis(raw.answeredAt),
   };

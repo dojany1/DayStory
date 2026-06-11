@@ -1428,3 +1428,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: `notificationCenterSheet.js`와 `adminInquirySheet.js`에서 `status === 'answered'`인 문의에만 상태 칩을 렌더하도록 변경하고, pending 칩 생성 경로를 제거. 5개 언어 `notificationCenter.status_pending` 문구와 미사용 `.notif-status-pending` CSS를 삭제. 관리자/사용자 문의 시트 테스트에 pending 칩과 "답변 대기중" 문구가 없어야 한다는 단언 추가.
 - **변경파일**: `src/js/components/notificationCenterSheet.js`, `src/js/components/adminInquirySheet.js`, `src/css/components.css`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/adminInquirySheet.spec.js`, `tests/notificationCenterSheet.spec.js`, `SESSION_LOG.md`.
 - **검증**: `npm test -- tests/adminInquirySheet.spec.js tests/notificationCenterSheet.spec.js tests/notificationCenter.spec.js tests/inquiry.spec.js` 44/44 통과. `npm run build` 성공. `rg`로 소스 내 `status_pending`/`notif-status-pending`/`답변 대기중` 노출 없음 확인(테스트의 부재 단언만 남음).
+
+### 2026-06-11 20:45 — Codex
+
+- **요구사항**: 관리자 문의 알림 센터 상세 정보가 부실하므로 Firestore `inquiries` 문서에 이미 저장된 `appVersion`, `entryCardId`, `locale`, 플랫폼/OS/기기 정보를 함께 표시.
+- **구현방법**: `notificationCenter.js`의 문의 정규화에서 `appVersion`·`entryCardId`·`locale`·`platform`·`os(operatingSystem/osVersion/model/manufacturer)`를 보존하도록 확장. `adminInquirySheet.js`에서 관리자 문의 상세 열기 시 앱 버전, 카드 ID, 언어, 플랫폼, OS, 기기 모델, 제조사, 사용자 ID를 `details` 배열로 구성. `notificationCenterSheet.js` 상세 바텀시트에 안전하게 escape 처리되는 키-값 메타 블록을 추가하고 토큰 기반 CSS 및 5개 언어 라벨을 추가. 관련 서비스/UI 테스트를 TDD로 갱신.
+- **변경파일**: `src/js/services/notificationCenter.js`, `src/js/components/adminInquirySheet.js`, `src/js/components/notificationCenterSheet.js`, `src/css/components.css`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/adminInquirySheet.spec.js`, `tests/notificationCenter.spec.js`, `tests/notificationCenterSheet.spec.js`, `SESSION_LOG.md`.
+- **검증**: `npm test -- tests/adminInquirySheet.spec.js tests/notificationCenterSheet.spec.js tests/notificationCenter.spec.js tests/inquiry.spec.js` 45/45 통과. `npm run build` 성공. 전체 `npm test`는 483 passed / 6 failed / 6 skipped — 실패 6건은 기존 잔여 항목(`detail_nav.ui` 2, `editorstory.ui` 1, `inquiry_ui` 2, `ios_gpu_webp_guard` 1)으로 이번 변경 범위와 무관.

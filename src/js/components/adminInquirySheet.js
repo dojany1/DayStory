@@ -45,6 +45,22 @@ function renderInquiryItem(i) {
     </button>`;
 }
 
+function buildAdminInquiryDetails(i) {
+  const os = i?.os || {};
+  const osText = [os.operatingSystem, os.osVersion].filter(Boolean).join(' ');
+  return [
+    { label: t('adminInquiry.meta_app_version'), value: i.appVersion },
+    { label: t('adminInquiry.meta_entry_card_id'), value: i.entryCardId },
+    { label: t('adminInquiry.meta_locale'), value: i.locale },
+    { label: t('adminInquiry.meta_platform'), value: i.platform },
+    { label: t('adminInquiry.meta_os'), value: osText },
+    { label: t('adminInquiry.meta_model'), value: os.model },
+    { label: t('adminInquiry.meta_manufacturer'), value: os.manufacturer },
+    { label: t('adminInquiry.meta_user_id'), value: i.userId },
+  ].filter((row) => row.value != null && String(row.value).trim() !== '')
+    .map((row) => ({ label: row.label, value: String(row.value) }));
+}
+
 /**
  * showAdminInquirySheet — 어드민 전용 사용자 문의 목록 풀시트를 띄운다.
  * @returns {HTMLElement|null} 생성된 overlay (이미 떠 있으면 null)
@@ -107,6 +123,7 @@ export function showAdminInquirySheet() {
       body: i.content,
       answerLabel: i.status === 'answered' ? t('notificationCenter.answer_label') : '',
       answer: i.status === 'answered' ? i.answer : '',
+      details: buildAdminInquiryDetails(i),
     });
   });
 

@@ -332,7 +332,15 @@
     "title": "User Inquiries",
     "aria_open": "Open user inquiries",
     "empty": "No inquiries received",
-    "user_label": "Sender"
+    "user_label": "Sender",
+    "meta_app_version": "App version",
+    "meta_entry_card_id": "Card ID",
+    "meta_locale": "Locale",
+    "meta_platform": "Platform",
+    "meta_os": "OS",
+    "meta_model": "Device model",
+    "meta_manufacturer": "Manufacturer",
+    "meta_user_id": "User ID"
   },
   "search": {
     "title": "Search",

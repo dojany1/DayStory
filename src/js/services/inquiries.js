@@ -115,6 +115,7 @@ export async function submitInquiry({ type, content, entryCardId } = {}) {
       type: normalizedType,
       content: text,                       /* raw 저장 — DOM 삽입은 하지 않음 */
       userId: user?.id || null,
+      userEmail: user?.email || null,
       appVersion: pkg.version,
       locale: getCurrentLang(),
       platform,

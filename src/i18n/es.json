@@ -334,13 +334,13 @@
     "empty": "No se han recibido consultas",
     "user_label": "Remitente",
     "meta_app_version": "Versión de la app",
-    "meta_entry_card_id": "ID de tarjeta",
+    "meta_entry_card": "Tarjeta",
     "meta_locale": "Idioma",
     "meta_platform": "Plataforma",
     "meta_os": "SO",
     "meta_model": "Modelo del dispositivo",
     "meta_manufacturer": "Fabricante",
-    "meta_user_id": "ID de usuario"
+    "meta_user": "Usuario"
   },
   "search": {
     "title": "Buscar",

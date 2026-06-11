@@ -333,13 +333,13 @@
     "empty": "접수된 문의가 없습니다",
     "user_label": "보낸 사용자",
     "meta_app_version": "앱 버전",
-    "meta_entry_card_id": "카드 ID",
+    "meta_entry_card": "카드",
     "meta_locale": "언어",
     "meta_platform": "플랫폼",
     "meta_os": "OS",
     "meta_model": "기기 모델",
     "meta_manufacturer": "제조사",
-    "meta_user_id": "사용자 ID"
+    "meta_user": "사용자"
   },
   "search": {
     "title": "검색",

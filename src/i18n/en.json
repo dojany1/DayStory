@@ -334,13 +334,13 @@
     "empty": "No inquiries received",
     "user_label": "Sender",
     "meta_app_version": "App version",
-    "meta_entry_card_id": "Card ID",
+    "meta_entry_card": "Card",
     "meta_locale": "Locale",
     "meta_platform": "Platform",
     "meta_os": "OS",
     "meta_model": "Device model",
     "meta_manufacturer": "Manufacturer",
-    "meta_user_id": "User ID"
+    "meta_user": "User"
   },
   "search": {
     "title": "Search",

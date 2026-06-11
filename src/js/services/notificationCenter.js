@@ -18,12 +18,14 @@
 import { db } from './firebase.js';
 import {
   collection,
+  doc,
   query,
   where,
   orderBy,
   limit as fbLimit,
   startAfter,
   getDocs,
+  getDoc,
 } from 'firebase/firestore';
 import { getCurrentLang } from '../i18n/index.js';
 
@@ -84,6 +86,7 @@ function normalizeInquiry(docSnap) {
     status: raw.status === 'answered' ? 'answered' : 'pending',
     answer: raw.answer || '',
     userId: raw.userId || '',
+    userEmail: raw.userEmail || '',
     appVersion: raw.appVersion || '',
     entryCardId: raw.entryCardId || '',
     locale: raw.locale || '',
@@ -97,6 +100,51 @@ function normalizeInquiry(docSnap) {
     createdAtMs,
     answeredAtMs: toMillis(raw.answeredAt),
   };
+}
+
+function formatStoryLabel(story, fallbackId) {
+  if (!story) return fallbackId || '';
+  const title = story.title || story.figure_name || '';
+  const date = story.publish_date || '';
+  return [date, title].filter(Boolean).join(' · ') || fallbackId || '';
+}
+
+async function fetchStoryLabel(storyId) {
+  if (!storyId || !db) return '';
+  try {
+    const snap = await getDoc(doc(db, 'stories', storyId));
+    return snap.exists() ? formatStoryLabel(snap.data(), storyId) : storyId;
+  } catch (err) {
+    console.warn('문의 카드 메타 조회 실패:', err);
+    return storyId;
+  }
+}
+
+async function fetchUserLabel(userId, fallbackEmail = '') {
+  if (fallbackEmail) return fallbackEmail;
+  if (!userId || !db) return '';
+  try {
+    const snap = await getDoc(doc(db, 'profiles', userId));
+    const data = snap.exists() ? snap.data() : null;
+    return data?.email || data?.userEmail || userId;
+  } catch (err) {
+    console.warn('문의 사용자 메타 조회 실패:', err);
+    return userId;
+  }
+}
+
+async function enrichAdminInquiries(items) {
+  return Promise.all(items.map(async (item) => {
+    const [entryCardLabel, userLabel] = await Promise.all([
+      fetchStoryLabel(item.entryCardId),
+      fetchUserLabel(item.userId, item.userEmail),
+    ]);
+    return {
+      ...item,
+      entryCardLabel: entryCardLabel || item.entryCardId || '',
+      userLabel: userLabel || item.userId || '',
+    };
+  }));
 }
 
 /**
@@ -169,7 +217,7 @@ export async function fetchAdminInquiries({ pageSize = PAGE_SIZE, cursor = null 
 
   try {
     const snap = await getDocs(query(collection(db, INQUIRIES_COL), ...constraints));
-    const items = snap.docs.map(normalizeInquiry);
+    const items = await enrichAdminInquiries(snap.docs.map(normalizeInquiry));
     const lastDoc = snap.docs.length ? snap.docs[snap.docs.length - 1] : null;
     return {
       items,

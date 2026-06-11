@@ -57,7 +57,7 @@ describe('inquiries 서비스 — 문의 제출', () => {
     addDocMock.mockReset();
     addDocMock.mockResolvedValue({ id: 'inq-1' });
     getStateMock.mockReset();
-    getStateMock.mockImplementation((key) => (key === 'user' ? { id: 'uid-123' } : null));
+    getStateMock.mockImplementation((key) => (key === 'user' ? { id: 'uid-123', email: 'user@example.com' } : null));
     getInfoMock.mockReset();
     getInfoMock.mockResolvedValue({
       platform: 'ios',
@@ -85,6 +85,7 @@ describe('inquiries 서비스 — 문의 제출', () => {
       type: 'bug',
       content: '버그 있어요',          // trim 적용
       userId: 'uid-123',
+      userEmail: 'user@example.com',
       locale: 'ja',
       entryCardId: 'story-9',
       platform: 'ios',

@@ -11,8 +11,10 @@
    ===================================================================== */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getDocsMock, orderByMock, whereMock, limitMock, startAfterMock, queryMock } = vi.hoisted(() => ({
+const { getDocsMock, getDocMock, docMock, orderByMock, whereMock, limitMock, startAfterMock, queryMock } = vi.hoisted(() => ({
   getDocsMock: vi.fn(),
+  getDocMock: vi.fn(),
+  docMock: vi.fn((_db, col, id) => ({ __doc: [col, id] })),
   orderByMock: vi.fn((field, dir) => ({ __orderBy: [field, dir] })),
   whereMock: vi.fn((field, op, val) => ({ __where: [field, op, val] })),
   limitMock: vi.fn((n) => ({ __limit: n })),
@@ -27,12 +29,14 @@ vi.mock('../src/js/services/firebase.js', () => ({
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn((_db, name) => ({ __col: name })),
+  doc: docMock,
   query: queryMock,
   where: whereMock,
   orderBy: orderByMock,
   limit: limitMock,
   startAfter: startAfterMock,
   getDocs: getDocsMock,
+  getDoc: getDocMock,
 }));
 
 /* locale 고정 — router/JSON 로딩 side-effect 회피 */
@@ -58,9 +62,18 @@ function snap(docs) {
   return { docs: arr, size: arr.length, empty: arr.length === 0 };
 }
 
+function docSnap(data) {
+  return {
+    exists: () => data != null,
+    data: () => data,
+  };
+}
+
 beforeEach(() => {
   localStorage.clear();
   getDocsMock.mockReset();
+  getDocMock.mockReset().mockResolvedValue(docSnap(null));
+  docMock.mockClear();
   orderByMock.mockClear();
   whereMock.mockClear();
   limitMock.mockClear();
@@ -205,6 +218,65 @@ describe('fetchAdminInquiries — 관리자 문의 알람 탭 목록', () => {
       createdAtMs: 300,
     });
     expect(res.items[1]).toMatchObject({ id: 'i2', status: 'answered', answer: '확인 완료', answeredAtMs: 250 });
+  });
+
+  it('entryCardId 와 userId 를 관리자에게 읽기 쉬운 카드 날짜/제목과 사용자 이메일로 보강한다', async () => {
+    getDocsMock.mockResolvedValue(snap([
+      {
+        id: 'i1',
+        data: {
+          type: 'typo',
+          content: '오탈자',
+          status: 'pending',
+          userId: 'u1',
+          entryCardId: 'story-9',
+          createdAt: { toMillis: () => 300 },
+        },
+      },
+    ]));
+    getDocMock.mockImplementation((ref) => {
+      const [col, id] = ref.__doc;
+      if (col === 'stories' && id === 'story-9') {
+        return Promise.resolve(docSnap({ publish_date: '2026-06-11', title: '뉴턴의 하루' }));
+      }
+      if (col === 'profiles' && id === 'u1') {
+        return Promise.resolve(docSnap({ email: 'user@example.com' }));
+      }
+      return Promise.resolve(docSnap(null));
+    });
+
+    const res = await fetchAdminInquiries({ pageSize: 20 });
+
+    expect(docMock).toHaveBeenCalledWith({ _mockDb: true }, 'stories', 'story-9');
+    expect(docMock).toHaveBeenCalledWith({ _mockDb: true }, 'profiles', 'u1');
+    expect(res.items[0]).toMatchObject({
+      entryCardLabel: '2026-06-11 · 뉴턴의 하루',
+      userLabel: 'user@example.com',
+    });
+  });
+
+  it('카드/프로필 보강 조회가 실패하거나 문서가 없으면 원래 ID 로 폴백한다', async () => {
+    getDocsMock.mockResolvedValue(snap([
+      {
+        id: 'i1',
+        data: {
+          type: 'typo',
+          content: '오탈자',
+          status: 'pending',
+          userId: 'u1',
+          entryCardId: 'story-9',
+          createdAt: { toMillis: () => 300 },
+        },
+      },
+    ]));
+    getDocMock.mockRejectedValue(new Error('network'));
+
+    const res = await fetchAdminInquiries({ pageSize: 20 });
+
+    expect(res.items[0]).toMatchObject({
+      entryCardLabel: 'story-9',
+      userLabel: 'u1',
+    });
   });
 
   it('cursor 가 있으면 startAfter 로 다음 페이지를 요청한다', async () => {

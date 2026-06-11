@@ -50,13 +50,13 @@ function buildAdminInquiryDetails(i) {
   const osText = [os.operatingSystem, os.osVersion].filter(Boolean).join(' ');
   return [
     { label: t('adminInquiry.meta_app_version'), value: i.appVersion },
-    { label: t('adminInquiry.meta_entry_card_id'), value: i.entryCardId },
+    { label: t('adminInquiry.meta_entry_card'), value: i.entryCardLabel || i.entryCardId },
     { label: t('adminInquiry.meta_locale'), value: i.locale },
     { label: t('adminInquiry.meta_platform'), value: i.platform },
     { label: t('adminInquiry.meta_os'), value: osText },
     { label: t('adminInquiry.meta_model'), value: os.model },
     { label: t('adminInquiry.meta_manufacturer'), value: os.manufacturer },
-    { label: t('adminInquiry.meta_user_id'), value: i.userId },
+    { label: t('adminInquiry.meta_user'), value: i.userLabel || i.userEmail || i.userId },
   ].filter((row) => row.value != null && String(row.value).trim() !== '')
     .map((row) => ({ label: row.label, value: String(row.value) }));
 }

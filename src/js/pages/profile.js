@@ -19,6 +19,8 @@ import { renderArchiveSection, initArchiveSection } from './bookmarks.js';
 import { getCurrentLang, t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { dismissWelcomeBadge } from '../components/navBadge.js';
+import { renderNotificationBell, showNotificationCenter } from '../components/notificationCenterSheet.js';
+import { checkUnread } from '../services/notificationCenter.js';
 import { hasSeen, markSeen, ONBOARDING_FLAGS } from '../services/onboarding.js';
 import { saveAvatarToCache, loadAvatarFromCache, clearAvatarCache } from '../utils/avatarCache.js';
 import Cropper from 'cropperjs';
@@ -60,9 +62,10 @@ export function renderProfile() {
     + '<circle cx="12" cy="12" r="3"/>'
     + '</svg></button>';
 
-  const rightAction = isAdmin
-    ? `<div class="page-header-actions" style="display:flex;align-items:center;">${adminBtn}${gearBtn}</div>`
-    : gearBtn;
+  /* 종(알림 센터) 버튼 — 설정(gear) 아이콘 왼쪽. unread 는 마운트 후 비동기 갱신. */
+  const bellBtn = renderNotificationBell({ unread: false });
+
+  const rightAction = `<div class="page-header-actions" style="display:flex;align-items:center;">${adminBtn}${bellBtn}${gearBtn}</div>`;
 
   const profileHeader = renderPageHeader({ title: t('profile.title'), icon: 'none', rightAction });
 
@@ -109,6 +112,24 @@ export function renderProfile() {
     page.querySelector('#profile-edit-btn')?.addEventListener('click', () => openProfileEditModal());
     page.querySelector('#goto-settings-btn')?.addEventListener('click', () => navigate('/settings'));
     page.querySelector('#goto-editor-btn')?.addEventListener('click', () => navigate('/editor'));
+
+    /* 알림 센터 — 종 버튼 클릭 시 풀시트 오픈 + unread dot 비동기 판정 */
+    const bell = page.querySelector('#notif-bell-btn');
+    if (bell) {
+      bell.addEventListener('click', () => {
+        showNotificationCenter();
+        bell.querySelector('.notif-bell-dot')?.remove(); /* 열면 즉시 읽음 표시 해제 */
+      });
+      checkUnread(uid)
+        .then((unread) => {
+          if (!unread || bell.querySelector('.notif-bell-dot')) return;
+          const dot = document.createElement('span');
+          dot.className = 'notif-bell-dot';
+          dot.setAttribute('aria-label', t('notificationCenter.aria_unread'));
+          bell.appendChild(dot);
+        })
+        .catch(() => { /* 배지 실패는 무시 */ });
+    }
 
     /* 아바타 이미지 오프라인 캐시 핸들러 */
     if (uid) {

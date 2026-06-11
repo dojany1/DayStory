@@ -36,6 +36,7 @@ import { initI18n } from './js/i18n/index.js';
 import { auth, db } from './js/services/firebase.js';
 import { refreshWelcomeBadge } from './js/components/navBadge.js';
 import { saveAvatarToCache } from './js/utils/avatarCache.js';
+import { initReadHistory } from './js/services/readHistory.js';
 import pkg from '../package.json';
 
 /* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
@@ -273,6 +274,8 @@ if (auth) {
             if (profileSnap.exists()) {
               const profileData = profileSnap.data();
               setState('profile', profileData);
+              /* 에디터 일화 읽음 상태(readHistory)를 서버∪로컬로 머지 — 앱 시작/세션 복원의 단일 지점 */
+              initReadHistory(profileData);
               if (profileData.theme) setState('theme', profileData.theme);
               if (profileData.font_size) setState('fontSize', profileData.font_size);
 
@@ -313,6 +316,8 @@ if (auth) {
            바로 /login 으로 보내야 빈 화면이 노출되지 않는다. */
         setState('user', null);
         setState('profile', null);
+        /* 게스트/로그아웃: 서버 값 없이 로컬 읽음 기록만 복원(게스트 폴백) */
+        initReadHistory(null);
         setState('isAdmin', false);
 
         const nav = document.getElementById('bottom-nav');

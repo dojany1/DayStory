@@ -262,6 +262,7 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
 export function renderMyStoryNew() {
   const page = document.createElement('div');
   page.className = 'mystory-new-page page';
+  const prevRoute = getPreviousRoute();
 
   /* ---- 로그인/비회원 체크 (라우터 가드에서 이미 막혀야 하지만 안전망) ---- */
   const userObj = getState('user') || {};
@@ -704,7 +705,21 @@ export function renderMyStoryNew() {
           ? [...allStories.filter((story) => String(story.id) !== String(editingId)), { ...data, id: editingId }]
           : [...allStories, data];
         void syncDiaryStateFromList(nextStories);
-        navigate('/mystory', { date: data.publish_date });
+        if (prevRoute === '/mystory') {
+          navigate('/mystory', { date: data.publish_date });
+        } else {
+          /* /profile(설정), /editorstory 등에서 진입한 경우 원래 페이지로 복귀.
+             history 가 비어있는 외부 진입 케이스를 위해 일정 시간 내
+             hashchange 가 없으면 /mystory 로 fallback. */
+          const beforeHash = window.location.hash;
+          const fallbackTimer = setTimeout(() => {
+            if (window.location.hash === beforeHash) {
+              navigate('/mystory', { date: data.publish_date });
+            }
+          }, 300);
+          window.addEventListener('hashchange', () => clearTimeout(fallbackTimer), { once: true });
+          history.back();
+        }
       } catch (err) {
         showToast(t('mystory.toast_save_error'), 'error');
       }

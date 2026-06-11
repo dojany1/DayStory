@@ -1310,3 +1310,114 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - `.nav-item:active`(base.css) — `var(--color-bg-card-dark)` → `var(--color-bg-primary-pressed)` 변경.
   - `.profile-edit-photo-icon:active`(pages.css) 신규 추가.
 - **변경파일**: `src/css/variables.css`, `src/css/base.css`, `src/css/components.css`, `src/css/pages.css`.
+
+## 2026-06-10
+
+### 19:02 — Claude (claude-opus-4-8)
+
+- **요구사항**: 에디터 일화 카드의 "읽음 상태(Read)"를 Firestore 연동으로 구현. DB 비용 최소화 + 압박감 Zero UX(안 읽음 무표시, 읽음만 흐리게). 제미나이 기획안을 먼저 검토하고 더 나은 대안이 있으면 제안 후 진행.
+- **구현방법**: 기획안의 큰 방향(로그인 시 프로필 1회 로드→전역 참조로 렌더 추가 read 0 / `arrayUnion` / `.is-read` dim / aria-label)은 유지하되 엔지니어 관점 3가지 개선을 채택 — ① **배치 flush**(읽을 때마다 즉시 write 대신, 로컬·화면 즉시 반영 후 화면 이탈·백그라운드 전환 시 `arrayUnion`으로 1회만 전송 → 카드 N장 읽어도 write 1회), ② **게스트 폴백**(localStorage 미러 + 로그인 시 서버∪로컬 머지, 로컬 전용 날짜만 업로드 예약), ③ 읽음 기준=**카드를 뒤집어 뒷면까지 본 경우**(플립 트리거). 기획안의 `users/{uid}`는 실제 컬렉션 `profiles/{uid}`로 정정. 읽음 키는 날짜 문자열(iso).
+  - `src/js/services/readHistory.js`(신규) — readSet/pendingSet + localStorage('ds_read_history'). `initReadHistory/isDateRead/markDateRead/flushReadHistory`. 모듈 로드 시 `visibilitychange(hidden)`·`pagehide` 전역 flush 등록(`setOnUnmount` 단일 슬롯 충돌 회피).
+  - `src/main.js` — `onAuthStateChanged`에서 로그인 시 `initReadHistory(profileData)`, 로그아웃/게스트 시 `initReadHistory(null)`(앱 시작·세션 복원 단일 지점).
+  - `src/js/pages/editorstory.js` — `bindCard`/`bindFlipCardEvents`에 iso 전달, `onAfterFlip`에서 뒷면(`classList.contains('flipped')`)일 때만 `markDateRead(iso)`.
+  - `src/js/components/cardDeck/cardDeckController.js` — 날짜 휠 아이템 `is-read`+aria(`calMode==='history'` 한정), 기존 `setOnUnmount` 콜백에 `flushReadHistory()`+리스너 해제 합침, `ds:read-history-changed` 수신해 휠 즉시 dim.
+  - `src/js/pages/calendar.js` — `renderGrid` 셀 `is-read`+aria-label(끝에 ", 이미 읽음"), 팝업 카드 플립 뒷면 시 `markDateRead`(`mode==='history'` 한정).
+  - `src/css/pages.css` — `.wheel-item.is-read`/`.cal-cell.is-read` opacity dim(색상 하드코딩 없이 opacity만, 두 테마 공통).
+- **변경파일**: `src/js/services/readHistory.js`(신규), `tests/readHistory.spec.js`(신규 TDD), `src/main.js`, `src/js/pages/editorstory.js`, `src/js/components/cardDeck/cardDeckController.js`, `src/js/pages/calendar.js`, `src/css/pages.css`.
+- **검증**: 신규 `readHistory.spec.js` 9건 GREEN(게스트 폴백·배치 1회·N장 묶기·중복 1건·flush 실패 보존·서버∪로컬 머지). `calendar.ui` 회귀 1건은 테스트가 정규식으로 CSS를 파싱하는데 `.cal-cell.is-read .cal-cell-peek {`가 `.cal-cell-peek` 매칭을 가로챈 것이 원인 → 셀렉터를 `.cal-cell-peek-img/-title`로 바꿔 통과. `npm run build` 성공. 전체 스위트 잔여 실패 5건(detail_nav 2·inquiry_ui 2·ios_gpu_webp_guard 1)은 `git stash` 검증 결과 본 변경 이전부터 실패하던 기존 항목으로 무관. 수동 검증 필요: `npm run dev`→에디터 일화에서 카드 뒤집기→상단 휠/캘린더의 해당 날짜 dim, 화면 이탈·백그라운드 후 `profiles/{uid}.readHistory`에 write 1회.
+
+### 21:20 — Claude (claude-opus-4-8)
+
+- **요구사항**: 카드를 뒤집어 읽은 직후 캘린더 뷰에 읽음 표시가 즉시 반영되지 않고 새로고침해야 보이던 문제 수정(바로 반영되게).
+- **원인**: 읽음 즉시 갱신(`ds:read-history-changed`) 리스너가 `cardDeckController`에서 **날짜 휠만** 갱신하고 캘린더 셀(`.cal-cell`)은 갱신하지 않음. 특히 캘린더 그리드가 떠 있는 상태에서 셀 팝업을 열어 카드를 뒤집고 닫는 경로는 `renderGrid` 재호출이 없어 새로고침(→ `initReadHistory` 재로드) 전까지 dim 미반영.
+- **구현방법**: 즉시 반영을 `markDateRead` 한 곳으로 일원화. `src/js/services/readHistory.js`에 `reflectReadInDom(iso)` 추가 — 현재 화면의 `.wheel-item[data-date]`·`.cal-cell[data-date]` 양쪽에 `is-read`+aria 즉시 부여(휠은 `M월 D일, 이미 읽음`, 셀은 기존 라벨 끝에 `, 이미 읽음` 부착). 토글 뷰·셀 팝업·`/calendar` 페이지 모든 경로 커버. `src/js/components/cardDeck/cardDeckController.js`의 중복 휠 전용 리스너 제거(`flushReadHistory()`는 유지).
+- **변경파일**: `src/js/services/readHistory.js`, `src/js/components/cardDeck/cardDeckController.js`, `tests/readHistory.spec.js`.
+- **검증**: `readHistory.spec.js`에 DOM 즉시 반영 테스트 추가 → 10건 GREEN. `cardDeckController`·`calendar.ui`·`calendar_popup` 회귀 0. `npm run build` 성공.
+
+## 2026-06-11
+
+### 17:18 — Claude (claude-opus-4-8)
+
+- **요구사항**: 콘텐츠 관리(에디터)에서 미번역 날짜를 하나씩 열어 자동 번역하던 동선이 비효율적. 기존 단건 번역은 그대로 두고, 미번역 항목을 한 번에 여러 개 번역하는 수단 추가. 먼저 구현 검토 보고서 작성 후 진행(범위=현재 보이는 달의 미번역 전체, 방안=클라이언트 배치).
+- **구현방법**: 서버(Cloud Function `translateContent`)·단건 번역 흐름은 무수정. 기존 `translateContentApi`(단건)+`updateStory`를 재사용하는 클라이언트 오케스트레이터를 신설.
+  - `src/js/services/batchTranslate.js`(신규) — Firebase를 직접 import하지 않고 `translate`/`save`를 주입받는 순수 오케스트레이터. `extractKoFields`(한국어 원문 추출·`figure_name`/`editor.comment` 폴백), `hasKoSource`(원문 유무), `buildI18nFromTranslations`(번역결과→`i18n`, `title`→`title`·`figure_name` 양쪽; 단건 저장 규약과 동일), `runBatchTranslate`(동시성 제한 워커풀·부분실패 격리·`functions/resource-exhausted` 즉시 중단·`shouldStop`·`onProgress`).
+  - `src/js/pages/editor.js` — '미번역' 필터 선택 시에만 노출되는 일괄 번역 바 추가. `getMonthUntranslatedTargets`(현재 달 ∩ `isStoryUntranslated` ∩ `hasKoSource`), `updateBatchBar`(필터/월 이동 시 건수 라벨 갱신, 진행 중 라벨 보호), `runMonthBatchTranslate`(confirmDialog 확인→동시성 2로 번역·저장→결과 요약 토스트→`loadStories` 재렌더). 진행 중 이탈 대비 `setOnUnmount`로 중단 플래그.
+  - `src/i18n/{ko,en,ja,es,zh}.json` — `editor.batch_translate_*` 11키(버튼/확인/진행률/완료/부분실패/한도/중단/없음) 5개 언어.
+  - `src/css/pages.css` — `.editor-batch-bar`(hidden 토글)·`.editor-batch-btn`(`is-running`/`:disabled`) 토큰 기반 스타일.
+- **변경파일**: `src/js/services/batchTranslate.js`(신규), `tests/batchTranslate.spec.js`(신규 TDD), `src/js/pages/editor.js`, `src/i18n/ko.json`, `src/i18n/en.json`, `src/i18n/ja.json`, `src/i18n/es.json`, `src/i18n/zh.json`, `src/css/pages.css`.
+- **검증**: 신규 `batchTranslate.spec.js` 15건 GREEN(원문 추출 폴백·i18n 변환·동시성 상한·부분실패 계속·요금한도 즉시중단·shouldStop·진행보고·빈목록). `npm run build` 성공(editor 청크 정상 번들). 전체 스위트 잔여 실패 5건(detail_nav 2·inquiry_ui 2·ios_gpu_webp_guard 1)은 `git stash -u` 검증 결과 본 변경 이전부터 실패하던 기존 항목으로 무관. 수동 검증 필요: `npm run dev`→에디터 '미번역' 필터→[미번역 일괄 번역 (N건)] 클릭→확인→진행률(N/M) 표시→완료 후 해당 날짜 초록 표기·미번역 카운트 감소.
+
+### 17:26 — Claude (claude-opus-4-8)
+
+- **요구사항**: 일괄 번역 버튼이 번역 중일 때 진행 중임을 나타내는 회전 서클(스피너) 아이콘을 버튼 내에 배치.
+- **구현방법**: 버튼 `innerHTML`을 매 건 재조립하면 onProgress 호출마다 스피너 요소가 새로 생겨 애니메이션이 리셋(깜빡임)되므로, 스피너를 `.editor-batch-btn.is-running::after` 가상요소(기존 `.btn-spinner`와 동일 형태: `border-top-color:transparent`+`@keyframes spin`)로 붙여 textContent만 갱신해도 매끄럽게 돌게 함. 버튼을 `inline-flex`+`gap`으로 만들어 `진행률 텍스트 + 스피너`를 나란히 배치하고, `:disabled`(대상 0건)와 `.is-running` 규칙 순서를 조정해 진행 중 progress 커서가 우선되게 함. 클릭 즉시 `0/N` 진행 라벨 표시(`editor.js`).
+- **변경파일**: `src/css/pages.css`, `src/js/pages/editor.js`.
+- **검증**: `npm run build` 성공. 로직 변경 없어 `batchTranslate.spec.js` 영향 없음.
+
+### 17:31 — Claude (claude-opus-4-8)
+
+- **요구사항**: 일괄 번역 완료 후, 어떤 날짜가 번역됐는지 팝업으로 확인할 수 있게 해달라.
+- **구현방법**: `confirmDialog.js`에 "alert" 모드 추가 — `showConfirm({ cancelText: null })`이면 취소 버튼 없이 확인 버튼 1개만 렌더링(`.confirm-dialog-actions`가 `flex:1` 버튼이라 추가 CSS 불필요), 오버레이 클릭/Esc도 alert 모드에선 `true`로 닫힘. `runMonthBatchTranslate` 완료 후 `res.errors`로 실패 id를 제외한 성공 스토리만 `publish_date` 오름차순 정렬해 `"YYYY-MM-DD · 제목"` 줄 목록을 만들고, 이 alert 모드 팝업(`editor.batch_translate_result_title`)으로 표시한다(성공 0건이면 생략). 기존 결과 요약 토스트는 그대로 유지.
+- **변경파일**: `src/js/components/confirmDialog.js`, `src/js/pages/editor.js`, `src/i18n/{ko,en,ja,es,zh}.json`.
+- **검증**: JSON 5개 파싱 OK, `npm run build` 성공, `batchTranslate.spec.js` 15/15 GREEN(로직 무변경 확인). 수동 검증 필요: `npm run dev`→에디터 '미번역' 필터→일괄 번역 실행→완료 시 번역된 날짜·제목 목록 팝업이 뜨고 [확인]으로 닫히는지.
+
+### 2026-06-11 — Claude (claude-sonnet-4-6)
+
+- **요구사항**: `.editor-calendar-story .badge`의 "발행됨" 라벨을 "발행"으로 변경 (한글만).
+- **구현방법**: `src/i18n/ko.json`의 `status_published` 값을 "발행됨" → "발행"으로 수정. 다른 언어(en/ja/es/zh)는 변경 없음.
+- **변경파일**: `src/i18n/ko.json`.
+- **검증**: 단순 텍스트 변경, JSON 유효성 확인.
+
+### 2026-06-11 — Claude (claude-sonnet-4-6) #2
+
+- **요구사항**: `.editor-stat-label`, `.editor-calendar-story .badge`의 "임시저장"을 "임시"로 변경 (한글만).
+- **구현방법**: `src/i18n/ko.json`의 `filter_draft`(통계 라벨용)와 `status_draft`(배지용) 값을 "임시저장" → "임시"로 수정. 다른 언어는 변경 없음.
+- **변경파일**: `src/i18n/ko.json`.
+- **검증**: 단순 텍스트 변경, JSON 유효성 확인.
+
+### 2026-06-11 — Claude (claude-sonnet-4-6) #3
+
+- **요구사항**: `.editor-stats` 내 "중복" 통계 항목(`.editor-stat[data-filter="duplicate"]`)이 카운트 0일 때 표시되지 않도록 숨김.
+- **구현방법**: `editor.js`의 `updateStats()`에서 `getDuplicateDateSet().size`가 0이면 `#stat-duplicate`의 부모 `.editor-stat` 버튼에 `hidden` 속성을 설정하고, 1 이상이면 다시 노출.
+- **변경파일**: `src/js/pages/editor.js`.
+- **검증**: `npm run build` 성공.
+
+### 2026-06-11 — Claude (claude-sonnet-4-6) #4
+
+- **요구사항**: archive-page(설정/`/profile`)의 `history-card-mini.my-story-mini` 카드에서 편집 버튼으로 수정·저장하면 settings-page(`/profile`)로 돌아오지 않고 항상 "나의 일화"(`/mystory`)로 이동해버리는 문제 수정.
+- **구현방법**: `mystory.js`의 `renderMyStoryNew()`에서 진입 시 `getPreviousRoute()`를 캡처해두고, 저장 성공 시 `prevRoute === '/mystory'`일 때만 기존처럼 `navigate('/mystory', { date })`로 이동. 그 외(`/profile`, `/editorstory` 등에서 진입)에는 삭제 핸들러와 동일하게 `history.back()`으로 진입 경로로 복귀하고, hashchange가 없을 경우 300ms 후 `/mystory`로 fallback.
+- **변경파일**: `src/js/pages/mystory.js`, `tests/regression.bugs.spec.js`.
+- **검증**: `npx vitest run tests/regression.bugs.spec.js` 16 passed (신규 케이스 포함). 전체 `npx vitest run`은 본 변경과 무관한 기존 4개 파일(아이콘/문의시트/캘린더UI/CSS) 6건 실패는 그대로 유지(pre-existing).
+
+### 2026-06-11 — Claude (claude-sonnet-4-6) #5
+
+- **요구사항**: 위 #4 작업 후 발견된 기존 테스트 실패 6건의 원인 파악. 그중 이번 세션 변경(#2: `status_draft` "임시저장"→"임시")으로 새로 깨진 1건 수정.
+- **구현방법**: `tests/editor_management_calendar.spec.js`의 `.badge-draft` 텍스트 기대값을 `'임시저장'` → `'임시'`로 갱신. 나머지 5건(`detail_nav.ui.spec.js` 2건 - nav-icon 2상태 아이콘 리팩터와 테스트 드리프트, `inquiry_ui.spec.js` 2건 - 문의 드롭다운 옵션 미렌더, `ios_gpu_webp_guard.spec.js` 1건 - `.flipper` base rule에 `transition: transform` 잔존)은 커밋된 HEAD(`764bf11`)에서도 실패하던 pre-existing 미완성 작업으로 확인, 이번 세션 범위 밖이라 변경하지 않음.
+- **변경파일**: `tests/editor_management_calendar.spec.js`.
+- **검증**: `npx vitest run tests/editor_management_calendar.spec.js` 9 passed.
+
+### 2026-06-11 — Claude (claude-sonnet-4-6) #6
+
+- **요구사항**: iOS/Android 모두 로컬 알림 팝업은 뜨지만 무음으로 발생하는 문제 수정.
+- **구현방법**: `notifications.js`의 `ensureAndroidNotificationChannel()`에서 채널 `id`를 `daystory_default` → `daystory-channel-v1`로 교체(Android는 채널 속성을 사후 변경할 수 없어 새 채널로 재생성), `importance: 4`(HIGH) → `5`(MAX), `sound: 'default'` 추가(visibility:1, vibration:true는 유지). `buildNotificationRequest()`의 스케줄 옵션에 `sound: 'default'`(iOS+공통)와 `channelId: 'daystory-channel-v1'`을 반영.
+- **변경파일**: `src/js/services/notifications.js`.
+- **검증**: `npx vitest run tests/notifications_default.spec.js tests/regression.bugs.spec.js` 21 passed | 2 skipped.
+
+### 2026-06-11 18:33 — Claude (claude-opus-4-8) · 인앱 알림 센터(Notification Center) 신설
+
+- **요구사항**: 공통 공지(notices) + 본인 문의 내역(inquiries)을 인앱에서 확인하는 알림 센터. profile 헤더에 종 버튼·unread dot, 토스 스타일 상세 바텀시트, limit(20)+커서 페이지네이션, 다국어, firestore.rules 반영. 이번 라운드는 유저 기능만(어드민 답변 UI 후순위). TDD(Red-Green) 준수.
+- **구현방법**:
+  - 기존 `services/notifications.js`(로컬 푸시 스케줄러)와 충돌 → 데이터 서비스는 **`services/notificationCenter.js` 신설**(`fetchNotices`/`fetchMyInquiries`/`pickLocale`/`computeUnreadFromLists`/`getLastSeen`/`markAllRead`/`checkUnread`). notices 다국어는 `{ko,en,ja,es,zh}` 맵 + locale→ko→첫값 폴백. unread는 localStorage `ds_notif_center_lastseen_v1` 기준. 배지용 `checkUnread`는 limit(1) 경량 조회 2건, 오류 시 false 폴백.
+  - **`components/notificationCenterSheet.js` 신설** — `renderNotificationBell({unread})` + `showNotificationCenter()`. 풀시트는 `notification-settings-overlay`(우측 슬라이드), 상세는 `modal-overlay`+드래그-투-클로즈(inquirySheet 손맛 동일). 모든 원격/입력 텍스트 `escapeHtml`. IntersectionObserver 자동 로드 + `.notif-load-more` 버튼 폴백.
+  - **`pages/profile.js`** — gear 아이콘 왼쪽에 종 버튼 주입(admin/일반 모두 `page-header-actions`로 통일), 클릭 시 시트 오픈+dot 제거, 마운트 후 `checkUnread(uid)` 비동기로 dot 표시. unread dot은 토큰에 없는 `--color-primary` 대신 앱 기존 unread 컨벤션 `--color-error` 사용.
+  - **`firestore.rules`** — `notices`(read=로그인, write=admin) 추가. `inquiries`는 create에 `userId==auth.uid` 강제(타인 inbox 주입 차단), read에 본인 조회 허용(`resource.data.userId==auth.uid`), update/delete는 admin만(답변 위조 방지). `services/inquiries.js` status `'open'`→`'pending'` 통일.
+  - **i18n** — `notificationCenter` 섹션 5개 언어 추가(UI 라벨만; 공지 콘텐츠는 Firestore 다국어 필드).
+- **변경파일**: `src/js/services/notificationCenter.js`(신규), `src/js/components/notificationCenterSheet.js`(신규), `tests/notificationCenter.spec.js`(신규), `tests/notificationCenterSheet.spec.js`(신규), `src/js/pages/profile.js`, `src/js/services/inquiries.js`, `src/css/components.css`(append), `firestore.rules`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/inquiry.spec.js`(status 단언 갱신).
+- **검증**: 신규/관련 스펙 `notificationCenter`+`notificationCenterSheet`+`inquiry` 39/39 통과. `css_tokens` 통과(내 CSS는 토큰만 사용). 전체 `npm test`의 잔여 실패 4파일(ios_gpu_webp_guard·inquiry_ui·detail_nav·editorstory)은 모두 내 변경 영역 밖 — 앞 3개는 clean-tree(stash)에서도 동일 실패(기존), `editorstory`는 세션 중 외부(GitHub Desktop/IDE)에서 `.editor-comment-bubble`을 실시간 편집해 `--color-text-secondary`→하드코딩으로 바뀐 결과. 해당 영역은 사용자 진행 작업이라 되돌리지 않음.
+
+### 2026-06-11 20:01 — Codex
+
+- **요구사항**: Claude Code가 토큰 소진으로 멈춘 인앱 알림/문의 작업을 이어받아, 답변 작성 기능은 제외하고 editor page를 "관리자 페이지"로 재정의하며 헤더 우측 관리자 전용 문의 알람 탭에서 사용자 문의 목록을 확인하는 구조로 정리.
+- **구현방법**: `editor.content_mgmt` 5개 언어 라벨을 관리자 페이지 계열로 갱신하고 `editor.js` 상단 설명을 관리자 페이지 범위에 맞게 정리. 기존 `adminInquirySheet.js`는 읽기 전용 목록/상세 확인 범위임을 주석으로 명시. `fetchAdminInquiries`의 전체 inquiries 최신순 조회 계약과 `adminInquirySheet`의 관리자 전용 버튼·목록·상세 보기·답변 입력 UI 부재를 Vitest로 고정.
+- **변경파일**: `src/js/pages/editor.js`, `src/js/components/adminInquirySheet.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/adminInquirySheet.spec.js`, `tests/notificationCenter.spec.js`, `tests/editor_management_calendar.spec.js`, `SESSION_LOG.md`.
+- **검증**: `npm test -- tests/adminInquirySheet.spec.js tests/notificationCenter.spec.js tests/editor_management_calendar.spec.js` 31 passed / 1 skipped. 관련 스펙 `npm test -- tests/adminInquirySheet.spec.js tests/notificationCenter.spec.js tests/notificationCenterSheet.spec.js tests/inquiry.spec.js` 44/44 통과. `npm run build` 성공. 전체 `npm test`는 482 passed / 6 failed / 6 skipped — 실패 6건은 기존 잔여 항목(`detail_nav.ui` 2, `editorstory.ui` 1, `inquiry_ui` 2, `ios_gpu_webp_guard` 1)으로 이번 변경 범위와 무관.

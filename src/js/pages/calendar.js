@@ -28,6 +28,7 @@ import {
   bodyToHtml, SHARE_ICON_SVG,
 } from '../components/cardDeck/cardFace.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { isDateRead, markDateRead } from '../services/readHistory.js';
 
 /* 요일 헤더는 t() 기반 — 언어 변경 시 재렌더에서 최신 값 반영 */
 export function getWeekdays() {
@@ -216,14 +217,23 @@ export function renderGrid(page, state, today) {
     const dayOfWeek = dateObj.getDay();
 
     const canWriteMyStory = state.mode === 'mine' && !story && !isFuture;
+    /* 에디터 일화(history)에서만 읽은 날짜를 흐리게. '내 일기'는 읽음 개념 없음 */
+    const isRead = state.mode === 'history' && isDateRead(isoDate);
     const cellClasses = [
       'cal-cell',
       isFuture ? 'cal-cell-future' : '',
       isToday ? 'cal-cell-today' : '',
       story ? 'cal-cell-has-story' : 'cal-cell-empty',
       canWriteMyStory ? 'cal-cell-mine-write' : '',
+      isRead ? 'is-read' : '',
       dayOfWeek === 0 ? 'sun' : (dayOfWeek === 6 ? 'sat' : ''),
     ].filter(Boolean).join(' ');
+
+    /* a11y: 날짜(+제목) 라벨, 읽은 날짜는 끝에 ', 이미 읽음' 부착 */
+    const titleForAria = story
+      ? (state.mode === 'history' ? (story.figure_name || story.title || '') : (story.title || ''))
+      : '';
+    const ariaLabel = `${state.month + 1}월 ${d}일${titleForAria ? `, ${titleForAria}` : ''}${isRead ? ', 이미 읽음' : ''}`;
 
     const peekHtml = story ? renderCellPeek(story, state.mode) : '';
     const writeHtml = (canWriteMyStory && isToday)
@@ -235,7 +245,7 @@ export function renderGrid(page, state, today) {
       : '';
 
     html += `
-      <button type="button" class="${cellClasses}" data-date="${isoDate}" ${story || canWriteMyStory ? '' : 'disabled aria-disabled="true"'}>
+      <button type="button" class="${cellClasses}" data-date="${isoDate}" aria-label="${escapeHtml(ariaLabel)}" ${story || canWriteMyStory ? '' : 'disabled aria-disabled="true"'}>
         <span class="cal-cell-day">${d}</span>
         ${peekHtml}
         ${writeHtml}
@@ -415,6 +425,10 @@ function _wireCardListeners(overlay, story, mode, bookmarkedIds, options, close)
       if (flipper.classList.contains('is-flipping')) return;
       flipper.classList.add('is-flipping');
       flipper.classList.toggle('flipped');
+      /* 에디터 일화를 뒷면(상세)까지 펼쳐본 경우에만 읽음 처리 */
+      if (mode === 'history' && flipper.classList.contains('flipped') && story?.publish_date) {
+        markDateRead(story.publish_date);
+      }
       setTimeout(() => flipper.classList.remove('is-flipping'), 400);
     });
   }

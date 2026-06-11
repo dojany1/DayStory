@@ -21,6 +21,7 @@
 
 import { setState } from '../../state.js';
 import { setOnUnmount } from '../../router.js';
+import { isDateRead, flushReadHistory } from '../../services/readHistory.js';
 import { getLocalToday } from '../../utils/date.js';
 import { createCardSwiper } from '../../utils/cardSwiper.js';
 import { renderGrid, isAtCurrentMonth, getWeekdays } from '../../pages/calendar.js';
@@ -151,9 +152,13 @@ async function mountCardDeck(page, config) {
       }
     }
     if (dayEl) {
-      dayEl.innerHTML = dateItems.map(({ iso, month, day }) =>
-        `<div class="wheel-item" data-date="${iso}" data-month="${month}" data-day="${day}">${day}</div>`
-      ).join('');
+      /* 에디터 일화(history)에서만 읽은 날짜를 흐리게 표시. '내 일기'는 읽음 개념 없음 */
+      const trackRead = config.calMode === 'history';
+      dayEl.innerHTML = dateItems.map(({ iso, month, day }) => {
+        const read = trackRead && isDateRead(iso);
+        const aria = read ? ` aria-label="${month}월 ${day}일, 이미 읽음"` : '';
+        return `<div class="wheel-item${read ? ' is-read' : ''}" data-date="${iso}" data-month="${month}" data-day="${day}"${aria}>${day}</div>`;
+      }).join('');
     }
 
     /* 날짜 → 스토리 매핑 → 슬라이드 */
@@ -291,6 +296,8 @@ async function mountCardDeck(page, config) {
 
     setOnUnmount(() => {
       if (swiper && !swiper.destroyed) swiper.destroy(true, true);
+      /* 화면 이탈 시 모아둔 읽음을 서버에 1회 반영(배치 flush) */
+      void flushReadHistory();
     });
 
     /* 일 휠 스크롤 디바운스 */

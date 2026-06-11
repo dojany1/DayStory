@@ -105,7 +105,6 @@
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
 }
 
 /* 입력 라벨 — 입력 필드 위의 설명 텍스트 */
@@ -611,9 +610,8 @@
   display: flex;
   flex-direction: column;
   position: absolute;
-  gap: var(--space-2);
-  bottom: calc(100% + 18px); /* 버튼 바로 위에 위치 */
-  left: -1px;
+  bottom: calc(100% + 12px); /* 버튼 바로 위에 위치 */
+  left: -2px;
   box-sizing: border-box;
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
@@ -621,11 +619,11 @@
   line-height: 1.25rem;
   letter-spacing: 0.02em;
   padding: var(--space-4);
-  border: 2px solid var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   max-width: 330px;
-  min-width: 260px;
+  min-width: 240px;
   white-space: normal;
   word-break: normal;
   overflow-wrap: anywhere;
@@ -640,13 +638,13 @@
 .editor-comment-bubble::after {
   content: '';
   position: absolute;
-  bottom: -9px;
+  bottom: -8px;
   left: 8px;
   width: 0;
   height: 0;
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-top: 8px solid var(--color-text-secondary);
+  border-top: 8px solid var(--color-border);
 }
 
 /* 에디터 이름 라벨 */
@@ -2470,4 +2468,270 @@
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-md);
   pointer-events: none;
+}
+
+/* ============================================
+   알림 센터 (notificationCenterSheet.js)
+   ============================================
+   진입: profile 헤더의 종 버튼. 풀시트는 .notification-settings-overlay
+   골격을 재사용하고, 상세는 .modal-overlay + 드래그-투-클로즈를 재사용한다.
+   색상/간격은 variables.css 토큰만 사용한다. */
+
+/* ── 종 버튼 + unread dot ── */
+.notif-bell-btn {
+  position: relative;
+}
+/* unread dot — 앱 기존 unread 배지(navBadge)와 동일하게 --color-error 사용.
+   (요구사항의 --color-primary 토큰은 본 프로젝트 토큰 체계에 없음) */
+.notif-bell-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-error);
+  box-shadow: 0 0 0 2px var(--color-bg-primary);
+  pointer-events: none;
+}
+
+/* ── 탭 ── */
+.notif-center-tabs {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5) var(--space-3);
+  flex-shrink: 0;
+}
+.notif-tab {
+  flex: 1;
+  padding: var(--space-3) 0;
+  border: none;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.notif-tab.active {
+  background: var(--color-accent);
+  color: var(--color-bg-primary);
+}
+
+/* ── 리스트 ── */
+.notif-center-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.notif-center-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-5) var(--space-6);
+}
+.notif-center-list[hidden] { display: none; }
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.notif-item:active { background: var(--color-bg-secondary); }
+.notif-item-main { flex: 1; min-width: 0; }
+.notif-item-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.notif-item-preview {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.notif-item-time {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 상태 칩 — 답변 대기/완료 */
+.notif-status {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+}
+.notif-status-pending {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-tertiary);
+}
+.notif-status-answered {
+  background: var(--color-accent);
+  color: var(--color-bg-primary);
+}
+
+/* 리스트 내 답변 미리보기 */
+.notif-item-answer {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.notif-item-answer-label {
+  display: block;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+.notif-item-answer-text { color: var(--color-text-secondary); }
+
+.notif-empty,
+.notif-loading {
+  text-align: center;
+  padding: var(--space-10) var(--space-5);
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.notif-load-more {
+  margin: var(--space-3) auto 0;
+  padding: var(--space-3) var(--space-6);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+/* ── 상세 바텀시트 (토스 스타일 드래그-투-클로즈) ──
+   introSheet/inquirySheet 와 동일하게 .visible 토글 + transition 으로
+   등장/퇴장을 직접 제어한다(keyframe flash 무력화). */
+.notif-detail-overlay {
+  animation: none;
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+.notif-detail-overlay .notif-detail-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  animation: none;
+  transform: translateY(100%);
+  transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.notif-detail-overlay.visible { opacity: 1; }
+.notif-detail-overlay.visible .notif-detail-sheet { transform: translateY(0); }
+/* 드래그 중에는 transition 을 끄고 손가락을 즉시 추종 */
+.notif-detail-overlay .notif-detail-sheet.is-dragging {
+  transition: none;
+}
+
+.notif-detail-handle-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 0 10px;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.notif-detail-handle-area:active { cursor: grabbing; }
+.notif-detail-handle {
+  width: 40px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-handle);
+}
+.notif-detail-close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+.notif-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 var(--space-6) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+}
+.notif-detail-title {
+  font-family: var(--font-ui);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: var(--space-2) 0 var(--space-2);
+}
+.notif-detail-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-4);
+}
+.notif-detail-body {
+  font-size: var(--text-md);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.notif-detail-answer {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+}
+.notif-detail-answer-label {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+.notif-detail-answer-text {
+  font-size: var(--text-md);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
 }

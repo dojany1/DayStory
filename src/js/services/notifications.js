@@ -149,8 +149,10 @@ function buildNotificationRequest(type, setting) {
       allowWhileIdle: true,
     },
     autoCancel: true,
+    /* iOS 및 공통 알림 사운드 */
+    sound: 'default',
     /* Android 8+ 알림 채널 — 채널이 없으면 헤드업/소리 없이 조용히 발생. */
-    channelId: 'daystory_default',
+    channelId: 'daystory-channel-v1',
     extra: {
       type,
       route: meta.route,
@@ -167,11 +169,12 @@ async function ensureAndroidNotificationChannel() {
 
   try {
     await LocalNotifications.createChannel({
-      id: 'daystory_default',
+      id: 'daystory-channel-v1',
       name: t('notification.channel_name'),
       description: t('notification.channel_desc'),
-      importance: 4,        /* IMPORTANCE_HIGH */
+      importance: 5,        /* IMPORTANCE_MAX */
       visibility: 1,        /* VISIBILITY_PUBLIC */
+      sound: 'default',
       vibration: true,
     });
     notificationChannelEnsured = true;

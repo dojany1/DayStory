@@ -19,6 +19,7 @@ const {
   deleteMyStoryMock,
   showConfirmMock,
   showToastMock,
+  getPreviousRouteMock,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   getParamsMock: vi.fn(),
@@ -36,13 +37,14 @@ const {
   deleteMyStoryMock: vi.fn(),
   showConfirmMock: vi.fn(),
   showToastMock: vi.fn(),
+  getPreviousRouteMock: vi.fn(() => null),
 }));
 
 vi.mock('../src/js/router.js', () => ({
   navigate: navigateMock,
   getParams: getParamsMock,
   setOnUnmount: vi.fn(),
-  getPreviousRoute: vi.fn(() => null),
+  getPreviousRoute: getPreviousRouteMock,
   getCurrentPath: vi.fn(() => '/mystory'),
 }));
 
@@ -298,6 +300,8 @@ describe('Regression bugs', () => {
     deleteMyStoryMock.mockReset();
     showConfirmMock.mockReset();
     showToastMock.mockReset();
+    getPreviousRouteMock.mockReset();
+    getPreviousRouteMock.mockReturnValue(null);
 
     setDefaultState();
     getParamsMock.mockReturnValue({});
@@ -593,6 +597,33 @@ describe('Regression bugs', () => {
     expect(deleteMyStoryMock).toHaveBeenCalledWith('my-24');
     /* 삭제 후 진입 경로로 history.back() 으로 복귀한다 (이전엔 navigate('/mystory', {date})). */
     expect(backSpy).toHaveBeenCalled();
+    backSpy.mockRestore();
+  });
+
+  it('Given a my-story is opened for editing from the settings(profile) archive, when the edit is saved, then the page should return to the entry route via history.back() instead of forcing /mystory', async () => {
+    getParamsMock.mockReturnValue({ edit: 'my-24' });
+    getPreviousRouteMock.mockReturnValue('/profile');
+    fetchMyStoriesMock.mockResolvedValue([makeMyStory(24)]);
+    fetchMyStoryByIdMock.mockResolvedValue(makeMyStory(24));
+    updateMyStoryMock.mockResolvedValue({});
+
+    const page = renderMyStoryNew();
+    document.body.appendChild(page);
+
+    await flushTimers(0);
+    await flushTimers(0);
+
+    const backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+
+    const form = page.querySelector('#mystory-form');
+    expect(form).not.toBeNull();
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await flushTimers(0);
+
+    expect(updateMyStoryMock).toHaveBeenCalledWith('my-24', expect.objectContaining({ publish_date: '2026-04-24' }));
+    expect(backSpy).toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalledWith('/mystory', { date: '2026-04-24' });
+
     backSpy.mockRestore();
   });
 

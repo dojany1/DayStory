@@ -1,13 +1,14 @@
 /* =====================================================================
-   editor.js — 에디터 (콘텐츠 관리) 페이지
+   editor.js — 관리자 페이지
    =====================================================================
-   에디터 권한을 가진 관리자가 역사 일화를 작성/편집/삭제하는 페이지입니다.
+   에디터 권한을 가진 관리자가 역사 일화와 사용자 문의를 확인하는 페이지입니다.
    
    기능:
      - 전체/발행됨/초안/예약 필터링
      - 새 일화 작성 (전체 화면 탭: renderEditorNew)
      - 기존 일화 편집/삭제
      - 발행, 초안 저장, 예약 발행
+     - 관리자 전용 문의 알람 탭에서 사용자 문의 목록 확인
    
    권한:
      profiles 테이블의 role이 'editor'인 유저만 접근 가능합니다.
@@ -29,11 +30,13 @@ import {
 import { uploadImage } from '../services/images.js';
 import { pickFromCamera, pickFromGallery, CameraPermissionError } from '../services/camera.js';
 import { translateContentApi } from '../services/translate.js';
+import { runBatchTranslate, hasKoSource } from '../services/batchTranslate.js';
 import { auth } from '../services/firebase.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
 import { getLocalToday } from '../utils/date.js';
 import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
 import { t, tList } from '../i18n/index.js';
+import { renderAdminInquiryButton, showAdminInquirySheet } from '../components/adminInquirySheet.js';
 
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -124,6 +127,7 @@ export function renderEditor() {
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <h1 class="calendar-title">${t('editor.content_mgmt')}</h1>
+        ${renderAdminInquiryButton()}
       </div>
     </div>
 
@@ -134,6 +138,10 @@ export function renderEditor() {
       <button type="button" class="editor-stat" data-filter="draft"><span class="editor-stat-label">${t('editor.filter_draft')}</span><span class="editor-stat-value" id="stat-draft">-</span></button>
       <button type="button" class="editor-stat" data-filter="untranslated"><span class="editor-stat-label">${t('editor.filter_untranslated')}</span><span class="editor-stat-value" id="stat-untranslated">-</span></button>
       <button type="button" class="editor-stat" data-filter="duplicate"><span class="editor-stat-label">${t('editor.filter_duplicate')}</span><span class="editor-stat-value" id="stat-duplicate">-</span></button>
+    </div>
+
+    <div class="editor-batch-bar" id="editor-batch-bar" hidden>
+      <button type="button" class="btn btn-secondary editor-batch-btn" id="editor-batch-translate"></button>
     </div>
 
     <div class="calendar-month-nav editor-month-nav">
@@ -163,6 +171,9 @@ export function renderEditor() {
   const now = new Date();
   let visibleYear = now.getFullYear();
   let visibleMonth = now.getMonth();
+  /* 일괄 번역 상태 — batchRunning: 실행 중(라벨 덮어쓰기 방지), batchAborted: 페이지 이탈 등 중단 요청 */
+  let batchRunning = false;
+  let batchAborted = false;
   async function loadStories() {
     allStories = await fetchAllStoriesEditor();
     /* 마지막으로 보던/수정한 달로 복귀 (수정→뒤로 시 최신 달로 점프하는 불편 해소).
@@ -181,6 +192,7 @@ export function renderEditor() {
     }
     updateStats();
     renderCalendar();
+    updateBatchBar();
   }
 
   function updateStats() {
@@ -191,7 +203,115 @@ export function renderEditor() {
     el('stat-draft').textContent = allStories.filter(s => getEditorBucket(s, today) === 'draft').length;
     el('stat-scheduled').textContent = allStories.filter(s => getEditorBucket(s, today) === 'scheduled').length;
     if (el('stat-untranslated')) el('stat-untranslated').textContent = allStories.filter(isStoryUntranslated).length;
-    if (el('stat-duplicate')) el('stat-duplicate').textContent = getDuplicateDateSet().size;
+    if (el('stat-duplicate')) {
+      const duplicateCount = getDuplicateDateSet().size;
+      el('stat-duplicate').textContent = duplicateCount;
+      const duplicateBtn = el('stat-duplicate').closest('.editor-stat');
+      if (duplicateBtn) duplicateBtn.hidden = duplicateCount === 0;
+    }
+  }
+
+  /* getMonthUntranslatedTargets — 현재 보이는 달에서 "번역 가능한 미번역" 글 목록.
+     한국어 원문(제목/본문)이 있어야 번역 의미가 있으므로 hasKoSource 로 한 번 더 거른다. */
+  function getMonthUntranslatedTargets() {
+    return allStories.filter((s) => {
+      const [y, m] = String(s?.publish_date || '').split('-').map(Number);
+      return y === visibleYear && m === visibleMonth + 1
+        && isStoryUntranslated(s) && hasKoSource(s);
+    });
+  }
+
+  /* updateBatchBar — '미번역' 필터일 때만 일괄 번역 버튼을 노출하고, 현재 달 대상 건수를 라벨에 반영.
+     배치 진행 중에는 onProgress 가 라벨을 관리하므로 덮어쓰지 않는다. */
+  function updateBatchBar() {
+    const bar = document.getElementById('editor-batch-bar');
+    const btn = document.getElementById('editor-batch-translate');
+    if (!bar || !btn) return;
+    if (batchRunning) return;
+    if (currentFilter !== 'untranslated') { bar.hidden = true; return; }
+    const count = getMonthUntranslatedTargets().length;
+    bar.hidden = false;
+    btn.disabled = count === 0;
+    btn.textContent = t('editor.batch_translate_btn', { count });
+  }
+
+  /* runMonthBatchTranslate — 현재 달 미번역 글을 한 번에 자동 번역 → 저장 → 재렌더.
+     단건 번역(translateContentApi)과 저장(updateStory)을 그대로 재사용한다.
+     동시성 2(Cloud Function maxInstances=5 고려). 부분 실패는 격리되고 결과를 요약 토스트로 보고. */
+  async function runMonthBatchTranslate() {
+    if (batchRunning) return;
+    const targets = getMonthUntranslatedTargets();
+    if (targets.length === 0) {
+      showToast(t('editor.batch_translate_none'), 'warning');
+      return;
+    }
+    const ok = await showConfirm({
+      title: t('editor.batch_translate_confirm_title'),
+      message: t('editor.batch_translate_confirm_msg', { count: targets.length }),
+      confirmText: t('editor.batch_translate_confirm_ok'),
+    });
+    if (!ok) return;
+
+    batchRunning = true;
+    batchAborted = false;
+    const btn = document.getElementById('editor-batch-translate');
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('is-running');
+      /* 첫 건 완료(onProgress) 전에도 진행 중임을 보이도록 즉시 진행률 라벨 표시. 스피너는 .is-running::after */
+      btn.textContent = t('editor.batch_translating', { done: 0, total: targets.length });
+    }
+
+    let res;
+    try {
+      res = await runBatchTranslate({
+        stories: targets,
+        translate: translateContentApi,
+        save: updateStory,
+        concurrency: 2,
+        onProgress: ({ done, total }) => {
+          const b = document.getElementById('editor-batch-translate');
+          if (b) b.textContent = t('editor.batch_translating', { done, total });
+        },
+        shouldStop: () => batchAborted,
+      });
+    } finally {
+      batchRunning = false;
+      document.getElementById('editor-batch-translate')?.classList.remove('is-running');
+    }
+
+    /* 결과 요약 토스트 (우선순위: 요금 한도 > 중단 > 부분 실패 > 전체 성공) */
+    if (res.quotaHit) {
+      showToast(t('editor.batch_translate_quota', { success: res.success }), 'error');
+    } else if (res.stopped) {
+      showToast(t('editor.batch_translate_stopped', { success: res.success }), 'warning');
+    } else if (res.failed > 0) {
+      showToast(t('editor.batch_translate_partial', { success: res.success, failed: res.failed }), res.success ? 'warning' : 'error');
+    } else {
+      showToast(t('editor.batch_translate_done', { success: res.success }), 'success');
+    }
+
+    /* 번역된 날짜 목록 팝업 — 어떤 날짜가 처리됐는지 한눈에 확인 (성공 0건이면 생략) */
+    if (res.success > 0) {
+      const failedIds = new Set(res.errors.map((e) => e.id));
+      const successLines = targets
+        .filter((s) => !failedIds.has(s.id))
+        .sort((a, b) => String(a.publish_date).localeCompare(String(b.publish_date)))
+        .map((s) => `${s.publish_date} · ${s.title || s.figure_name || t('common.no_title')}`);
+      await showConfirm({
+        title: t('editor.batch_translate_result_title'),
+        message: successLines.join('\n'),
+        confirmText: t('common.confirm'),
+        cancelText: null,
+      });
+    }
+
+    /* 번역 성공분 반영 — 데이터 새로고침 후 통계/달력/버튼 갱신 (성공 0건이면 재조회 생략) */
+    if (res.success > 0) {
+      await loadStories();
+    } else {
+      updateBatchBar();
+    }
   }
 
   /* getDuplicateDateSet — publish_date 가 2건 이상 겹치는 날짜(iso)들의 Set 을 반환.
@@ -347,6 +467,10 @@ export function renderEditor() {
       history.back();
     });
 
+    document.getElementById('admin-inquiry-btn')?.addEventListener('click', () => {
+      showAdminInquirySheet();
+    });
+
     /* ---- 통계 카드 클릭 시 필터 적용 ---- */
     page.querySelectorAll('.editor-stat').forEach(stat => {
       stat.addEventListener('click', () => {
@@ -367,6 +491,7 @@ export function renderEditor() {
           }
         }
         renderCalendar();
+        updateBatchBar();
       });
     });
 
@@ -378,6 +503,7 @@ export function renderEditor() {
       }
       setState('editorCalendarDate', formatIsoDate(visibleYear, visibleMonth, 1));
       renderCalendar();
+      updateBatchBar();
     });
 
     document.getElementById('editor-next-month')?.addEventListener('click', () => {
@@ -388,7 +514,12 @@ export function renderEditor() {
       }
       setState('editorCalendarDate', formatIsoDate(visibleYear, visibleMonth, 1));
       renderCalendar();
+      updateBatchBar();
     });
+
+    document.getElementById('editor-batch-translate')?.addEventListener('click', runMonthBatchTranslate);
+    /* 진행 중 페이지를 떠나면 다음 글부터 안전하게 중단 (CLAUDE.md 리스너/정리 규칙) */
+    setOnUnmount(() => { batchAborted = true; });
 
     loadStories();
   }, 0);

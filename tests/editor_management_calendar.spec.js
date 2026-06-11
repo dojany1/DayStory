@@ -182,10 +182,10 @@ describe('May 4 editor management recovery', () => {
 
     await flushEditor();
 
-    expect(page.querySelector('.editor-calendar-header .calendar-title')?.textContent).toBe('콘텐츠 관리');
+    expect(page.querySelector('.editor-calendar-header .calendar-title')?.textContent).toBe('관리자 페이지');
     expect(page.querySelector('.editor-calendar-grid')).not.toBeNull();
     expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-04"] .editor-calendar-story-title')?.textContent).toContain('May Story');
-    expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-12"] .badge-draft')?.textContent).toContain('임시저장');
+    expect(page.querySelector('.editor-calendar-cell[data-date="2026-05-12"] .badge-draft')?.textContent).toContain('임시');
     expect(page.querySelector('#editor-new')).toBeNull();
     expect(page.querySelector('.editor-new-btn')).toBeNull();
     expect(page.querySelector('.editor-calendar-empty-mark')).toBeNull();

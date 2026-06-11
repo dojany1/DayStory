@@ -120,7 +120,7 @@ export async function submitInquiry({ type, content, entryCardId } = {}) {
       platform,
       os,
       entryCardId: entryCardId || null,
-      status: 'open',                      /* 추후 트리아지/신고 확장용 */
+      status: 'pending',                   /* 'pending' → (어드민 답변 후) 'answered'. 알림 센터 상태와 통일 */
       createdAt: serverTimestamp(),
       createdAtIso: new Date().toISOString(),
     }));

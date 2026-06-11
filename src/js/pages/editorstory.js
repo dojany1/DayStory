@@ -20,6 +20,7 @@ import { markLetterRead } from '../services/widget.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
+import { markDateRead } from '../services/readHistory.js';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
@@ -113,7 +114,7 @@ export function renderEditorStory() {
     },
 
     renderSlideHTML: (raw, iso) => buildSlideHTML(raw, iso),
-    bindCard: (flip, raw) => bindFlipCardEvents(flip, raw ? localizedStory(raw) : null, bookmarkedIds),
+    bindCard: (flip, raw, iso) => bindFlipCardEvents(flip, raw ? localizedStory(raw) : null, bookmarkedIds, iso),
     onMounted: () => { void markLetterRead(); },
 
     /* 북마크가 critical path 보다 늦게 도착 → 활성 슬라이드 아이콘만 갱신(DOM thrash 방지) */
@@ -264,7 +265,7 @@ function buildSlideHTML(rawStory, isoDate) {
    섹션 3: 카드 이벤트 (공통 flip/press/fade + 역사 카드 전용 액션)
    ───────────────────────────────────────────── */
 
-function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
+function bindFlipCardEvents(flipContainer, story, bookmarkedIds, iso) {
   if (flipContainer.dataset.bound === '1') return;
 
   const flipper = bindCardBase(flipContainer, {
@@ -291,7 +292,11 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds) {
       }
       return true;
     },
-    onAfterFlip: () => document.dispatchEvent(new CustomEvent('ds:card-flipped')),
+    onAfterFlip: (e) => {
+      document.dispatchEvent(new CustomEvent('ds:card-flipped'));
+      /* 뒷면(상세)까지 펼쳐본 경우에만 읽음으로 기록 (앞면 복귀 플립은 제외) */
+      if (iso && e?.currentTarget?.classList.contains('flipped')) markDateRead(iso);
+    },
   });
   if (!flipper) return;
   flipContainer.dataset.bound = '1';

@@ -82,11 +82,23 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // ---------- inquiries/{id} — 문의/건의 (UGC 신고 뼈대) ----------
-    // 로그인 사용자는 생성만 가능, 조회/수정/삭제는 어드민만 (reports 와 동일 정책).
+    // ---------- notices/{id} — 공통 공지(알림 센터) ----------
+    // 로그인 사용자 누구나 read, 작성/수정/삭제는 어드민만.
+    match /notices/{id} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---------- inquiries/{id} — 문의/건의 (UGC 신고 뼈대 + 알림 센터) ----------
+    // 생성: 본인 명의(userId == 작성자 uid)로만 — 타인 inbox 주입 차단.
+    // 조회: 본인 문의는 본인이, 그 외엔 어드민만 (알림 센터에서 본인 답변 열람).
+    // 수정/삭제: 어드민만 — 답변(answer/status) 위조 방지(유저는 자기 글도 변경 불가).
     match /inquiries/{id} {
-      allow create: if isSignedIn();
-      allow read, update, delete: if isAdmin();
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin()
+                  || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     // ---------- 그 외 모든 경로는 기본 거부 ----------

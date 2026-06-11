@@ -18,11 +18,12 @@ const escapeText = escapeHtml;
  * @param {string} opts.title       제목
  * @param {string} [opts.message]   본문 (여러 줄은 \n)
  * @param {string} [opts.confirmText='확인']  확인 버튼 라벨
- * @param {string} [opts.cancelText='취소']   취소 버튼 라벨
+ * @param {string|null} [opts.cancelText='취소']  취소 버튼 라벨. null 이면 취소 버튼 없이
+ *   확인 버튼 1개만 표시하는 "알림(alert)" 모드 — 결과 안내 등 단순 확인용.
  * @param {boolean} [opts.danger=false]       확인 버튼을 위험(빨강) 스타일로 표시
  * @param {number}  [opts.holdDuration=0]     >0 이면 확인 버튼을 해당 ms 동안 길게 눌러야 확정됨 (실수 방지)
  * @param {(secondsLeft:number)=>string} [opts.holdMessage] 길게 누르는 동안 상단에 표시할 안내문 포매터
- * @returns {Promise<boolean>} 확인=true / 취소=false
+ * @returns {Promise<boolean>} 확인=true / 취소=false (alert 모드는 닫히면 항상 true)
  */
 export function showConfirm({
   title,
@@ -33,6 +34,7 @@ export function showConfirm({
   holdDuration = 0,
   holdMessage,
 } = {}) {
+  const isAlert = cancelText === null;
   return new Promise((resolve) => {
     /* 같은 다이얼로그가 이미 떠 있으면 정리하고 새로 띄움 */
     document.querySelectorAll('.confirm-dialog-overlay').forEach((el) => el.remove());
@@ -60,7 +62,7 @@ export function showConfirm({
         <div class="confirm-dialog-title">${escapeText(title || '')}</div>
         ${message ? `<div class="confirm-dialog-message">${lines}</div>` : ''}
         <div class="confirm-dialog-actions">
-          <button type="button" class="confirm-dialog-btn confirm-dialog-cancel">${escapeText(cancelText)}</button>
+          ${isAlert ? '' : `<button type="button" class="confirm-dialog-btn confirm-dialog-cancel">${escapeText(cancelText)}</button>`}
           <button type="button" class="confirm-dialog-btn confirm-dialog-confirm${danger ? ' is-danger' : ''}${hold ? ' has-hold' : ''}">
             <span class="confirm-dialog-confirm-fill" aria-hidden="true"></span>
             <span class="confirm-dialog-confirm-label">${escapeText(confirmText)}</span>
@@ -132,7 +134,7 @@ export function showConfirm({
       }, 180);
     };
 
-    overlay.querySelector('.confirm-dialog-cancel').addEventListener('click', () => close(false));
+    overlay.querySelector('.confirm-dialog-cancel')?.addEventListener('click', () => close(false));
 
     if (hold) {
       confirmBtn.addEventListener('pointerdown', (e) => {
@@ -156,12 +158,12 @@ export function showConfirm({
     }
 
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close(false);
+      if (e.target === overlay) close(isAlert ? true : false);
     });
 
     const onKey = (e) => {
       if (e.key === 'Escape') {
-        close(false);
+        close(isAlert ? true : false);
       }
     };
     document.addEventListener('keydown', onKey);

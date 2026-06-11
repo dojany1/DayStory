@@ -88,7 +88,7 @@ describe('inquiries 서비스 — 문의 제출', () => {
       locale: 'ja',
       entryCardId: 'story-9',
       platform: 'ios',
-      status: 'open',
+      status: 'pending',
     });
     expect(payload.os).toMatchObject({ osVersion: '17.4', model: 'iPhone15,2', manufacturer: 'Apple' });
     expect(typeof payload.appVersion).toBe('string');

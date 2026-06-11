@@ -1442,3 +1442,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: `fetchAdminInquiries`에서 관리자 문의 목록을 정규화한 뒤 `stories/{entryCardId}`와 `profiles/{userId}`를 추가 조회해 `entryCardLabel`(`YYYY-MM-DD · 제목`)과 `userLabel`(email)을 보강. 조회 실패/문서 없음/이메일 없음 시 기존 ID로 폴백. `adminInquirySheet` 상세 메타 라벨을 "카드"/"사용자"로 바꾸고 보강 라벨을 우선 표시. 향후 문의는 이메일 매칭률을 높이기 위해 `submitInquiry` payload에 `userEmail`도 저장. 5개 언어 라벨 및 관련 테스트 갱신.
 - **변경파일**: `src/js/services/notificationCenter.js`, `src/js/services/inquiries.js`, `src/js/components/adminInquirySheet.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/notificationCenter.spec.js`, `tests/adminInquirySheet.spec.js`, `tests/inquiry.spec.js`, `SESSION_LOG.md`.
 - **검증**: `npm test -- tests/notificationCenter.spec.js tests/adminInquirySheet.spec.js tests/notificationCenterSheet.spec.js tests/inquiry.spec.js` 47/47 통과. `npm run build` 성공. 전체 `npm test`는 485 passed / 6 failed / 6 skipped — 실패 6건은 기존 잔여 항목(`detail_nav.ui` 2, `editorstory.ui` 1, `inquiry_ui` 2, `ios_gpu_webp_guard` 1)으로 이번 변경 범위와 무관.
+
+### 2026-06-11 21:00 — Codex
+
+- **요구사항**: `.back-editor-btn`의 에디터 프로필 아이콘을 루트 `assets/editor_profile.png` 파일로 할당.
+- **구현방법**: 코드의 `.back-editor-btn` 아바타 경로는 이미 `/assets/editor_profile.png`로 고정되어 있어, 실제 앱에서 serve되는 `public/assets/editor_profile.png`를 루트 `assets/editor_profile.png`와 동일한 PNG로 갱신. 회귀 방지를 위해 `tests/swiper_lazy_init.spec.js`에 public 복사본과 루트 asset의 byte-level 동일성 검증을 추가. `npm run build` 후 `npx cap sync ios`/`npx cap sync android`로 네이티브 web asset도 동기화.
+- **변경파일**: `public/assets/editor_profile.png`, `tests/swiper_lazy_init.spec.js`, `android/app/src/main/assets/public/index.html`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/swiper_lazy_init.spec.js` 27/27 통과. `npm run build` 성공. `npx cap sync ios`/`npx cap sync android` 성공. 전체 `npm test`는 486 passed / 6 failed / 6 skipped — 실패 6건은 기존 잔여 항목(`detail_nav.ui` 2, `editorstory.ui` 1, `inquiry_ui` 2, `ios_gpu_webp_guard` 1)으로 이번 변경 범위와 무관.

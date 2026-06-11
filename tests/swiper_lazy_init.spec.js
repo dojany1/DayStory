@@ -151,6 +151,13 @@ describe('Editor avatar — 로컬 PNG 고정 (iOS WKWebView WebP crash 회피)'
     expect(buf.length).toBeGreaterThan(0);
   });
 
+  it('public/assets/editor_profile.png 는 루트 assets/editor_profile.png 와 동일하다', () => {
+    /* 실제 앱은 /assets 경로를 serve 하므로 소스 asset 과 public 복사본이 같아야 한다. */
+    const source = readFileSync(root('assets/editor_profile.png'));
+    const served = readFileSync(root('public/assets/editor_profile.png'));
+    expect(served.equals(source)).toBe(true);
+  });
+
   it('editorstory.js 가 editor avatar 로 /assets/editor_profile.png 만 사용한다', () => {
     const src = editorSrc();
     expect(src).toMatch(/\/assets\/editor_profile\.png/);

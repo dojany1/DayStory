@@ -25,6 +25,7 @@ const editorSrc = () => readFileSync(root('src/js/pages/editorstory.js'), 'utf8'
 const mystorySrc = () => readFileSync(root('src/js/pages/mystory.js'), 'utf8');
 const swiperSrc = () => readFileSync(root('src/js/utils/cardSwiper.js'), 'utf8');
 const controllerSrc = () => readFileSync(root('src/js/components/cardDeck/cardDeckController.js'), 'utf8');
+const constantsSrc = () => readFileSync(root('src/js/utils/constants.js'), 'utf8');
 
 describe('Swiper lazy init — 공통 컨트롤러(cardDeckController.js)', () => {
   it('createCardSwiper 호출은 ensureSwiper 함수 내부에 있다', () => {
@@ -158,28 +159,38 @@ describe('Editor avatar — 로컬 PNG 고정 (iOS WKWebView WebP crash 회피)'
     expect(served.equals(source)).toBe(true);
   });
 
-  it('editorstory.js 가 editor avatar 로 /assets/editor_profile.png 만 사용한다', () => {
+  it('constants.js 가 editor avatar 에 cache-busted /assets/editor_profile.png 를 제공한다', () => {
+    const src = constantsSrc();
+    expect(src).toMatch(/EDITOR_PROFILE_SRC/);
+    expect(src).toMatch(/\/assets\/editor_profile\.png\?v=/);
+  });
+
+  it('editorstory.js 가 editor avatar 로 EDITOR_PROFILE_SRC 만 사용한다', () => {
     const src = editorSrc();
-    expect(src).toMatch(/\/assets\/editor_profile\.png/);
+    expect(src).toMatch(/EDITOR_PROFILE_SRC/);
+    expect(src).not.toMatch(/<img src="\/assets\/editor_profile\.png"/);
     /* story.editor.photoURL 을 img src 로 직접 사용하지 않음 (WebP crash 회피) */
     expect(src).not.toMatch(/src="\$\{escapeHtml\(story\.editor\.photoURL\)/);
   });
 
-  it('calendar.js 가 editor avatar 로 /assets/editor_profile.png 만 사용한다', () => {
+  it('calendar.js 가 editor avatar 로 EDITOR_PROFILE_SRC 만 사용한다', () => {
     const src = readFileSync(root('src/js/pages/calendar.js'), 'utf8');
-    expect(src).toMatch(/\/assets\/editor_profile\.png/);
+    expect(src).toMatch(/EDITOR_PROFILE_SRC/);
+    expect(src).not.toMatch(/<img src="\/assets\/editor_profile\.png"/);
     expect(src).not.toMatch(/src="\$\{escapeHtml\(editorPhotoURL\)/);
   });
 
-  it('detail.js 가 editor avatar 로 /assets/editor_profile.png 만 사용한다', () => {
+  it('detail.js 가 editor avatar 로 EDITOR_PROFILE_SRC 만 사용한다', () => {
     const src = readFileSync(root('src/js/pages/detail.js'), 'utf8');
-    expect(src).toMatch(/\/assets\/editor_profile\.png/);
+    expect(src).toMatch(/EDITOR_PROFILE_SRC/);
+    expect(src).not.toMatch(/<img[^>]+src="\/assets\/editor_profile\.png"/);
     expect(src).not.toMatch(/src="\$\{escapeHtml\(editorAvatar\)/);
   });
 
-  it('editor.js 의 admin preview 도 /assets/editor_profile.png 사용', () => {
+  it('editor.js 의 admin preview 도 EDITOR_PROFILE_SRC 사용', () => {
     const src = readFileSync(root('src/js/pages/editor.js'), 'utf8');
-    expect(src).toMatch(/\/assets\/editor_profile\.png/);
+    expect(src).toMatch(/EDITOR_PROFILE_SRC/);
+    expect(src).not.toMatch(/<img src="\/assets\/editor_profile\.png"/);
   });
 
   it('profile.js 가 사용자 photoURL 표시 시 isWebpUrl 가드 사용', () => {

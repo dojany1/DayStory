@@ -30,7 +30,7 @@ import {
   bindCardBase, parseIsoDate, formatMonthNameDate, bodyToHtml,
   FALLBACK_IMG, SHARE_ICON_SVG,
 } from '../components/cardDeck/cardFace.js';
-import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { EDITOR_DISPLAY_NAME, EDITOR_PROFILE_SRC } from '../utils/constants.js';
 import { afterPageEnter } from '../utils/pageLifecycle.js';
 import { showIntroSheet } from '../components/introSheet.js';
 import { showCardFlipCoach } from '../components/coachMark.js';
@@ -238,7 +238,7 @@ function buildSlideHTML(rawStory, isoDate) {
   const hasComment = story.editor_comment && story.editor_comment.trim() !== '';
   const footerHtml = `
             <button class="back-editor-btn${hasComment && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="${t('editor.form_editor_comment')}" data-story-id="${escapeHtml(story.id)}" data-comment="${escapeHtml(story.editor_comment || '')}" data-editor-name="${escapeHtml(EDITOR_DISPLAY_NAME)}" style="${hasComment ? '' : 'visibility: hidden; pointer-events: none;'}">
-              <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
+              <img src="${EDITOR_PROFILE_SRC}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
               <div class="back-date">${t('date.full', { y: escapeHtml(story.historical_year), m: month, d: day })}</div>

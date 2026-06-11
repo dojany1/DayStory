@@ -34,7 +34,7 @@ import { runBatchTranslate, hasKoSource } from '../services/batchTranslate.js';
 import { auth } from '../services/firebase.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
 import { getLocalToday } from '../utils/date.js';
-import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { EDITOR_DISPLAY_NAME, EDITOR_PROFILE_SRC } from '../utils/constants.js';
 import { t, tList } from '../i18n/index.js';
 import { renderAdminInquiryButton, showAdminInquirySheet } from '../components/adminInquirySheet.js';
 
@@ -1348,7 +1348,7 @@ export function renderEditorNew() {
               </div>
               <div class="back-footer">
                 <button class="back-editor-btn" type="button" title="${t('editor.form_editor_comment')}" style="${editorComment && editorComment.trim() !== '' ? '' : 'visibility: hidden; pointer-events: none;'}">
-                  <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
+                  <img src="${EDITOR_PROFILE_SRC}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
                 </button>
                 <div class="back-date-actions">
                   <div class="back-date">${t('date.full', { y: histYear, m: month, d: day })}</div>

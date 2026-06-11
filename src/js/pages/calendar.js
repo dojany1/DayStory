@@ -27,7 +27,7 @@ import {
   cardShell, cardFront, cardFrontTop, cardImageWrap, cardBack, cardActionButton,
   bodyToHtml, SHARE_ICON_SVG,
 } from '../components/cardDeck/cardFace.js';
-import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { EDITOR_DISPLAY_NAME, EDITOR_PROFILE_SRC } from '../utils/constants.js';
 import { isDateRead, markDateRead } from '../services/readHistory.js';
 
 /* 요일 헤더는 t() 기반 — 언어 변경 시 재렌더에서 최신 값 반영 */
@@ -620,7 +620,7 @@ function buildHistoryCardHtml(story, year, month, day, bookmarkedIds = [], colle
 
   const footerHtml = `
             <button class="back-editor-btn${!editorBtnHidden && story.id && !isEditorNoteRead(story.id) ? ' unread' : ''}" type="button" title="${t('editor.form_editor_comment')}" data-story-id="${escapeHtml(story.id || '')}" data-comment="${escapeHtml(editorComment)}" data-editor-name="${escapeHtml(editorName)}" style="${editorBtnHidden ? 'visibility: hidden; pointer-events: none;' : ''}">
-              <img src="/assets/editor_profile.png" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
+              <img src="${EDITOR_PROFILE_SRC}" alt="editor" class="back-editor-avatar" loading="lazy" decoding="async" />
             </button>
             <div class="back-date-actions">
               <div class="back-date">${t('date.full', { y: escapeHtml(story.historical_year || year), m: month, d: day })}</div>

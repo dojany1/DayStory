@@ -227,8 +227,11 @@ describe('Step 5 — .flipper 의 transform transition 을 is-flipping 으로 �
 });
 
 describe('회귀 방지 (이전 fix 유지)', () => {
-  it('editor avatar 는 여전히 /assets/editor_profile.png 로 고정', () => {
-    expect(editorSrc()).toMatch(/\/assets\/editor_profile\.png/);
+  it('editor avatar 는 cache-busted EDITOR_PROFILE_SRC 로 고정', () => {
+    const constantsSrc = readFileSync(root('src/js/utils/constants.js'), 'utf8');
+    expect(constantsSrc).toMatch(/EDITOR_PROFILE_SRC/);
+    expect(constantsSrc).toMatch(/\/assets\/editor_profile\.png\?v=/);
+    expect(editorSrc()).toMatch(/EDITOR_PROFILE_SRC/);
   });
 
   it('컨트롤러의 lazy ensureSwiper 패턴이 유지된다', () => {

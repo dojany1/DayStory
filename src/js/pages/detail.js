@@ -20,7 +20,7 @@ import { shareStory, buildShareUrl } from '../services/sharing.js';
 import { escapeHtml, sanitizeUrl } from '../utils/sanitize.js';
 import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
-import { EDITOR_DISPLAY_NAME } from '../utils/constants.js';
+import { EDITOR_DISPLAY_NAME, EDITOR_PROFILE_SRC } from '../utils/constants.js';
 import { showInquirySheet } from '../components/inquirySheet.js';
 
 function normalizeSourceItem(source) {
@@ -306,7 +306,7 @@ async function loadDetail(page, storyId) {
         <section class="detail-editor-note" aria-label="${t('detail.editor_note_aria')}">
           <div class="detail-editor-note-header">
             <div class="detail-editor-avatar-wrap">
-              <img class="detail-editor-avatar" src="/assets/editor_profile.png" alt="${escapeHtml(editorName)}" loading="lazy" decoding="async" />
+              <img class="detail-editor-avatar" src="${EDITOR_PROFILE_SRC}" alt="${escapeHtml(editorName)}" loading="lazy" decoding="async" />
             </div>
             <div class="detail-editor-name">${escapeHtml(editorName)}</div>
           </div>

@@ -121,8 +121,10 @@ describe('showNotificationCenter — 마운트 & 데이터 로드', () => {
     const answered = document.querySelector('.notif-item[data-id="i1"]');
     const pending = document.querySelector('.notif-item[data-id="i2"]');
     expect(answered.querySelector('.notif-item-answer')).not.toBeNull();
+    expect(answered.querySelector('.notif-status-answered')).not.toBeNull();
     expect(answered.textContent).toContain('고쳤어요');
     expect(pending.querySelector('.notif-item-answer')).toBeNull();
+    expect(pending.querySelector('.notif-status-pending')).toBeNull();
   });
 });
 

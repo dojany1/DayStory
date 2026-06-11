@@ -1421,3 +1421,10 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: `editor.content_mgmt` 5개 언어 라벨을 관리자 페이지 계열로 갱신하고 `editor.js` 상단 설명을 관리자 페이지 범위에 맞게 정리. 기존 `adminInquirySheet.js`는 읽기 전용 목록/상세 확인 범위임을 주석으로 명시. `fetchAdminInquiries`의 전체 inquiries 최신순 조회 계약과 `adminInquirySheet`의 관리자 전용 버튼·목록·상세 보기·답변 입력 UI 부재를 Vitest로 고정.
 - **변경파일**: `src/js/pages/editor.js`, `src/js/components/adminInquirySheet.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/adminInquirySheet.spec.js`, `tests/notificationCenter.spec.js`, `tests/editor_management_calendar.spec.js`, `SESSION_LOG.md`.
 - **검증**: `npm test -- tests/adminInquirySheet.spec.js tests/notificationCenter.spec.js tests/editor_management_calendar.spec.js` 31 passed / 1 skipped. 관련 스펙 `npm test -- tests/adminInquirySheet.spec.js tests/notificationCenter.spec.js tests/notificationCenterSheet.spec.js tests/inquiry.spec.js` 44/44 통과. `npm run build` 성공. 전체 `npm test`는 482 passed / 6 failed / 6 skipped — 실패 6건은 기존 잔여 항목(`detail_nav.ui` 2, `editorstory.ui` 1, `inquiry_ui` 2, `ios_gpu_webp_guard` 1)으로 이번 변경 범위와 무관.
+
+### 2026-06-11 20:38 — Codex
+
+- **요구사항**: 답변 기능은 아직 계획 단계이므로 문의 목록/내 문의에서 pending 상태의 "답변 대기중" 노출 제거.
+- **구현방법**: `notificationCenterSheet.js`와 `adminInquirySheet.js`에서 `status === 'answered'`인 문의에만 상태 칩을 렌더하도록 변경하고, pending 칩 생성 경로를 제거. 5개 언어 `notificationCenter.status_pending` 문구와 미사용 `.notif-status-pending` CSS를 삭제. 관리자/사용자 문의 시트 테스트에 pending 칩과 "답변 대기중" 문구가 없어야 한다는 단언 추가.
+- **변경파일**: `src/js/components/notificationCenterSheet.js`, `src/js/components/adminInquirySheet.js`, `src/css/components.css`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/adminInquirySheet.spec.js`, `tests/notificationCenterSheet.spec.js`, `SESSION_LOG.md`.
+- **검증**: `npm test -- tests/adminInquirySheet.spec.js tests/notificationCenterSheet.spec.js tests/notificationCenter.spec.js tests/inquiry.spec.js` 44/44 통과. `npm run build` 성공. `rg`로 소스 내 `status_pending`/`notif-status-pending`/`답변 대기중` 노출 없음 확인(테스트의 부재 단언만 남음).

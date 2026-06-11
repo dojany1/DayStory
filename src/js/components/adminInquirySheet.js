@@ -29,13 +29,15 @@ export function renderAdminInquiryButton() {
 
 function renderInquiryItem(i) {
   const typeLabel = t(`inquiry.type_${i.type}`);
-  const statusLabel = t(`notificationCenter.status_${i.status === 'answered' ? 'answered' : 'pending'}`);
+  const statusBadge = i.status === 'answered'
+    ? `<span class="notif-status notif-status-answered">${escapeHtml(t('notificationCenter.status_answered'))}</span>`
+    : '';
   return `
     <button type="button" class="notif-item" data-id="${escapeHtml(i.id)}">
       <div class="notif-item-main">
         <div class="notif-item-title">
           ${escapeHtml(typeLabel)}
-          <span class="notif-status notif-status-${i.status === 'answered' ? 'answered' : 'pending'}">${escapeHtml(statusLabel)}</span>
+          ${statusBadge}
         </div>
         <div class="notif-item-preview">${escapeHtml(i.content)}</div>
       </div>

@@ -23,7 +23,6 @@ vi.mock('../src/js/i18n/index.js', () => ({
     'notificationCenter.loading': '불러오는 중...',
     'notificationCenter.load_more': '더 보기',
     'notificationCenter.error': '불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-    'notificationCenter.status_pending': '답변 대기중',
     'notificationCenter.status_answered': '답변 완료',
     'notificationCenter.answer_label': '관리자 답변',
     'inquiry.type_bug': '버그',
@@ -80,7 +79,8 @@ describe('adminInquirySheet — 관리자 문의 알람 탭', () => {
     expect(fetchAdminInquiriesMock).toHaveBeenCalledWith({});
     expect(overlay.textContent).toContain('위젯이 있으면 좋겠어요');
     expect(overlay.textContent).toContain('화면이 멈춰요');
-    expect(overlay.querySelector('.notif-status-pending')?.textContent).toContain('답변 대기중');
+    expect(overlay.querySelector('.notif-status-pending')).toBeNull();
+    expect(overlay.textContent).not.toContain('답변 대기중');
     expect(overlay.querySelector('.notif-status-answered')?.textContent).toContain('답변 완료');
     expect(overlay.querySelector('textarea')).toBeNull();
     expect(overlay.querySelector('[data-answer-submit]')).toBeNull();

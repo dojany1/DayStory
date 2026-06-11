@@ -2583,10 +2583,6 @@
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
 }
-.notif-status-pending {
-  background: var(--color-bg-secondary);
-  color: var(--color-text-tertiary);
-}
 .notif-status-answered {
   background: var(--color-accent);
   color: var(--color-bg-primary);

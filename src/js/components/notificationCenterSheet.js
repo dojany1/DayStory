@@ -59,7 +59,9 @@ function renderNoticeItem(n) {
 
 function renderInquiryItem(i) {
   const typeLabel = t(`inquiry.type_${i.type}`);
-  const statusLabel = t(`notificationCenter.status_${i.status === 'answered' ? 'answered' : 'pending'}`);
+  const statusBadge = i.status === 'answered'
+    ? `<span class="notif-status notif-status-answered">${escapeHtml(t('notificationCenter.status_answered'))}</span>`
+    : '';
   const answerBlock = i.status === 'answered'
     ? `<div class="notif-item-answer">
          <span class="notif-item-answer-label">${escapeHtml(t('notificationCenter.answer_label'))}</span>
@@ -71,7 +73,7 @@ function renderInquiryItem(i) {
       <div class="notif-item-main">
         <div class="notif-item-title">
           ${escapeHtml(typeLabel)}
-          <span class="notif-status notif-status-${i.status === 'answered' ? 'answered' : 'pending'}">${escapeHtml(statusLabel)}</span>
+          ${statusBadge}
         </div>
         <div class="notif-item-preview">${escapeHtml(i.content)}</div>
         ${answerBlock}

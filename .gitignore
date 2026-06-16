@@ -27,3 +27,13 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/app/release/*.aab
+android/app/release/*.apk
+
+# Firebase cache
+.firebase/

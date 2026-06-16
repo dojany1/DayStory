@@ -14,6 +14,7 @@ import { toggleBookmark, getBookmarkedStoryIds } from '../services/bookmarks.js'
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { shareStory, captureAndShareCard } from '../services/sharing.js';
+import { showShareChoice } from '../components/shareChoiceSheet.js';
 import { getState } from '../state.js';
 import { navigate, getPreviousRoute } from '../router.js';
 import { markLetterRead } from '../services/widget.js';
@@ -337,14 +338,22 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds, iso) {
         await shareStory(story, { kind: 'history' });
         return;
       }
+      const choice = await showShareChoice({ showSave: Capacitor.isNativePlatform() });
+      if (!choice) return; /* 취소 */
+
       shareBtn.disabled = true;
       try {
+        /* 공유 본문 텍스트는 넣지 않는다 — 이미지+링크만 공유(사용자 요청).
+           "갤러리 저장" 선택 시 공유 대신 사진 보관함에 저장. */
         const res = await captureAndShareCard(cardEl, {
           title: story.figure_name || story.title || 'DayStory',
-          text: `[DayStory] ${story.figure_name || story.title || ''}`.trim(),
+          date: story.publish_date,
           dialogTitle: t('calendar.share_history'),
+          linkOnly: choice === 'link',
+          saveToGallery: choice === 'save',
         });
-        if (!res.ok && res.reason !== 'cancelled') {
+        /* 갤러리 저장은 실패해도 공유 시트로 폴백하지 않는다. */
+        if (choice !== 'save' && !res.ok && res.reason !== 'cancelled') {
           await shareStory(story, { kind: 'history' });
         }
       } finally {

@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(firebase deploy)",
+      "Bash(firebase deploy *)",
+      "Bash(npx cap sync *)",
+      "Bash(npx cap open *)"
     ]
   }
 }

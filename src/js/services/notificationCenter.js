@@ -37,6 +37,9 @@ const MY_INQUIRY_LIMIT = 20;
 /* 마지막으로 알림 센터를 확인한 시각(ms). 이후 생성/답변은 unread 로 본다. */
 const LAST_SEEN_KEY = 'ds_notif_center_lastseen_v1';
 
+/* (어드민 전용) 마지막으로 문의함을 확인한 시각(ms). 이후 생성된 문의는 새 문의(unread)로 본다. */
+const ADMIN_LAST_SEEN_KEY = 'ds_admin_inquiry_lastseen_v1';
+
 /* ── 다국어 필드 매핑 ──────────────────────────────────────────────
    notices 의 title/body 는 { ko, en, ja, es, zh } 맵 형태로 저장한다.
    - 현재 언어 → ko 폴백 → 존재하는 첫 값 순으로 선택.
@@ -293,5 +296,57 @@ export async function checkUnread(uid) {
   } catch (err) {
     console.warn('unread 조회 실패(무시):', err);
     return false;
+  }
+}
+
+/* ── (어드민) 새 사용자 문의 배지 ──────────────────────────────────── */
+
+/** getAdminInquiryLastSeen — 관리자가 마지막으로 문의함을 확인한 시각(ms). 기본 0. */
+export function getAdminInquiryLastSeen() {
+  const raw = Number(localStorage.getItem(ADMIN_LAST_SEEN_KEY));
+  return Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
+/** markAdminInquiriesRead — 문의함을 연 시점을 기록한다. 이후 빨간 점 판정 기준이 된다. */
+export function markAdminInquiriesRead() {
+  try {
+    localStorage.setItem(ADMIN_LAST_SEEN_KEY, String(Date.now()));
+  } catch {
+    /* 저장 실패는 무시 (best-effort) */
+  }
+}
+
+/**
+ * checkAdminNewInquiries — (어드민 전용) lastSeen 이후 접수된 새 문의 개수를 경량 조회한다.
+ * 최신순 최대 `max` 건만 읽어 createdAt > lastSeen 인 문의를 센다.
+ * 인덱스 미구성/네트워크 오류 시 { count: 0 } 으로 안전 폴백한다.
+ * @param {Object} [opts]
+ * @param {number} [opts.max=20] 조회할 최신 문의 상한
+ * @returns {Promise<{ count: number, latestMs: number }>}
+ */
+export async function checkAdminNewInquiries({ max = 20 } = {}) {
+  if (!db) return { count: 0, latestMs: 0 };
+  const lastSeen = getAdminInquiryLastSeen();
+
+  try {
+    const snap = await getDocs(query(
+      collection(db, INQUIRIES_COL),
+      orderBy('createdAt', 'desc'),
+      fbLimit(max),
+    ));
+
+    let count = 0;
+    let latestMs = 0;
+    snap.docs.forEach((d) => {
+      const { createdAtMs } = normalizeInquiry(d);
+      if ((createdAtMs || 0) > lastSeen) {
+        count += 1;
+        if (createdAtMs > latestMs) latestMs = createdAtMs;
+      }
+    });
+    return { count, latestMs };
+  } catch (err) {
+    console.warn('어드민 새 문의 조회 실패(무시):', err);
+    return { count: 0, latestMs: 0 };
   }
 }

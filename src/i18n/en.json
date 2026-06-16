@@ -340,7 +340,10 @@
     "meta_os": "OS",
     "meta_model": "Device model",
     "meta_manufacturer": "Manufacturer",
-    "meta_user": "User"
+    "meta_user": "User",
+    "aria_unread": "New inquiries",
+    "notify_title": "New user inquiry",
+    "notify_body": "You have {count} unread inquiries"
   },
   "search": {
     "title": "Search",
@@ -449,7 +452,19 @@
     "open_in_app": "Open in app",
     "generating": "Generating share image...",
     "image_failed": "Failed to share the image.",
-    "card_share": "Share card"
+    "card_share": "Share card",
+    "choice_title": "Choose how to share",
+    "choice_image": "Card image",
+    "choice_image_desc": "Share the card as an image",
+    "choice_link": "Link",
+    "choice_link_desc": "Share a link with preview",
+    "choice_save": "Save to gallery",
+    "choice_save_desc": "Save the card image to your photos",
+    "link_copied": "Link copied",
+    "link_failed": "Failed to share the link.",
+    "save_success": "Saved to gallery",
+    "save_failed": "Failed to save to gallery",
+    "save_denied": "Storage permission is required"
   },
   "camera": {
     "permission_message": "Camera/photo access is required. Please allow permission in Settings.",

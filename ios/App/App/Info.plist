@@ -54,6 +54,16 @@
 				<string>com.googleusercontent.apps.1063822349351-p9eqteurfjcn9bo1k50snuv8gt5l2vml</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- 커스텀 스킴 딥링크: 카카오톡 등 인앱 브라우저(Universal Link 미발동)에서
+			     /share fallback 페이지가 daystory://share… 로 앱을 직접 연다. -->
+			<key>CFBundleURLName</key>
+			<string>com.dokhu.daystory.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>daystory</string>
+			</array>
+		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>내가 쓴 일기에 사진을 첨부하기 위해 카메라를 사용합니다.</string>

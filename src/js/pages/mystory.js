@@ -11,6 +11,7 @@ import { navigate, getParams, getPreviousRoute } from '../router.js';
 import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
+import { showShareChoice } from '../components/shareChoiceSheet.js';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
@@ -230,14 +231,22 @@ function bindMyStoryCardEvents(flipContainer, story, isoDateStr) {
         await shareStory(story, { kind: 'mystory', includeImage: false });
         return;
       }
+      const choice = await showShareChoice({ showSave: Capacitor.isNativePlatform(), showLink: false });
+      if (!choice) return; /* 취소 */
+
       shareBtn.disabled = true;
       try {
+        /* 공유 본문 텍스트는 넣지 않는다 — 이미지+링크만 공유(사용자 요청).
+           "갤러리 저장" 선택 시 공유 대신 사진 보관함에 저장. */
         const res = await captureAndShareCard(cardEl, {
           title: story.title || 'DayStory',
-          text: `[DayStory] ${story.title || ''}`.trim(),
+          date: story.publish_date,
           dialogTitle: t('mystory.share'),
+          linkOnly: choice === 'link',
+          saveToGallery: choice === 'save',
         });
-        if (!res.ok && res.reason !== 'cancelled') {
+        /* 갤러리 저장은 실패해도 공유 시트로 폴백하지 않는다. */
+        if (choice !== 'save' && !res.ok && res.reason !== 'cancelled') {
           await shareStory(story, { kind: 'mystory', includeImage: false });
         }
       } finally {

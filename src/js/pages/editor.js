@@ -37,6 +37,8 @@ import { getLocalToday } from '../utils/date.js';
 import { EDITOR_DISPLAY_NAME, EDITOR_PROFILE_SRC } from '../utils/constants.js';
 import { t, tList } from '../i18n/index.js';
 import { renderAdminInquiryButton, showAdminInquirySheet } from '../components/adminInquirySheet.js';
+import { checkAdminNewInquiries } from '../services/notificationCenter.js';
+import { notifyAdminNewInquiries } from '../services/notifications.js';
 
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
@@ -467,9 +469,25 @@ export function renderEditor() {
       history.back();
     });
 
-    document.getElementById('admin-inquiry-btn')?.addEventListener('click', () => {
+    const inquiryBtn = document.getElementById('admin-inquiry-btn');
+    inquiryBtn?.addEventListener('click', () => {
       showAdminInquirySheet();
+      inquiryBtn.querySelector('.notif-bell-dot')?.remove(); /* 열면 즉시 빨간 점 해제 */
     });
+
+    /* 새 사용자 문의 감지 → 아이콘 빨간 점 + 로컬 알림 (마운트 후 비동기) */
+    if (inquiryBtn) {
+      checkAdminNewInquiries()
+        .then(({ count }) => {
+          if (count < 1 || inquiryBtn.querySelector('.notif-bell-dot')) return;
+          const dot = document.createElement('span');
+          dot.className = 'notif-bell-dot';
+          dot.setAttribute('aria-label', t('notificationCenter.aria_unread'));
+          inquiryBtn.appendChild(dot);
+          void notifyAdminNewInquiries(count); /* 권한 없으면 내부에서 조용히 건너뜀 */
+        })
+        .catch(() => { /* 배지 실패는 무시 */ });
+    }
 
     /* ---- 통계 카드 클릭 시 필터 적용 ---- */
     page.querySelectorAll('.editor-stat').forEach(stat => {

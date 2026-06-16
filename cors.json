@@ -5,7 +5,10 @@
       "http://localhost:4173",
       "https://daystory.app",
       "https://dokhu-daystory.web.app",
-      "https://dokhu-daystory.firebaseapp.com"
+      "https://dokhu-daystory.firebaseapp.com",
+      "https://localhost",
+      "http://localhost",
+      "capacitor://localhost"
     ],
     "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
     "maxAgeSeconds": 3600,

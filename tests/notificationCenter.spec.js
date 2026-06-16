@@ -54,6 +54,9 @@ const {
   getLastSeen,
   markAllRead,
   checkUnread,
+  getAdminInquiryLastSeen,
+  markAdminInquiriesRead,
+  checkAdminNewInquiries,
 } = await import('../src/js/services/notificationCenter.js');
 
 /* getDocs 가 돌려줄 스냅샷 헬퍼 */
@@ -336,5 +339,40 @@ describe('checkUnread — 배지용 경량 조회', () => {
   it('Firestore 오류가 나도 false 로 안전하게 폴백한다', async () => {
     getDocsMock.mockRejectedValue(new Error('network'));
     expect(await checkUnread('u1')).toBe(false);
+  });
+});
+
+describe('checkAdminNewInquiries — (어드민) 새 문의 배지', () => {
+  it('lastSeen 기본값은 0, markAdminInquiriesRead 후 갱신된다', () => {
+    expect(getAdminInquiryLastSeen()).toBe(0);
+    const before = Date.now();
+    markAdminInquiriesRead();
+    expect(getAdminInquiryLastSeen()).toBeGreaterThanOrEqual(before);
+  });
+
+  it('lastSeen 이후 접수된 문의 개수와 최신 시각을 센다', async () => {
+    getDocsMock.mockResolvedValue(snap([
+      { id: 'i1', data: { type: 'bug', createdAt: { toMillis: () => 5000 } } },
+      { id: 'i2', data: { type: 'feature', createdAt: { toMillis: () => 4000 } } },
+      { id: 'i3', data: { type: 'etc', createdAt: { toMillis: () => 1000 } } },
+    ]));
+    const res = await checkAdminNewInquiries();
+    expect(res.count).toBe(3);
+    expect(res.latestMs).toBe(5000);
+  });
+
+  it('lastSeen 이전 문의는 세지 않는다', async () => {
+    markAdminInquiriesRead(); /* lastSeen = now */
+    getDocsMock.mockResolvedValue(snap([
+      { id: 'i1', data: { type: 'bug', createdAt: { toMillis: () => 1 } } },
+    ]));
+    const res = await checkAdminNewInquiries();
+    expect(res.count).toBe(0);
+  });
+
+  it('Firestore 오류가 나도 count 0 으로 안전하게 폴백한다', async () => {
+    getDocsMock.mockRejectedValue(new Error('network'));
+    const res = await checkAdminNewInquiries();
+    expect(res).toEqual({ count: 0, latestMs: 0 });
   });
 });

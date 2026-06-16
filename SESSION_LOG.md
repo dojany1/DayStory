@@ -1456,3 +1456,278 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: 루트/public/dist/iOS/Android source asset은 모두 같은 새 `assets/editor_profile.png`였지만, 동일 URL 캐시와 Android `build/intermediates` stale 산출물 가능성이 남아 있었음. `utils/constants.js`에 `EDITOR_PROFILE_SRC = '/assets/editor_profile.png?v=3d675133'`를 추가하고 `editorstory.js`, `calendar.js`, `detail.js`, `editor.js`의 에디터 아바타 렌더링을 모두 이 상수로 통일. `npm run build`, `npx cap sync ios`, `npx cap sync android`, `./gradlew :app:mergeDebugAssets :app:mergeReleaseAssets`를 실행해 Android debug/release 중간 산출물까지 새 PNG와 cache-busted JS로 갱신.
 - **변경파일**: `src/js/utils/constants.js`, `src/js/pages/editorstory.js`, `src/js/pages/calendar.js`, `src/js/pages/detail.js`, `src/js/pages/editor.js`, `tests/swiper_lazy_init.spec.js`, `tests/ios_gpu_webp_guard.spec.js`, `android/app/src/main/assets/public/`, `android/app/build/intermediates/assets/`, `ios/App/App/public/`, `SESSION_LOG.md`.
 - **검증**: `npx vitest run tests/swiper_lazy_init.spec.js` 28/28 통과. `npm run build` 성공. `npx cap sync ios`/`npx cap sync android` 성공. `./gradlew :app:mergeDebugAssets :app:mergeReleaseAssets` 성공. 루트/public/dist/iOS/Android source/Android debug·release intermediate의 `editor_profile.png` SHA-256이 모두 `3d675133...`으로 동일함 확인. 전체 `npm test`는 487 passed / 6 failed / 6 skipped — 실패 6건은 기존 잔여 항목(`detail_nav.ui` 2, `editorstory.ui` 1, `inquiry_ui` 2, `ios_gpu_webp_guard` 1)으로 이번 변경 범위와 무관.
+
+### 2026-06-12 — Claude
+
+- **요구사항**: 카드 공유 이미지 캡처/레이아웃 구성 분석 및 문제점 파악.
+- **구현방법**: `src/js/services/sharing.js`의 `captureAndShareCard` As-Is(WYSIWYG) 캡처 파이프라인과 `src/js/components/cardDeck/cardFace.js`의 `.history-card-front` DOM 구조, `src/css/components.css` 카드 스타일을 분석. lazy 이미지 캡처 우려는 `imageToBase64`가 원본 img 상태와 무관하게 독립 fetch하므로 실제 문제 아님으로 재확인. `.history-card-image-wrap img`에 `width:100%; height:100%`와 함께 선언되어 적용되지 않던 죽은 `aspect-ratio: 4/3` 규칙을 제거.
+- **변경파일**: `src/css/components.css`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과.
+
+### 2026-06-12 (2) — Claude
+
+- **요구사항**: 워터마크(`buildWatermarkElement`) 인라인 스타일을 작업 트리에 남아있던 flex 기반 정렬 변경(`display:inline-flex; align-items:center`)에 맞춰 정리.
+- **구현방법**: 기존 `line-height + vertical-align:middle` 트릭과 "html2canvas 1.x는 flex align-items를 렌더링 못 한다"는 옛 주석을 제거하고, flex 정렬을 전제로 한 새 주석으로 교체. img/label의 불필요한 `vertical-align`/`line-height` 인라인 스타일 삭제, `wm.style.cssText` 속성 순서를 위치→레이아웃→박스모델→비주얼→텍스트 순으로 재정렬.
+- **변경파일**: `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과.
+
+### 2026-06-12 17:12 — Claude · 카드 공유 캡처 레이아웃 깨짐 근본 수정 (캡처 엔진 교체)
+
+- **요구사항**: `.history-card-front` 라이브 카드와 공유 캡처 PNG의 레이아웃이 달라짐(대형 날짜 `6.12`가 이미지 위로 흘러내림). 근본 원인 파악 + 해결.
+- **근본 원인**: 카드 레이아웃이 전부 Flexbox 의존(`.history-card-front` column, `.history-card-top` align-items:center, `.history-card-image-wrap` flex:1)인데 **html2canvas 1.4.1이 flexbox를 충실히 렌더하지 못함**. `flex:1`의 "남은 높이 채우기"와 수직 중앙정렬이 깨지고 `line-height:0.9` 대형 날짜 글리프가 다음 블록(이미지) 위로 겹쳐 그려짐. 과거 워터마크 flex 미지원 이슈(SESSION_LOG 2026-06-04)와 동일한 엔진 한계.
+- **구현방법**: 캡처 엔진을 **foreignObject 기반 `modern-screenshot`(1차) + `html2canvas`(폴백)** 로 교체. foreignObject는 DOM을 SVG에 담아 실제 브라우저 엔진이 렌더 → flex/line-height가 라이브와 1:1 일치. `captureWithModernScreenshot`(scale:2, filter로 `.card-actions` 제외, onCloneNode로 워터마크 주입) / `captureWithHtml2canvas`(레거시 onclone 폴백) 분리. line-height·Swiper transform·overlay 보정은 서브트리만 직렬화하므로 제거. CORS Base64 사전변환(§6.2)은 유지. WKWebView 실패 시 폴백으로 회귀 방지. **실기기 검증용 `DEBUG_CAPTURE_PREVIEW = true`로 켜둠 — 검증 후 false 복귀 필요.**
+- **변경파일**: `src/js/services/sharing.js`, `tests/sharing_capture_layout.spec.js`, `package.json`(+`modern-screenshot`), `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과, `npm run build` 성공(modern-screenshot 별도 청크 코드분할). 전체 `npx vitest run`은 6건 실패하나 모두 선재(.flipper transition / bottom-nav / inquiry / editor comment — 캡처와 무관).
+
+### 2026-06-12 17:22 — Claude · 캡처 워터마크 위치 변경 (상단 아이콘 자리)
+
+- **요구사항**: (실기기에서 레이아웃 버그 수정 확인됨) 캡처 이미지에서 워터마크를 기존 `.card-top-right` 아이콘 자리(상단)로 옮기고, 작은 날짜(`.card-meta`)를 그 아래에 배치.
+- **구현방법**: `buildWatermarkElement`에 `{ inline }` 옵션 추가(inline 시 `position:static`, 기본은 우하단 절대배치 폴백). 신규 `injectCaptureWatermark(cardClone)`가 복제 카드의 `.card-actions`(공유/북마크 버튼 슬롯) 내용을 `replaceChildren`로 워터마크(inline)로 교체 — `.card-meta`는 `.card-top-right` 컬럼에서 그 아래에 그대로 유지. 우측정렬은 `.card-actions`의 flex가 담당하되 html2canvas 폴백(block 처리) 대비 `text-align:right` 보강. `captureWithModernScreenshot`의 `filter`(card-actions 제외) 제거 → `onCloneNode`에서 injectCaptureWatermark 호출. 폴백 `captureWithHtml2canvas`도 `.card-actions` display:none 제거 후 동일 주입으로 일관화.
+- **변경파일**: `src/js/services/sharing.js`, `tests/sharing_capture_layout.spec.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과, `npm run build` 성공. `DEBUG_CAPTURE_PREVIEW`는 여전히 `true`(실기기 재확인용 — 검증 후 false 복귀 필요).
+
+### 2026-06-12 17:38 — Claude · 캡처 워터마크 시인성 개선
+
+- **요구사항**: 캡처 이미지 상단 워터마크 배지가 카드 배경 위에서 잘 보이지 않음(반투명 검정 배경 + 작은 크기로 대비 부족).
+- **구현방법**: `buildWatermarkElement` 스타일 조정 — 배경 `rgba(0,0,0,0.55)` → `rgba(20,20,20,0.82)`(거의 불투명)로 변경하고 `box-shadow:0 1px 6px rgba(0,0,0,0.25)` 추가해 밝은/어두운 카드 배경 모두에서 또렷하게. 아이콘 16px→18px, 폰트 12px→13px, 패딩 `6px 10px`→`7px 12px`로 확대해 작은 배지의 가독성 향상.
+- **변경파일**: `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과, `npm run build` 성공.
+
+### 2026-06-12 17:49 — Claude · 캡처 워터마크 폰트 색상 누락 수정
+
+- **요구사항**: 워터마크 텍스트("DayStory")가 흰색(#ffffff)으로 보이지 않음.
+- **구현방법**: `buildWatermarkElement`의 `wm.style.cssText` 배열에서 `'color:'`가 값 없이 빈 선언으로 남아있던 것을 `'color:#ffffff'`로 수정.
+- **변경파일**: `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과, `npm run build` 성공.
+
+### 2026-06-12 17:50 — Claude · 워터마크 텍스트 색상 여전히 미적용 — label 요소에 직접 color 지정
+
+- **요구사항**: 컨테이너(`wm`)에 `color:#ffffff`를 줬음에도 "DayStory" 라벨 텍스트가 여전히 밝은색으로 보이지 않음.
+- **원인/구현방법**: `<span>` 라벨이 `.card-meta`(우측 칼럼) 등 카드 컨텍스트의 `color` 선언을 상속/override 받는 것으로 보여, `label.style.cssText = 'color:#ffffff'`를 직접 지정해 부모 컨텍스트 색상에 의존하지 않도록 고정.
+- **변경파일**: `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과, `npm run build` 성공.
+
+### 2026-06-12 18:11 — Claude · 워터마크 아이콘 이미지 제거 + 배경 대비 재조정
+
+- **요구사항**: 실기기 캡처 결과에서 "DayStory" 텍스트가 여전히 흰색이 아닌 회색처럼 보임. 인덱스/특이도 문제인지 확인 요청.
+- **원인**: (1) `daystory_icon_light.png`/`daystory_icon_dark.png`는 정사각 배경 위에 "DayStory" 글자가 그려진 워드마크 이미지로, 우리 `<span>DayStory</span>` 텍스트와 중복되어 함께 보이며 시각적으로 어색함. (2) 동시에 `wm` 배경이 사용자/린터 편집으로 `rgba(0,0,0,0.2)`(거의 투명)까지 낮아져 있어, 밝은 카드 배경과 섞이며 흰 텍스트 대비가 떨어짐. color 선언 자체(인덱스/특이도)는 정상이었음.
+- **구현방법**: `buildWatermarkElement`에서 `<img>` 아이콘 엘리먼트를 제거하고 텍스트(`DayStory`)만 표시. 배경을 `rgba(0,0,0,0.85)`로 다시 올려 흰 텍스트와의 대비를 확보. 테스트에서 `img` 존재 검증 제거.
+- **변경파일**: `src/js/services/sharing.js`, `tests/sharing_capture_layout.spec.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과, `npm run build` 성공.
+
+### 2026-06-12 18:20 — Claude · 워터마크 배경 불투명도 재상승 (0.25 → 0.45)
+
+- **요구사항**: 캡처 이미지에서 "DayStory" 워터마크 텍스트가 다시 잘 안 보임.
+- **원인**: `wm.style.cssText`의 `color:#ffffff`(라벨도 동일)는 jsdom으로 직접 검사한 결과 정상 적용됨 (`color: rgb(255,255,255)`). 실제 원인은 배경 `rgba(0,0,0,0.25)`가 다시 낮아져 있었던 것 — 밝은 카드 배경과 섞이면 거의 옅은 회색 필이 되어 흰 글자와 명도 대비가 거의 사라짐. 이전 세션(17:50, 18:11)에서 0.85까지 올렸던 값이 이후 다시 0.25로 낮춰진 상태였음.
+- **구현방법**: 배경 불투명도를 `rgba(0,0,0,0.45)`로 재조정. (텍스트 색상 자체는 변경 없음 — 이미 정상.)
+- **변경파일**: `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과.
+
+### 2026-06-12 18:30 — Claude · 워터마크 color 값이 #fff/#000 무엇으로 바꿔도 무시되는 문제 — inline-flex 제거
+
+- **요구사항**: `color:#fff`/`color:#000` 어떤 값을 줘도 캡처 결과 텍스트 색상이 전혀 바뀌지 않음.
+- **원인**: 워터마크 컨테이너(`wm`)가 `display:inline-flex; align-items:center`를 사용 중이었음. html2canvas/foreignObject 캡처 엔진은 `inline-flex` 컨테이너의 자식 텍스트 노드에 대해 `color` 인라인 스타일을 무시하는 알려진 문제가 있다 (이전 구현에서 동일한 이유로 flex 대신 line-height 기반 정렬을 썼던 이력이 SESSION_LOG/주석에 남아 있음 — 이번 WIP에서 inline-flex로 바뀌며 재발).
+- **구현방법**: `buildWatermarkElement`를 `display:inline-flex/align-items:center` → `display:inline-block` + `height/line-height:28px` + `vertical-align:middle` 방식으로 변경(아이콘 없이 텍스트만이므로 line-height 정렬로 충분). 라벨에도 동일 line-height 부여. 배경은 `rgba(0,0,0,0.45)`로 복원(테스트 중 0.0으로 낮춰져 있었음), 색상값은 `#ffffff`로 통일.
+- **변경파일**: `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과, `npm run build` 성공.
+
+### 2026-06-12 18:35 — Claude · 워터마크 텍스트 색상 미반영 — 미해결 상태로 기록
+
+- **요구사항**: 직전 시도(18:30, inline-flex → inline-block 변경)에도 캡처 결과에서 워터마크 텍스트가 여전히 `#ffffff`로 보이지 않음. 해결되지 않았음을 로그에 남김.
+- **현황**: `buildWatermarkElement`의 `wm`/`label` 모두 `color:#ffffff` 인라인 스타일은 정상이고(jsdom 검사 통과), `inline-flex` 제거(`display:inline-block` + `line-height`)도 적용했지만 실기기/캡처 결과 기준 문제가 재현됨. 즉 지금까지 시도한 원인(특이도, inline-flex 텍스트 컬러 무시)으로는 설명되지 않는 추가 원인이 남아있는 상태.
+- **다음 시도 방향(미실행)**: (1) `captureWithModernScreenshot`의 `onCloneNode`가 실제로 호출되는지/`cloned`가 `.history-card-front`와 일치하는지 실기기 로그로 직접 확인, (2) modern-screenshot foreignObject 내부에서 `var(--font-ui)` 등 CSS 커스텀 속성이 미해석되어 `Rt()` 컴퓨티드 스타일 복사 단계에서 해당 노드 스타일 자체가 깨지는지 확인, (3) `DEBUG_CAPTURE_PREVIEW`(L.361 부근)를 켜서 실제 캡처 PNG를 즉시 화면에 띄워 어떤 워터마크 마크업이 그려지는지 픽셀 단위로 검증.
+- **변경파일**: `SESSION_LOG.md` (코드 변경 없음).
+
+### 2026-06-12 18:40 — Claude · 워터마크 회색 문제 — 다크/라이트 차이 기반 재진단 (배경 불투명도 0.7로 상향)
+
+- **요구사항**: 다크모드에서는 워터마크 텍스트가 `#fff`(흰색)로 정상 보이는데, 라이트모드에서만 회색으로 보인다는 추가 정보 확인.
+- **재진단**: `wm`/`label`의 `color:#ffffff` 인라인 스타일은 테마와 무관하게 동일하게 적용되므로(코드 자체는 동일), 테마별로 결과가 달라지는 것은 색상 값이 안 먹는 문제가 아니라 **명도 대비(contrast) 문제**로 재해석. 배경 `rgba(0,0,0,0.45)`를 밝은(라이트) 카드 배경 위에 합성하면 옅은 회색 필이 되어 흰 텍스트와 대비가 약해 "회색처럼" 보이고, 어두운(다크) 카드 배경 위에선 같은 필이 충분히 어두워 흰 텍스트가 또렷이 보임 — 즉 다크/라이트 차이는 카드 배경색에 따른 합성 결과 차이.
+- **이전 시도(18:30 inline-flex→inline-block, 18:35 !important)는 유지**하되 효과가 없었던 `!important`는 제거(인라인 스타일은 상속보다 항상 우선이라 무의미했음).
+- **구현방법**: 배경 불투명도를 `rgba(0,0,0,0.45)` → `rgba(0,0,0,0.7)`로 상향, 라이트/다크 카드 배경 모두에서 흰 텍스트 대비 확보.
+- **변경파일**: `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/sharing_capture_layout.spec.js` 7/7 통과.
+
+### 2026-06-12 19:05 — Claude · 공유 딥링크(Universal Links/App Links) + 스토어 자동 리다이렉트
+
+- **요구사항**: 이미지 공유에 딥링크와 미설치 유저 스토어 리다이렉트 추가. (1) `dokhu-daystory.web.app/share*` Universal Links/App Links 설정, (2) Capacitor `appUrlOpen`으로 `?date=` 파싱해 해당 날짜 카드로 이동, (3) UA 판별 스토어 리다이렉트 fallback, (4) 캡처 공유에 `url`/`text` 추가(이미지 file 동시 전송). Firebase Dynamic Links 사용 금지.
+- **구현방법**:
+  - **`src/js/utils/deepLink.js`** (신규) — 순수 빌더/파서. `buildShareDeepLink(date)`(`/share?date=YYYY-MM-DD`), `parseShareDeepLink(url)`(date/card/home 타입 판별, 도메인·경로·ISO 날짜 검증). DOM/네이티브 의존 없음 → 단위 테스트 대상.
+  - **`public/.well-known/apple-app-site-association`** (신규, 무확장자) — iOS AASA. ⚠️ appID는 App Store 숫자 ID가 아니라 `TEAMID.com.daystory.app`(TeamID 플레이스홀더). `/share`,`/share/*` paths+components.
+  - **`public/share/index.html`** (신규) — UA 판별 fallback. iOS→App Store(id6769716464), Android→Play(com.daystory.app), 데스크톱→웹앱 홈. iPadOS maxTouchPoints 보정, 스마트 앱 배너 meta.
+  - **`firebase.json`** — `/share`(bare) → `/share/index.html` rewrite를 `/share/**`(shareOg 함수)보다 먼저 추가. AASA Content-Type `application/json` 헤더 추가.
+  - **`src/main.js`** — 기존 위젯(`daystory://`) `appUrlOpen` 핸들러를 확장. `parseShareDeepLink` 우선 분기 추가 → date면 `setState('lastEditorStoryDate')`+editorstory 이동(`openEditorStoryAtDate`), card면 `#/share/<id>`. cold-start 큐(`pendingWidgetDeepLinkUrl`) 재사용.
+  - **`src/js/services/sharing.js`** — `captureAndShareCard`에 `options.url`/`options.date`/기본 `text`('오늘의 DayStory 일화 확인하기') 추가. 딥링크가 있으면 네이티브는 `files:[이미지]`+`url:웹링크`, 웹은 `navigator.share({url, files})`로 동시 전송. 딥링크 없으면 기존 동작 유지.
+  - **`editorstory.js`/`mystory.js`/`calendar.js`** — 공유 호출에 `date: story.publish_date` 전달.
+  - **`AndroidManifest.xml`** — MainActivity에 `autoVerify` App Links intent-filter(`https`/`dokhu-daystory.web.app`/`pathPrefix=/share`).
+  - **`ios/App/App/App.entitlements`** — `com.apple.developer.associated-domains`에 `applinks:dokhu-daystory.web.app` 추가.
+- **변경파일**: `src/js/utils/deepLink.js`, `tests/deepLink.spec.js`, `public/.well-known/apple-app-site-association`, `public/share/index.html`, `firebase.json`, `src/main.js`, `src/js/services/sharing.js`, `src/js/pages/editorstory.js`, `src/js/pages/mystory.js`, `src/js/pages/calendar.js`, `android/app/src/main/AndroidManifest.xml`, `ios/App/App/App.entitlements`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/deepLink.spec.js` 9/9 통과, `npm run build` 성공(dist/.well-known/AASA·dist/share/index.html 복사 확인). `npm test` 6 failed/496 passed — 실패 6건은 모두 본 변경과 무관한 기존 실패(components.css `.flipper`/`.editor-comment-bubble`, inquirySheet, 하단네비 아이콘; 세션 시작 시점부터 dirty였던 파일들).
+- **남은 수동 작업**: (1) AASA `TEAMID`를 실제 Apple Team ID로 치환, (2) iOS Xcode에서 Associated Domains capability 활성화 + 재빌드, (3) Android 재빌드(`npx cap sync` 후), (4) Firebase Hosting 배포(웹 well-known/fallback 반영), (5) `sharing.js`의 `DEBUG_CAPTURE_PREVIEW=true`(실기기 검증 토글)를 `false`로 되돌려야 실제 공유 시트가 열림(기존 상태, 본 작업 범위 외).
+
+### 2026-06-12 20:05 — Claude · 딥링크/공유 2건 보완 — iOS Universal Link developer 모드 + Android 캡처 백화 CORS 우회
+
+- **요구사항**: 실기기 테스트에서 발견된 2건. (문제1) iOS Universal Link 실패 — 메모/메시지에서도 앱 대신 Safari(폴백)로 열림. (문제2) modern-screenshot 교체 후 Android 캡처 시 외부 이미지가 백화(빈칸).
+- **진단**:
+  - 문제1: `firebase.json`의 AASA `Content-Type: application/json` 헤더(요구①)와 AASA JSON 구조(요구③, `appIDs`+`components` 모던 + `appID`+`paths` 레거시 호환)는 **이미 정상**. 실제 미적용은 요구②(developer 모드)뿐. 추가로 실패의 흔한 원인은 엔타이틀먼트 추가 후 미재빌드/프로비저닝 capability 누락/Apple CDN 캐시이며 developer 모드가 CDN 캐시를 우회한다.
+  - 문제2: base64 사전 변환(`imageToBase64`)·`finally` 원본 src 복구 로직은 **이미 존재**(제거된 게 아님). 진짜 원인은 `cors.json`의 Storage CORS allow-list에 **Capacitor 네이티브 origin(`https://localhost`/`capacitor://localhost`)이 누락** → `crossOrigin='anonymous'` 이미지 로드 실패 → null 반환 → 외부 src 유지 → modern-screenshot(foreignObject)가 cross-origin `<img>`를 못 그려 백화(`toDataURL`이 taint로 throw).
+- **구현방법**:
+  - **`ios/App/App/App.entitlements`** — associated-domains에 기존 `applinks:dokhu-daystory.web.app` 유지 + `applinks:dokhu-daystory.web.app?mode=developer` 추가.
+  - **`cors.json`** — origin 목록에 `https://localhost`, `http://localhost`, `capacitor://localhost` 추가.
+  - **`src/js/services/sharing.js`** — `imageToBase64`를 분기 구조로 리팩터링. 네이티브면 `CapacitorHttp.get({responseType:'blob'})`로 OS 네이티브 HTTP를 통해 바이트를 받아 base64로 변환(WebView CORS 자체 우회) → 실패 시 기존 `imageToBase64ViaCanvas` 폴백. 웹은 canvas 경로 유지. `@capacitor/core`에서 `CapacitorHttp` import 추가(새 패키지 불필요).
+- **변경파일**: `ios/App/App/App.entitlements`, `cors.json`, `src/js/services/sharing.js`, `SESSION_LOG.md`.
+- **검증**: `npx vitest run tests/deepLink.spec.js tests/sharing_capture_layout.spec.js tests/sharing_kakao.spec.js` 19/19 통과, `npm run build` 성공.
+- **남은 수동 작업**: (1) CORS 배포 — `gsutil cors set cors.json gs://<Storage 버킷>` 실행해야 서버에 반영(코드만으로는 미적용). (2) iOS `설정 > 개발자 > Associated Domains Development` 토글 ON + 개발 빌드여야 developer 모드 적용. (3) iOS/Android 재빌드 + Firebase Hosting 재배포.
+
+### 2026-06-12 20:33 — Claude · iOS Universal Link 미동작 — AASA appID 번들 ID 불일치 수정
+
+- **요구사항**: 실기기 재테스트 결과. (1) Android 이미지 백화 해결 확인. (2) Android 공유 시 이미지만 가고 딥링크 누락. (3) iOS는 앱이 깔려 있어도 딥링크가 스토어로 이동.
+- **진단**:
+  - 문제3(확정 버그): 라이브 AASA는 HTTP 200·`content-type: application/json`로 정상 서빙됨(curl 확인). 그러나 iOS 실제 번들 ID는 `com.dokhu.daystory`(project.pbxproj `PRODUCT_BUNDLE_IDENTIFIER`)인데 AASA의 appID는 `R4TV856AS9.com.daystory.app`로 **불일치**. iOS가 자기 appID(`R4TV856AS9.com.dokhu.daystory`)를 AASA에서 못 찾아 Universal Link를 포기 → Safari → 스토어. (Team ID `R4TV856AS9`는 `DEVELOPMENT_TEAM`과 일치. Android 패키지 `com.daystory.app`은 applicationId와 일치하므로 assetlinks/intent-filter는 정상 — iOS/Android 번들 ID가 원래 다름.)
+  - 문제2(OS 한계, 코드 버그 아님): Capacitor Share 8.0.1 Android 소스 확인 — 우리 코드가 넘긴 `text`+http `url`을 플러그인이 `EXTRA_TEXT = "CTA + url"`로 합쳐 인텐트에 넣음(링크는 첨부됨). 단 `files`가 있으면 인텐트 타입이 `image/png`로 덮여 카카오톡 등 다수 앱이 `EXTRA_TEXT`(링크)를 버림. 안드로이드 생태계 제약이라 JS에서 강제 불가. SMS·Gmail·메모 등 텍스트 보존 앱에서는 링크가 같이 감.
+- **구현방법**: `public/.well-known/apple-app-site-association`의 `appID`/`appIDs`를 `R4TV856AS9.com.daystory.app` → `R4TV856AS9.com.dokhu.daystory`로 수정. 문제2는 사용자 결정(현 상태 유지 + 안내)으로 코드 변경 없음.
+- **변경파일**: `public/.well-known/apple-app-site-association`, `SESSION_LOG.md`.
+- **검증**: `npm run build` 성공, `dist/.well-known/apple-app-site-association`에 수정된 appID 반영 + JSON 유효성 확인. 라이브 AASA 서빙 정상(curl 200/application/json).
+- **남은 수동 작업**: (1) **Firebase Hosting 재배포** 후 라이브 AASA가 `com.dokhu.daystory`로 갱신됐는지 curl 재확인. (2) iOS 앱 재빌드+재설치(엔타이틀먼트 dev 모드 포함) + 기기 `설정 > 개발자 > Associated Domains Development` ON. (3) Apple Developer Identifiers의 com.dokhu.daystory에 Associated Domains capability 활성화 여부 확인. (4) 캐시된 잘못된 연결을 비우기 위해 앱 삭제 후 재설치 권장.
+
+### 2026-06-15 14:26 — Claude · 카드 공유 시 텍스트 본문("[DayStory] …") 미포함
+
+- **요구사항**: 카드 공유 시 이미지·링크와 함께 전송되던 "[DayStory] 우주로 간 원숭이" 같은 텍스트 본문이 포함되지 않게 한다. (이미지·링크는 유지)
+- **진단**: `captureAndShareCard`가 공유 페이로드에 `text: '[DayStory] <제목>'`을 함께 실어 보냄. iOS Share 플러그인은 `text`를 공유 아이템(본문)으로 items에 추가, Android는 `EXTRA_TEXT = text + " " + url`로 합쳐 전송(플러그인 소스 재확인). 즉 `text`만 빼면 — iOS는 items에 url+이미지만, Android는 `text == null` 분기로 EXTRA_TEXT에 url(링크)만 담겨 링크는 유지되고 본문만 사라진다. `title`은 EXTRA_SUBJECT/iOS subject 용도일 뿐 공유 본문이 아니라 그대로 둠.
+- **구현방법**:
+  - **`src/js/services/sharing.js`** — `captureAndShareCard`의 네이티브/웹 공유 페이로드에서 `text` 제거. 미사용이 된 `SHARE_CTA_TEXT` 상수와 `const text = …` 라인, JSDoc의 `text` 옵션 설명 삭제. 단일 차단 지점(서비스 계층)에서 제거해 어느 호출부가 text를 넘겨도 전송되지 않게 함.
+  - **`src/js/pages/calendar.js` / `mystory.js` / `editorstory.js`** — 죽은 `text:`(그리고 calendar의 `const text`) 인자 제거 + 의도 주석 추가.
+- **변경파일**: `src/js/services/sharing.js`, `src/js/pages/calendar.js`, `src/js/pages/mystory.js`, `src/js/pages/editorstory.js`, `tests/sharing_share_no_text.spec.js`, `SESSION_LOG.md`.
+- **검증(TDD)**: 신규 `tests/sharing_share_no_text.spec.js` 2건(딥링크 유/무 모두 payload.text undefined·url/files 유지) 선작성 → 구현. 공유 테스트 3파일 12/12 통과. 전체 스위트의 기존 실패 6건(`ios_gpu_webp_guard`/`inquiry_ui`/`detail_nav.ui`/`editorstory.ui` — CSS·UI 관련)은 내 변경을 stash해도 동일하게 실패 → 진행 중 `components.css` 작업에 따른 기존 실패로 본 변경과 무관함을 확인.
+
+### 2026-06-15 14:48 — Claude · 카카오톡 인앱 브라우저 딥링크 → 스토어 이동 문제 해결 (Part 1+2)
+
+- **요구사항**: iOS/Android 앱이 설치돼 있어도 카카오톡에서 공유 링크를 누르면 앱이 아니라 스토어로 이동하는 문제의 원인 분석 및 해결.
+- **진단(근본 원인)**: 카카오톡(및 인스타/네이버 등) 인앱 브라우저는 Universal Link(iOS)/App Link(Android)를 **가로채지 않는다**(OS 설계상 Safari·메시지·메모 등 탭에서만 발동). 그래서 `https://dokhu-daystory.web.app/share?date=…` 가 카카오 WebView 안에서 그냥 웹페이지로 열리고, `public/share/index.html` 폴백이 **설치 여부와 무관하게 600ms 뒤 무조건 스토어로 리다이렉트**(기존 `window.location.replace(스토어)`). 이전 AASA/entitlement 수정으로는 인앱 WebView 한계를 못 바꾼다. 추가로 iOS는 커스텀 스킴 미등록(`Info.plist`에 Google 로그인 스킴만), Android도 `daystory://` intent-filter 없음, `routeWidgetDeepLink`는 `daystory://share` 미처리였음.
+- **구현방법(사용자 선택: Part 1+2 풀 솔루션)**:
+  - **`public/share/index.html`** — 스마트 폴백으로 재작성. UA로 iOS/Android/카카오 감지. Android는 `intent://share…#Intent;scheme=daystory;package=com.daystory.app;S.browser_fallback_url=<PlayStore>;end` 로 설치 시 앱 직접 실행·미설치 시 스토어. iOS 카카오톡은 `kakaotalk://web/openExternal?url=…` 로 Safari 탈출 후 재진입, Safari에서는 커스텀 스킴(`daystory://share…`)으로 앱 실행 시도 + `visibilitychange`/`pagehide`로 성공 감지해 스토어 타이머(1.6s) 취소. 데스크톱은 안내 페이지 유지. 탭용 '앱에서 열기' 버튼도 제공.
+  - **`src/js/utils/deepLink.js`** — `parseShareDeepLink`가 `daystory://share`/`daystory://share/<id>`/`daystory://share?date=…` 커스텀 스킴도 https App Link와 동일하게 파싱하도록 확장(프로토콜 분기 + 공통 rest 추출). `daystory://letter` 등 비-share 위젯 스킴은 그대로 null → 위젯 분기가 처리. main.js는 1단계에서 `parseShareDeepLink`를 먼저 부르므로 수정 불필요.
+  - **`ios/App/App/Info.plist`** — `CFBundleURLTypes`에 `daystory` 스킴 dict 추가(기존 Google 로그인 스킴 유지).
+  - **`android/app/src/main/AndroidManifest.xml`** — MainActivity에 `<data android:scheme="daystory"/>` intent-filter 추가(VIEW/DEFAULT/BROWSABLE).
+- **변경파일**: `public/share/index.html`, `src/js/utils/deepLink.js`, `ios/App/App/Info.plist`, `android/app/src/main/AndroidManifest.xml`, `tests/deepLink.spec.js`, `SESSION_LOG.md` (+ `npx cap sync`로 `ios/App/App/public/share/index.html`, `android/app/src/main/assets/public/share/index.html` 등 자동 갱신).
+- **검증(TDD)**: `tests/deepLink.spec.js`에 커스텀 스킴 파싱 5건 선작성 → 통과. `deepLink`+`sharing` 23/23 통과. 전체 503 passed, 기존 실패 6건(`ios_gpu_webp_guard`/`inquiry_ui`/`detail_nav.ui`/`editorstory.ui` — CSS·UI, 진행 중 components.css 작업 관련)만 잔존(본 변경과 무관). `npm run build` 성공, `npx cap sync android/ios` 성공(번들 폴백 페이지 갱신 확인).
+- **남은 수동 작업**: (1) **Firebase Hosting 재배포** — 새 `/share/index.html`이 서버에 올라가야 카카오 인앱에서 동작. (2) **iOS/Android 재빌드+재설치** — Info.plist(`daystory` 스킴)·Manifest(intent-filter) 반영. (3) iOS는 앱 삭제 후 재설치 권장(캐시 정리). (4) 참고: 텍스트 공유 경로(`sharing.js`의 `daystory.app` 도메인)는 entitlement/assetlinks 미설정 도메인이라 별건 — 카드 캡처 공유는 `dokhu-daystory.web.app` 사용으로 정상.
+
+### 2026-06-15 16:41 — Claude · 안드로이드 링크 전용 공유 + 동적 OG(썸네일=카드 이미지, 제목=DayStory - 날짜 제목)
+
+- **요구사항**: (A) 안드로이드 카카오톡 공유 시 이미지 대신 "썸네일 포함 링크"만 전송. (B) 그 링크 미리보기(OG)의 썸네일을 **카드 이미지**, 제목을 `DayStory - "날짜 카드제목"`(기존 "DayStory — 앱에서 열기" 대체)로 표시.
+- **진단(근본 원인)**: ① 안드로이드 카카오톡은 첨부 MIME이 `image/png`면 링크(EXTRA_TEXT)를 버린다 → 이미지를 빼고 링크만 보내면 텍스트/링크로 인식해 OG 카드 렌더. ② 카카오 스크래퍼는 JS 미실행이라 OG 태그가 **서버 응답 HTML**에 있어야 하는데, 실제 딥링크 `/share?date=…`는 firebase.json상 **정적** `public/share/index.html`(og 태그 없음)로 가서 `<title>`로 폴백됐고, 동적 OG 함수 `shareOg`는 `/share/<id>`에만 걸리고 도메인도 `daystory.app`로 어긋나 미사용 상태였다. ③ `stories`는 `publish_date`(YYYY-MM-DD)가 날짜 키.
+- **구현방법(TDD)**:
+  - **`functions/lib/og.js`** (신규, CommonJS 순수 헬퍼) — `buildOgTitle(date,title)`=`DayStory - 2026년 6월 15일 우주로 간 원숭이`, `detectShareTarget(path,query)`(date/id/home 분류, `?date=` 최우선), `pickImage`(image_url 우선), `renderSharePage(...)`(카드별 OG 메타 + 스마트 폴백 스크립트[intent://·kakaotalk·커스텀스킴·스토어]를 한 HTML로). XSS 이스케이프 포함.
+  - **`functions/index.js`** — `shareOg` 재작성: `?date=`→`publish_date` 등식 쿼리(복합 인덱스 불필요, status는 코드 필터)로 스토리 조회 → OG 메타+폴백 통합 HTML 응답(봇=메타, 사용자=앱 열기). 도메인 `dokhu-daystory.web.app`로 정정. 조회 실패해도 기본 OG+폴백으로 안전 동작. 기존 봇/유저 분기·`renderOgHtml`/`escapeHtml`/`pickImage`/`BOT_PATTERN`/`daystory.app` 상수 제거(og.js로 이관).
+  - **`firebase.json`** — rewrite `/share`를 정적 index.html → 함수로 변경(`/share`·`/share/**` 모두 `shareOg`). **`public/share/index.html` 삭제**(정적 파일이 함수 rewrite보다 우선하므로 반드시 제거). 결과: 기존 `?date=` 링크도 소급 OG 적용.
+  - **`src/js/services/sharing.js`** — `captureAndShareCard`에 `linkOnly` 옵션 추가. `linkOnly && shareUrl && isNative && getPlatform()==='android'`이면 캡처/이미지 생략하고 `Share.share({title,url,dialogTitle})`만 → 카카오 OG 미리보기. 딥링크 없으면 캡처 경로로 폴백. iOS·웹은 기존 이미지 공유 유지. (선언부를 함수 상단으로 끌어올려 중복 제거.)
+  - **`src/js/pages/calendar.js`** — 역사 카드 공유에만 `linkOnly: kind === 'history'` 전달. 개인 일기(mystory)는 공개 OG로 풀리지 않으므로(딥링크가 그 날짜의 역사 카드를 가리킴) 기존 이미지 캡처 공유 유지.
+- **변경파일**: `functions/lib/og.js`(신규), `functions/index.js`, `firebase.json`, `public/share/index.html`(삭제), `src/js/services/sharing.js`, `src/js/pages/calendar.js`, `tests/og.spec.js`(신규), `tests/sharing_link_only.spec.js`(신규), `SESSION_LOG.md`.
+- **검증(TDD)**: `tests/og.spec.js` 13건 + `tests/sharing_link_only.spec.js` 2건 선작성 → 구현 후 전부 통과(신규 OG/공유 17건 green). `node --check`로 functions 구문 확인. 전체 518 passed, 기존 실패 6건(`ios_gpu_webp_guard`/`inquiry_ui`/`detail_nav.ui`/`editorstory.ui` — CSS·UI, 진행 중 components.css 작업 관련)만 잔존(본 변경과 무관). `npm run build` 성공, `npx cap sync android` 성공.
+- **남은 수동 작업**: (1) **`firebase deploy --only functions,hosting`** — `shareOg` 함수 + 새 rewrite가 라이브에 올라가야 OG/폴백 동작(Blaze 필요, 첫 콜드스타트 약간 지연 가능). (2) **안드로이드 재빌드+재설치** — `linkOnly` 공유 동작 반영. (3) 배포 후 카카오톡에 카드 링크 공유해 OG 카드(썸네일=카드 이미지, 제목=`DayStory - 날짜 제목`) 렌더 확인. 갱신이 늦으면 카카오 캐시 때문일 수 있음(스크래퍼 재요청 대기). (4) 미정: iOS도 링크 전용으로 통일할지(현재 iOS는 이미지+링크 유지) — 사용자 확인 대기.
+
+#### 후속 수정 — `shareOg` 403 Forbidden (배포 후)
+
+- **증상**: 배포 후 iOS에서 링크 OG 썸네일이 사라지고, 링크 클릭 시 `Error: Forbidden — Your client does not have permission to get URL /share?date=… from this server`.
+- **원인**: Hosting rewrite가 넘기는 **Cloud Run(2세대 함수) 서비스가 비인증 호출을 미허용** → 카카오 스크래퍼·사용자 모두 403. 코드 로직이 아니라 **IAM(invoker) 권한** 문제. 이전엔 `/share?date=`가 정적 파일로 가서 안 드러나다가 전량 함수 라우팅으로 표면화.
+- **수정**: `functions/index.js`의 `shareOg` onRequest 옵션에 `invoker: 'public'` 추가(배포 시 allUsers 에 run.invoker 부여). `functions/index.js` 변경.
+- **적용**: `firebase deploy --only functions:shareOg` 재배포로 반영. (즉시 대안: Google Cloud Console → Cloud Run → shareog → "Allow unauthenticated", 또는 `gcloud run services add-iam-policy-binding <service> --region=asia-northeast3 --member=allUsers --role=roles/run.invoker`.) 조직 정책(DRS)이 막으면 정책 예외 필요(개인 프로젝트는 보통 무관).
+
+#### 후속 수정 2 — iMessage 링크 미리보기(썸네일/제목) 자체가 안 뜨는 문제
+
+- **증상**: 403은 해소(`curl`로 `/share?date=2026-06-15` 200 + OG 메타 정상 확인됨)됐는데, iMessage에서 카드 이미지+링크를 보내면 링크는 일반 텍스트로만 보이고 미리보기(썸네일/제목) 카드 자체가 생성되지 않음.
+- **원인**: `renderSharePage`의 `og:description`/`twitter:description`에 Firestore `summary`/`body` 원문의 **줄바꿈(\n)이 그대로** `content="..."` 속성값에 들어가 `<meta>` 태그가 여러 줄로 쪼개짐. `curl` 응답을 `cat -v`로 확인해 실제 raw `\n`이 속성 안에 있음을 확인. HTML 표준상 허용되지만 iMessage(LinkPresentation)·일부 스크래퍼는 이런 멀티라인 속성에서 OG 파싱에 실패해 미리보기 전체를 포기하는 것으로 보임.
+- **수정**: `functions/lib/og.js`의 `renderSharePage`에 `oneLine()` 헬퍼 추가 — `title`/`description` 모두 `\s+` → 단일 공백으로 접고 trim 후 escape. `<meta>` 속성이 항상 한 줄을 유지하도록 보장.
+- **변경파일**: `functions/lib/og.js`, `tests/og.spec.js`(줄바꿈 description → 한 줄 content 검증 케이스 1건 추가), `SESSION_LOG.md`.
+- **검증(TDD)**: `tests/og.spec.js` 14건(신규 1건 포함) 통과. 전체 519 passed, 기존 무관 실패 6건만 잔존(동일).
+- **남은 수동 작업**: **`firebase deploy --only functions:shareOg`** 재배포 필요(이번 og.js 변경 반영). 배포 후 카카오톡/iMessage 모두에 새 링크(또는 캐시 회피용 새 날짜) 공유해 썸네일+제목(`DayStory - 날짜 제목`) 카드 렌더 확인.
+
+### 2026-06-15 18:11 — Claude · 공유 버튼에 "카드 이미지 / 링크" 선택 시트 추가
+
+- **요구사항**: 공유 기능에 한 단계(뎁스)를 추가해, 공유 버튼 탭 시 "카드 이미지"(캡처 이미지 공유)와 "링크"(서버 동적 OG 미리보기 공유) 중 선택할 수 있게 한다.
+- **구현방법**:
+  - **`src/js/components/shareChoiceSheet.js`** (신규) — `confirmDialog`와 동일한 오버레이/애니메이션 패턴으로 "카드 이미지" / "링크" 두 옵션 + 취소 버튼을 렌더링하는 `showShareChoice()` 추가. 선택 결과를 `'image' | 'link' | null`(취소/배경탭/Esc)로 Promise resolve.
+  - **`src/js/services/sharing.js`** — `captureAndShareCard`의 `linkOnly` 분기를 안드로이드 전용에서 **모든 플랫폼 공통**으로 확장. `linkOnly && shareUrl`이면 캡처 없이 `Share.share({title, url, dialogTitle})`만 호출. 웹에서 Web Share API 미지원으로 실패하면 `navigator.clipboard.writeText`로 링크 복사 폴백(`share.link_copied` 토스트), 클립보드도 없으면 `share.link_failed` 토스트 + `ok:false`. 미사용 `platform` 변수 제거.
+  - **`src/js/pages/calendar.js` / `mystory.js` / `editorstory.js`** — 공유 버튼 클릭 시 캡처 대상(`.history-card-front`)이 있으면 `showShareChoice()`로 선택받고, `choice === 'link'`이면 `captureAndShareCard(..., { linkOnly: true })`, `'image'`면 `linkOnly: false`. 취소(`null`)면 아무 동작 없이 종료.
+  - **`src/i18n/{ko,en,ja,es,zh}.json`** — `share` 네임스페이스에 `choice_title`, `choice_image`, `choice_image_desc`, `choice_link`, `choice_link_desc`, `link_copied`, `link_failed` 7개 키 추가(5개 언어).
+  - **`src/css/components.css`** — `.share-choice-*` 클래스 추가(토큰만 사용, `confirm-dialog` 베이스 재사용).
+- **변경파일**: `src/js/components/shareChoiceSheet.js`(신규), `src/js/services/sharing.js`, `src/js/pages/calendar.js`, `src/js/pages/mystory.js`, `src/js/pages/editorstory.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `src/css/components.css`, `tests/shareChoiceSheet.spec.js`(신규), `tests/sharing_link_mode.spec.js`(신규), `SESSION_LOG.md`.
+- **검증(TDD)**: `tests/shareChoiceSheet.spec.js` 6건 + `tests/sharing_link_mode.spec.js` 4건(iOS/웹 linkOnly, 클립보드 폴백 포함) 신규 작성 → 모두 통과. 전체 529 passed / 6 failed(기존 무관: `ios_gpu_webp_guard`/`inquiry_ui`/`detail_nav.ui`/`editorstory.ui` — CSS·UI) / 6 skipped, `npm run build` 성공. `capacitor.config.json`/플러그인/`index.html` 변경 없어 `cap sync` 불필요.
+
+### 2026-06-15 18:31 — Claude · 카드 이미지 공유 시 안드로이드 갤러리/파일 저장 불가 수정 + 링크 미리보기 진단
+
+- **요구사항**: (1) "카드 이미지" 공유 선택 시 안드로이드에서 갤러리/파일에 바로 저장할 수 있게 수정(이미지 공유 정보에 URL 불포함 허용). (2) 안드로이드 "링크" 공유 시 미리보기 대신 URL만 표시되는 문제 진단 및 해결.
+- **(1) 진단**: `captureAndShareCard`의 네이티브 이미지 공유가 `{ title, url: shareUrl(딥링크), files: [캡처이미지], dialogTitle }`를 전달. Capacitor Share 안드로이드 구현(`SharePlugin.java`)은 `url`이 http(s)면 먼저 `EXTRA_TEXT=url`+`type=text/plain`을 설정한 뒤 `files`가 있으면 `type`만 `image/png`로 덮어써, 최종 인텐트가 `ACTION_SEND(type=image/png, EXTRA_STREAM=이미지, EXTRA_TEXT=딥링크)`가 됨. "사진(갤러리)에 저장"/"파일에 저장" 같은 순수 이미지 저장 타겟은 `EXTRA_TEXT`가 함께 실린 `ACTION_SEND`를 인텐트 필터에서 제외해 공유 시트에 노출되지 않음.
+- **(1) 수정**: `src/js/services/sharing.js`의 네이티브 이미지 공유 페이로드를 `{ title, files: [write.uri], dialogTitle }`로 통일(딥링크 유무 무관, `url` 완전히 제외). `EXTRA_TEXT` 없는 순수 `image/png` 공유 인텐트가 되어 갤러리/파일 저장 타겟이 정상 노출됨. iOS/웹은 `files`만으로도 동일하게 동작(영향 없음).
+- **(2) 진단**: 라이브 `shareOg`를 Android UA로 curl 검증(`/share`, `/share?date=2026-06-15` 모두) → `og:title`/`og:description`/`og:image`가 한 줄로 정상 응답(서버 정상). 안드로이드 "링크" 공유 코드도 이미 가장 깔끔한 형태(`url`만 전달 → `EXTRA_TEXT=순수 URL`, `type=text/plain`)라 JS/서버에서 추가로 손댈 부분이 없음. 카카오톡 등 수신 앱의 링크 미리보기는 OS 공유시트가 아니라 수신 앱(또는 카카오 서버)이 자체적으로 OG를 스크래핑/캐싱해 그리는데, 이번 세션 동안 같은 `/share?date=2026-06-15`가 403/구버전(OG 없음) 상태로 여러 번 호출됐던 이력이 있어 카카오 쪽에 "미리보기 없음"으로 캐시돼 있을 가능성이 큼(iOS의 iMessage LinkPresentation은 수신 기기가 매번 직접 가져오므로 캐시 영향이 없어 바로 정상으로 보임). 코드 수정 없음 — 카카오 디벨로퍼스 공유 디버거(`https://developers.kakao.com/tool/debugger/sharing`)에서 해당 URL "다시 가져오기"로 캐시 무효화 후 재검증, 또는 아직 공유한 적 없는 새 날짜로 테스트 권장.
+- **변경파일**: `src/js/services/sharing.js`, `tests/sharing_share_no_text.spec.js`, `tests/sharing_link_only.spec.js`, `SESSION_LOG.md`.
+- **검증(TDD)**: `tests/sharing_share_no_text.spec.js` 2건을 새 계약(이미지 공유는 항상 `files`만, `url`/`text` 없음)에 맞게 갱신, `tests/sharing_link_only.spec.js` 폴백 케이스 1건도 동일하게 갱신 → 모두 통과. 전체 529 passed / 6 failed(기존 무관, 동일) / 6 skipped, `npm run build` 성공. `cap sync` 불필요(JS 로직 변경만).
+- **남은 수동 작업**: (1) 안드로이드 재빌드+재설치 후 "카드 이미지" 공유 시트에 "갤러리에 저장"/"파일에 저장" 옵션이 노출되는지 확인. (2) 카카오 공유 디버거로 `/share?date=2026-06-15` 캐시를 갱신한 뒤 카카오톡에서 "링크" 공유 시 미리보기가 뜨는지 재확인(여전히 안 뜨면 사용한 앱/스크린샷 정보 필요).
+
+### 2026-06-15 18:45 — Claude · 안드로이드 "링크" 공유 시 "제목 - URL" 합성 텍스트 제거
+
+- **요구사항**: 안드로이드에서 카드 "링크" 공유 시, 메시지 앱(문자 등)이 "빅 브라더 - https://..." 처럼 제목과 URL을 합쳐서 본문에 넣는 바람에 링크 미리보기 위에 불필요한 텍스트가 함께 표시됨. 깔끔하게 링크 미리보기만 뜨도록 수정.
+- **진단**: `captureAndShareCard`의 linkOnly 분기가 `Share.share({ title, url: shareUrl, dialogTitle })`를 호출. Capacitor Share 안드로이드 구현은 `title`을 `EXTRA_SUBJECT`, `url`(http)을 `EXTRA_TEXT`로 각각 설정한다. 일부 메시지 앱은 `EXTRA_SUBJECT`+`EXTRA_TEXT`를 받으면 본문을 `"{subject} - {text}"` 형태로 합성해 표시 — 이전 세션(18:31)의 진단은 카카오 캐시 문제로 결론냈으나, 이번 스크린샷은 카카오가 아닌 메시지 앱의 제목+URL 합성이 원인.
+- **구현방법**: `src/js/services/sharing.js`의 linkOnly 공유 호출에서 `title`을 제거하고 `Share.share({ url: shareUrl, dialogTitle })`만 전달. `EXTRA_SUBJECT`가 없어져 메시지 앱이 합성 본문을 만들 근거가 사라지고, `EXTRA_TEXT`(순수 URL)만 남아 링크 미리보기가 깔끔하게 표시됨.
+- **변경파일**: `src/js/services/sharing.js`, `tests/sharing_link_only.spec.js`, `tests/sharing_link_mode.spec.js`, `SESSION_LOG.md`.
+- **검증(TDD)**: 두 spec의 `payload.title`/`Share.share` 호출 인자에서 `title`이 없음을 검증하도록 갱신 → 관련 6건 통과. 전체 529 passed / 6 failed(기존 무관: `ios_gpu_webp_guard`/`inquiry_ui`/`detail_nav.ui`/`editorstory.ui` — CSS·UI, 동일). `cap sync` 불필요(JS 로직 변경만).
+
+### 2026-06-15 19:05 — Claude · 안드로이드 카드 이미지 공유 시 "갤러리에 저장" 옵션 추가
+
+- **요구사항**: 안드로이드에서 "카드 이미지" 공유 선택 시 나타나는 공유 시트에 갤러리/파일 저장 타겟이 노출되지 않아 이미지를 저장할 방법이 없음. 직접 갤러리(사진 보관함)에 저장할 수단 필요.
+- **진단**: 이전 세션(18:31)에서 `EXTRA_TEXT` 제거로 순수 `image/png` 공유를 만들어 저장 타겟 노출을 시도했으나, 안드로이드 `ACTION_SEND` 공유 시트는 "갤러리/파일 저장"을 OS 차원에서 보장하지 않음(제조사·기기별 상이, 삼성은 "더보기"에 숨기거나 미노출). 공유 시트 의존으로는 해결 불가 → 앱에서 사진 보관함에 직접 저장하는 정공법 채택.
+- **구현방법(사용자 선택: 미디어 플러그인)**:
+  - **`package.json`** — `@capacitor-community/media@^9.1.0` 추가. ⚠️ 이 플러그인은 버전 번호가 Capacitor 메이저와 불일치 — v8.0.1은 Capacitor 7용(devDeps core ^7)이라 Capacitor 8 CLI가 메이저 불일치로 건너뜀. Capacitor 8용은 **9.x 라인**(peer `>=8.0.0`). firebase 버전 충돌로 `--legacy-peer-deps` 필요(기존과 동일).
+  - **`capacitor.config.json`** — `android.includePlugins` 화이트리스트에 `@capacitor-community/media` 추가. 이 allowlist에 없으면 `cap sync`가 플러그인을 무시함(이 프로젝트는 includePlugins로 명시 관리).
+  - **`src/js/services/sharing.js`** — `Media` import. `saveImageToGallery(dataUrl)` + `resolveAndroidAlbumIdentifier()` 헬퍼 추가. Android는 'DayStory' 앨범 identifier(필수)를 찾고 없으면 `createAlbum` 후 재조회해 `Media.savePhoto({ path: dataURL, albumIdentifier })`. iOS는 albumIdentifier 생략(카메라 롤, add-only 권한). `captureAndShareCard`에 `saveToGallery` 옵션 추가 — 캡처 완료 후 공유 대신 갤러리 저장 분기(네이티브 전용, 권한거부 시 `save-denied`로 구분, 저장 실패해도 공유 폴백 안 함). 기본 `androidGalleryMode:false`라 앱 전용 외부 미디어 폴더(`getExternalMediaDirs`)에 저장 → 미디어 스캔으로 갤러리 노출, 저장소 권한 프롬프트 불필요.
+  - **`src/js/components/shareChoiceSheet.js`** — `showShareChoice({ showSave })` 옵션 추가. `showSave:true`면 다운로드 아이콘의 "갤러리에 저장"(`data-choice="save"`) 옵션을 렌더. 사진 보관함 저장은 네이티브 의존이므로 호출부에서 `Capacitor.isNativePlatform()`일 때만 true 전달.
+  - **`src/js/pages/calendar.js` / `mystory.js` / `editorstory.js`** — `showShareChoice({ showSave: Capacitor.isNativePlatform() })` + `saveToGallery: choice === 'save'` 연결. `choice === 'save'`면 실패해도 공유 시트로 폴백하지 않음.
+  - **`src/i18n/{ko,en,ja,es,zh}.json`** — `share`에 `choice_save`/`choice_save_desc`/`save_success`/`save_failed`/`save_denied` 추가, `choice_image_desc`를 "이미지로 공유합니다"로 수정(저장과 역할 분리).
+- **변경파일**: `package.json`, `package-lock.json`, `capacitor.config.json`, `src/js/services/sharing.js`, `src/js/components/shareChoiceSheet.js`, `src/js/pages/calendar.js`, `src/js/pages/mystory.js`, `src/js/pages/editorstory.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/sharing_save_gallery.spec.js`(신규), `tests/shareChoiceSheet.spec.js`, `SESSION_LOG.md`.
+- **검증(TDD)**: `tests/sharing_save_gallery.spec.js` 4건(Android 기존/신규 앨범, iOS 카메라롤, 권한거부) + `shareChoiceSheet.spec.js` save 옵션 2건 신규 → 공유 관련 20건 모두 통과. 전체 535 passed / 6 failed(기존 무관: `ios_gpu_webp_guard`/`inquiry_ui`/`detail_nav.ui`/`editorstory.ui` — 작업트리에서 수정 중인 CSS·UI) / 6 skipped. `npm run build` 성공, `npx cap sync android` 성공(media@9.1.0 포함 10개 플러그인 감지).
+- **남은 수동 작업**: 안드로이드 재빌드+재설치 후 "카드 이미지"→"갤러리에 저장" 선택 시 사진 보관함의 DayStory 앨범에 저장되는지 확인. iOS는 `Info.plist`에 `NSPhotoLibraryAddUsageDescription` 추가 필요(추후).
+
+### 2026-06-15 19:16 — Claude · "나의 일화" 공유 시트에서 "링크" 옵션 제거
+
+- **요구사항**: "나의 일화"는 링크 공유를 지원하지 않으므로, 공유 방법 선택 시트에서 "링크" 옵션을 제거하고 카드 이미지 관련 항목만 유지.
+- **구현방법**: `showShareChoice()`에 `showLink`(기본 true) 옵션 추가 — false면 `data-choice="link"` 버튼을 렌더하지 않음(`linkOption` 분기). `mystory.js`의 공유 핸들러에서만 `showShareChoice({ showSave, showLink: false })`로 호출. 다른 호출부(calendar/editorstory)는 기본값 유지로 링크 옵션 그대로 노출.
+- **변경파일**: `src/js/components/shareChoiceSheet.js`, `src/js/pages/mystory.js`, `tests/shareChoiceSheet.spec.js`, `SESSION_LOG.md`.
+- **검증(TDD)**: `shareChoiceSheet.spec.js`에 `showLink:false`면 링크 옵션 미렌더 검증 1건 추가 → 9건 모두 통과. JS 로직 변경만이라 `cap sync` 불필요.
+
+### 2026-06-15 19:24 — Claude · 프로필 편집 모달에서 로그아웃 버튼 제거
+
+- **요구사항**: 프로필 편집 모달의 닉네임 입력 필드(`.profile-edit-field`) 안에 있던 로그아웃 버튼을 삭제.
+- **구현방법**: `src/js/pages/profile.js`에서 `#profile-logout-btn` 마크업과 해당 클릭 리스너(로그아웃·아바타 캐시 삭제·로그인 화면 리다이렉트 로직) 제거. 리스너 제거로 미사용이 된 `clearAvatarCache` import도 정리. `.profile-logout-btn` CSS는 영향 없어 유지.
+- **변경파일**: `src/js/pages/profile.js`, `SESSION_LOG.md`.
+- **검증**: JS 로직/마크업 변경만 → `cap sync` 불필요.
+
+### 2026-06-15 19:38 — Claude · 관리자 헤더 문의함 아이콘 새 문의 알림(빨간 점 + 로컬 알림)
+
+- **요구사항**: 관리자 페이지(editor) 헤더 우상단 문의함 아이콘에 새 사용자 문의가 접수되면 (1) 빨간 점 배지 표시, (2) 관리자에게 로컬 알림 발송.
+- **구현방법**: 알림 방식은 사용자 선택에 따라 앱 로컬 알림(App-Only, 추가 인프라 없음)으로 구현.
+  - **`src/js/services/notificationCenter.js`** — `ADMIN_LAST_SEEN_KEY`(localStorage) 기반 `getAdminInquiryLastSeen()`/`markAdminInquiriesRead()`와, 최신순 limit(20) 경량 조회로 `createdAt > lastSeen` 새 문의 개수를 세는 `checkAdminNewInquiries({max})` 추가(오류 시 count 0 폴백). 유저 종 배지(checkUnread/markAllRead) 패턴 재사용.
+  - **`src/js/services/notifications.js`** — 정기 스케줄과 무관한 1회성 즉시 로컬 알림 `notifyAdminNewInquiries(count)` 추가(id 1003, `daystory-channel-v1` 재사용). 네이티브는 권한 확보 후 발화, 웹은 이미 허용된 경우에만 best-effort(권한 요청 안 함). 권한 없으면 조용히 skip(빨간 점은 별도 노출).
+  - **`src/js/components/adminInquirySheet.js`** — `renderAdminInquiryButton({unread})`에 `.notif-bell-dot` 옵션 추가, `showAdminInquirySheet()` 진입 시 `markAdminInquiriesRead()` 호출(읽음 처리).
+  - **`src/js/pages/editor.js`** — 마운트 후 `checkAdminNewInquiries()` 비동기 호출 → count≥1이면 아이콘에 빨간 점 append + `notifyAdminNewInquiries(count)` 발송. 버튼 클릭 시 빨간 점 즉시 제거.
+  - **`src/i18n/{ko,en,ja,es,zh}.json`** — `adminInquiry`에 `aria_unread`/`notify_title`/`notify_body`({count}) 추가.
+- **변경파일**: `src/js/services/notificationCenter.js`, `src/js/services/notifications.js`, `src/js/components/adminInquirySheet.js`, `src/js/pages/editor.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `tests/notificationCenter.spec.js`, `tests/adminInquirySheet.spec.js`, `SESSION_LOG.md`.
+- **검증(TDD)**: `checkAdminNewInquiries`/lastSeen/폴백 4건 + 빨간 점 렌더·읽음 처리 3건 신규 → 대상 2개 파일 30건 모두 통과. `npm run build` 성공. 사전 실패(UI/CSS 가드, inquiry_ui 등)는 베이스라인과 동일한 환경성 실패로 회귀 0건. 새 플러그인 없음 → `cap sync` 불필요.
+
+### 2026-06-15 19:46 — Claude · 1.5.1 버전 빌드 준비 (버전 메타 확인 + cap sync)
+
+- **요구사항**: 현재 작업(관리자 문의 알림 등)까지를 1.5.1 버전으로 빌드하기 위한 버전 정보 정리 및 네이티브 반영.
+- **구현방법**: 버전 메타데이터 3곳은 직전 커밋 1.5.0 / versionCode 25 에서 working tree에 이미 1.5.1 / versionCode 26 으로 반영되어 있어 추가 수정 불필요 확인. (`package.json` `1.5.1`, `android/app/build.gradle` versionName `1.5.1`·versionCode `26`, iOS `MARKETING_VERSION` `1.5.1`). 앱은 버전을 `pkg.version`(웹)·`App.getInfo().version`(네이티브)로 읽으므로 소스 하드코딩 수정처 없음. `npm run build` 후 `npx cap sync android` / `npx cap sync ios` 로 dist 웹 자산과 버전을 양 네이티브 프로젝트에 반영.
+- **변경파일**: (버전 파일은 사전 반영 상태) `android/app/src/main/assets/public/*`·`ios/App/App/public/*`(빌드 산출물 동기화), `SESSION_LOG.md`.
+- **검증**: `npm run build` 성공. `cap sync android`·`cap sync ios` 모두 성공(웹 자산 복사 + 10개 플러그인 인식, `@capacitor/local-notifications@8.0.2` 포함). 
+- **남은 작업(수동)**: ① Android Studio / Xcode 에서 릴리스 빌드(iOS는 App Store 업로드 시 빌드번호 `CURRENT_PROJECT_VERSION` 정책에 따라 증가 검토 — 현재 1 유지). ② 출시 후 Firebase Remote Config `latest_version` 을 `1.5.1` 로 갱신해 구버전 클라이언트에 업데이트 배너가 뜨도록 설정.
+
+### 2026-06-16 14:30 — Claude · v1.5.1 세션 점검 + 로그아웃 아바타 캐시 정리 회귀 복구
+
+- **요구사항**: 현재까지 작업된 세션을 점검하고 v1.5.1로 커밋.
+- **점검 결과**: 버전 메타 3곳 일관(`package.json` 1.5.1, `android/app/build.gradle` versionName 1.5.1·versionCode 26, iOS `MARKETING_VERSION` 1.5.1). 전체 테스트 실행 중 회귀 1건 발견 — `avatar_cache_offline.spec.js`의 "로그아웃 시 clearAvatarCache 호출" 검증 실패.
+- **원인**: 직전 세션에서 프로필 편집 모달의 로그아웃 버튼을 제거하며 `profile.js`의 `clearAvatarCache` 호출도 함께 사라졌으나, 로그아웃 기능이 이미 `settingsSections.js`의 `handleLogout()`로 이동해 있었고 그쪽에는 캐시 정리가 없었음 → 로그아웃해도 이전 사용자 아바타 캐시(localStorage)가 기기에 잔존하는 실제 동작 누락.
+- **구현방법**:
+  - **`src/js/components/settingsSections.js`** — `clearAvatarCache` import 추가. `handleLogout()`에서 `signOut` 전에 `auth.currentUser?.uid`를 캡처하고, 세션 정리 단계에서 `clearAvatarCache(uid)` 호출.
+  - **`tests/avatar_cache_offline.spec.js`** — 로그아웃 이동을 반영해 스테일 정적 검증을 `profileSrc` → `settingsSectionsSrc`(신규 헬퍼) 대상으로 갱신.
+- **변경파일**: `src/js/components/settingsSections.js`, `tests/avatar_cache_offline.spec.js`, `SESSION_LOG.md`.
+- **검증**: `avatar_cache_offline.spec.js` 17건 전체 통과. 전체 542 passed / 6 failed(기존 베이스라인: `ios_gpu_webp_guard`·`inquiry_ui`·`detail_nav.ui`·`editorstory.ui` — 작업 중 CSS/UI 가드, 회귀 0건) / 6 skipped. `npm run build` 성공. JS 로직 변경만 → `cap sync` 불필요.

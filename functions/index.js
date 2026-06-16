@@ -35,126 +35,88 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 /* 재시도 백오프용 sleep */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const APP_URL = 'https://daystory.app';
-const SITE_NAME = 'DayStory';
-const DEFAULT_DESCRIPTION = '매일의 역사 한 조각을 카드로 만나는 큐레이션 서비스';
-const DEFAULT_OG_IMAGE = `${APP_URL}/images/og-default.png`;
+/* 동적 OG 조립 순수 헬퍼 (lib/og.js) — 계약 테스트는 tests/og.spec.js */
+const {
+  ORIGIN,
+  DEFAULT_DESCRIPTION,
+  buildOgTitle,
+  pickImage,
+  detectShareTarget,
+  renderSharePage,
+} = require('./lib/og');
 
-const BOT_PATTERN = /facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|TelegramBot|WhatsApp|Discordbot|kakaotalk-scrap|KAKAOTALK|Daum|Naver|Yeti|Googlebot|Pinterest|Embedly|redditbot|vkShare|Applebot/i;
-
-function escapeHtml(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function pickImage(story) {
-  if (!story) return DEFAULT_OG_IMAGE;
-  // Firestore stories 스키마: image_url(풀사이즈), image_thumb_url(썸네일).
-  // SNS 미리보기는 큰 이미지가 좋으므로 image_url 우선.
-  const url = story.image_url || story.image_thumb_url;
-  return (typeof url === 'string' && url.startsWith('http')) ? url : DEFAULT_OG_IMAGE;
-}
-
-function renderOgHtml({ title, description, image, url }) {
-  const T = escapeHtml(title);
-  const D = escapeHtml(description);
-  const I = escapeHtml(image);
-  const U = escapeHtml(url);
-  return `<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8" />
-<title>${T}</title>
-<meta name="description" content="${D}" />
-<meta property="og:site_name" content="${SITE_NAME}" />
-<meta property="og:type" content="article" />
-<meta property="og:title" content="${T}" />
-<meta property="og:description" content="${D}" />
-<meta property="og:image" content="${I}" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-<meta property="og:url" content="${U}" />
-<meta property="og:locale" content="ko_KR" />
-<meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="${T}" />
-<meta name="twitter:description" content="${D}" />
-<meta name="twitter:image" content="${I}" />
-<link rel="canonical" href="${U}" />
-<meta http-equiv="refresh" content="0; url=${U}" />
-</head>
-<body>
-<p><a href="${U}">${T}</a></p>
-</body>
-</html>`;
+/**
+ * findStoryByDate — publish_date 가 일치하는 발행 스토리 1건을 찾는다.
+ * 단일 등식 쿼리(복합 인덱스 불필요) 후 status 는 코드에서 필터한다.
+ */
+async function findStoryByDate(date) {
+  const snap = await admin.firestore()
+    .collection('stories')
+    .where('publish_date', '==', date)
+    .limit(5)
+    .get();
+  if (snap.empty) return null;
+  const docs = snap.docs.map((d) => d.data());
+  return docs.find((s) => s.status === 'published') || docs[0] || null;
 }
 
 /**
- * shareOg — /share/:id 요청 처리
+ * shareOg — /share, /share?date=YYYY-MM-DD, /share/<id|날짜> 요청 처리.
  *
- * 호출 흐름:
- *   봇 → 동적 OG HTML 응답
- *   일반 사용자 → SPA로 (firebase.json 의 별도 rewrite 또는 redirect)
+ * 봇(카카오 스크래퍼 등)·사용자 모두에게 "카드별 OG 메타 + 스마트 폴백
+ * 스크립트" 가 담긴 동일 HTML 을 응답한다.
+ *   · 봇    → <head> OG 메타로 링크 미리보기(썸네일=카드 이미지,
+ *             제목='DayStory - 날짜 제목')를 그린다.
+ *   · 사용자 → <script> 가 설치 시 앱 열기(intent://·커스텀 스킴),
+ *             미설치 시 스토어로 보낸다(인앱 브라우저 대응).
  *
- * 단, Hosting rewrite로 모든 /share/** 가 이 함수로 들어오므로
- * 일반 사용자에게는 같은 페이지에 SPA index.html을 보내야 합니다.
- * 이 구현은 두 경우 모두 처리: 봇 → OG, 사용자 → SPA shell + JS가 라우팅.
+ * 조회 실패·데이터 없음이어도 기본 OG + 폴백으로 안전 동작한다
+ * (앱 열기 흐름이 절대 깨지지 않도록 best-effort).
  */
 exports.shareOg = onRequest(
-  { region: 'asia-northeast3', cors: false, maxInstances: 5 },
+  /* invoker: 'public' — Hosting rewrite 가 이 함수(Cloud Run)를 비인증으로
+     호출할 수 있도록 allUsers 에게 run.invoker 를 부여한다. 없으면 카카오
+     스크래퍼·사용자 모두 403(Forbidden)을 받아 OG 썸네일이 안 뜨고
+     링크 클릭이 막힌다. */
+  { region: 'asia-northeast3', cors: false, maxInstances: 5, invoker: 'public' },
   async (req, res) => {
-    const ua = req.headers['user-agent'] || '';
-    const isBot = BOT_PATTERN.test(ua);
-
-    // /share/<id> 또는 /detail/<id>
-    const match = req.path.match(/\/(share|detail)\/([^/?#]+)/);
-    const storyId = match ? decodeURIComponent(match[2]) : null;
-    const url = storyId ? `${APP_URL}/share/${encodeURIComponent(storyId)}` : APP_URL;
+    const target = detectShareTarget(req.path, req.query);
 
     let story = null;
-    if (storyId) {
-      try {
-        const snap = await admin.firestore().collection('stories').doc(storyId).get();
-        if (snap.exists) story = snap.data();
-      } catch (err) {
-        console.warn('Firestore 조회 실패:', err.message);
+    let canonical = `${ORIGIN}/share`;
+    let dateForTitle = '';
+
+    try {
+      if (target.kind === 'date') {
+        canonical = `${ORIGIN}/share?date=${encodeURIComponent(target.date)}`;
+        dateForTitle = target.date;
+        story = await findStoryByDate(target.date);
+      } else if (target.kind === 'id') {
+        canonical = `${ORIGIN}/share/${encodeURIComponent(target.id)}`;
+        const snap = await admin.firestore().collection('stories').doc(target.id).get();
+        if (snap.exists) {
+          story = snap.data();
+          if (story && story.publish_date) dateForTitle = story.publish_date;
+        }
       }
+    } catch (err) {
+      console.warn('shareOg 스토리 조회 실패:', err.message);
     }
 
-    const title = story
-      ? `${story.figure_name || story.title || SITE_NAME} — ${SITE_NAME}`
-      : SITE_NAME;
+    const cardTitle = story ? (story.figure_name || story.title || '') : '';
+    const title = buildOgTitle(dateForTitle, cardTitle);
     const description = (story && (story.summary || story.body)) || DEFAULT_DESCRIPTION;
     const image = pickImage(story);
 
+    /* 봇 OG 캐시를 주기적으로 갱신할 수 있도록 짧게 캐시 */
     res.set('Cache-Control', 'public, max-age=300, s-maxage=300');
-
-    if (isBot) {
-      res.set('Content-Type', 'text/html; charset=utf-8');
-      return res.status(200).send(renderOgHtml({
-        title,
-        description: String(description).slice(0, 200),
-        image,
-        url,
-      }));
-    }
-
-    // 사용자: SPA로. firebase.json rewrites 가 이 함수보다 우선 처리하지 않으므로
-    // 동일 도메인의 index.html 을 그대로 보냅니다.
-    // (공유 URL 클릭 → /share/:id → 함수 → /#/detail/:id 로 클라이언트 라우팅)
     res.set('Content-Type', 'text/html; charset=utf-8');
-    return res.status(200).send(`<!doctype html>
-<html lang="ko"><head>
-<meta charset="UTF-8" />
-<meta http-equiv="refresh" content="0; url=${APP_URL}/#/detail/${encodeURIComponent(storyId || '')}" />
-<title>${escapeHtml(title)}</title>
-</head><body>
-<script>location.replace(${JSON.stringify(`${APP_URL}/#/detail/${storyId || ''}`)});</script>
-<p><a href="${APP_URL}/#/detail/${escapeHtml(storyId || '')}">계속하기</a></p>
-</body></html>`);
+    return res.status(200).send(renderSharePage({
+      title,
+      description: String(description).slice(0, 200),
+      image,
+      url: canonical,
+    }));
   }
 );
 

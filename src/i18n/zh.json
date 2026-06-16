@@ -340,7 +340,10 @@
     "meta_os": "OS",
     "meta_model": "设备型号",
     "meta_manufacturer": "制造商",
-    "meta_user": "用户"
+    "meta_user": "用户",
+    "aria_unread": "新咨询",
+    "notify_title": "新用户咨询",
+    "notify_body": "您有 {count} 条未读咨询"
   },
   "search": {
     "title": "搜索",
@@ -449,7 +452,19 @@
     "open_in_app": "在应用中打开",
     "generating": "正在生成分享图片...",
     "image_failed": "图片分享失败。",
-    "card_share": "分享卡片"
+    "card_share": "分享卡片",
+    "choice_title": "选择分享方式",
+    "choice_image": "卡片图片",
+    "choice_image_desc": "以图片形式分享",
+    "choice_link": "链接",
+    "choice_link_desc": "分享带预览的链接",
+    "choice_save": "保存到相册",
+    "choice_save_desc": "将卡片图片保存到相册",
+    "link_copied": "链接已复制",
+    "link_failed": "链接分享失败。",
+    "save_success": "已保存到相册",
+    "save_failed": "保存到相册失败",
+    "save_denied": "需要存储权限"
   },
   "camera": {
     "permission_message": "需要相机/照片访问权限。请在设置中允许。",

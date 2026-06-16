@@ -22,7 +22,7 @@ import { dismissWelcomeBadge } from '../components/navBadge.js';
 import { renderNotificationBell, showNotificationCenter } from '../components/notificationCenterSheet.js';
 import { checkUnread } from '../services/notificationCenter.js';
 import { hasSeen, markSeen, ONBOARDING_FLAGS } from '../services/onboarding.js';
-import { saveAvatarToCache, loadAvatarFromCache, clearAvatarCache } from '../utils/avatarCache.js';
+import { saveAvatarToCache, loadAvatarFromCache } from '../utils/avatarCache.js';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 
@@ -277,7 +277,6 @@ function openProfileEditModal() {
           <input type="text" class="profile-edit-input" id="profile-nickname-input"
                  value="${escapeHtml(currentNickname)}" maxlength="20" placeholder="${t('profile.nickname_placeholder')}" />
           <div class="profile-edit-hint">${t('profile.max_hint')}</div>
-          <button class="profile-logout-btn" id="profile-logout-btn" type="button">${t('settings.row_logout')}</button>
         </div>
       </div>
 
@@ -319,25 +318,6 @@ function openProfileEditModal() {
   document.addEventListener('keydown', onKey);
   overlay.querySelector('#profile-edit-close').addEventListener('click', closeModal);
   overlay.querySelector('#profile-edit-cancel').addEventListener('click', closeModal);
-  overlay.querySelector('#profile-logout-btn').addEventListener('click', async () => {
-    /* 로그아웃 시 아바타 캐시 삭제 */
-    clearAvatarCache(modalUid);
-    closeModal();
-    try {
-      if (auth) {
-        const { signOut } = await import('firebase/auth');
-        await Promise.race([signOut(auth), new Promise(r => setTimeout(r, 2000))]);
-      }
-    } catch (err) {
-      console.warn('로그아웃 오류 (무시됨):', err);
-    }
-    setState('user', null);
-    setState('profile', null);
-    const nav = document.getElementById('bottom-nav');
-    if (nav) nav.style.display = 'none';
-    window.location.hash = '#/login';
-    showToast(t('toast.logged_out'), 'success');
-  });
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeModal();
   });

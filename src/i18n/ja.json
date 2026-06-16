@@ -340,7 +340,10 @@
     "meta_os": "OS",
     "meta_model": "端末モデル",
     "meta_manufacturer": "メーカー",
-    "meta_user": "ユーザー"
+    "meta_user": "ユーザー",
+    "aria_unread": "新しいお問い合わせ",
+    "notify_title": "新しいお問い合わせ",
+    "notify_body": "未確認のお問い合わせが{count}件あります"
   },
   "search": {
     "title": "検索",
@@ -449,7 +452,19 @@
     "open_in_app": "アプリで見る",
     "generating": "共有画像を生成中...",
     "image_failed": "画像の共有に失敗しました。",
-    "card_share": "カードをシェア"
+    "card_share": "カードをシェア",
+    "choice_title": "共有方法を選択してください",
+    "choice_image": "カード画像",
+    "choice_image_desc": "画像として共有します",
+    "choice_link": "リンク",
+    "choice_link_desc": "プレビュー付きリンクを共有します",
+    "choice_save": "ギャラリーに保存",
+    "choice_save_desc": "カード画像を写真ライブラリに保存します",
+    "link_copied": "リンクをコピーしました",
+    "link_failed": "リンクの共有に失敗しました。",
+    "save_success": "ギャラリーに保存しました",
+    "save_failed": "ギャラリーへの保存に失敗しました",
+    "save_denied": "保存の権限が必要です"
   },
   "camera": {
     "permission_message": "カメラ・写真へのアクセス権限が必要です。設定で許可してください。",

@@ -21,6 +21,7 @@ import { localizedStory } from '../utils/storyI18n.js';
 import { t, tList } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { showConfirm } from '../components/confirmDialog.js';
+import { showShareChoice } from '../components/shareChoiceSheet.js';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import {
@@ -514,21 +515,29 @@ function _wireCardListeners(overlay, story, mode, bookmarkedIds, options, close)
     editorBtn.addEventListener('click', showEditorBubble);
   }
 
-  /* 캡처 공유 헬퍼 */
+  /* 캡처 공유 헬퍼 — "카드 이미지 / 링크" 선택 시트로 공유 방법을 고른다. */
   const shareCardCapture = async (kind) => {
     const cardEl = overlay.querySelector('.history-card-front');
     if (!cardEl) {
       await shareStory(story, { kind, includeImage: kind === 'history' });
       return;
     }
+    const choice = await showShareChoice({ showSave: Capacitor.isNativePlatform() });
+    if (!choice) return; /* 취소 */
+
     const dialogTitle = kind === 'history' ? t('calendar.share_history') : t('mystory.share');
-    const text = `[DayStory] ${story.title || story.figure_name || ''}`.trim();
+    /* 공유 본문 텍스트는 넣지 않는다 — 이미지/링크만 공유(사용자 요청).
+       "링크" 선택 시 캡처를 생략하고 링크만 공유 → SNS 미리보기로 카드
+       이미지+제목 노출(서버 shareOg). "갤러리 저장" 선택 시 공유 대신 저장. */
     const res = await captureAndShareCard(cardEl, {
       title: story.title || story.figure_name || 'DayStory',
-      text,
+      date: story.publish_date,
       dialogTitle,
+      linkOnly: choice === 'link',
+      saveToGallery: choice === 'save',
     });
-    if (!res.ok && res.reason !== 'cancelled') {
+    /* 갤러리 저장은 실패해도 공유 시트로 폴백하지 않는다(사용자 의도가 "저장"). */
+    if (choice !== 'save' && !res.ok && res.reason !== 'cancelled') {
       await shareStory(story, { kind, includeImage: kind === 'history' });
     }
   };

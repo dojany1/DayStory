@@ -14,17 +14,22 @@ import { escapeHtml } from '../utils/sanitize.js';
 import { t } from '../i18n/index.js';
 import { lockScroll, unlockScroll } from '../utils/scrollLock.js';
 import { renderPageHeader, bindPageHeaderBack } from './pageHeader.js';
-import { fetchAdminInquiries } from '../services/notificationCenter.js';
+import { fetchAdminInquiries, markAdminInquiriesRead } from '../services/notificationCenter.js';
 import { formatDate, openNotifDetailSheet } from './notificationCenterSheet.js';
 
 const INBOX_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>';
 
 /**
  * renderAdminInquiryButton — 관리자 페이지 헤더 우측에 끼울 문의함 버튼 HTML.
+ * @param {Object} [opts]
+ * @param {boolean} [opts.unread] true 면 새 문의 빨간 점(.notif-bell-dot)을 노출한다.
  * @returns {string}
  */
-export function renderAdminInquiryButton() {
-  return `<button type="button" id="admin-inquiry-btn" class="notif-bell-btn page-header-back" aria-label="${escapeHtml(t('adminInquiry.aria_open'))}">${INBOX_SVG}</button>`;
+export function renderAdminInquiryButton({ unread = false } = {}) {
+  return `<button type="button" id="admin-inquiry-btn" class="notif-bell-btn page-header-back" aria-label="${escapeHtml(t('adminInquiry.aria_open'))}">`
+    + INBOX_SVG
+    + (unread ? `<span class="notif-bell-dot" aria-label="${escapeHtml(t('notificationCenter.aria_unread'))}"></span>` : '')
+    + '</button>';
 }
 
 function renderInquiryItem(i) {
@@ -67,6 +72,9 @@ function buildAdminInquiryDetails(i) {
  */
 export function showAdminInquirySheet() {
   if (document.querySelector('.admin-inquiry-overlay')) return null;
+
+  /* 문의함을 연 시점을 읽음으로 기록 → 이후 새 문의 빨간 점 판정 기준 갱신. */
+  markAdminInquiriesRead();
 
   const overlay = document.createElement('div');
   overlay.className = 'notification-settings-overlay admin-inquiry-overlay';

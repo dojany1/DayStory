@@ -20,6 +20,27 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- App Links: https://dokhu-daystory.web.app/share* 를 앱에서 직접 연다.
+                 autoVerify + /.well-known/assetlinks.json 으로 도메인 소유를 검증한다. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                    android:host="dokhu-daystory.web.app"
+                    android:pathPrefix="/share" />
+            </intent-filter>
+
+            <!-- 커스텀 스킴: 카카오톡 등 인앱 브라우저는 App Link 를 가로채지 않으므로
+                 /share fallback 페이지가 intent://…;scheme=daystory;package=… 로 앱을
+                 직접 실행한다. 그 intent 가 이 필터로 들어와 daystory://share… 를 연다. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="daystory" />
+            </intent-filter>
         </activity>
 
         <provider

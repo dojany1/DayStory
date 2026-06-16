@@ -340,7 +340,10 @@
     "meta_os": "SO",
     "meta_model": "Modelo del dispositivo",
     "meta_manufacturer": "Fabricante",
-    "meta_user": "Usuario"
+    "meta_user": "Usuario",
+    "aria_unread": "Nuevas consultas",
+    "notify_title": "Nueva consulta de usuario",
+    "notify_body": "Tienes {count} consultas sin leer"
   },
   "search": {
     "title": "Buscar",
@@ -449,7 +452,19 @@
     "open_in_app": "Abrir en la app",
     "generating": "Generando imagen para compartir...",
     "image_failed": "No se pudo compartir la imagen.",
-    "card_share": "Compartir tarjeta"
+    "card_share": "Compartir tarjeta",
+    "choice_title": "Elige cómo compartir",
+    "choice_image": "Imagen de la tarjeta",
+    "choice_image_desc": "Comparte la tarjeta como imagen",
+    "choice_link": "Enlace",
+    "choice_link_desc": "Comparte un enlace con vista previa",
+    "choice_save": "Guardar en galería",
+    "choice_save_desc": "Guarda la imagen de la tarjeta en tus fotos",
+    "link_copied": "Enlace copiado",
+    "link_failed": "No se pudo compartir el enlace.",
+    "save_success": "Guardado en la galería",
+    "save_failed": "No se pudo guardar en la galería",
+    "save_denied": "Se requiere permiso de almacenamiento"
   },
   "camera": {
     "permission_message": "Se requiere acceso a la cámara o fotos. Permite el acceso en Ajustes.",

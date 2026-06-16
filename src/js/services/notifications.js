@@ -135,6 +135,65 @@ export async function registerNotificationActionNavigation(navigate) {
   return actionListenerHandle;
 }
 
+/* 관리자 "새 사용자 문의" 즉시 알림 — 정기 스케줄(1001/1002)과 겹치지 않는 별도 id. */
+const ADMIN_INQUIRY_NOTIF_ID = 1003;
+
+/**
+ * notifyAdminNewInquiries — 관리자에게 "새 사용자 문의" 1회성 로컬 알림을 즉시 띄운다.
+ * 정기 스케줄(syncNotificationSchedules)과 무관하며, 권한이 없으면 조용히 건너뛴다
+ * (아이콘 빨간 점 배지는 별도로 노출되므로 알림 실패가 곧 정보 누락은 아니다).
+ * @param {number} count 새 문의 개수 (1 이상일 때만 발송)
+ * @returns {Promise<boolean>} 실제로 알림을 띄웠으면 true
+ */
+export async function notifyAdminNewInquiries(count) {
+  const n = Number(count) || 0;
+  if (n < 1) return false;
+
+  const title = t('adminInquiry.notify_title');
+  const body = t('adminInquiry.notify_body').replace('{count}', String(n));
+
+  if (isNativeNotificationsAvailable()) {
+    try {
+      const granted = await ensureNativeNotificationPermission();
+      if (!granted) return false;
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: ADMIN_INQUIRY_NOTIF_ID,
+          title,
+          body,
+          /* schedule 생략 → 즉시 발화 */
+          autoCancel: true,
+          sound: 'default',
+          channelId: 'daystory-channel-v1',
+          extra: { type: 'adminInquiry', route: '/editor' },
+        }],
+      });
+      return true;
+    } catch (err) {
+      console.warn('관리자 문의 알림 실패:', err);
+      return false;
+    }
+  }
+
+  /* 웹(백오피스) — 이미 허용된 경우에만 best-effort 로 노출. 권한 요청은 하지 않는다. */
+  if (hasWebNotificationPermission()) {
+    try {
+      const notification = new Notification(title, {
+        body,
+        tag: 'daystory-admin-inquiry',
+        data: { type: 'adminInquiry', route: '/editor' },
+      });
+      notification.onclick = () => webNotificationNavigate?.('/editor');
+      return true;
+    } catch (err) {
+      console.warn('관리자 문의 웹 알림 실패:', err);
+      return false;
+    }
+  }
+
+  return false;
+}
+
 function buildNotificationRequest(type, setting) {
   const meta = NOTIFICATION_META[type];
   const { hour, minute } = parseTime(setting.time);

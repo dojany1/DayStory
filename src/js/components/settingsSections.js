@@ -21,6 +21,7 @@ import { saveLanguagePreference } from '../services/userProfile.js';
 import { resetOnboarding } from '../services/onboarding.js';
 import { refreshWelcomeBadge } from './navBadge.js';
 import { showInquirySheet } from './inquirySheet.js';
+import { clearAvatarCache } from '../utils/avatarCache.js';
 
 const LANGS = ['ko', 'en', 'ja', 'es', 'zh'];
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -433,6 +434,7 @@ function bindRow(page, selector, handler) {
 }
 
 async function handleLogout() {
+  const uid = auth?.currentUser?.uid;
   try {
     if (auth) {
       await Promise.race([
@@ -444,6 +446,7 @@ async function handleLogout() {
     console.warn('로그아웃 오류 (무시됨):', err);
   }
 
+  clearAvatarCache(uid);
   localStorage.removeItem(AUTH_SESSION_KEY);
   setState('user', null);
   setState('profile', null);

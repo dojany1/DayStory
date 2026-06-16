@@ -6,8 +6,13 @@ const { fetchAdminInquiriesMock, openNotifDetailSheetMock } = vi.hoisted(() => (
   openNotifDetailSheetMock: vi.fn(),
 }));
 
+const { markAdminInquiriesReadMock } = vi.hoisted(() => ({
+  markAdminInquiriesReadMock: vi.fn(),
+}));
+
 vi.mock('../src/js/services/notificationCenter.js', () => ({
   fetchAdminInquiries: fetchAdminInquiriesMock,
+  markAdminInquiriesRead: markAdminInquiriesReadMock,
 }));
 
 vi.mock('../src/js/components/notificationCenterSheet.js', () => ({
@@ -33,6 +38,7 @@ vi.mock('../src/js/i18n/index.js', () => ({
     'notificationCenter.error': '불러오지 못했어요. 잠시 후 다시 시도해주세요.',
     'notificationCenter.status_answered': '답변 완료',
     'notificationCenter.answer_label': '관리자 답변',
+    'notificationCenter.aria_unread': '새 문의',
     'inquiry.type_bug': '버그',
     'inquiry.type_feature': '기능 제안',
     'common.close': '닫기',
@@ -53,6 +59,7 @@ describe('adminInquirySheet — 관리자 문의 알람 탭', () => {
       hasMore: false,
     });
     openNotifDetailSheetMock.mockReset();
+    markAdminInquiriesReadMock.mockReset();
   });
 
   afterEach(() => {
@@ -67,6 +74,22 @@ describe('adminInquirySheet — 관리자 문의 알람 탭', () => {
     const btn = wrap.querySelector('#admin-inquiry-btn');
     expect(btn).not.toBeNull();
     expect(btn.getAttribute('aria-label')).toBe('사용자 문의 목록 열기');
+    expect(btn.querySelector('.notif-bell-dot')).toBeNull();
+  });
+
+  it('unread=true 면 새 문의 빨간 점을 노출한다', () => {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = renderAdminInquiryButton({ unread: true });
+
+    const dot = wrap.querySelector('#admin-inquiry-btn .notif-bell-dot');
+    expect(dot).not.toBeNull();
+    expect(dot.getAttribute('aria-label')).toBe('새 문의');
+  });
+
+  it('문의함을 열면 읽음 처리(markAdminInquiriesRead)를 호출한다', async () => {
+    showAdminInquirySheet();
+    await flush();
+    expect(markAdminInquiriesReadMock).toHaveBeenCalledTimes(1);
   });
 
   it('문의 알람 탭을 열면 전체 사용자 문의 목록을 읽기 전용 리스트로 보여준다', async () => {

@@ -23,6 +23,8 @@ import { resolve } from 'node:path';
 const root = (p) => resolve(process.cwd(), p);
 const profileSrc = () => readFileSync(root('src/js/pages/profile.js'), 'utf8');
 const mainSrc = () => readFileSync(root('src/main.js'), 'utf8');
+const settingsSectionsSrc = () =>
+  readFileSync(root('src/js/components/settingsSections.js'), 'utf8');
 
 /* ─── 유닛 테스트: avatarCache.js 함수 동작 ─── */
 
@@ -143,8 +145,8 @@ describe('profile.js — 오프라인 아바타 캐시 연동 (정적 분석)', 
     expect(profileSrc()).toMatch(/saveAvatarToCache\s*\(/);
   });
 
-  it('clearAvatarCache 를 호출한다 (로그아웃 시 정리)', () => {
-    expect(profileSrc()).toMatch(/clearAvatarCache\s*\(/);
+  it('clearAvatarCache 를 호출한다 (로그아웃 시 정리 — settingsSections.js)', () => {
+    expect(settingsSectionsSrc()).toMatch(/clearAvatarCache\s*\(/);
   });
 
   it('navigator.onLine 을 체크하여 오프라인 분기 처리', () => {

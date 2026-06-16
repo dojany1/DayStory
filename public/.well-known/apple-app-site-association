@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "R4TV856AS9.com.dokhu.daystory",
+        "appIDs": ["R4TV856AS9.com.dokhu.daystory"],
+        "paths": ["/share", "/share/*"],
+        "components": [
+          { "/": "/share", "comment": "DayStory 날짜 카드 공유 진입(쿼리 ?date=)" },
+          { "/": "/share/*", "comment": "DayStory 카드 공유 진입(/share/<id>)" }
+        ]
+      }
+    ]
+  }
+}

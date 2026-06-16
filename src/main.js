@@ -30,8 +30,9 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
    - state.js   : 앱 전체에서 공유하는 데이터 저장소
    - firebase.js: 백엔드(Firebase) 연결 설정
 */
-import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath } from './js/router.js';
+import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath, forceRoute } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
+import { parseShareDeepLink } from './js/utils/deepLink.js';
 import { initI18n } from './js/i18n/index.js';
 import { auth, db } from './js/services/firebase.js';
 import { refreshWelcomeBadge } from './js/components/navBadge.js';
@@ -159,13 +160,46 @@ setBeforeNavigate((path) => {
 
 
 /* ─────────────────────────────────────────────
-   섹션 6: Android 홈 화면 위젯 딥링크 처리
-   ───────────────────────────────────────────── */
+   섹션 6: 딥링크 처리 (공유 Universal Link + 위젯 커스텀 스킴)
+   ─────────────────────────────────────────────
+   - https://dokhu-daystory.web.app/share?date=YYYY-MM-DD  → 해당 날짜 카드
+   - https://dokhu-daystory.web.app/share/<id>             → 특정 카드(레거시)
+   - daystory://letter, daystory://diary/new               → 안드로이드 위젯
+   파싱은 순수 유틸(utils/deepLink.js)에 위임하고, 여기서는 라우팅만 한다.
+*/
 let pendingWidgetDeepLinkUrl = null;
+
+/**
+ * openEditorStoryAtDate — 에디터 일화(메인)를 특정 날짜 카드로 연다.
+ * editorstory 가 getState('lastEditorStoryDate') 로 초기 슬라이드를 고르는
+ * 기존 메커니즘을 재사용한다. 이미 그 화면이면 forceRoute 로 재마운트한다.
+ */
+function openEditorStoryAtDate(date) {
+  if (date) setState('lastEditorStoryDate', date);
+  if (getCurrentPath() === '/editorstory') {
+    forceRoute();
+  } else {
+    navigate('/editorstory');
+  }
+}
 
 function routeWidgetDeepLink(url) {
   if (!url) return false;
 
+  /* 1) 공유 Universal Link / App Link (https://.../share...) */
+  const share = parseShareDeepLink(url);
+  if (share) {
+    if (share.type === 'date') {
+      openEditorStoryAtDate(share.date);
+    } else if (share.type === 'card') {
+      navigate(`/share/${share.id}`);
+    } else {
+      navigate('/editorstory');
+    }
+    return true;
+  }
+
+  /* 2) 위젯 커스텀 스킴 (daystory://) */
   let parsed;
   try {
     parsed = new URL(url);

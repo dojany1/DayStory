@@ -6,5 +6,12 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:dokhu-daystory.web.app</string>
+		<!-- 개발/테스트 시 Apple CDN 캐시를 우회해 서버에서 AASA를 직접 가져온다.
+		     iOS 설정 > 개발자 > Associated Domains Development 토글 ON + 개발 빌드에서만 적용. -->
+		<string>applinks:dokhu-daystory.web.app?mode=developer</string>
+	</array>
 </dict>
 </plist>

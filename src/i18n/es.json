@@ -1,5 +1,8 @@
 {
   "_NOTE": "Spanish UI translations. Card content (figure_name, body, summary, editor_comment) is authored separately in the editor's language tabs.",
+  "splash": {
+    "subtitle": "Hoy, en la historia"
+  },
   "common": {
     "loading": "Cargando...",
     "retry": "Reintentar",
@@ -422,10 +425,16 @@
     "row_contact": "Contacto y sugerencias",
     "toast_coming_soon": "Función en camino. ¡Mantente atento!",
     "withdraw_title": "Eliminar cuenta",
-    "withdraw_message": "¿Seguro que quieres eliminar tu cuenta?\nTu cuenta y todos los datos (historias, archivo, fotos subidas, etc.) se eliminarán permanentemente y no se podrán recuperar.",
+    "withdraw_message": "¿Seguro que quieres eliminar tu cuenta?\nTras la eliminación hay un período de gracia de {days} días. Si vuelves a iniciar sesión dentro de ese plazo, podrás restaurar tu cuenta. Una vez pasado el período de gracia, tu cuenta y todos los datos se eliminarán permanentemente.",
     "withdraw_confirm": "Eliminar",
     "withdraw_hold": "Mantén pulsado {seconds}s para eliminar...",
     "withdraw_hold_done": "Eliminando...",
+    "withdraw_scheduled": "Eliminación de cuenta programada. Vuelve a iniciar sesión en {days} días para restaurar tu cuenta.",
+    "restore_title": "Restaurar cuenta",
+    "restore_message": "Tu cuenta está programada para eliminación. (Faltan {days} días para la eliminación permanente)\n¿Restaurar tu cuenta y seguir usando DayStory?",
+    "restore_confirm": "Restaurar cuenta",
+    "restore_done": "Tu cuenta ha sido restaurada.",
+    "account_already_deleted": "Esta cuenta ya ha sido eliminada.",
     "toast_reauth": "Por seguridad, vuelve a iniciar sesión antes de eliminar tu cuenta.",
     "toast_withdraw_error": "Se produjo un error al eliminar tu cuenta.",
     "row_tutorial": "Ver el tutorial de nuevo",

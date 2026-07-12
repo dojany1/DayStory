@@ -1,5 +1,8 @@
 {
   "_NOTE": "Japanese UI translations. Card content (figure_name, body, summary, editor_comment) is authored separately in the editor's language tabs.",
+  "splash": {
+    "subtitle": "今日、歴史の中で"
+  },
   "common": {
     "loading": "読み込み中...",
     "retry": "再試行",
@@ -422,10 +425,16 @@
     "row_contact": "お問い合わせ・ご提案",
     "toast_coming_soon": "準備中の機能です。アップデートをお待ちください！",
     "withdraw_title": "アカウント削除",
-    "withdraw_message": "本当にアカウントを削除しますか?\nアカウントとすべてのデータ（話、保管庫、アップロード写真など）が完全に削除され、復元できません。",
+    "withdraw_message": "本当にアカウントを削除しますか?\n削除後は{days}日間の猶予期間があり、その間に再度ログインすればアカウントを復元できます。猶予期間が過ぎると、アカウントとすべてのデータが完全に削除されます。",
     "withdraw_confirm": "削除",
     "withdraw_hold": "削除まで{seconds}秒間押し続けてください...",
     "withdraw_hold_done": "削除を実行します...",
+    "withdraw_scheduled": "アカウントの削除を予約しました。{days}日以内に再度ログインすると復元できます。",
+    "restore_title": "アカウント復元",
+    "restore_message": "アカウントは削除予約状態です。（完全削除まであと{days}日）\nアカウントを復元して利用を続けますか？",
+    "restore_confirm": "アカウント復元",
+    "restore_done": "アカウントを復元しました。",
+    "account_already_deleted": "このアカウントはすでに削除されています。",
     "toast_reauth": "セキュリティポリシーにより、再度ログインしてから退会できます。",
     "toast_withdraw_error": "アカウント削除の処理中にエラーが発生しました。",
     "row_tutorial": "チュートリアルをもう一度見る",

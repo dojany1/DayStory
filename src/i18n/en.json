@@ -1,5 +1,8 @@
 {
   "_NOTE": "English UI translations. Card content (figure_name, body, summary, editor_comment) is authored separately in the editor's language tabs.",
+  "splash": {
+    "subtitle": "Today, in history"
+  },
   "common": {
     "loading": "Loading...",
     "retry": "Try again",
@@ -422,10 +425,16 @@
     "row_contact": "Contact & Suggestions",
     "toast_coming_soon": "This feature is coming soon. Stay tuned!",
     "withdraw_title": "Delete account",
-    "withdraw_message": "Are you sure you want to delete your account?\nYour account and all data (stories, archive, uploaded photos, etc.) will be permanently deleted and cannot be recovered.",
+    "withdraw_message": "Are you sure you want to delete your account?\nAfter deletion there is a {days}-day grace period. If you sign in again within that time, you can restore your account. Once the grace period passes, your account and all data are permanently deleted.",
     "withdraw_confirm": "Delete",
     "withdraw_hold": "Hold for {seconds}s to delete...",
     "withdraw_hold_done": "Deleting...",
+    "withdraw_scheduled": "Account deletion scheduled. Sign in again within {days} days to restore your account.",
+    "restore_title": "Restore account",
+    "restore_message": "Your account is scheduled for deletion. ({days} days left until permanent deletion)\nRestore your account and keep using DayStory?",
+    "restore_confirm": "Restore account",
+    "restore_done": "Your account has been restored.",
+    "account_already_deleted": "This account has already been deleted.",
     "toast_reauth": "For security, please log in again before deleting your account.",
     "toast_withdraw_error": "An error occurred while deleting your account.",
     "row_tutorial": "Replay tutorial",

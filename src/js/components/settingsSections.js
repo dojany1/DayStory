@@ -10,14 +10,13 @@ import { auth } from '../services/firebase.js';
 
 /* escapeText 는 escapeHtml alias (Wave 5 통합) */
 const escapeText = escapeHtml;
-import { signOut, deleteUser } from 'firebase/auth';
-import {
-  purgeStorageUserData,
-  purgeFirestoreUserData,
-  reauthenticateUser,
-} from '../services/userCleanup.js';
+import { signOut } from 'firebase/auth';
 import { t, getCurrentLang, setLang } from '../i18n/index.js';
-import { saveLanguagePreference } from '../services/userProfile.js';
+import {
+  saveLanguagePreference,
+  scheduleAccountDeletion,
+  ACCOUNT_DELETION_GRACE_DAYS,
+} from '../services/userProfile.js';
 import { resetOnboarding } from '../services/onboarding.js';
 import { refreshWelcomeBadge } from './navBadge.js';
 import { showInquirySheet } from './inquirySheet.js';
@@ -462,7 +461,7 @@ async function handleWithdraw() {
 
   const isConfirmed = await showConfirm({
     title: t('settings.withdraw_title'),
-    message: t('settings.withdraw_message'),
+    message: t('settings.withdraw_message', { days: ACCOUNT_DELETION_GRACE_DAYS }),
     confirmText: t('settings.withdraw_confirm'),
     cancelText: t('common.cancel'),
     danger: true,
@@ -476,41 +475,25 @@ async function handleWithdraw() {
   try {
     await _doWithdraw(auth.currentUser);
   } catch (err) {
-    if (err?.code === 'auth/requires-recent-login' || err?.code === 'auth/user-token-expired') {
-      const ok = await reauthenticateUser(auth.currentUser);
-      if (ok) {
-        try {
-          await _doWithdraw(auth.currentUser);
-          return;
-        } catch (retryErr) {
-          console.error('재인증 후 탈퇴 재시도 실패:', retryErr);
-        }
-      }
-      showToast(t('settings.toast_reauth'), 'error');
-      localStorage.removeItem(AUTH_SESSION_KEY);
-      setState('user', null);
-      const nav = document.getElementById('bottom-nav');
-      if (nav) nav.style.display = 'none';
-      navigate('/login');
-      return;
-    }
-    console.error('회원 탈퇴 실패:', err);
+    console.error('회원 탈퇴(예약) 실패:', err);
     showToast(err?.message || t('settings.toast_withdraw_error'), 'error');
   }
 }
 
-/* Storage → Firestore → deleteUser 순서로 진행 (역순이면 권한 상실로 Storage 청소 실패) */
+/* 소프트 삭제: 즉시 하드 삭제 대신 탈퇴를 예약(status=pending_deletion)하고 로그아웃한다.
+   실제 데이터·계정 삭제는 유예기간(7일) 만료 후 Cloud Function(purgePendingDeletions)이 수행.
+   유예 기간 안에 다시 로그인하면 main.js 게이트에서 복구된다.
+   deleteUser 를 클라이언트에서 호출하지 않으므로 재인증(requires-recent-login)도 불필요하다. */
 async function _doWithdraw(user) {
-  const uid = user.uid;
-  await purgeStorageUserData(uid);
-  await purgeFirestoreUserData(uid);
-  await deleteUser(user);
+  const scheduledAt = await scheduleAccountDeletion(user.uid);
+  if (!scheduledAt) throw new Error(t('settings.toast_withdraw_error'));
+  await signOut(auth);
   localStorage.removeItem(AUTH_SESSION_KEY);
   setState('user', null);
   setState('profile', null);
   const nav = document.getElementById('bottom-nav');
   if (nav) nav.style.display = 'none';
-  showToast(t('toast.withdraw_done'), 'success');
+  showToast(t('settings.withdraw_scheduled', { days: ACCOUNT_DELETION_GRACE_DAYS }), 'success');
   navigate('/login');
 }
 

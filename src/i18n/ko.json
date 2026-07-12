@@ -1,4 +1,7 @@
 {
+  "splash": {
+    "subtitle": "오늘, 역사 속에서"
+  },
   "common": {
     "loading": "불러오는 중...",
     "retry": "다시 시도",
@@ -421,10 +424,16 @@
     "row_contact": "문의 및 건의하기",
     "toast_coming_soon": "준비중인 기능입니다. 업데이트를 기다려주세요!",
     "withdraw_title": "회원 탈퇴",
-    "withdraw_message": "정말로 회원을 탈퇴하시겠습니까?\n계정과 모든 데이터(일화, 보관함, 업로드 사진 등)가 영구적으로 삭제되며 복구할 수 없습니다.",
+    "withdraw_message": "정말로 회원을 탈퇴하시겠습니까?\n탈퇴 후 {days}일간 유예 기간이 있으며, 이 기간 안에 다시 로그인하면 계정을 복구할 수 있습니다. 유예 기간이 지나면 계정과 모든 데이터가 영구적으로 삭제됩니다.",
     "withdraw_confirm": "탈퇴",
     "withdraw_hold": "탈퇴까지 {seconds}초간 누르고 계세요...",
     "withdraw_hold_done": "탈퇴를 진행합니다...",
+    "withdraw_scheduled": "탈퇴가 예약되었습니다. {days}일 이내에 다시 로그인하면 계정을 복구할 수 있어요.",
+    "restore_title": "계정 복구",
+    "restore_message": "탈퇴 예약 상태입니다. (완전 삭제까지 {days}일 남음)\n계정을 복구하고 계속 이용하시겠어요?",
+    "restore_confirm": "계정 복구",
+    "restore_done": "계정이 복구되었습니다.",
+    "account_already_deleted": "이미 탈퇴 처리된 계정입니다.",
     "toast_reauth": "보안 정책에 따라 다시 로그인한 뒤 탈퇴하실 수 있습니다.",
     "toast_withdraw_error": "회원 탈퇴 처리 중 오류가 발생했습니다.",
     "row_tutorial": "튜토리얼 다시 보기",

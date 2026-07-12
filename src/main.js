@@ -33,11 +33,14 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
 import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath, forceRoute } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
 import { parseShareDeepLink } from './js/utils/deepLink.js';
-import { initI18n } from './js/i18n/index.js';
+import { initI18n, t, applyLangFromProfile } from './js/i18n/index.js';
 import { auth, db } from './js/services/firebase.js';
 import { refreshWelcomeBadge } from './js/components/navBadge.js';
 import { saveAvatarToCache } from './js/utils/avatarCache.js';
 import { initReadHistory } from './js/services/readHistory.js';
+import { getDeletionState, cancelAccountDeletion, ACCOUNT_DELETION_GRACE_DAYS } from './js/services/userProfile.js';
+import { showConfirm } from './js/components/confirmDialog.js';
+import { showToast } from './js/components/toast.js';
 import pkg from '../package.json';
 
 /* 부팅 시 즉시 언어 감지 — 라우트 등록 이전에 실행되어야 모든 페이지가 t()를 안전하게 사용 가능 */
@@ -49,13 +52,18 @@ document.body.addEventListener('touchstart', function() {}, { passive: true });
 {
   const versionEl = document.getElementById('splash-version');
   if (versionEl) versionEl.textContent = `DayStory v${pkg.version}`;
+
+  /* 스플래시 부제목을 현재 언어로 주입 — index.html 하드코딩 한글 제거(초기 로딩 언어 충돌 방지).
+     initI18n()가 위에서 이미 동기로 언어를 확정했으므로 t()가 올바른 언어를 반환한다. */
+  const subtitleEl = document.getElementById('splash-subtitle');
+  if (subtitleEl) subtitleEl.textContent = t('splash.subtitle');
 }
 
 /*
  * Firebase Auth 함수 임포트
  * - onAuthStateChanged : 로그인/로그아웃 상태가 바뀔 때 자동 호출되는 리스너
  */
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 /*
  * Firestore 함수 임포트
@@ -275,6 +283,49 @@ function checkAndStartApp() {
   void checkForAppUpdate();
 }
 
+/* 탈퇴 예약(soft delete) 상태로 로그인/세션복원한 사용자를 처리한다.
+   - expired : 유예기간 만료 → 이미 탈퇴 처리된 계정으로 간주하고 로그아웃.
+   - pending : 복구 여부를 물어, 복구하면 예약을 취소(cancelAccountDeletion)하고 그대로 앱 사용,
+               거절하면 로그아웃하여 탈퇴 예약을 유지한다.
+   확인 다이얼로그는 브라우저 confirm 대신 showConfirm 사용(CLAUDE.md). */
+async function handlePendingDeletion(state, uid) {
+  if (state === 'expired') {
+    showToast(t('settings.account_already_deleted'), 'error');
+    try { await signOut(auth); } catch (err) { console.warn('로그아웃 실패:', err); }
+    return;
+  }
+
+  const profile = getState('profile');
+  const scheduledMs = Date.parse(profile?.deletionScheduledAt);
+  const daysLeft = Number.isFinite(scheduledMs)
+    ? Math.max(1, Math.ceil((scheduledMs - Date.now()) / (24 * 60 * 60 * 1000)))
+    : ACCOUNT_DELETION_GRACE_DAYS;
+
+  const restore = await showConfirm({
+    title: t('settings.restore_title'),
+    message: t('settings.restore_message', { days: daysLeft }),
+    confirmText: t('settings.restore_confirm'),
+    cancelText: t('common.cancel'),
+  });
+
+  if (restore) {
+    const ok = await cancelAccountDeletion(uid);
+    if (ok) {
+      const restored = { ...getState('profile') };
+      delete restored.status;
+      delete restored.deletionRequestedAt;
+      delete restored.deletionScheduledAt;
+      setState('profile', restored);
+      showToast(t('settings.restore_done'), 'success');
+    } else {
+      showToast(t('settings.toast_withdraw_error'), 'error');
+    }
+    return;
+  }
+
+  try { await signOut(auth); } catch (err) { console.warn('로그아웃 실패:', err); }
+}
+
 if (auth) {
   onAuthStateChanged(auth, async (firebaseUser) => {
     try {
@@ -308,6 +359,15 @@ if (auth) {
             if (profileSnap.exists()) {
               const profileData = profileSnap.data();
               setState('profile', profileData);
+              /* DB 언어 설정을 세션 복원 시에도 적용 — 로그인 사용자는 DB 를 단일 진실원으로 삼아
+                 기기/localStorage 언어와의 충돌을 없앤다 (항목 3). setLang 은 동일 언어면 early-return. */
+              applyLangFromProfile(profileData);
+              /* 탈퇴 예약(soft delete) 상태면 앱 진입 후 복구/안내 게이트를 띄운다 (항목 1).
+                 스플래시 lifecycle(finally 의 isAuthReady) 을 막지 않도록 await 하지 않는다. */
+              const deletionState = getDeletionState(profileData);
+              if (deletionState !== 'active') {
+                void handlePendingDeletion(deletionState, firebaseUser.uid);
+              }
               /* 에디터 일화 읽음 상태(readHistory)를 서버∪로컬로 머지 — 앱 시작/세션 복원의 단일 지점 */
               initReadHistory(profileData);
               if (profileData.theme) setState('theme', profileData.theme);

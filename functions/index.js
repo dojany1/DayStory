@@ -13,8 +13,10 @@
    ===================================================================== */
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
+const { purgeAndDeleteAccount } = require('./lib/accountPurge');
 const {
   SYSTEM_PROMPT,
   TARGET_LANGS,
@@ -188,6 +190,47 @@ exports.syncAdminClaim = onCall(
    사전: firebase functions:secrets:set GEMINI_API_KEY
    배포: firebase deploy --only functions:translateContent
    ===================================================================== */
+/* =====================================================================
+   purgePendingDeletions — 탈퇴 유예기간이 만료된 계정 완전 삭제 (스케줄러)
+   =====================================================================
+   클라이언트 탈퇴는 즉시 하드 삭제 대신 profiles/{uid} 에
+   status='pending_deletion' + deletionScheduledAt(ISO) 를 기록하는
+   소프트 삭제로 동작한다(유예 7일, 이 기간 내 재로그인 시 복구 가능).
+   이 함수는 매일 1회 실행되어 유예가 만료된 계정의 Storage/Firestore/Auth
+   데이터를 Admin SDK 로 완전 삭제한다 → 사용자가 돌아오지 않아도 실제 삭제가
+   보장되어 App Store 5.1.1(v) 요건을 충족한다.
+
+   deletionScheduledAt 은 UTC ISO 문자열이라 사전식(lexicographic) 비교가
+   시간순 비교와 일치하므로 '<=' 쿼리가 안전하다.
+
+   쿼리 인덱스: firestore.indexes.json (profiles: status + deletionScheduledAt)
+   배포: firebase deploy --only functions:purgePendingDeletions
+   ===================================================================== */
+exports.purgePendingDeletions = onSchedule(
+  { region: 'asia-northeast3', schedule: 'every day 03:00', timeZone: 'Asia/Seoul', maxInstances: 1 },
+  async () => {
+    const db = admin.firestore();
+    const nowIso = new Date().toISOString();
+    const snap = await db.collection('profiles')
+      .where('status', '==', 'pending_deletion')
+      .where('deletionScheduledAt', '<=', nowIso)
+      .get();
+
+    if (snap.empty) {
+      console.log('purgePendingDeletions: 삭제 대상 없음');
+      return;
+    }
+    console.log(`purgePendingDeletions: ${snap.size}건 삭제 처리`);
+
+    const auth = admin.auth();
+    const bucket = admin.storage().bucket();
+    for (const docSnap of snap.docs) {
+      await purgeAndDeleteAccount({ db, auth, bucket, uid: docSnap.id });
+    }
+  }
+);
+
+
 exports.translateContent = onCall(
   { region: 'asia-northeast3', secrets: [GEMINI_API_KEY], maxInstances: 5, timeoutSeconds: 120 },
   async (request) => {

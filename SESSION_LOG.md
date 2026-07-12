@@ -1731,3 +1731,19 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
   - **`tests/avatar_cache_offline.spec.js`** — 로그아웃 이동을 반영해 스테일 정적 검증을 `profileSrc` → `settingsSectionsSrc`(신규 헬퍼) 대상으로 갱신.
 - **변경파일**: `src/js/components/settingsSections.js`, `tests/avatar_cache_offline.spec.js`, `SESSION_LOG.md`.
 - **검증**: `avatar_cache_offline.spec.js` 17건 전체 통과. 전체 542 passed / 6 failed(기존 베이스라인: `ios_gpu_webp_guard`·`inquiry_ui`·`detail_nav.ui`·`editorstory.ui` — 작업 중 CSS/UI 가드, 회귀 0건) / 6 skipped. `npm run build` 성공. JS 로직 변경만 → `cap sync` 불필요.
+
+---
+
+## 2026-07-12
+
+### 2026-07-12 16:59 — Claude · 탈퇴 7일 유예기간 + 스플래시 다국어 + 세션복원 언어 충돌 수정
+
+- **요구사항**: ① 회원 탈퇴에 방어 로직(약 1주일 유예기간) 추가, ② 로딩(스플래시) 화면에 언어와 무관하게 한글이 뜨는 문제, ③ 기기 언어와 앱 내 사용자 언어 설정이 충돌하는 문제.
+- **원인**: ② 스플래시 부제목 `오늘, 역사 속에서`가 `index.html`에 정적 하드코딩(i18n 미경유). ③ 로그인 경로(`login.js`)에서만 DB `languagePreference`를 적용하고, 앱 재시작(세션 복원, `main.js onAuthStateChanged`)에는 미적용 → 로그인 사용자가 앱을 껐다 켜면 기기/localStorage 언어를 따라가 충돌. ① 탈퇴가 즉시 하드 삭제(Storage→Firestore→`deleteUser`)라 되돌릴 수 없고 소프트 삭제/상태 필드 부재.
+- **구현방법** (결정: Cloud Function 스케줄러 + 유예 7일):
+  - **스플래시 다국어(②)**: `index.html` 부제목을 빈 `#splash-subtitle`로 바꾸고, `main.js`에서 `initI18n()` 직후 `t('splash.subtitle')`로 주입(버전 텍스트와 동일 방식, 비한국어 사용자 한글 flash 제거). `src/i18n/{ko,en,ja,es,zh}.json`에 `splash.subtitle` 추가.
+  - **세션복원 언어(③)**: `main.js` `onAuthStateChanged` 프로필 로드 지점에 `applyLangFromProfile(profileData)` 추가 → 로그인 사용자는 DB를 단일 진실원으로. `setLang`은 동일 언어 early-return이라 불필요 재렌더 없음.
+  - **탈퇴 유예(①)**: `src/js/services/userProfile.js`에 `scheduleAccountDeletion`(status=pending_deletion + deletionScheduledAt now+7d)·`cancelAccountDeletion`(deleteField 복구)·`getDeletionState`(active/pending/expired 순수판정) + `ACCOUNT_DELETION_GRACE_DAYS=7` 추가. `settingsSections.js` `_doWithdraw`를 하드삭제→소프트삭제(scheduleAccountDeletion + signOut)로 전환하고 `deleteUser` 클라 호출 제거(→ requires-recent-login 재인증 분기도 제거, 부수효과로 Apple/이메일 계정도 탈퇴 가능). `main.js`에 재로그인 복구 게이트(`handlePendingDeletion`): pending→showConfirm 복구 여부, expired→로그아웃. `functions/index.js`에 `onSchedule`(매일 03:00 KST) `purgePendingDeletions` + `functions/lib/accountPurge.js`(Admin SDK Storage/Firestore/Auth 삭제) 추가. `firestore.indexes.json`에 profiles(status+deletionScheduledAt) 복합 인덱스. i18n 5개국어에 `withdraw_scheduled`·`restore_title/message/confirm/done`·`account_already_deleted` 추가 + `withdraw_message`를 유예 안내로 갱신.
+- **변경파일**: `index.html`, `src/main.js`, `src/js/services/userProfile.js`, `src/js/components/settingsSections.js`, `src/i18n/{ko,en,ja,es,zh}.json`, `functions/index.js`, `functions/lib/accountPurge.js`(신규), `firestore.indexes.json`, `tests/accountDeletion.spec.js`(신규), `tests/accountPurge.spec.js`(신규), `SESSION_LOG.md`.
+- **검증(TDD)**: 신규 `accountDeletion`(10건)·`accountPurge`(7건) 통과. 변경 영역 62건(위 2개 + `i18n_language_settings`·`i18n_locale_expansion`·`translate_content`) green. 전체 559 passed / 6 failed(기존 베이스라인 `ios_gpu_webp_guard`·`inquiry_ui`·`detail_nav.ui`·`editorstory.ui` — stash 검증으로 회귀 0건 확인) / 6 skipped. `npm run build` 성공, `npx cap sync android` 성공. functions 문법검사 통과.
+- **남은 작업(수동·외부 반영)**: `firebase deploy --only functions:purgePendingDeletions`(스케줄러 배포, Cloud Scheduler API 활성 필요) + `firebase deploy --only firestore:indexes`(복합 인덱스). 스케줄러는 에뮬레이터/스테이징에서 `deletionScheduledAt` 과거 세팅 문서로 수동 트리거해 실삭제 확인 권장. 참고: 로컬 node_modules가 firebase peer 충돌로 일부 미설치 상태였어 `npm install --legacy-peer-deps`로 설치(lockfile 무변경).

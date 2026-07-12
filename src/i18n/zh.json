@@ -1,5 +1,8 @@
 {
   "_NOTE": "Simplified Chinese UI translations. Card content (figure_name, body, summary, editor_comment) is authored separately in the editor's language tabs.",
+  "splash": {
+    "subtitle": "今天，历史之中"
+  },
   "common": {
     "loading": "加载中...",
     "retry": "重试",
@@ -422,10 +425,16 @@
     "row_contact": "意见与建议",
     "toast_coming_soon": "功能即将推出，敬请期待！",
     "withdraw_title": "注销账户",
-    "withdraw_message": "确定要注销账户吗？\n账户及所有数据（故事、收藏、上传的照片等）将被永久删除且无法恢复。",
+    "withdraw_message": "确定要注销账户吗？\n注销后有{days}天宽限期，在此期间重新登录即可恢复账户。宽限期过后，账户及所有数据将被永久删除。",
     "withdraw_confirm": "注销",
     "withdraw_hold": "请按住 {seconds} 秒以注销...",
     "withdraw_hold_done": "正在注销...",
+    "withdraw_scheduled": "已预约注销账户。请在{days}天内重新登录以恢复账户。",
+    "restore_title": "恢复账户",
+    "restore_message": "你的账户处于注销预约状态。（距离永久删除还剩{days}天）\n要恢复账户并继续使用吗？",
+    "restore_confirm": "恢复账户",
+    "restore_done": "账户已恢复。",
+    "account_already_deleted": "该账户已被删除。",
     "toast_reauth": "出于安全考虑，请重新登录后再注销账户。",
     "toast_withdraw_error": "注销账户时出错。",
     "row_tutorial": "重新查看教程",

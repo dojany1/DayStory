@@ -1767,3 +1767,12 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **구현방법**: 로그인 덮어쓰기 경로만 제거 — `src/js/i18n/index.js`에서 `applyLangFromProfile` 함수 삭제, `main.js`(세션복원 1곳)·`login.js`(소셜/이메일/회원가입 3곳)의 호출과 import 제거. 언어 결정은 부팅 시 `detectInitialLang`(`ds_lang` → `navigator.language` → en) + 설정 변경 시 `setLang`→`ds_lang` 저장으로 통일. DB `languagePreference` **쓰기**(설정/프로필/신규가입 기본값 = 현재 기기 언어)는 무해한 죽은 필드로 남겨 둠(읽는 곳 없음). 트레이드오프: 같은 계정의 기기 간 언어 동기화는 사라짐(개인 카드/일기 앱에 불필요하다고 판단).
 - **변경파일**: `src/js/i18n/index.js`, `src/main.js`, `src/js/pages/login.js`, `tests/i18n_language_settings.spec.js`, `SESSION_LOG.md`.
 - **검증(TDD)**: `i18n_language_settings` 테스트를 기존 "로그인 동기화" 검증에서 "언어는 기기 로컬(ds_lang) 기준 + 로그인은 덮어쓰지 않음"으로 교체 후 16/16 통과. 전체 561 passed / 6 failed(기존 베이스라인 `ios_gpu_webp_guard`·`inquiry_ui`·`detail_nav.ui`·`editorstory.ui` 동일, 회귀 0건) / 6 skipped. `npm run build` 성공. **주의: 이전 세션이 남긴 로그아웃 시 `ds_lang` 미삭제는 이제 leak이 아니라 "사용자 선택 유지"로 의도된 동작이 됨.**
+
+### 2026-07-13 15:20 — Claude · 1.5.2 버전 릴리스 마무리 (iOS 버전 동기화 + build/cap sync)
+
+- **요구사항**: 1.5.2 버전 업데이트.
+- **점검 결과**: `package.json`(1.5.2)·`android/app/build.gradle`(versionName 1.5.2, versionCode 27)는 이전 병합 커밋(`31d8dbba`)에서 이미 반영. **iOS `ios/App/App.xcodeproj/project.pbxproj`의 `MARKETING_VERSION`은 1.5.1로 남아 미반영 상태였고**, working tree에는 이전 빌드(`npm run build`) 산출물이 Android assets에 아직 sync 안 된 uncommitted diff가 있었음.
+- **구현방법**: `project.pbxproj` Debug/Release 두 설정의 `MARKETING_VERSION`을 1.5.1 → 1.5.2로 수정(`CURRENT_PROJECT_VERSION`은 1 유지, 관례상 App Store 업로드 시 별도 검토). `npm run build`로 최신 dist 생성 후 `npx cap sync android` + `npx cap sync ios`로 웹 자산·버전을 양 네이티브 프로젝트에 반영.
+- **변경파일**: `ios/App/App.xcodeproj/project.pbxproj`, `android/app/src/main/assets/public/*`·`ios/App/App/public/*`(cap sync 산출물), `SESSION_LOG.md`.
+- **검증**: `npm run build` 성공. `cap sync android`·`cap sync ios` 모두 성공(10개 플러그인 인식). `npm test` 전체 561 passed / 6 failed(기존 베이스라인 `ios_gpu_webp_guard`·`inquiry_ui`·`detail_nav.ui`·`editorstory.ui`와 정확히 동일, 회귀 0건) / 6 skipped.
+- **남은 작업(수동)**: ① Android Studio(AAB)/Xcode(App Store Connect)에서 실제 릴리스 빌드·업로드. ② 출시 후 Firebase Remote Config `latest_version`을 `1.5.2`로 갱신.

@@ -1757,3 +1757,13 @@ DayStory 작업 이력 요약입니다. 세부 변경파일 목록 대신 날짜
 - **확인 ②(코드 변경 없음)**: 언어 충돌은 직전 세션의 항목 3 수정(`main.js onAuthStateChanged` 세션복원 시 `applyLangFromProfile` 적용)으로 해결됨 — DB `languagePreference`(한국어)를 로그인/세션복원마다 적용해 기기 언어(일본어) 오버라이드를 막는다. **단, 제보자의 설치된 APK 에는 이 수정이 아직 없음(현재 working tree/커밋에만 존재) → 안드로이드 앱을 재빌드·재설치해야 반영됨.**
 - **변경파일**: `src/js/router.js`, `src/js/pages/mystory.js`, `src/main.js`, `tests/router_back_interceptor.spec.js`(신규), `android/app/src/main/assets/public/*`(cap sync), `SESSION_LOG.md`.
 - **검증**: 신규 `router_back_interceptor`(4건) 통과 — 인터셉터 등록/해제 + 전역 위임 로직 계약 고정. `router_unmount`·`router_guard_stack`·`regression.bugs`(mystory `history.back()` 복귀 검증 포함)·`mystory_form_actions` 통과. 전체 563 passed / 6 failed(기존 베이스라인 동일, 회귀 0건) / 6 skipped. `npm run build` 성공, `npx cap sync android` 성공. **뒤로가기 실제 동작은 안드로이드 기기/에뮬레이터에서 재빌드 후 수동 확인 필요.**
+
+## 2026-07-13
+
+### 2026-07-13 14:58 — Claude · 언어 설정을 기기 로컬 단일 진실원으로 전환 (계정 간 leak 제거)
+
+- **요구사항**: 언어는 기기 언어 설정을 따르고, 사용자가 앱에서 바꾸면 그 값을 기본값으로 기기에 저장해 따르게 한다. 현재 로직(로그인 시 DB 언어로 덮어쓰기)이 복잡하고, 계정 A/B 전환 시 이전 계정 언어가 로그인 화면에 새는(leak) 문제가 있음.
+- **원인**: 직전(2026-07-12) 세션이 "기기 vs 앱 언어 충돌" 대응으로 도입한 계정 단위(DB) 설계 — 로그인·세션복원마다 `applyLangFromProfile(profile.languagePreference)`로 기기 언어를 덮어씀. 이게 저장소를 3개(state/localStorage/DB)로 늘리고, 로그아웃이 `ds_lang`을 안 지우는 것과 맞물려 leak을 유발. 이번엔 이 설계를 **의도적으로 되돌려** 기기 로컬(`localStorage.ds_lang`)을 단일 진실원으로 삼는다.
+- **구현방법**: 로그인 덮어쓰기 경로만 제거 — `src/js/i18n/index.js`에서 `applyLangFromProfile` 함수 삭제, `main.js`(세션복원 1곳)·`login.js`(소셜/이메일/회원가입 3곳)의 호출과 import 제거. 언어 결정은 부팅 시 `detectInitialLang`(`ds_lang` → `navigator.language` → en) + 설정 변경 시 `setLang`→`ds_lang` 저장으로 통일. DB `languagePreference` **쓰기**(설정/프로필/신규가입 기본값 = 현재 기기 언어)는 무해한 죽은 필드로 남겨 둠(읽는 곳 없음). 트레이드오프: 같은 계정의 기기 간 언어 동기화는 사라짐(개인 카드/일기 앱에 불필요하다고 판단).
+- **변경파일**: `src/js/i18n/index.js`, `src/main.js`, `src/js/pages/login.js`, `tests/i18n_language_settings.spec.js`, `SESSION_LOG.md`.
+- **검증(TDD)**: `i18n_language_settings` 테스트를 기존 "로그인 동기화" 검증에서 "언어는 기기 로컬(ds_lang) 기준 + 로그인은 덮어쓰지 않음"으로 교체 후 16/16 통과. 전체 561 passed / 6 failed(기존 베이스라인 `ios_gpu_webp_guard`·`inquiry_ui`·`detail_nav.ui`·`editorstory.ui` 동일, 회귀 0건) / 6 skipped. `npm run build` 성공. **주의: 이전 세션이 남긴 로그아웃 시 `ds_lang` 미삭제는 이제 leak이 아니라 "사용자 선택 유지"로 의도된 동작이 됨.**

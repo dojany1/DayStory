@@ -33,7 +33,7 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
 import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath, forceRoute, getBackInterceptor } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
 import { parseShareDeepLink } from './js/utils/deepLink.js';
-import { initI18n, t, applyLangFromProfile } from './js/i18n/index.js';
+import { initI18n, t } from './js/i18n/index.js';
 import { auth, db } from './js/services/firebase.js';
 import { refreshWelcomeBadge } from './js/components/navBadge.js';
 import { saveAvatarToCache } from './js/utils/avatarCache.js';
@@ -359,9 +359,8 @@ if (auth) {
             if (profileSnap.exists()) {
               const profileData = profileSnap.data();
               setState('profile', profileData);
-              /* DB 언어 설정을 세션 복원 시에도 적용 — 로그인 사용자는 DB 를 단일 진실원으로 삼아
-                 기기/localStorage 언어와의 충돌을 없앤다 (항목 3). setLang 은 동일 언어면 early-return. */
-              applyLangFromProfile(profileData);
+              /* 언어는 기기 로컬(localStorage) 을 단일 진실원으로 삼는다.
+                 로그인이 기기 언어를 덮어쓰지 않는다 (계정 간 언어 leak 방지). */
               /* 탈퇴 예약(soft delete) 상태면 앱 진입 후 복구/안내 게이트를 띄운다 (항목 1).
                  스플래시 lifecycle(finally 의 isAuthReady) 을 막지 않도록 await 하지 않는다. */
               const deletionState = getDeletionState(profileData);

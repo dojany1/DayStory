@@ -4,7 +4,7 @@
    다국어(i18n) 설정 기능 활성화 및 버그 수정 검증
    - 작업1: 설정 페이지 언어 선택 UI 연결
    - 작업2: <meta property="og:locale"> 동적 변경
-   - 작업3: Firestore languagePreference 저장 + 로그인 동기화
+   - 작업3: Firestore languagePreference 저장(무해) + 언어는 기기 로컬(ds_lang) 기준
    ===================================================================== */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -100,43 +100,30 @@ describe('작업2 — og:locale 메타 동적 변경', () => {
 });
 
 /* ──────────────────────────────────────────────
-   작업 3-a: applyLangFromProfile (functional - jsdom)
+   작업 3-a: 언어는 기기 로컬(ds_lang) 을 단일 진실원으로 삼는다
+   (로그인 시 DB 로 덮어쓰지 않음 — 계정 간 언어 leak 제거)
    ────────────────────────────────────────────── */
-describe('작업3 — applyLangFromProfile DB→state 동기화', () => {
+describe('작업3 — 언어는 기기 로컬 저장(ds_lang) 기준', () => {
   beforeEach(() => {
     localStorage.clear();
     document.head.innerHTML = '<meta property="og:locale" content="ko_KR" />';
   });
 
-  it('profile.languagePreference 값으로 state(lang) 와 localStorage(ds_lang) 를 덮어쓴다', async () => {
-    const { applyLangFromProfile, getCurrentLang } = await import('../src/js/i18n/index.js');
+  it('i18n 는 applyLangFromProfile(로그인 덮어쓰기) 를 더 이상 export 하지 않는다', async () => {
+    const mod = await import('../src/js/i18n/index.js');
+    expect(mod.applyLangFromProfile).toBeUndefined();
+  });
+
+  it('사용자가 변경한 언어는 localStorage(ds_lang) 에 저장된다', async () => {
     const { setState } = await import('../src/js/state.js');
-    setState('lang', 'ko');
-    applyLangFromProfile({ languagePreference: 'ja' });
-    expect(getCurrentLang()).toBe('ja');
+    setState('lang', 'ja');
     expect(localStorage.getItem('ds_lang')).toBe('ja');
   });
 
-  it('languagePreference 가 없으면 현재 언어를 유지한다', async () => {
-    const { applyLangFromProfile, getCurrentLang } = await import('../src/js/i18n/index.js');
-    const { setState } = await import('../src/js/state.js');
-    setState('lang', 'ko');
-    applyLangFromProfile({ nickname: 'tester' });
-    expect(getCurrentLang()).toBe('ko');
-  });
-
-  it('지원하지 않는 languagePreference 는 무시한다', async () => {
-    const { applyLangFromProfile, getCurrentLang } = await import('../src/js/i18n/index.js');
-    const { setState } = await import('../src/js/state.js');
-    setState('lang', 'en');
-    applyLangFromProfile({ languagePreference: 'fr' });
-    expect(getCurrentLang()).toBe('en');
-  });
-
-  it('null/undefined profile 에도 예외 없이 동작한다', async () => {
-    const { applyLangFromProfile } = await import('../src/js/i18n/index.js');
-    expect(() => applyLangFromProfile(null)).not.toThrow();
-    expect(() => applyLangFromProfile(undefined)).not.toThrow();
+  it('detectInitialLang 은 저장된 ds_lang 을 최우선으로 사용한다', async () => {
+    localStorage.setItem('ds_lang', 'ja');
+    const { detectInitialLang } = await import('../src/js/i18n/index.js');
+    expect(detectInitialLang()).toBe('ja');
   });
 });
 
@@ -159,26 +146,17 @@ describe('작업3 — saveLanguagePreference 서비스', () => {
 });
 
 /* ──────────────────────────────────────────────
-   작업 3-c: 로그인 동기화 연결 (정적 소스 검증)
+   작업 3-c: 로그인은 기기 언어를 덮어쓰지 않는다 (정적 소스 검증)
    ────────────────────────────────────────────── */
-describe('작업3 — 로그인 경로 languagePreference 동기화', () => {
+describe('작업3 — 로그인 경로는 언어를 덮어쓰지 않는다', () => {
   const src = () => readFileSync(root('src/js/pages/login.js'), 'utf8');
 
-  it('login.js 가 applyLangFromProfile 를 import 한다', () => {
-    expect(src()).toMatch(/applyLangFromProfile/);
+  it('login.js 는 applyLangFromProfile 를 호출/import 하지 않는다', () => {
+    expect(src()).not.toMatch(/applyLangFromProfile/);
   });
 
-  it('setState("profile") 직후 applyLangFromProfile 가 호출되는 경로가 있다', () => {
-    const s = src();
-    /* setState('profile', ...) 와 applyLangFromProfile 가 모두 존재 */
-    expect(s).toMatch(/setState\(\s*['"]profile['"]/);
-    const applyCalls = s.match(/applyLangFromProfile\(/g) || [];
-    /* 3개 로그인 경로(소셜/이메일로그인/회원가입) 모두 연결 */
-    expect(applyCalls.length).toBeGreaterThanOrEqual(3);
-  });
-
-  it('신규 프로필 생성 시 languagePreference 기본값을 저장한다', () => {
-    expect(src()).toMatch(/languagePreference/);
+  it('신규 프로필 생성 시 현재 기기 언어를 languagePreference 기본값으로 저장한다', () => {
+    expect(src()).toMatch(/languagePreference:\s*getCurrentLang\(\)/);
   });
 });
 

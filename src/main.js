@@ -30,7 +30,7 @@ import './css/pages.css';       /* 홈, 로그인, 설정 등 각 페이지별 �
    - state.js   : 앱 전체에서 공유하는 데이터 저장소
    - firebase.js: 백엔드(Firebase) 연결 설정
 */
-import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath, forceRoute } from './js/router.js';
+import { registerRoute, initRouter, navigate, setBeforeNavigate, getCurrentPath, forceRoute, getBackInterceptor } from './js/router.js';
 import { getState, setState, applyTheme } from './js/state.js';
 import { parseShareDeepLink } from './js/utils/deepLink.js';
 import { initI18n, t, applyLangFromProfile } from './js/i18n/index.js';
@@ -616,6 +616,11 @@ if (Capacitor.isNativePlatform()) {
 
   /* ── 메인 리스너: 안드로이드 하드웨어 뒤로가기 버튼 ── */
   App.addListener('backButton', () => {
+    /* 페이지가 자체 뒤로가기 처리를 등록했으면(예: /mystory/new 미저장 변경 확인)
+       기본 depth 네비게이션 대신 위임한다 — 전역+로컬 리스너 중복 발화로 뒤로가기가 꼬이던 문제 해결. */
+    const interceptor = getBackInterceptor();
+    if (interceptor) { interceptor(); return; }
+
     const currentPath = getCurrentPath();
     const routeInfo = getRouteInfo(currentPath);
 

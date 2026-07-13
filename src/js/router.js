@@ -150,6 +150,25 @@ function runOnUnmount() {
   }
 }
 
+/** backInterceptor: 페이지가 안드로이드 하드웨어 뒤로가기를 자체 처리할 때 등록하는 함수.
+ * 설정되면 main.js 의 전역 backButton 핸들러가 기본 depth 네비게이션 대신 이 함수를 호출한다.
+ * (전역 핸들러 + 페이지 로컬 backButton 리스너가 중복 발화해 뒤로가기가 꼬이던 문제 해결.)
+ * 페이지를 떠날 때 반드시 setOnUnmount 로 setBackInterceptor(null) 해제해야 한다. */
+let backInterceptor = null;
+
+/**
+ * setBackInterceptor — 하드웨어 뒤로가기 처리를 이 페이지가 가로챈다.
+ * @param {Function|null} fn  뒤로가기 시 호출할 함수 (또는 null 로 해제)
+ */
+export function setBackInterceptor(fn) {
+  backInterceptor = (typeof fn === 'function') ? fn : null;
+}
+
+/** getBackInterceptor — 현재 등록된 뒤로가기 인터셉터 반환 (전역 핸들러 전용). */
+export function getBackInterceptor() {
+  return backInterceptor;
+}
+
 /**
  * navigate — 다른 페이지로 이동합니다
  * @param {string} path   - 이동할 경로 (예: '/editorstory')

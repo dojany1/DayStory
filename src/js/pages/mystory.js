@@ -7,13 +7,12 @@
    좌우 스와이프는 Swiper.js 11 기반으로 통합되었습니다 (2026-05-24).
    ===================================================================== */
 
-import { navigate, getParams, getPreviousRoute } from '../router.js';
+import { navigate, getParams, getPreviousRoute, setBackInterceptor, setOnUnmount } from '../router.js';
 import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
 import { showConfirm } from '../components/confirmDialog.js';
 import { showShareChoice } from '../components/shareChoiceSheet.js';
 import { Capacitor } from '@capacitor/core';
-import { App as CapApp } from '@capacitor/app';
 import { fetchMyStories, createMyStory, updateMyStory, fetchMyStoryById, deleteMyStory } from '../services/mystories.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import { isFirebaseStorageUrl } from '../utils/storage.js';
@@ -385,8 +384,11 @@ export function renderMyStoryNew() {
     bindPageHeaderBack(page, handleBack);
 
     if (Capacitor.isNativePlatform()) {
-      const backListener = await CapApp.addListener('backButton', handleBack);
-      window.addEventListener('hashchange', () => backListener.remove(), { once: true });
+      /* 하드웨어 뒤로가기(Android): 자체 backButton 리스너를 등록하면 main.js 전역 핸들러와
+         중복 발화해 뒤로가기가 한 번에 안 먹었다. 대신 라우터 인터셉터로 등록해 전역 핸들러가
+         기본 네비게이션 대신 handleBack(미저장 변경 확인 → history.back)을 쓰도록 위임한다. */
+      setBackInterceptor(handleBack);
+      setOnUnmount(() => setBackInterceptor(null));
     }
     let dateInput = document.getElementById('ms-date');
     if (dateInput) dateInput.value = defaultDate;

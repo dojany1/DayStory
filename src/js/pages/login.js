@@ -14,7 +14,7 @@ import { navigate } from '../router.js';
 import { showToast } from '../components/toast.js';
 import { setState } from '../state.js';
 import { auth, db } from '../services/firebase.js';
-import { applyLangFromProfile, getCurrentLang, t } from '../i18n/index.js';
+import { getCurrentLang, t } from '../i18n/index.js';
 
 /*
  * Firebase 인증 함수 임포트
@@ -104,8 +104,7 @@ async function upsertProfileAndNavigate(firebaseUser) {
         await provisionNewUser(firebaseUser.uid);
       }
       setState('profile', profileData);
-      /* DB 에 저장된 언어 설정을 기기 상태에 동기화 (로그인 시 덮어쓰기) */
-      applyLangFromProfile(profileData);
+      /* 언어는 기기 로컬 설정을 유지한다 (로그인이 덮어쓰지 않음) */
     } catch (err) {
       console.warn('소셜 로그인 - 프로필 처리 실패:', err);
     }
@@ -290,8 +289,7 @@ export function renderLogin() {
           }
 
           setState('profile', profileData);
-          /* DB 에 저장된 언어 설정을 기기 상태에 동기화 (로그인 시 덮어쓰기) */
-          applyLangFromProfile(profileData);
+          /* 언어는 기기 로컬 설정을 유지한다 (로그인이 덮어쓰지 않음) */
         }
 
         const nickname = resolveNickname(profileData, firebaseUser);
@@ -466,8 +464,7 @@ export function renderSignup() {
           }
 
           setState('profile', profileData);
-          /* DB 에 저장된 언어 설정을 기기 상태에 동기화 (로그인 시 덮어쓰기) */
-          applyLangFromProfile(profileData);
+          /* 언어는 기기 로컬 설정을 유지한다 (로그인이 덮어쓰지 않음) */
         }
 
         showToast(t('auth.toast_signup_ok'), 'success');

@@ -133,19 +133,6 @@ export function applyHtmlLang(lang) {
 }
 
 /**
- * applyLangFromProfile — 로그인 직후 DB 프로필의 languagePreference 를
- * 전역 state(lang) + localStorage(ds_lang) 에 반영(덮어쓰기)한다.
- * setLang() 이 내부에서 state 발행 → localStorage 저장 → 페이지 재렌더까지 수행.
- * @param {{ languagePreference?: string }|null|undefined} profile
- */
-export function applyLangFromProfile(profile) {
-  const pref = profile && profile.languagePreference;
-  if (pref && SUPPORTED_LANGS.includes(pref)) {
-    setLang(pref);
-  }
-}
-
-/**
  * initI18n — 앱 부팅 시 1회 호출
  * navigator.language 추정 → state 발행 → <html lang> 적용 → lang 변경 구독
  */

@@ -66,7 +66,7 @@ describe('captureAndShareCard — 공유 시 텍스트 본문 미포함', () => 
     await captureAndShareCard(card, {
       title: '우주로 간 원숭이',
       text: '[DayStory] 우주로 간 원숭이',
-      url: 'https://daystory.app/share?date=2026-06-15',
+      url: 'https://dokhu-daystory.web.app/share?date=2026-06-15',
     });
 
     expect(shareMock).toHaveBeenCalledTimes(1);

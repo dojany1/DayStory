@@ -1,0 +1,9 @@
+# DayStory app-ads.txt (IAB Tech Lab spec)
+# Google AdMob 게시자 소유권 검증용.
+# Play Console / App Store Connect 스토어 리스팅의 웹사이트(마케팅) URL 이
+# 가리키는 호스트 루트에서 서빙되어야 한다 — 현재는 Firebase Hosting 기본
+# 호스트(https://dokhu-daystory.web.app). 도메인을 옮기면 스토어 리스팅의
+# URL 도 함께 바꿔야 검증이 통과한다.
+# 게시자 ID 는 android/app/src/main/AndroidManifest.xml, ios/App/App/Info.plist
+# 의 앱 ID(ca-app-pub-3250744272484684~…) 와 동일한 pub- 번호다.
+google.com, pub-3250744272484684, DIRECT, f08c47fec0942fa0

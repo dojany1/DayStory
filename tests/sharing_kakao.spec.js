@@ -10,6 +10,7 @@ vi.mock('@capacitor/share', () => ({
 }));
 
 const { shareToKakao } = await import('../src/js/services/sharing.js');
+const { SHARE_APP_ORIGIN } = await import('../src/js/utils/deepLink.js');
 
 describe('Wave 6 — shareToKakao 카카오톡 공유 (graceful fallback)', () => {
   const STORY = {
@@ -43,7 +44,9 @@ describe('Wave 6 — shareToKakao 카카오톡 공유 (graceful fallback)', () =
     expect(shareMock).toHaveBeenCalledTimes(1);
     const arg = shareMock.mock.calls[0][0];
     expect(arg.title).toContain('뉴턴');
-    expect(arg.url).toMatch(/daystory\.app\/share\/story-1/);
+    /* 딥링크와 같은 오리진이어야 한다 — 리터럴로 박으면 도메인 변경 시
+       이 단언이 깨진 주소를 정답으로 고정시킨다(2026-08-26 회귀). */
+    expect(arg.url).toBe(`${SHARE_APP_ORIGIN}/share/story-1`);
   });
 
   it('키가 있고 window.Kakao 글로벌이 있으면 Kakao.Share.sendDefault 호출 (via: kakao)', async () => {

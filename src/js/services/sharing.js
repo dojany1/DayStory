@@ -16,12 +16,13 @@ import { Media } from '@capacitor-community/media';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { showToast, dismissToast } from '../components/toast.js';
 import { t } from '../i18n/index.js';
-import { buildShareDeepLink } from '../utils/deepLink.js';
+import { buildShareDeepLink, SHARE_APP_ORIGIN } from '../utils/deepLink.js';
 /* 캡처 엔진(modern-screenshot / html2canvas)은 captureAndShareCard 안에서
    동적 import — 초기 번들 분리. */
 
-/* 공유 URL 도메인. 실제 배포 도메인으로 변경 시 한 곳만 수정. */
-const SHARE_DOMAIN = 'https://daystory.app';
+/* 공유 URL 오리진은 deepLink.js 가 유일한 출처다. 여기서 다시 하드코딩하면
+   딥링크와 어긋난다 — 실제로 그렇게 어긋나 공유 링크가 Firebase Hosting 이
+   아닌 미배포 도메인을 가리키던 회귀가 있었다(2026-08-26). */
 
 /**
  * buildShareUrl — 카드별 공유 URL을 생성합니다.
@@ -29,8 +30,8 @@ const SHARE_DOMAIN = 'https://daystory.app';
  * 봇에게는 OG HTML, 사용자에게는 SPA를 응답합니다.
  */
 export function buildShareUrl(storyId) {
-  if (!storyId) return SHARE_DOMAIN;
-  return `${SHARE_DOMAIN}/share/${encodeURIComponent(storyId)}`;
+  if (!storyId) return SHARE_APP_ORIGIN;
+  return `${SHARE_APP_ORIGIN}/share/${encodeURIComponent(storyId)}`;
 }
 
 /**
@@ -70,7 +71,7 @@ export async function shareStory(story, options = {}) {
 
   const summary = (story.summary || story.body || '').toString().slice(0, 160);
   const text = `[DayStory] ${title}${summary ? `\n\n${summary}` : ''}`;
-  const url = story.id ? buildShareUrl(story.id) : SHARE_DOMAIN;
+  const url = story.id ? buildShareUrl(story.id) : SHARE_APP_ORIGIN;
 
   /* 1) 이미지 첨부 시도 (Web Share Level 2) */
   if (includeImage && typeof navigator !== 'undefined' && navigator.canShare) {
@@ -171,7 +172,7 @@ export async function shareToKakao(story) {
   const title = story.figure_name || story.title || 'DayStory';
   const description = (story.summary || story.body || '').toString().slice(0, 200);
   const imageUrl = story.image_url || '';
-  const link = story.id ? buildShareUrl(story.id) : SHARE_DOMAIN;
+  const link = story.id ? buildShareUrl(story.id) : SHARE_APP_ORIGIN;
 
   try {
     Kakao.Share.sendDefault({

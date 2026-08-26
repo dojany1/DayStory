@@ -10,6 +10,7 @@
 import { navigate, getParams, getPreviousRoute, setBackInterceptor, setOnUnmount } from '../router.js';
 import { getState } from '../state.js';
 import { showToast } from '../components/toast.js';
+import { notifyStorySaved } from '../services/adPlacement.js';
 import { showConfirm } from '../components/confirmDialog.js';
 import { showShareChoice } from '../components/shareChoiceSheet.js';
 import { Capacitor } from '@capacitor/core';
@@ -75,7 +76,7 @@ export function renderMyStory() {
     idPrefix: 'mystory',
     pageClass: 'mystory-page',
     headerHtml: '',
-    calendarTitle: '나의 일화',
+    calendarTitle: t('calendar.page_title_mine'),
     enterDir: ['/settings', '/profile'].includes(prev) ? 'from-left' : 'from-right',
     calMode: 'mine',
     lastDateKey: 'lastMyStoryDate',
@@ -716,6 +717,13 @@ export function renderMyStoryNew() {
           ? [...allStories.filter((story) => String(story.id) !== String(editingId)), { ...data, id: editingId }]
           : [...allStories, data];
         void syncDiaryStateFromList(nextStories);
+
+        /* 전면 광고는 화면 전환이 끝난 뒤에 시도한다. 저장 성공 토스트를 덮으면
+           사용자가 저장 실패로 오인한다. 정책(첫 저장 제외/쿨다운/세션 상한)과
+           미로드 시 즉시 포기(onlyIfReady)는 adPlacement 가 담당하므로
+           여기서는 fire-and-forget 으로 알리기만 한다. */
+        setTimeout(() => { void notifyStorySaved(); }, 1200);
+
         if (prevRoute === '/mystory') {
           navigate('/mystory', { date: data.publish_date });
         } else {

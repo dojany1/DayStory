@@ -75,7 +75,10 @@ body {
   min-height: 100dvh;                  /* dvh: 동적 뷰포트 높이 (모바일 주소창 고려) */
   font-family: var(--font-ui);
   line-height: 1.6;
-  background-color: var(--color-bg-desktop); /* 데스크톱 배경색 (래퍼 바깥) */
+  /* 실기기에서는 래퍼가 화면을 꽉 채우므로 앱 배경과 같아야 한다.
+     (iOS 러버밴드 오버스크롤 시 뒤가 비쳐도 회색 띠가 보이지 않도록)
+     래퍼 바깥이 실제로 드러나는 데스크톱에서만 아래 미디어쿼리로 교체. */
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   overflow-x: hidden;                  /* 가로 스크롤 방지 */
   width: 100%;
@@ -87,23 +90,36 @@ body {
 /* ============================================
    Mobile Wrapper — 모바일 카드형 레이아웃
    ============================================
-   데스크톱 브라우저에서 앱을 max-width: 430px로 제한하고
-   화면 중앙에 모바일 기기처럼 카드 형태로 배치합니다.
-   모바일에서는 width: 100%로 전체 화면을 차지합니다.
+   실기기(뷰포트 600px 미만)에서는 --mobile-max-width 가 100% 라
+   화면을 꽉 채웁니다. 데스크톱 백오피스(600px 이상)에서만 420px 로
+   제한해 모바일 기기처럼 중앙에 카드 형태로 배치합니다.
+   상한 정의는 variables.css 한 곳에 있습니다.
 */
 .mobile-wrapper {
   position: relative;
   width: 100%;
-  max-width: var(--mobile-max-width);  /* 430px — 모바일 최대 너비 */
+  max-width: var(--mobile-max-width);  /* 실기기 100% / 데스크톱 420px */
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0 auto;                      /* 수평 중앙 정렬 */
   background-color: var(--color-bg-primary); /* 앱 내부 배경색 */
   overflow: hidden;                    /* 앱 외부로 요소가 나가는 것만 방지 */
-  box-shadow: var(--shadow-wrapper); /* 데스크톱에서 약간의 그림자 효과 */
 }
-[data-theme="dark"] .mobile-wrapper {
-  box-shadow: none; /* 다크 테마는 그림자 없음 */
+
+/* 데스크톱 백오피스 전용 — 래퍼 바깥이 실제로 드러나는 환경에서만
+   바깥 배경색과 래퍼 그림자를 적용한다. 실기기에서는 둘 다 무의미하다. */
+@media (min-width: 600px) {
+  body {
+    background-color: var(--color-bg-desktop);
+  }
+
+  .mobile-wrapper {
+    box-shadow: var(--shadow-wrapper); /* 래퍼에 깊이감 부여 */
+  }
+
+  [data-theme="dark"] .mobile-wrapper {
+    box-shadow: none; /* 다크 테마는 그림자 없음 */
+  }
 }
 
 /* ─────────────────────────────────────────────
@@ -267,6 +283,21 @@ ul, ol {
    nav-height 예약 제거, safe-area 만 유지. page-container 가 full height 를 차지한다. */
 .app-container.no-nav {
   padding-bottom: 0;
+}
+
+/* AdMob 배너 노출 중 — 배너가 콘텐츠를 덮지 않도록 하단 여백을 추가로 예약한다.
+   배너는 WebView 위에 얹히는 네이티브 뷰라 DOM 레이아웃에 스스로 자리를 만들지
+   못한다. 적응형 배너는 기기마다 높이가 달라서 하드코딩할 수 없으므로,
+   adPlacement.js 가 onBannerSizeChanged 로 받은 실제 높이를
+   --ad-banner-height 에 주입하고 이 클래스를 토글한다. */
+.app-container.has-ad-banner {
+  padding-bottom: calc(
+    var(--nav-height) + var(--safe-area-bottom) + var(--ad-banner-height, 0px)
+  );
+}
+
+.app-container.has-ad-banner.no-nav {
+  padding-bottom: var(--ad-banner-height, 0px);
 }
 
 /* 상태바 여백 — bottom-nav와 대칭: position:fixed로 status bar 영역을 항상 bg-primary로 덮음 */
@@ -534,7 +565,7 @@ ul, ol {
   justify-content: center;
   width: auto;
   height: auto;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
 }
 
 /* 두 아이콘을 같은 위치에 겹쳐 쌓는 래퍼 — 레이아웃 재계산 없이 opacity만 토글 */
@@ -649,7 +680,7 @@ ul, ol {
 :lang(ko) .back-body,
 :lang(ko) .card-image-title,
 :lang(ko) .detail-body {
-  word-break: keep-all;
+  word-break: break-all;
 }
 
 /* 일본어/중국어: 공백 없이도 줄바꿈 허용 */

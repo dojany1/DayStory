@@ -30,6 +30,7 @@ import {
 } from '../components/cardDeck/cardFace.js';
 import { EDITOR_DISPLAY_NAME, EDITOR_PROFILE_SRC } from '../utils/constants.js';
 import { isDateRead, markDateRead } from '../services/readHistory.js';
+import { observeCardMetrics } from '../utils/cardMetrics.js';
 
 /* 요일 헤더는 t() 기반 — 언어 변경 시 재렌더에서 최신 값 반영 */
 export function getWeekdays() {
@@ -328,8 +329,15 @@ export function openCardPopup(story, mode, bookmarkedIds = [], options = {}) {
   lockScroll();
   requestAnimationFrame(() => overlay.classList.add('open'));
 
+  /* 카드 스테이지 실측 → --card-w/--card-h 주입.
+     종전에는 폭 기준 aspect-ratio 만 있고 높이 상한이 전혀 없었다. 세로
+     아이폰에서는 카드 폭이 뷰포트로 먼저 제한돼 드러나지 않았지만,
+     세로가 짧은 뷰포트(예: 400x520)에서는 팝업이 화면 밖으로 넘쳤다. */
+  const disposeCardMetrics = observeCardMetrics(overlay.querySelector('.calendar-card-popup-stage'));
+
   const close = () => {
     unlockScroll();
+    disposeCardMetrics();
     overlay.classList.remove('open');
     setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 240);
   };

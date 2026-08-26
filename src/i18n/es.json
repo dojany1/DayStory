@@ -105,6 +105,8 @@
     "title": "Calendario",
     "tab_history": "Historia",
     "tab_mine": "Mi diario",
+    "page_title_history": "Historias del editor",
+    "page_title_mine": "Mi diario",
     "card_tap_hint": "Toca la tarjeta para girarla",
     "card_collected_hint": "Coleccionada — toca para girar",
     "card_swipe_hint": "Desliza izquierda o derecha para cambiar de tarjeta",

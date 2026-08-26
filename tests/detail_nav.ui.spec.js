@@ -340,7 +340,7 @@ describe('Bottom navigation visuals', () => {
     const editorNavMarkup = html.match(/<button class="nav-item active" data-route="\/editorstory"[\s\S]*?<\/button>/)?.[0] || '';
     const svgMarkup = editorNavMarkup.match(/<svg[^>]*>/)?.[0] || '';
 
-    expect(svgMarkup).toMatch(/class="nav-icon"/);
+    expect(svgMarkup).toMatch(/class="nav-icon(?:\s|")/);
     expect(svgMarkup).toMatch(/viewBox="0 0 24 24"/);
   });
 
@@ -351,7 +351,7 @@ describe('Bottom navigation visuals', () => {
 
     expect(main).not.toMatch(/navWrap\.innerHTML\s*=\s*`<img/);
     expect(main).not.toMatch(/navWrap\.innerHTML/);
-    expect(profileNavMarkup).toMatch(/class="nav-icon"/);
+    expect(profileNavMarkup).toMatch(/class="nav-icon(?:\s|")/);
     expect(profileNavMarkup).toMatch(/<line x1="4" x2="20"/);
   });
 });

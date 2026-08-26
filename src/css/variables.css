@@ -134,14 +134,37 @@
   --z-toast: 600;       /* 토스트 알림 — 모든 오버레이 위에 항상 표시 */
 
   /* ── 레이아웃 ── */
-  --mobile-max-width: 420px;                      /* 모바일 래퍼 최대 너비 */
+  /* 실기기(폰)는 화면 전체 폭을 쓴다. 종전에는 데스크톱용 420px 상한이
+     실기기에도 적용돼 iPhone Pro Max(430·440pt)에서 앱 좌우에
+     --color-bg-desktop 띠가 노출됐다. 데스크톱 카드형 래퍼는
+     이 파일 하단의 @media (min-width: 600px) 에서만 되살린다. */
+  --mobile-max-width: 100%;                       /* 모바일 래퍼 최대 너비 */
   --mobile-min-width: 320px;                      /* 모바일 래퍼 최소 너비 */
   --card-max-width: 94%;                          /* 카드 최대 너비 */
-  --card-aspect-ratio: 3.1 / 4.8;                 /* 카드 비율 */
+  --card-aspect-ratio: 3.1 / 4.8;                 /* 카드 비율 (단일 진실 공급원) */
   --nav-height: 50px;                             /* 하단 내비게이션 바 높이 */
   --safe-area-top: env(safe-area-inset-top, 0px); /* 상단 안전 영역 (노치 대응) */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px); /* 하단 안전 영역 (홈 바 대응) */
 
+  /* ── 카드 메트릭 폴백 ──
+     실제 값은 src/js/utils/cardMetrics.js 가 카드 영역 엘리먼트에 직접
+     주입한다(:root 가 아님 — 카드덱과 캘린더 팝업이 서로 간섭하지 않도록).
+     .history-card-front 는 카드덱 밖(관리자 프리뷰, 캡처 클론)에서도
+     렌더되므로, 주입이 없는 컨텍스트에서 calc() 가 무효가 되지 않도록
+     여기에 안전한 기본값을 둔다. */
+  --card-scale: 1;                                /* 기준 기기 대비 카드 배율 */
+  --card-w: 100%;                                 /* 카드 폭 (주입 전 폴백) */
+  --card-h: auto;                                 /* 카드 높이 (주입 전 폴백) */
+
+}
+
+/* ── 데스크톱 백오피스 / 태블릿 ──
+   600px 이상에서만 모바일 카드형 래퍼를 되살린다. 현행 아이폰은 전부
+   600px 미만이므로 실기기는 영향을 받지 않는다. */
+@media (min-width: 600px) {
+  :root {
+    --mobile-max-width: 420px;
+  }
 }
 
 /* ── 언어별 폰트 토큰 ──

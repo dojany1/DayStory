@@ -62,17 +62,18 @@
 
 ---
 
-## 6. 카드 이미지 캡처 및 공유 규칙 (html2canvas)
+## 6. 카드 이미지 캡처 및 공유 규칙
 
-네이티브 기기에서의 레이아웃 무너짐·이미지 누락(백화 현상)을 방지하기 위해 아래 규칙을 반드시 준수한다.
+`captureAndShareCard()` (`src/js/services/sharing.js`) 는 **modern-screenshot(`domToPng`) 1차 + html2canvas 폴백** 구조다. 네이티브 기기에서의 레이아웃 무너짐·이미지 누락(백화 현상)을 방지하기 위해 아래 규칙을 반드시 준수한다.
 
-1. **레이아웃 고정 (Anti-Squish):** 캡처 직전 대상 DOM(`.history-card-front`)의 기존 인라인 스타일을 백업한 뒤, 모바일 카드 표준 비율에 맞는 **고정 픽셀(375×667px)** 로 강제 지정하고, 캡처 완료 후 즉시 원상 복구한다.
+1. **WYSIWYG 캡처 (픽셀 크기 강제 금지):** 캡처 대상(`.history-card-front`)에 픽셀 사이즈를 JS 로 주입하지 않는다. 실제 브라우저 엔진이 렌더한 화면 레이아웃을 그대로 캡처한다. 기기별 폰트 렌더링·Safe Area·OS 차이를 하드코딩 상수로 따라갈 수 없기 때문이다.
+   - **따라서 화면에서 카드 레이아웃이 깨지면 공유 이미지도 똑같이 깨진다.** 카드 크기는 `src/js/utils/cardMetrics.js` 가 주입하는 `--card-w` / `--card-h` / `--card-scale` 이 결정하며, 카드 관련 CSS를 만질 때는 공유 캡처 결과도 함께 확인한다.
 2. **CORS 및 네이티브 보안 우회:** Firebase Storage 등 외부 URL 이미지가 네이티브 웹뷰(`capacitor://`) 환경에서 차단되어 하얗게 날아가는 문제를 막기 위해:
-   - `html2canvas` 옵션에 `{ useCORS: true, allowTaint: true, scale: 2 }` 를 무조건 포함한다.
-   - 캡처 직전 `imageToBase64()`로 외부 이미지를 미리 Base64 Data URL로 교체한다. 교체 실패 시 `onclone` 내에서 `crossOrigin='anonymous'` + cache-bust를 2차로 적용한다.
+   - 캡처 직전 `imageToBase64()`로 외부 이미지를 미리 Base64 Data URL로 교체한다 (네이티브 HTTP → canvas 순서로 시도, 8초 타임아웃).
+   - html2canvas 폴백 경로는 `{ useCORS: true, allowTaint: true, scale: 2 }` 를 무조건 포함하고, `onclone` 내에서 `crossOrigin='anonymous'` + cache-bust를 2차로 적용한다.
    - **주의:** DOM `<img>` 태그에 `crossorigin="anonymous"`를 전역 추가하면 Firebase Storage CORS 미설정 origin(`capacitor://` 등)에서 이미지 로드 자체가 실패한다. 절대 `cardImageWrap` 마크업에 추가하지 말 것.
-3. **렌더링 대기 시간 (Delay):** 이미지가 완전히 그려질 시간을 확보하기 위해, 캡처 함수 실행 직전에 약 `300ms` 수준의 Promise 기반 sleep을 추가한다.
-4. **워터마크 임시 주입:** 앱 아이콘과 'DayStory' 텍스트 엘리먼트를 캡처 직전에 자바스크립트로 하단 우측에 주입(append)하고, 캡처 완료 즉시 제거(remove)하여 유저 화면의 UI를 보존한다.
+3. **워터마크 임시 주입:** 워터마크는 **복제본에만** 주입한다 (`onCloneNode` / `onclone`). 유저 화면의 DOM 은 건드리지 않는다. 기본 배치는 카드 **상단 액션 슬롯**(`.card-actions` 를 워터마크로 교체)이고, 우측 하단 절대배치는 폴백 경로다.
+   - `inline-flex` + `align-items` 조합은 foreignObject/html2canvas 캡처에서 자식 텍스트의 `color` 가 무시되는 알려진 문제가 있다. `display:inline-block` + `line-height` 로 수직 정렬할 것.
 
 ---
 

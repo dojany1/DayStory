@@ -22,6 +22,7 @@ import { localizedStory } from '../utils/storyI18n.js';
 import { t } from '../i18n/index.js';
 import { collect, isCollected, canCollect, bulkCollect } from '../services/collection.js';
 import { markDateRead } from '../services/readHistory.js';
+import { notifyDetailOpened } from '../services/adPlacement.js';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
@@ -87,7 +88,7 @@ export function renderEditorStory() {
     idPrefix: 'editorstory',
     pageClass: 'editorstory-page',
     headerHtml: '<div class="editorstory-header"><h1 class="editorstory-title"></h1></div>',
-    calendarTitle: '에디터 일화',
+    calendarTitle: t('calendar.page_title_history'),
     /* 다른 페이지에서 진입 시에만 좌→우, 최초 로드는 기본값(아래→위) */
     enterDir: getPreviousRoute() ? 'from-left' : null,
     calMode: 'history',
@@ -316,6 +317,10 @@ function bindFlipCardEvents(flipContainer, story, bookmarkedIds, iso) {
     detailBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       navigate(`/detail/${story.id}`);
+      /* 카드덱 → 상세 화면 전환 지점. 빈도 정책(시작 유예/쿨다운/세션 상한)과
+         미로드 시 즉시 포기(onlyIfReady)는 adPlacement 가 판단하므로
+         여기서는 이동을 막지 않고 fire-and-forget 으로 알리기만 한다. */
+      void notifyDetailOpened();
     });
   }
 

@@ -105,6 +105,8 @@
     "title": "カレンダー",
     "tab_history": "歴史",
     "tab_mine": "日記",
+    "page_title_history": "エディターのストーリー",
+    "page_title_mine": "日記",
     "card_tap_hint": "カードをタップするとめくれます",
     "card_collected_hint": "収集済みのカード — タップでめくれます",
     "card_swipe_hint": "左右にスワイプしてカードを切り替えられます",

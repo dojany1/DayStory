@@ -105,6 +105,8 @@
     "title": "Calendar",
     "tab_history": "History",
     "tab_mine": "My Diary",
+    "page_title_history": "Editor's Stories",
+    "page_title_mine": "My Diary",
     "card_tap_hint": "Tap the card to flip it",
     "card_collected_hint": "Collected — tap to flip",
     "card_swipe_hint": "Swipe left or right to browse cards",

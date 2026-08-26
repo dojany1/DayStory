@@ -181,7 +181,9 @@
 .flip-container {
   perspective: 2200px;                 /* 원근감 거리 (낮을수록 과장된 3D 효과) */
   width: 100%;
-  min-width: 280px;
+  /* min-width 를 두면 좁은 기기에서 부모 밖으로 넘쳐 카드가 잘린다.
+     카드 폭의 하한은 cardMetrics.js 의 minScale 이 담당한다. */
+  min-width: 0;
   margin: 0 auto;                      /* 수평 중앙 정렬 */
   position: relative;                  /* flipper 형제 오버레이(.card-admin-edit-float) 의 위치 기준 */
 }
@@ -221,17 +223,23 @@
    transform-style: preserve-3d로 자식 요소가 3D 공간에 존재 */
 .flipper {
   position: relative;
+  /* 크기는 전적으로 부모 .flip-container 가 정한다.
+     종전에는 여기서 min-height:500px + aspect-ratio:3/5 를 직접 들고 있었다.
+     CSS 명세상 min-height 는 max-height 를 항상 이기므로, 카드 영역이 500px
+     보다 짧은 기기(iPhone SE, 배너 노출 중인 mini)에서 카드가 부모를 넘쳐
+     잘릴 수 있는 구조였다(Chrome 151 에서는 max-height 가 이겨 실제 잘림은
+     재현되지 않았으나 엔진 의존적이라 제거한다).
+     또한 이 자체 비율 3/5 가 --card-aspect-ratio 3.1/4.8 와 달라 스켈레톤과
+     실제 카드의 크기가 튀었다. 비율은 --card-aspect-ratio 한 곳에서만 관리한다. */
   width: 100%;
-  min-width: 280px;
-  max-height: 100%;                  /* 부모 높이를 초과하지 않도록 제한 */
-  min-height: 500px;
-  aspect-ratio: 3 / 5;
+  height: 100%;
+  min-width: 0;
   /* transform transition 은 .is-flipping 클래스 활성 동안만 적용 (아래 별도 rule).
      이전엔 base 에 항상 활성이라 Swiper 의 wrapper translate3d 와 충돌해
      iOS GPU 컴포지터가 두 애니메이션 동시 합성 → WebContent process 살해.
      scale 은 transform 과 독립된 shorthand 라 flip rotateY 와 충돌 없이 press 피드백에 사용. */
   transform-style: preserve-3d;        /* 자식을 3D 공간에 배치 (flip 동작에 필수) */
-  transition: transform 0.5s  scale 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 복귀: 쫀득한 ease-out */
+  transition: scale 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* 복귀: 쫀득한 ease-out */
   /* GPU promotion 힌트는 의도적으로 제외 (iOS WKWebView 의 GPU process 살해 회피).
      pages.css 의 .swiper-slide-active/-next/-prev .flipper 셀렉터로 가시 슬라이드에만 부여. */
   cursor: pointer;
@@ -277,9 +285,17 @@
 
 /* ── 카드 앞면 (Front) ── */
 
+/* ── 카드 내부 스케일링 ──
+   카드 내부의 타이포·여백은 카드 박스 크기에 비례해야 한다. 종전에는
+   전부 절대값(rem/px)이라 작은 화면에서는 상단 블록이 카드를 잡아먹어
+   이미지 영역이 눌리고, 큰 화면에서는 여백만 넓고 허전했다.
+   --card-scale 은 cardMetrics.js 가 주입하며(기준 390pt = 1.0),
+   주입이 없는 컨텍스트에서는 variables.css 의 폴백 1 이 쓰인다.
+   font-size 에는 가독성 하한/오버플로 상한을 clamp() 로 함께 건다. */
+
 /* 앞면 전체 레이아웃 — 상단 정보 + 이미지 영역 */
 .history-card-front {
-  padding: var(--space-4);
+  padding: calc(var(--space-4) * var(--card-scale));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -337,7 +353,7 @@
 /* 카드 연도 텍스트 (예: "1879") */
 .card-year {
   font-family: var(--font-body);
-  font-size: 1.75rem;
+  font-size: clamp(1.2rem, calc(1.75rem * var(--card-scale)), 2.1rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--color-text-primary);
@@ -347,7 +363,7 @@
 /* 카드 날짜 텍스트 (예: "3. 14") — 초대형 폰트 */
 .card-date {
   font-family: var(--font-body);
-  font-size: 3.55rem;
+  font-size: clamp(2.4rem, calc(3.55rem * var(--card-scale)), 4.2rem);
   font-weight: 600;
   line-height: 0.9;
   letter-spacing: -0.04em;
@@ -400,10 +416,10 @@
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
-/* 액션 버튼 SVG 아이콘 크기 */
+/* 액션 버튼 SVG 아이콘 크기 — 카드 크기에 비례 */
 .card-actions svg {
-  width: 22px;
-  height: 22px;
+  width: calc(22px * var(--card-scale));
+  height: calc(22px * var(--card-scale));
 }
 
 /* 카드 메타 정보 — 국가, 날짜 등 작은 텍스트 */
@@ -445,14 +461,16 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: var(--space-8) var(--space-5) var(--space-5);
+  padding: calc(var(--space-8) * var(--card-scale))
+           calc(var(--space-5) * var(--card-scale))
+           calc(var(--space-5) * var(--card-scale));
   background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
   color: #fff;
   font-family: var(--font-sans);
-  font-size: 2.8rem;
+  font-size: clamp(1.9rem, calc(2.8rem * var(--card-scale)), 3.4rem);
   font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   word-break: keep-all;
   text-shadow: 0 2px 10px rgba(0,0,0,0.6);
   pointer-events: none;
@@ -464,7 +482,7 @@
 /* 뒷면 전체 레이아웃 — 인물 이름 + 구분선 + 본문 + 날짜 */
 .history-card-back {
   transform: rotateY(180deg);          /* 뒤집혀 있어 앞면이 보일 때는 숨겨짐 */
-  padding: var(--space-4) var(--space-6);
+  padding: calc(var(--space-4) * var(--card-scale)) calc(var(--space-6) * var(--card-scale));
   background: var(--color-bg-card);
   color: var(--color-text-primary);
   overflow: hidden;
@@ -473,7 +491,7 @@
 /* 뒷면 제목 — 역사 인물의 이름 */
 .back-title {
   font-family: var(--font-sans);
-  font-size: 1.25rem;
+  font-size: clamp(1rem, calc(1.25rem * var(--card-scale)), 1.5rem);
   font-weight: 600;
   text-align: center;
 }
@@ -492,11 +510,10 @@
   min-height: 0;
   overflow-y: auto;
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: clamp(0.875rem, calc(1rem * var(--card-scale)), 1.15rem);
   line-height: 1.8;
   letter-spacing: -0.016em;
   color: var(--color-text-secondary);
-  word-break: keep-all;
 }
 
 /* 빈 줄(<p><br></p>) 높이만 줄임 — 텍스트 줄 간격은 유지 */
@@ -590,6 +607,7 @@
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+  outline: 1px solid var(--color-accent-light);
 }
 
 /* 에디터 프로필 사진 없을 때 폴백 아이콘 */
@@ -614,14 +632,13 @@
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
-  line-height: 1.25rem;
-  letter-spacing: 0.02em;
+  line-height: 1.4rem;
   padding: var(--space-4);
-  border: 2px solid var(--color-border);
+  border: 2px solid var(--color-accent-light);
   border-radius: var(--radius-sm);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   max-width: 330px;
-  min-width: 240px;
+  min-width: 230px;
   white-space: normal;
   word-break: normal;
   overflow-wrap: anywhere;
@@ -642,7 +659,7 @@
   height: 0;
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-top: 8px solid var(--color-border);
+  border-top: 8px solid var(--color-accent-light);
 }
 
 /* 에디터 이름 라벨 */
@@ -679,7 +696,7 @@
   transition: var(--transition-spring);
   display: flex;
   flex-direction: column;
-  aspect-ratio: 3 / 4.8;              /* 메인 카드와 동일한 비율 */
+  aspect-ratio: var(--card-aspect-ratio); /* 메인 카드와 동일한 비율 */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -712,7 +729,7 @@
   font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
@@ -1532,7 +1549,7 @@
 /*
   Cropper.js 글로벌 리셋 격리
   ─────────────────────────────────────────────────────────────────────────────
-  base.css 의 `*, *::before, *::after { box-sizing: border-box }` 전역 리셋이
+  base.css 의 `*, *::before, *::after  box-sizing: border-box ` 전역 리셋이
   Cropper.js 내부 요소들의 pixel 단위 레이아웃을 깨뜨린다.
   Cropper.js 는 line-e/w 의 width:5px + right:-3px, point 의 margin-top:-3px 등
   content-box 기준 수치로 설계되어 있으므로 해당 요소들만 명시적으로 복원한다.

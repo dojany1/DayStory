@@ -43,6 +43,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Google AdMob 앱 ID.
+             주의: 광고 "단위" ID(ca-app-pub-…/…) 가 아니라 "앱" ID(ca-app-pub-…~…) 다.
+             이 값이 없거나 형식이 틀리면 앱이 실행 즉시 크래시한다.
+             개발 중에도 이 값은 실제 앱 ID 를 쓴다 (Google 권장).
+             테스트 광고 여부는 ads.js 의 USE_TEST_ADS 가 광고 "단위" 레벨에서 제어한다. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3250744272484684~3073922259" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -55,4 +64,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- AdMob 광고 ID(GAID) 접근 — targetSdk 33+ 에서는 명시하지 않으면
+         광고 ID 를 받지 못해 타게팅/수익이 떨어진다. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 </manifest>

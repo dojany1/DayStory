@@ -24,6 +24,7 @@ import { setOnUnmount } from '../../router.js';
 import { isDateRead, flushReadHistory } from '../../services/readHistory.js';
 import { getLocalToday } from '../../utils/date.js';
 import { createCardSwiper } from '../../utils/cardSwiper.js';
+import { observeCardMetrics } from '../../utils/cardMetrics.js';
 import { renderGrid, isAtCurrentMonth, getWeekdays } from '../../pages/calendar.js';
 import { ICON_CALENDAR, ICON_CARD } from './cardFace.js';
 import { t } from '../../i18n/index.js';
@@ -109,6 +110,13 @@ export function buildCardDeck(config) {
 /* ── 데이터 로드 + 휠 + Swiper + 토글 (공통 본체) ── */
 async function mountCardDeck(page, config) {
   const P = config.idPrefix;
+
+  /* 카드 영역 실측 → --card-w/--card-h/--card-scale 주입.
+     가용 높이가 부족한 기기(iPhone SE, AdMob 배너 노출 중)에서 카드 비율이
+     무너지던 문제를 막는다(측정: SE 0.74, SE+배너 0.83 → 정상 0.6458).
+     데이터 로드(await) 전에 걸어 로딩 스켈레톤부터 올바른 크기를 갖게 한다. */
+  let disposeCardMetrics = observeCardMetrics(page.querySelector(`#${P}-card-area`));
+
   try {
     /* 로컬(시스템) 오늘 기준 — 두 페이지 일관 + DB autoPublish 누락에 무관 */
     const localTodayStr = getLocalToday();
@@ -122,6 +130,8 @@ async function mountCardDeck(page, config) {
     /* 페이지별 데이터 로드 */
     const result = await config.loadData({ page, today, todayIso, localTodayStr });
     if (!result || result.isEmpty) {
+      disposeCardMetrics();               /* 카드 영역이 사라지므로 관찰 중단 */
+      disposeCardMetrics = () => {};
       page.innerHTML = (config.emptyHtml && config.emptyHtml()) || `<div class="empty-state"><div class="empty-state-title">${t('common.empty_cards')}</div></div>`;
       return;
     }
@@ -296,6 +306,7 @@ async function mountCardDeck(page, config) {
 
     setOnUnmount(() => {
       if (swiper && !swiper.destroyed) swiper.destroy(true, true);
+      disposeCardMetrics();
       /* 화면 이탈 시 모아둔 읽음을 서버에 1회 반영(배치 flush) */
       void flushReadHistory();
     });
@@ -383,6 +394,10 @@ async function mountCardDeck(page, config) {
         dayPicker.hidden = true;
         cardArea.hidden = true;
         calView.hidden = false;
+        /* 배너 노출 조건(캘린더 뷰) 동기화용 — adPlacement.js 가 구독한다(전면 광고와 무관).
+           반드시 hidden 반영 "후"에 쏜다. adPlacement 는 DOM 의 실제 표시 상태를
+           우선 신뢰하므로, 먼저 쏘면 아직 숨겨진 상태로 읽혀 배너가 안 뜬다. */
+        document.dispatchEvent(new CustomEvent('ds:view-changed', { detail: { view: 'calendar' } }));
         requestAnimationFrame(() => {
           calView.classList.add('view-enter');
           renderGrid(page, calState, today);
@@ -395,6 +410,7 @@ async function mountCardDeck(page, config) {
         calView.hidden = true;
         dayPicker.hidden = false;
         cardArea.hidden = false;
+        document.dispatchEvent(new CustomEvent('ds:view-changed', { detail: { view: 'card' } }));
         requestAnimationFrame(() => {
           activateDayWheelByIndex(selectedIdx, true, true);
           const sw = ensureSwiper();
@@ -442,6 +458,7 @@ async function mountCardDeck(page, config) {
       syncMonthWheel(calState.month + 1);
     });
   } catch (err) {
+    disposeCardMetrics();                 /* 카드 영역이 사라지므로 관찰 중단 */
     console.error('카드덱 로딩 실패:', err?.message || err);
     page.innerHTML = (config.errorHtml && config.errorHtml(err)) || `<div class="empty-state"><div class="empty-state-title">${t('common.error_occurred')}</div></div>`;
   }

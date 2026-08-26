@@ -20,6 +20,7 @@ describe('inquirySheet — 토스 스타일 문의 바텀시트', () => {
   });
   afterEach(() => {
     document.querySelectorAll('.inquiry-sheet-overlay').forEach((el) => el.remove());
+    document.querySelectorAll('.inquiry-select-options').forEach((el) => el.remove());
     document.body.innerHTML = '';
   });
 
@@ -28,8 +29,13 @@ describe('inquirySheet — 토스 스타일 문의 바텀시트', () => {
     const overlay = document.querySelector('.mobile-wrapper .inquiry-sheet-overlay');
     expect(overlay).not.toBeNull();
 
-    const options = overlay.querySelectorAll('.inquiry-select option');
-    expect([...options].map((o) => o.value)).toEqual(['bug', 'typo', 'feature', 'etc']);
+    /* 네이티브 <select> 가 아니라 커스텀 콤보박스 — 클릭해야 옵션 팝업이 body 에 그려진다. */
+    const customSelect = overlay.querySelector('.inquiry-custom-select');
+    expect(customSelect).not.toBeNull();
+    customSelect.click();
+
+    const options = document.querySelectorAll('.inquiry-select-options .inquiry-select-option');
+    expect([...options].map((o) => o.dataset.value)).toEqual(['bug', 'typo', 'feature', 'etc']);
 
     expect(overlay.querySelector('#inquiry-content')).not.toBeNull();
     expect(overlay.querySelector('.inquiry-notice')).not.toBeNull();
@@ -45,8 +51,8 @@ describe('inquirySheet — 토스 스타일 문의 바텀시트', () => {
 
   it('카드에서 진입하면(presetType=typo) 유형이 오탈자로 미리 선택된다', () => {
     showInquirySheet({ presetType: 'typo', entryCardId: 'story-7' });
-    const select = document.querySelector('.inquiry-select');
-    expect(select.value).toBe('typo');
+    const customSelect = document.querySelector('.inquiry-custom-select');
+    expect(customSelect.dataset.value).toBe('typo');
   });
 
   it('내용이 비어 있으면 submitInquiry 를 호출하지 않는다', async () => {

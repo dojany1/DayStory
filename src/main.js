@@ -87,6 +87,8 @@ import { Capacitor } from '@capacitor/core';
 import { renderEditorStory } from './js/pages/editorstory.js';
 import { getLocalToday } from './js/utils/date.js';
 import { checkForAppUpdate } from './js/services/appUpdate.js';
+import { initAds } from './js/services/ads.js';
+import { initAdPlacement, syncBannerForRoute, notifyRouteChanged } from './js/services/adPlacement.js';
 
 function registerImageCacheWorker() {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -162,6 +164,12 @@ setBeforeNavigate((path) => {
     navigate('/editorstory');
     return false;
   }
+
+  /* 광고: 이동이 확정된 뒤에만 처리한다 (위 가드에서 막힌 경로는 제외).
+     - 배너: 목적지가 노출 대상 라우트인지에 따라 켜고 끈다.
+     - 전면: 메인 탭 이동만 전환 지점으로 취급하며, 빈도 정책은 adPlacement 가 판단한다. */
+  void syncBannerForRoute(path);
+  void notifyRouteChanged(path);
 
   return true;
 });
@@ -281,6 +289,22 @@ function checkAndStartApp() {
   /* 부팅 직후 1회 — 신규 버전 출시 안내 (비동기, fire-and-forget).
      내부에서 모든 실패를 흡수하므로 await 불필요 + 부팅을 절대 막지 않는다. */
   void checkForAppUpdate();
+
+  /* AdMob 초기화 (UMP 동의 폼 → iOS ATT 권한 → SDK init).
+     스플래시가 걷힌 뒤에 호출해야 동의/추적 팝업이 로딩 화면 위에 뜨지 않는다.
+     광고를 "표시"하지는 않는다 — 노출은 각 화면이 showAdBanner() 등으로 결정한다.
+     웹에서는 no-op 이고 모든 실패를 내부에서 흡수하므로 부팅을 막지 않는다. */
+  /* 광고 배치/빈도 정책 초기화 — 배너 높이 구독 + 뷰 전환 트리거 등록.
+     기기 테스트용 window.__dsAds 핸들도 여기서 노출된다.
+     리스너는 즉시 걸어 둔다(부팅 직후 뷰 토글도 잡히도록). */
+  void initAdPlacement();
+
+  /* SDK 초기화가 끝난 뒤 현재 라우트의 배너를 한 번 동기화한다.
+     initRouter() 가 먼저 돌면서 첫 라우트의 setBeforeNavigate 가 이미 지나갔는데,
+     그 시점엔 SDK 가 아직 준비 전이라 canShowAds() 가 false 여서 배너가 뜨지 않는다.
+     이 재동기화가 없으면 콜드 부팅으로 캘린더 뷰에 진입한 사용자는
+     다른 탭에 다녀오기 전까지 배너를 못 본다. */
+  void initAds().then(() => syncBannerForRoute(getCurrentPath()));
 }
 
 /* 탈퇴 예약(soft delete) 상태로 로그인/세션복원한 사용자를 처리한다.

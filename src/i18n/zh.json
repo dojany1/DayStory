@@ -105,6 +105,8 @@
     "title": "日历",
     "tab_history": "历史",
     "tab_mine": "我的日记",
+    "page_title_history": "编辑故事",
+    "page_title_mine": "我的日记",
     "card_tap_hint": "点击卡片翻面",
     "card_collected_hint": "已收集 — 点击翻面",
     "card_swipe_hint": "左右滑动可切换卡片",

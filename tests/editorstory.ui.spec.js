@@ -11,6 +11,7 @@ const {
   getBookmarkedStoryIdsMock,
   toggleBookmarkMock,
   getStateMock,
+  notifyDetailOpenedMock,
 } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   fetchStoriesMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   getBookmarkedStoryIdsMock: vi.fn(),
   toggleBookmarkMock: vi.fn(),
   getStateMock: vi.fn(),
+  notifyDetailOpenedMock: vi.fn(),
 }));
 
 vi.mock('../src/js/services/stories.js', () => ({
@@ -32,6 +34,12 @@ vi.mock('../src/js/services/bookmarks.js', () => ({
 
 vi.mock('../src/js/components/toast.js', () => ({
   showToast: vi.fn(),
+}));
+
+/* 광고는 AdMob SDK 를 물고 들어오므로 서비스 경계에서 끊는다.
+   이 스펙이 검증하는 것은 "상세보기 버튼이 전환 지점을 알리는가" 뿐이다. */
+vi.mock('../src/js/services/adPlacement.js', () => ({
+  notifyDetailOpened: notifyDetailOpenedMock,
 }));
 
 vi.mock('../src/js/state.js', () => ({
@@ -160,7 +168,7 @@ describe('Editor Story comment styles', () => {
     expect(css).not.toMatch(/\.editor-badge\s*\{/);
     expect(css).not.toMatch(/badgePop/);
     expect(bubbleBlockMatch?.[0]).toMatch(/background:\s*var\(--color-bg-secondary\)/);
-    expect(bubbleBlockMatch?.[0]).toMatch(/border:\s*2px\s+solid\s+var\(--color-text-secondary\)/);
+    expect(bubbleBlockMatch?.[0]).toMatch(/border:\s*2px\s+solid\s+var\(--color-accent-light\)/);
     expect(bubbleBlockMatch?.[0]).not.toMatch(/background:\s*var\(--color-editor-comment,\s*#ffe16a\)/);
     expect(bubbleBlockMatch?.[0]).toMatch(/pointer-events:\s*auto/);
   });
@@ -328,6 +336,7 @@ describe('Editor Story interactions', () => {
     getBookmarkedStoryIdsMock.mockReset();
     toggleBookmarkMock.mockReset();
     getStateMock.mockReset();
+    notifyDetailOpenedMock.mockReset();
 
     const story = buildStory();
     fetchStoriesMock.mockResolvedValue([story]);
@@ -562,5 +571,25 @@ describe('Editor Story interactions', () => {
     detailButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(navigateMock).toHaveBeenCalledWith('/detail/story-1');
+  });
+
+  it('Given the card back detail button, when it is clicked, then the interstitial transition point is notified (flip alone is not)', async () => {
+    const page = renderEditorStory();
+    document.body.appendChild(page);
+    await flushRender();
+
+    const flipper = page.querySelector('.flipper');
+    flipper.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    /* 플립 자체는 전환 지점이 아니다 — 콘텐츠 소비 중간을 끊지 않는다 */
+    expect(notifyDetailOpenedMock).not.toHaveBeenCalled();
+
+    const detailButton = page.querySelector('.back-footer .card-detail-shortcut-btn');
+    expect(detailButton).not.toBeNull();
+
+    detailButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(navigateMock).toHaveBeenCalledWith('/detail/story-1');
+    expect(notifyDetailOpenedMock).toHaveBeenCalledTimes(1);
   });
 });

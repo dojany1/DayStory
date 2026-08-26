@@ -4,6 +4,7 @@
   "webDir": "dist",
   "android": {
     "includePlugins": [
+      "@capacitor-community/admob",
       "@capacitor-community/media",
       "@capacitor-firebase/authentication",
       "@capacitor/app",

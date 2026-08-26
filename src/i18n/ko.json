@@ -104,6 +104,8 @@
     "title": "캘린더",
     "tab_history": "역사 일화",
     "tab_mine": "나의 일화",
+    "page_title_history": "에디터 일화",
+    "page_title_mine": "나의 일화",
     "card_tap_hint": "탭 하면 카드가 뒤집힙니다.",
     "card_collected_hint": "탭 하면 카드가 뒤집힙니다.",
     "card_swipe_hint": "좌 • 우로 스와이프 해서 카드를 넘길 수 있습니다.",

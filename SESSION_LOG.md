@@ -346,3 +346,33 @@ Xcode 실기 테스트에서 상세보기 전면 광고 트리거가 동작하�
 - **변경파일**: `SESSION_LOG.md`(2104줄 → 339줄), `docs/SESSION_LOG_ARCHIVE.md`(406줄 → 2175줄).
 - **검증**: 이동 전후 줄 수 및 경계(2026-05-25 시작 / 2026-07-13 마지막 항목) 확인. 내용 변형 없음.
 - `SESSION_LOG.md`
+
+### 2026-08-26 16:20 — Claude (Opus 5) · 기기 크기별 레이아웃 붕괴 수정 (Pro Max 레터박스 / 작은 화면 카드 비율 붕괴)
+
+- **요구사항**: 화면이 큰 기기(iPhone Pro Max)와 작은 기기(iPhone mini/SE)에서 레이아웃이 흐트러지는 문제의 원인을 특정하고 해결. 사용자 결정: ① 실기기는 전체 폭 사용 ② JS ResizeObserver + CSS 변수 방식 ③ 카드 화면 + 전역 공통 레이어까지.
+- **원인**: `components.css`(73KB)·`pages.css`(76KB)에 `@media` 쿼리가 **0개** — 화면 크기 적응 로직 자체가 부재했다. 구체적으로 ① `--mobile-max-width: 420px` 가 데스크톱용인데 실기기에도 적용돼 430·440pt 기기에서 앱 좌우에 `--color-bg-desktop` 띠 노출(`mobile-wrapper`/`status-bar-spacer`/`bottom-nav`/`toast-container`/`modal-sheet` 등 7곳이 이 토큰을 공유). ② `.card-swiper` 의 `width:100% + aspect-ratio + max-height:100%` 조합은 **높이가 제약일 때 높이만 잘라내고 폭은 100% 로 유지**해 카드가 뭉툭해진다. ③ 카드 비율이 4곳(`3.1/4.8`, `3/5`, `3/4.8`)에서 서로 달라 스켈레톤↔실카드 크기 점프. ④ `.card-date`(3.55rem)·`.card-image-title`(2.8rem) 등 카드 내부 타이포가 절대값 고정이라 카드 크기와 무관.
+- **구현방법**:
+  - **`variables.css`** — `--mobile-max-width` 기본값을 `100%` 로 바꾸고 px 상한은 `@media (min-width: 600px)` 안으로 이동. 한 곳 수정으로 위 7개 소비처가 동시에 해결된다(현행 아이폰은 전부 600px 미만). 카드 메트릭 폴백 토큰 `--card-scale: 1` / `--card-w` / `--card-h` 추가 — `.history-card-front` 는 카드덱 밖(관리자 프리뷰, 캡처 클론)에서도 렌더되므로 `calc()` 가 무효화되지 않도록.
+  - **`base.css`** — body 기본 배경을 `--color-bg-primary` 로(실기기 러버밴드 오버스크롤 시 회색 노출 방지), 데스크톱 배경·래퍼 그림자는 같은 미디어쿼리로 이동.
+  - **`src/js/utils/cardMetrics.js`** (신규) — CSS 로는 `min(부모폭, 부모높이 × 비율)` 을 표현할 수 없고(container query 는 Safari 16+ 필요, 현 iOS 배포 타깃 15.0), AdMob 배너로 가용 높이가 런타임에 바뀌어 미디어쿼리로도 불가능하다. `adPlacement.js` 의 `--ad-banner-height` / `main.js` 의 `--safe-area-bottom` 과 동일한 "실측 후 CSS 변수 주입" 패턴 채택. ResizeObserver 로 카드 영역 content box 를 관찰해 `--card-w`/`--card-h`/`--card-scale` 을 **:root 가 아닌 해당 영역 엘리먼트에** 주입(카드덱과 캘린더 팝업 상호 간섭 방지). 재기록 임계값(0.5px / 0.005)으로 iOS WebView 의 소수점 흔들림 → write → layout 루프를 차단.
+  - **`components.css`** — `.flipper` 의 `min-height:500px`·`aspect-ratio:3/5`·`min-width:280px` 제거하고 `height:100%` 로 부모에 위임(비율은 `--card-aspect-ratio` 한 곳에서만 관리). `.history-card-mini` 도 토큰으로 통일. 카드 내부 타이포/여백 8개 규칙을 `clamp(하한, calc(기존값 * var(--card-scale)), 상한)` 으로 유동화.
+  - **`pages.css`** — `.card-swiper` / `.editorstory-card-area > .skeleton-card` / 캘린더 팝업 카드가 모두 `--card-w`/`--card-h` 를 쓰도록 변경. 관리자 프리뷰(`.preview-scale-wrapper .flip-container`)는 `.flipper` 가 높이를 잃었으므로 `aspect-ratio` 를 부모에 부여(덤으로 프리뷰 비율이 실물과 일치하게 됨). 팝업은 `inner{max-height:100%}` + `stage{flex:1 1 auto; min-height:0}` 로 짧은 화면에서 스테이지만 줄어들게 함.
+  - **`cardDeckController.js` / `calendar.js`** — 관찰자 부착 + 해제. 라우터의 `onUnmountHook` 은 **단일 슬롯(덮어쓰기)** 이라 `setOnUnmount` 를 새로 부르지 않고 기존 콜백에 `dispose()` 를 합류시켰다. isEmpty·에러 조기 반환 경로에서도 해제.
+  - **`CLAUDE.md` §6** — "캡처 직전 375×667 고정 픽셀 강제", "300ms sleep", "워터마크를 하단 우측에 주입" 서술이 현재 구현(modern-screenshot 1차 + WYSIWYG 캡처, 워터마크는 복제본 상단 액션 슬롯)과 불일치해 정정. AGENTS.md 에는 대응 섹션이 없어 동기화 불필요.
+- **변경파일**: `src/css/variables.css`, `src/css/base.css`, `src/css/components.css`, `src/css/pages.css`, `src/js/utils/cardMetrics.js`(신규), `src/js/components/cardDeck/cardDeckController.js`, `src/js/pages/calendar.js`, `tests/responsive_layout.spec.js`(신규), `tests/cardMetrics.spec.js`(신규), `CLAUDE.md`, `dist/`·`android/*`·`ios/*`(빌드/sync 산출물), `SESSION_LOG.md`.
+- **검증(TDD)**: 신규 spec 2개(34건)를 먼저 작성해 red 확인 후 구현. 전체 **66 파일 / 699 passed / 6 skipped / 0 failed** (베이스라인 665 + 신규 34, **회귀 0건**). `npm run build`·`npx cap sync android`·`ios` 성공. 추가로 **헤드리스 Chrome(151) 렌더 하네스**를 만들어 실제 CSS/JS 로 수정 전·후를 대조 측정(정확한 뷰포트를 위해 기기 크기 iframe 으로 에뮬레이션): 수정 전 iPhone SE 카드 **351×474(비율 0.74)** → 수정 후 **306.1×474(0.6458)**, SE+배너 0.83 → 0.6457, 16 Pro Max 는 wrapper/nav/status-bar 폭이 420 → **440(화면 전체)**. 다크 테마·글꼴 small/large·iPad·데스크톱 1440(래퍼 420px 유지 = 기존 동작 보존)까지 전부 통과.
+- **참고(측정으로 확인되지 않은 것)**: `.flipper { min-height: 500px }` 가 작은 화면에서 카드를 잘라낼 것으로 예상했으나, Chrome 151 에서는 `max-height` 가 이겨 실제 잘림은 재현되지 않았다(WebKit 거동은 이 환경에서 확인 불가). 제거는 잠재 위험 제거 목적이며, 실제로 관측된 결함은 **비율 붕괴**다. 캘린더 팝업 넘침도 세로 아이폰에서는 재현되지 않았고(카드 폭이 뷰포트로 먼저 제한됨), 400×520 같은 **세로가 짧은 화면**에서만 재현·수정 확인됐다.
+- **남은 작업**: 실기기(iOS 시뮬레이터 SE / 16 Pro Max) 육안 확인, 카드 공유 캡처 결과를 두 기기에서 실측(WYSIWYG 캡처라 화면 레이아웃이 그대로 이미지가 됨).
+
+### 2026-08-26 16:27 — Claude (Opus 5) · v1.6.0 버전 업 + 스토어 릴리스 빌드 준비 (실 광고 전환 포함)
+
+- **요구사항**: 버전을 1.6.0으로 올리고 빌드 출시 준비.
+- **점검 결과**: pending harness phase 없음(001/002 모두 완료) → 일반 작업으로 진행. 버전 문자열은 `package.json`·`android/app/build.gradle`·`ios/.../project.pbxproj`(Debug/Release 2곳)에만 존재하며, 앱 내 표시 버전은 네이티브에서 런타임 조회하므로 JS 하드코딩 없음(`src/js/utils/version.js`는 비교 유틸일 뿐). 릴리스 점검 중 **`src/js/services/ads.js`의 `USE_TEST_ADS`가 `true`로 남아 있어** 스토어 빌드가 Google 테스트 광고만 노출할 상태였음(실 광고 단위 ID와 네이티브 앱 ID는 이미 채워져 있었음). 사용자 결정: 실 광고로 전환.
+- **구현방법**:
+  - **버전 업** — `package.json` 1.5.2 → 1.6.0, `package-lock.json` 상단 2곳 동기화, `android/app/build.gradle` versionName 1.5.2 → 1.6.0 / versionCode 27 → 28, `project.pbxproj` MARKETING_VERSION 2곳 1.5.2 → 1.6.0. `CURRENT_PROJECT_VERSION`은 관례대로 1 유지(마케팅 버전이 올라가므로 빌드 번호 리셋 가능; 동일 버전 재업로드 시에만 증가 필요).
+  - **실 광고 전환** — `ads.js`의 `USE_TEST_ADS = true` → `false`. 이 시점부터 `LIVE_AD_UNITS`(Android 배너 `…/1749232294`·전면 `…/6618415596`, iOS 배너 `…/2399968981`·전면 `…/4413984739`)가 실제 광고를 받아온다.
+  - **테스트 수정** — `tests/ads.spec.js`가 `isTesting: true`를 **하드코딩**하고 있어 플래그를 내리자 2건 실패. 단언을 `ads.USE_TEST_ADS` 참조로 바꿔 플래그 값과 무관하게 "모듈 상수가 SDK로 그대로 전달되는지"를 검증하도록 정정(테스트 의도 보존, 향후 플래그 토글 시 재발 방지). 배너 테스트 제목의 "테스트 모드에서"도 실제 검증 내용에 맞게 수정.
+  - **빌드/동기화** — `npm run build` → `npx cap sync android` → `npx cap sync ios`. 광고 플래그 변경 후 재빌드·재sync까지 완료.
+- **변경파일**: `package.json`, `package-lock.json`, `android/app/build.gradle`, `ios/App/App.xcodeproj/project.pbxproj`, `src/js/services/ads.js`, `tests/ads.spec.js`, `dist/`·`android/app/src/main/assets/*`·`ios/App/App/public/*`(빌드/sync 산출물), `SESSION_LOG.md`.
+- **검증**: 버전 업 전 베이스라인 **66 파일 / 699 passed / 6 skipped**. 광고 플래그 전환 직후 2 failed → spec 정정 후 다시 **699 passed / 0 failed**. `npm run build` 성공, `cap sync` android/ios 모두 plugin 11개 인식하며 성공. 최종 산출물 `dist/assets/index-*.js`에 실 광고 퍼블리셔 ID(`ca-app-pub-3250744272484684`)가 포함된 것을 grep으로 확인. Android/iOS `public/index.html` 동일 크기(16898B)로 sync 확인.
+- **남은 작업(수동)**: ① Android Studio에서 릴리스 AAB 빌드·서명 후 Play Console 업로드(versionCode 28). ② Xcode에서 Archive → App Store Connect 업로드(1.6.0). ③ 출시 승인 후 Firebase Remote Config `latest_version`을 `1.6.0`으로 갱신(미갱신 시 구버전 사용자에게 업데이트 시트가 뜨지 않음). ④ **실 광고 전환 상태이므로 본인/테스터 기기에서 광고를 반복 클릭하지 말 것**(무효 트래픽 정책 위반 시 계정 정지 위험). 개발 중 광고를 다시 테스트하려면 `USE_TEST_ADS`를 임시로 `true`로 되돌린다.

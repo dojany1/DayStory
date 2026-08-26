@@ -5,7 +5,8 @@
       "Bash(firebase deploy)",
       "Bash(firebase deploy *)",
       "Bash(npx cap sync *)",
-      "Bash(npx cap open *)"
+      "Bash(npx cap open *)",
+      "Bash(npm test *)"
     ]
   }
 }

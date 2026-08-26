@@ -392,3 +392,40 @@ Xcode 실기 테스트에서 상세보기 전면 광고 트리거가 동작하�
 - **검증(TDD)**: `tests/share_domain_consistency.spec.js`(7건)를 먼저 작성해 red 확인(4 failed / 3 passed) 후 구현. 작성 중 **테스트 자체의 오류 2건**을 red 단계에서 잡음 — ⓐ `@vitest-environment node`로는 `sharing.js`가 `state.js` 경유로 `document`를 요구해 터짐 → `jsdom`으로 변경, ⓑ `\bdaystory\.app\b` 정규식이 정상 Android 패키지명 `com.daystory.app`(`functions/lib/og.js`의 `ANDROID_PACKAGE`/`PLAY_STORE`)을 오탐 → URL 호스트 형태 `https?://(www\.)?daystory\.app`만 잡도록 정밀화. 최종 **67 파일 / 706 passed / 6 skipped / 0 failed**(베이스라인 699 + 신규 7, **회귀 0건**). `npm run build` 성공, `npx cap sync android`·`ios` 성공, 번들·네이티브 자산 모두에서 죽은 도메인 소거 확인(grep). `firebase deploy --only hosting` 후 운영 검증: `app-ads.txt` 200(`text/plain`), `/share?date=…` 200, `.well-known/assetlinks.json`·`apple-app-site-association` 200.
 - **배포 안전성 확인**: 배포 전 `ldj-SUB`와 `main`이 양방향 diff 0(완전 동일, HEAD `cbfa62b 1.6.0 Release`)임을 확인 — hosting 전체 배포지만 운영에 반영되는 실질 변경은 app-ads.txt 추가와 공유 도메인 수정뿐임을 보장.
 - **남은 작업(수동)**: ① **스토어 리스팅 URL을 `https://dokhu-daystory.web.app`으로 재수정**(현재 `https://daystory.app`로 되어 있어 404 — Play 웹사이트 필드, App Store 마케팅 URL 둘 다). ② 그 후 AdMob 콘솔에서 "Verify app" 클릭(재크롤링에 수 시간~수일 소요). ③ **공유 링크 수정은 웹 배포만으로는 기존 설치 사용자에게 적용되지 않음** — 네이티브 앱에 JS가 번들되므로 다음 스토어 릴리스(버전 업 + AAB/Archive 업로드)가 나가야 실제 사용자 공유 링크가 복구된다. ④ `cors.json`의 `https://daystory.app` 항목은 무해해 유지했으나, 도메인을 영구 폐기하면 함께 정리. ⑤ `daystory.app`을 살릴 경우 DNS를 Vercel → Firebase Hosting으로 옮기고 `deepLink.js`의 `SHARE_APP_DOMAIN` 한 곳만 수정하면 전체가 따라옴(단일 출처화 완료).
+
+### 2026-08-26 21:07 — Claude (Opus 5) · Android 재출시용 versionCode 29 (versionName 1.6.0 유지)
+
+- **요구사항**: 공유 링크 수정본을 Android에 재출시하되 표시 버전은 1.6.0으로 유지.
+- **배경 조사**: AdMob "Verify app" 실패 원인 점검 중 스토어 라이브 상태를 조회해 확인 — **Android는 1.6.0이 이미 출시 완료**(Play 리스팅 조회), **iOS는 아직 1.5.2**(iTunes lookup: `version: 1.5.2`, `2026-07-13` 릴리스). 즉 Play에 나가 있는 1.6.0(versionCode 28)은 18:52 세션의 공유 도메인 수정 **이전** 빌드라 죽은 링크 버그를 포함한 상태. iOS는 미제출이라 지금 Archive 하면 수정본이 그대로 나감. 또한 iOS 마케팅 URL이 라이브에서 여전히 `threads.com`으로 게시 중(`sellerUrl`)이라 iOS AdMob 검증은 1.6.0 제출 후에야 풀린다.
+- **AdMob 검증 실패 진단**: 사용자가 받은 "app-ads.txt를 확인할 수 없습니다" 는 설정 오류가 아님. ⓐ 서빙 파일 형식 정상(BOM 없음 — `23`(`#`)로 시작, LF 개행, `text/plain; charset=utf-8`, 200), ⓑ Play 라이브 리스팅에 `https://dokhu-daystory.web.app` 게시 확인. 남은 변수는 Google 크롤링 주기(최대 24시간+)뿐이며 "Verify app" 버튼은 즉시 크롤링이 아니라 직전 크롤링 결과를 재표시할 뿐이라 대기가 정답.
+- **구현방법**: `android/app/build.gradle` 의 `versionCode` 28 → 29 **한 줄만** 변경. `versionName "1.6.0"`, `package.json`, iOS `MARKETING_VERSION` 은 모두 1.6.0 유지(양 플랫폼 버전 정렬). Play 는 `versionCode` 유일성만 요구하고 `versionName` 재사용에는 제약이 없다.
+- **트레이드오프(코드 주석으로 명시)**: 인앱 업데이트 안내는 `appUpdate.js:88` → `isUpdateAvailable()` → `compareVersions()` 경로로 **versionName 만** 비교하고 `versionCode` 는 보지 않는다. 따라서 `compareVersions("1.6.0","1.6.0") === 0` 이므로 **versionCode 28 을 설치한 사용자에게는 업데이트 시트가 뜨지 않고** Play 자동 업데이트에 의존한다. 1.6.0 출시 직후라 해당 집단이 소수인 점을 근거로 사용자가 이 방식을 선택. 1.5.2 이하 사용자는 정상적으로 안내를 받고 새 빌드(29)를 받는다. 시간이 지날수록 불리해지는 선택이라 조기 출시가 전제.
+- **변경파일**: `android/app/build.gradle`, `SESSION_LOG.md`.
+- **검증**: 버전 일관성 정적 테스트는 존재하지 않음을 확인(`tests/` 내 `versionCode|versionName|MARKETING_VERSION` grep 결과 없음). 전체 **67 파일 / 706 passed / 6 skipped / 0 failed**(회귀 0건). Android/iOS `public/assets` 양쪽에 공유 도메인 수정이 반영돼 있음을 재확인(죽은 도메인 grep 0건) — 18:52 세션의 `npm run build` + `cap sync` 산출물이 유효하므로 **재빌드/재sync 불필요**.
+- **남은 작업(수동)**: ① Android Studio 에서 AAB 빌드·서명 → Play Console 업로드(versionName 1.6.0 / versionCode 29). ② Xcode 에서 1.6.0 Archive → App Store Connect 업로드(공유 링크 수정 + 마케팅 URL `dokhu-daystory.web.app` 반영이 이때 라이브가 되어 iOS AdMob 검증도 함께 해결). ③ 출시 승인 후 Remote Config `latest_version` 을 `1.6.0` 으로 갱신. ④ AdMob 은 크롤링 대기 — 24시간 후 재확인, 계속 실패하면 변수 축소 차원에서 `public/app-ads.txt` 의 한글 주석을 제거하고 데이터 한 줄만 남긴 순수 ASCII 로 재배포 검토(현재 형식 자체는 규격 위반 아님).
+
+### 2026-08-26 21:17 — Claude (Opus 5) · iOS 출시 전 SKAdNetwork 전체 목록 반영 + 빌드 번호 2
+
+- **요구사항**: Google 공식 문서에서 SKAdNetwork 목록을 받아 `Info.plist` 에 반영하고, iOS `CURRENT_PROJECT_VERSION` 을 2로 올린다.
+- **배경**: iOS 1.6.0 은 **광고가 처음 나가는 릴리스**다(`ads.js` 는 8/25~26 작성, iOS 라이브는 7/13 의 1.5.2 — Android 만 1.6.0 으로 광고가 이미 나가 있음). 8/25 세션이 "출시 전 Google 공식 전체 목록으로 교체" TODO 를 남겼으나 미이행 상태로 제출 직전까지 방치돼 있었다. 목록에 없는 네트워크는 입찰에서 빠져 **에러도 경고도 없이 iOS 광고 수익만 조용히 깎인다**.
+- **목록 확보 과정(출처 신뢰성 확보)**: SKAdNetwork ID 는 지어낼 수 없는 값이라 공식 출처만 사용. ⓐ 기존 주석이 가리키던 `admob/ios/download#skadnetwork-items` 는 curl·WebFetch 모두 0건 — Google 이 페이지를 개편해 목록이 이전됨. ⓑ SPM 으로 받은 로컬 SDK(`googlemobileadsios_spm_13_6_0`) 번들도 grep 결과 0건(문서 전용임을 확인). ⓒ 웹 검색으로 현행 위치가 `admob/ios/privacy/strategies` 임을 특정. ⓓ WebFetch 로 50개 추출 후, **소형 모델의 전사 오류를 배제하기 위해** 같은 URL 을 curl 로 받아 정규식 추출한 원본과 `diff` — **값·순서 모두 완전 일치** 확인. ⓔ plist XML 은 손으로 옮기지 않고 검증된 원본 파일에서 스크립트로 생성.
+- **구현방법**:
+  - **`ios/App/App/Info.plist`** — `SKAdNetworkItems` 를 1개 → **50개**로 교체(문서 게재 순서 유지, 첫 항목은 Google 자체 `cstr6suwn9.skadnetwork`). 치환은 정규식 1건 매칭을 assert 해 다른 키를 건드리지 않음을 보장. 주석의 TODO 를 제거하고 현행 출처 URL·기준일·개수로 갱신.
+  - **`ios/App/App.xcodeproj/project.pbxproj`** — `CURRENT_PROJECT_VERSION` 1 → 2 (Debug/Release 2곳, 치환 2건 assert). `MARKETING_VERSION` 은 1.6.0 유지.
+  - **`tests/ads.spec.js`** — 기존 `AdMob ID 배선` describe 에 정적 검증 3건 추가(같은 파일의 소스 직접 읽기 컨벤션 준수). 개수를 50 으로 고정하지 않고 **`>= 40`** 으로 둔 이유는 Google 이 목록을 갱신하기 때문 — 지키려는 계약은 "전체 목록을 채웠다"는 사실이지 특정 개수가 아니다.
+- **변경파일**: `ios/App/App/Info.plist`, `ios/App/App.xcodeproj/project.pbxproj`, `tests/ads.spec.js`, `SESSION_LOG.md`.
+- **검증**: `plutil -lint` OK, `plistlib` 파싱 50개·중복 0건·기존 키(`GADApplicationIdentifier`, `NSUserTrackingUsageDescription`) 보존 확인, 파싱 결과가 curl 원본과 순서까지 일치. 테스트 추출 로직이 다른 `<string>` 을 주워 담지 않는지 별도 확인(50개 전부 skadnetwork 형식). **가드 red 검증**: 임시로 목록을 1개로 되돌리자 "최소 구성으로 되돌아가지 않았다" 가 실패 → 복원 후 재검증(plist OK, 50개). 전체 **67 파일 / 709 passed / 6 skipped / 0 failed**(직전 706 + 신규 3, 회귀 0건).
+- **참고**: `Info.plist` 는 `cap sync` 관리 대상이 아니고 웹 자산은 18:52 에 이미 sync 완료 → **재빌드·재sync 불필요**, Xcode 에서 바로 Archive 가능.
+- **남은 작업(수동)**: ① **App Store Connect "앱 개인정보 보호" 라벨에 광고 식별자 수집·추적 신고** — ATT 를 쓰는데 라벨이 불일치하면 리젝된다. 8/25 세션 TODO ⑥ 이 아직 미확인 상태이며 콘솔에서만 확인 가능. ② Xcode Archive → 업로드(1.6.0 / 빌드 2). ③ Android Studio AAB(1.6.0 / versionCode 29) → Play 업로드. ④ 출시 승인 후 Remote Config `latest_version` = `1.6.0`. ⑤ SDK 업그레이드나 다음 릴리스 전에 SKAdNetwork 목록을 출처와 재대조(Google 이 수시 갱신).
+
+### 2026-08-26 21:58 — Claude (Opus 5) · Play "광고 ID 선언 불일치" 출시 오류 원인 규명 + 낡은 AAB 제거
+
+- **요구사항**: Play Console 프로덕션 릴리스에서 "광고 ID 선언에는 앱에서 광고 ID를 사용한다고 명시되어 있지만, 활성 아티팩트 중 하나의 매니페스트에 `com.google.android.gms.permission.AD_ID` 권한이 없다" 출시 오류 해결.
+- **원인**: 소스는 정상이었다 — `android/app/src/main/AndroidManifest.xml:70` 에 `AD_ID` 권한이 있고, 방금 빌드한 `android/app/release/app-release.aab`(versionCode 29)에도 포함돼 있다. 문제는 **저장소 루트에 커밋돼 있던 `DayStory.aab`(2026-05-18 빌드, 12MB)** 로, AdMob 도입(8/25) 이전 산출물이라 `AD_ID` 도 `POST_NOTIFICATIONS` 도 없다. 이름이 그럴듯해 릴리스 때 실수로 집어 올리기 쉬운 위치·이름이었다.
+- **조사 과정의 함정(기록 목적)**: AAB 내부 매니페스트는 protobuf 라 `unzip -p | strings | grep` 으로 검사했는데 **이 환경의 grep(ugrep)이 파이프 조합에서 오작동**해 두 파일 모두 "AD_ID 없음" 이라는 **거짓 음성**을 냈다. 확실히 존재하는 `INTERNET` 을 대조군으로 넣자 그것도 "없음" 으로 나와 검사 자체가 무효임이 드러났다. Python `zipfile` 로 바이트 단위 `in` 검사로 바꿔 재측정 — `DayStory.aab` 만 없고 `app-release.aab` 에는 있음을 확정. `aapt2 dump xmltree` 는 AAB proto 매니페스트에 대해 빈 출력을 내 사용하지 않았다. **교훈: 부재를 주장하는 검사는 반드시 대조군으로 검사기 자체를 먼저 검증할 것.**
+- **구현방법**:
+  - `git rm DayStory.aab` — 참조처를 먼저 확인했고 `docs/_archive/ADR.md` 의 서술적 언급 1건뿐이라(빌드 참조 아님) 문서 수정 불필요.
+  - `.gitignore` — 기존 규칙은 `android/app/release/*.aab` 만 막아 루트는 열려 있었다. `/*.aab`, `/*.apk` 추가하고 재발 경위를 주석으로 남김. `git check-ignore -v` 로 루트 aab 가 새 규칙에 걸리고 실제 산출물은 기존대로 무시되는지 양쪽 확인.
+- **변경파일**: `DayStory.aab`(삭제), `.gitignore`, `SESSION_LOG.md`.
+- **부수 확인**: 이 앱은 Firebase Analytics 를 쓰지 않는다(`package.json` 의존성 없음, 소스 사용처 없음 — `package-lock.json` 에만 전이 등장). Play "광고 ID" 선언의 목적 체크박스 판단 근거로 사용.
+- **남은 작업(수동)**: ① Play Console "광고 ID" 선언에서 목적 체크박스가 **전부 비어 있음** — `광고 또는 마케팅` 필수 선택, `애널리틱스` 는 Google 데이터 공개 문서가 광고 ID 를 "third-party advertising **and analytics**" 에 쓴다고 명시하므로 권장. `앱 기능`/`개발자 커뮤니케이션`/`맞춤설정`(앱 콘텐츠 개인화를 뜻하며 광고 타겟팅은 `광고 또는 마케팅` 소관)/`계정 관리` 는 해당 없음. ② **"출시 오류 사용 중지" 체크박스는 체크하지 말 것** — 올바른 아티팩트에는 권한이 있으므로 오류를 숨기는 선택일 뿐이다. ③ 릴리스 아티팩트가 versionCode **29** 인지 확인하고, 아니면 `android/app/release/app-release.aab` 로 교체 업로드. 29 인데도 오류가 남으면 릴리스에 구버전 아티팩트가 함께 활성 상태인지 확인.

@@ -34,6 +34,11 @@ android/app/build/
 android/build/
 android/app/release/*.aab
 android/app/release/*.apk
+# 저장소 루트에 빌드 산출물을 두지 않는다. 과거 루트의 DayStory.aab(5월 빌드,
+# AD_ID 권한 없음)를 실수로 Play 에 업로드해 "광고 ID 선언 불일치" 출시 오류가
+# 났다. 업로드할 파일은 항상 android/app/release/app-release.aab 다.
+/*.aab
+/*.apk
 
 # Firebase cache
 .firebase/

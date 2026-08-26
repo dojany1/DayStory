@@ -13,7 +13,12 @@ android {
         applicationId "com.daystory.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 28      //  (!! 앱 빌드 시 +1 !!)
+        versionCode 29      //  (!! 앱 빌드 시 +1 !!)
+        /* versionName 은 1.6.0 유지 — versionCode 28 로 이미 출시된 1.6.0 의
+           공유 링크 버그(죽은 도메인)만 고친 재출시본이라 표시 버전을 올리지
+           않는다. 주의: 인앱 업데이트 안내(appUpdate.js)는 versionName 만
+           비교하므로 28 을 설치한 사용자에게는 시트가 뜨지 않고 Play 자동
+           업데이트에 의존한다. 1.6.0 출시 직후라 해당 사용자는 소수. */
         versionName "1.6.0" //  (!! 버전 업데이트 시 변경 !!)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

@@ -566,6 +566,45 @@ describe('AdMob ID 배선', () => {
     expect(publisherOf(iosApp)).toBe(PUBLISHER);
     expect(new Set(unitPublishers)).toEqual(new Set([PUBLISHER]));
   });
+
+  /* ───────────────────────────────────────────────────────────────
+     SKAdNetworkItems (iOS 설치 기여 측정 허용 목록)
+     ---------------------------------------------------------------
+     회귀 배경(2026-08-26): Google 자체 ID 1개만 넣은 최소 구성으로 두고
+     "출시 전 전체 목록으로 교체" TODO 를 남겼는데, 그대로 1.6.0 출시
+     직전까지 방치됐다. 목록에 없는 네트워크는 입찰에서 빠져 iOS 광고
+     수익이 조용히 깎이므로(에러도 경고도 없다) 테스트로 고정한다.
+     출처: https://developers.google.com/admob/ios/privacy/strategies
+     ─────────────────────────────────────────────────────────────── */
+
+  /** Google 자체 네트워크 ID — 빠지면 AdMob 기여 측정 자체가 불가능하다 */
+  const GOOGLE_SKAN_ID = 'cstr6suwn9.skadnetwork';
+
+  const skanIds = () => {
+    const plist = read('ios/App/App/Info.plist');
+    const block = plist.match(
+      /<key>SKAdNetworkItems<\/key>\s*<array>([\s\S]*?)<\/array>/,
+    )?.[1] ?? '';
+    return block.match(/<string>([^<]+)<\/string>/g)?.map((s) =>
+      s.replace(/<\/?string>/g, ''),
+    ) ?? [];
+  };
+
+  it('SKAdNetworkItems 에 Google 자체 네트워크 ID 가 있다', () => {
+    expect(skanIds()).toContain(GOOGLE_SKAN_ID);
+  });
+
+  it('SKAdNetworkItems 가 최소 구성(1개)으로 되돌아가지 않았다', () => {
+    /* 정확한 개수는 Google 이 갱신하므로 고정하지 않는다. "전체 목록을
+       채웠다" 는 사실만 지킨다 — 1~2개면 TODO 상태로 되돌아간 것이다. */
+    expect(skanIds().length).toBeGreaterThanOrEqual(40);
+  });
+
+  it('SKAdNetwork ID 가 형식에 맞고 중복이 없다', () => {
+    const ids = skanIds();
+    ids.forEach((id) => expect(id).toMatch(/^[a-z0-9]{6,12}\.skadnetwork$/));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });
 
 /* =====================================================================
